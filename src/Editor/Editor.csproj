@@ -1,0 +1,94 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Console app in Debug so startup exceptions are visible; windowed in Release. -->
+    <OutputType Condition="'$(Configuration)' == 'Debug'">Exe</OutputType>
+    <OutputType Condition="'$(Configuration)' != 'Debug'">WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>ikemen-media-editor</AssemblyName>
+    <RootNamespace>Editor</RootNamespace>
+    <!-- The exe's icon in Explorer; App.axaml gives every window the same one. Redraw with Assets/make-icon.py. -->
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <!-- Calendar versioning: the build date (local) is the version, shown in About and
+         the exe's file properties. Dots, not dashes, so tools don't read it as a
+         pre-release. A second release on one day gets a suffix: 2026.10.12.2. -->
+    <Version>$([System.DateTime]::Now.ToString('yyyy.MM.dd'))</Version>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <!-- Release publishes are trimmed (~73 MB to ~21 MB); see the TrimmerRootAssembly note below.
+         Self-contained only: the SDK refuses to trim a framework-dependent publish. -->
+    <PublishTrimmed Condition="'$(Configuration)' == 'Release' and '$(SelfContained)' == 'true'">true</PublishTrimmed>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.2" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.2" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.2" />
+    <PackageReference Include="Avalonia.Diagnostics" Version="11.3.2" Condition="'$(Configuration)' == 'Debug'" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\app.ico" />
+  </ItemGroup>
+  <!-- The alternate themes ship as plain text files rather than C# literals, so
+       they can be edited without a recompile. Copied next to the exe; Themes
+       writes the default theme from Fallback and refreshes these on each
+       build and startup. Keep each file's comment block in step with Themes.Header. -->
+  <ItemGroup>
+    <None Include="themes\*.txt" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+  <!-- License files for the release zip: our LICENSE beside the
+       exe as LICENSE.txt; the third-party index and texts (third-party/) in lib/, next to the
+       DLLs they cover. Copied from
+       the NuGet packages; Avalonia, MicroCom and Tmds.DBus ship none, so theirs come
+       from each repo (licence.md, LICENSE, COPYING). Refresh when a version changes. Kept out of the
+       single-file bundle so they stay readable on disk. -->
+  <ItemGroup>
+    <None Include="..\..\LICENSE" Link="LICENSE.txt" Condition="Exists('..\..\LICENSE')"
+          CopyToOutputDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+    <None Include="third-party\*.txt" Link="lib\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+  </ItemGroup>
+  <!-- The example canvas background ships as a plain PNG beside the exe;
+       Preferences > Canvas > Background > Example points at it. -->
+  <ItemGroup>
+    <None Include="backgrounds\*.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Sff/Sff.csproj" />
+    <ProjectReference Include="../Air/Air.csproj" />
+    <ProjectReference Include="../Snd/Snd.csproj" />
+    <ProjectReference Include="../Def/Def.csproj" />
+  </ItemGroup>
+  <!-- Trimming (PublishTrimmed=true) cannot see members reached only by reflection,
+       and drops them with no runtime error. Avalonia resolves XAML bindings
+       reflectively, so without this the trimmer deletes the property a
+       {Binding} needs and the cell renders empty instead. Rooting this assembly
+       keeps every member in it, including those properties.
+
+       The Include is the ASSEMBLY name (AssemblyName above), not the root
+       namespace — "Editor" here would match nothing and fail the build.
+
+       This does not un-trim the framework: the bulk of the size saving comes
+       from framework assemblies that are still trimmed. What it gives back is
+       this assembly's own code, which is why the saving largely survives.
+       Settings.json is handled separately by SettingsContext, because
+       SprMakerOptions/SprMaker2Options live in the Sff assembly and would not
+       be covered by rooting this one. See "Trimming is only safe for XAML after
+       a JsonSerializerContext" in agents/features.md. -->
+  <ItemGroup>
+    <TrimmerRootAssembly Include="ikemen-media-editor" />
+  </ItemGroup>
+  <!-- Debug only: a fresh settings.json on each dev build, without touching Release,
+       publish, or other people's settings. A failed reset warns instead of failing the build. -->
+  <!-- Publish puts the packages' native DLLs (Skia, HarfBuzz, ANGLE; Avalonia's on macOS) in
+       lib/ instead of beside the exe; Program.UseLibFolder loads them from there. -->
+  <Target Name="MoveNativeLibrariesToLib" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Condition="'%(ResolvedFileToPublish.AssetType)' == 'native' and '%(ResolvedFileToPublish.NuGetPackageId)' != ''">
+        <RelativePath>lib\%(Filename)%(Extension)</RelativePath>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+  <Target Name="ResetUserSettingsAfterBuild" AfterTargets="Build"
+          Condition="'$(Configuration)' == 'Debug' and '$(IsCrossTargetingBuild)' != 'true' and '$(DesignTimeBuild)' != 'true'">
+    <Exec Command="dotnet &quot;$(TargetPath)&quot; --reset-settings" ContinueOnError="WarnAndContinue" />
+  </Target>
+</Project>

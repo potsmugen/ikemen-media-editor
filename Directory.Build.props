@@ -1,0 +1,20 @@
+<Project>
+  <!-- One output folder for the whole app instead of one per project. Without
+       this, each of the five projects under src/ grows its own bin/, so running
+       the editor means knowing which of them to start and shipping a folder
+       that still needs the rest copied in. With it, the editor, its four
+       libraries and every Avalonia dependency land together in
+       build/<Configuration>/ — the single folder to run from.
+
+       Intermediate output stays per project: obj/ is where MSBuild tracks
+       incremental state and sharing it would break parallel builds. -->
+  <PropertyGroup>
+    <!-- Configuration only, no framework level: MSBuild appends the
+         configuration to BaseOutputPath itself, so naming it here too would
+         give build/Debug/Debug/. -->
+    <BaseOutputPath>$(MSBuildThisFileDirectory)build/</BaseOutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <!-- Debug info inside each assembly instead of loose .pdb files; crash.log keeps line numbers. -->
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+</Project>

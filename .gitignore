@@ -1,0 +1,5 @@
+bin/
+obj/
+# Shared output folder for the app projects; see Directory.Build.props.
+build/
+working/

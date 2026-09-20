@@ -1,0 +1,111 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Editor.App"
+             RequestedThemeVariant="Dark">
+  <Application.Styles>
+    <FluentTheme />
+    <!-- The app's +/- spinners, shared by every window (they used to live in
+         MainWindow.Styles only, which left hand-built dialogs on Fluent's
+         default chevrons). Replaces ButtonSpinner's ControlTemplate outright,
+         using only what ButtonSpinner's own code guarantees regardless of
+         theme: a Content property (the embedded TextBox) and two named parts
+         of type Button, PART_IncreaseButton/PART_DecreaseButton, that
+         ButtonSpinner's own code looks up and wires spinning to itself. Since
+         we own this template completely, the column is a fixed, guaranteed
+         16px — not a hopeful Setter fighting a theme's default.
+         The Border is Fluent's, kept deliberately: NumericUpDown forwards its
+         Background/BorderBrush/BorderThickness here (its inner TextBox is
+         Background="Transparent"), so without this element a NumericUpDown
+         painted no fill and no border at all and blended into the panel behind
+         it. It also carries CornerRadius and MinHeight, which the bare Grid
+         dropped, so the box no longer matches TextBox corners or height. -->
+    <!-- Text that sets no size of its own follows Preferences' font size
+         (MainWindow.ApplyUiScale sets ControlContentThemeFontSize). -->
+    <Style Selector=":is(Window)">
+      <Setter Property="FontSize" Value="{DynamicResource ControlContentThemeFontSize}" />
+      <!-- Title bar and taskbar icon for every window, dialogs included. -->
+      <Setter Property="Icon" Value="/Assets/app.ico" />
+    </Style>
+    <!-- Every button's label sits centered in its box, however wide the button is stretched. -->
+    <Style Selector="Button, ToggleButton, RepeatButton">
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <!-- Disabled button appearance: ensure it looks disabled in both themes -->
+    <Style Selector="ListBoxItem:selected > Grid">
+      <Setter Property="Background" Value="{DynamicResource ThemeSelection}" />
+    </Style>
+    <Style Selector="Button:disabled, ToggleButton:disabled, RepeatButton:disabled">
+      <Setter Property="Opacity" Value="0.5" />
+      <Setter Property="Background" Value="{DynamicResource ThemeDim}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ThemeDim}" />
+      <Setter Property="Foreground" Value="{DynamicResource ThemeMutedText}" />
+    </Style>
+    <Style Selector="NumericUpDown">
+      <Setter Property="ShowButtonSpinner" Value="True" />
+      <Setter Property="MinWidth" Value="60" />
+    </Style>
+    <Style Selector="ButtonSpinner">
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ButtonSpinner">
+            <Border Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="{TemplateBinding CornerRadius}"
+                    MinHeight="{TemplateBinding MinHeight}">
+            <Grid ColumnDefinitions="*,Auto">
+              <ContentPresenter Grid.Column="0"
+                                 Content="{TemplateBinding Content}"
+                                 ContentTemplate="{TemplateBinding ContentTemplate}"
+                                 HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                 VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                 Padding="{TemplateBinding Padding}" />
+              <Grid Grid.Column="1" RowDefinitions="*,*" IsVisible="{TemplateBinding ShowButtonSpinner}">
+                <RepeatButton Grid.Row="0" Name="PART_IncreaseButton" Content="+" FontWeight="Bold"
+                              FontSize="9" Padding="0" Width="16" HorizontalAlignment="Stretch"
+                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                <RepeatButton Grid.Row="1" Name="PART_DecreaseButton" Content="&#8722;" FontWeight="Bold"
+                              FontSize="9" Padding="0" Width="16" HorizontalAlignment="Stretch"
+                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+              </Grid>
+            </Grid>
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Application.Styles>
+
+  <Application.Resources>
+    <!-- No Theme* keys are declared here, and none may be. ApplyTheme fills a
+         ResourceDictionary and attaches it to Application.Resources.MergedDictionaries,
+         swapping the whole thing on each change: writing ~100 keys straight into
+         this dictionary costs one invalidation pass per key, which is why a theme
+         switch used to take ~320ms against ~50ms when ApplyTheme set 14 keys.
+         A dictionary's own entries outrank its merged dictionaries, so a declared
+         default here would silently shadow every live value. ApplyTheme runs in
+         MainWindow's constructor, before the window is shown, so nothing is ever
+         rendered without a theme applied. -->
+    <!-- Font sizes at 100%; MainWindow.ApplyUiScale rescales them from
+         Preferences. Fixed-size glyph buttons keep literal sizes. -->
+    <x:Double x:Key="UiFont10">10</x:Double>
+    <x:Double x:Key="UiFont11">11</x:Double>
+    <x:Double x:Key="UiFont12">12</x:Double>
+    <x:Double x:Key="UiFont13">13</x:Double>
+    <x:Double x:Key="UiFont14">14</x:Double>
+    <x:Double x:Key="UiFont16">16</x:Double>
+    <x:Double x:Key="UiFont20">20</x:Double>
+    <Thickness x:Key="UiCompactButtonPadding">8,2</Thickness>
+    <!-- The one gap between buttons, used by every panel and tab; MainWindow.ApplyUiScale
+         rescales these from Preferences. Fixes the 4/6/8/10 mix the panels had.
+         A Grid spacer column can't take a resource directly, so a button row uses an
+         Auto column holding a childless Border sized to UiButtonGap: that keeps the
+         buttons either side exactly equal, which a margin on one of them would not. -->
+    <x:Double x:Key="UiButtonGap">4</x:Double>
+    <Thickness x:Key="UiGapRight">4,0,0,0</Thickness>
+    <Thickness x:Key="UiGapTop">0,4,0,0</Thickness>
+    <Thickness x:Key="UiGapRightBottom">4,0,0,4</Thickness>
+  </Application.Resources>
+</Application>
+

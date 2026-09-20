@@ -1,0 +1,37 @@
+# Theme colors for the editor.
+#
+# Copy this file, give it a new name, and edit the colors to make your own.
+# The filename without ".txt" is what appears in Preferences > Theme.
+# Anything you save here is used as-is; the app never rewrites your files.
+#
+# Colors are #RRGGBB.
+#
+# Panel       window, menu bar, and panel backgrounds
+# List        list boxes
+# Field       input backgrounds (text boxes, number boxes)
+# Hover       button hover backgrounds
+# Text        primary text
+# Muted       secondary text: labels and table column headers
+# Dim         disabled text
+# Separator   the line between panels: splitters and panel borders
+# Canvas      backdrop behind sprite pixels
+# Accent      filled slider tracks and checkboxes
+# Selection   selected table rows
+# Active      checked toggle button background
+# ActiveText  checked toggle button text
+# Variant     Dark or Light; also sets the color of native window chrome
+
+Panel   = #202923
+List    = #151d18
+Field   = #303b34
+Hover   = #3c4b3e
+Text    = #e8eee9
+Muted   = #a6b8a9
+Dim     = #7c9180
+Separator = #303b34
+Canvas  = #252d27
+Accent  = #9bcb76
+Selection = #344a3a
+Active    = #547a3c
+ActiveText = #ffffff
+Variant = Dark

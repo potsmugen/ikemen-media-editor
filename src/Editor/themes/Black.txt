@@ -1,0 +1,41 @@
+# Theme colors for the editor.
+#
+# Copy this file, give it a new name, and edit the colors to make your own.
+# The filename without ".txt" is what appears in Preferences > Theme.
+# Anything you save here is used as-is; the app never rewrites your files.
+#
+# Colors are #RRGGBB.
+#
+# Panel       window, menu bar, and panel backgrounds
+# List        list boxes
+# Field       input backgrounds (text boxes, number boxes)
+# Hover       button hover backgrounds
+# Text        primary text
+# Muted       secondary text: labels and table column headers
+# Dim         disabled text
+# Separator   the line between panels: splitters and panel borders
+# Canvas      backdrop behind sprite pixels
+# Accent      filled slider tracks and checkboxes
+# Selection   selected table rows
+# Active      checked toggle button background
+# ActiveText  checked toggle button text
+# Variant     Dark or Light; also sets the color of native window chrome
+#
+# GitHub's own dark palette (Primer): canvas #0d1117, subtle #161b22, border
+# #30363d, fg #e6edf3, muted #8b949e, subtle fg #6e7681. List sits a shade
+# above Panel, as in Black, so the sprite list reads as its own surface.
+
+Panel   = #0d1117
+List    = #161b22
+Field   = #21262d
+Hover   = #2f3945
+Text    = #e6edf3
+Muted   = #8b949e
+Dim     = #6e7681
+Separator = #30363d
+Canvas  = #161b22
+Accent  = #f0883e
+Selection = #334252
+Active    = #b85c00
+ActiveText = #ffffff
+Variant = Dark

@@ -1,0 +1,1802 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Editor"
+        xmlns:conv="using:Avalonia.Data.Converters"
+        x:Class="Editor.MainWindow"
+        Width="1180" Height="740" MinWidth="820" MinHeight="520"
+        Title="Ikemen Media Editor" Background="{DynamicResource ThemePanelBg}">
+
+  <DockPanel>
+
+    <Menu x:Name="MainMenu" DockPanel.Dock="Top" Background="{DynamicResource ThemePanelBg}">
+      <MenuItem Header="_File">
+        <MenuItem Header="_Open Character" Click="OnOpenCharacter" InputGesture="Ctrl+Shift+O" />
+        <MenuItem Header="Open _Stage" Click="OnOpenStage" />
+        <MenuItem Header="Open _Other" Click="OnOpenOther"
+                  ToolTip.Tip="Opens a screenpack, lifebar or storyboard .def with its sprites and sounds." />
+        <MenuItem Header="Open _Recent" x:Name="RecentMenu" />
+        <Separator />
+        <MenuItem Header="Save _All" Click="OnSaveAll" />
+        <Separator />
+        <MenuItem Header="Media _Health Report" Click="OnShowHealthReport"
+                  ToolTip.Tip="Checks everything loaded for problems." />
+        <Separator />
+        <MenuItem Header="Close _All" Click="OnCloseAll" />
+        <Separator />
+        <MenuItem Header="E_xit" Click="OnExit" InputGesture="Alt+F4" />
+      </MenuItem>
+
+      <MenuItem Header="_Edit">
+        <MenuItem Header="_Undo" x:Name="UndoItem" Click="OnUndo" InputGesture="Ctrl+Z" />
+        <MenuItem Header="_Redo" x:Name="RedoItem" Click="OnRedo" InputGesture="Ctrl+Y" />
+      </MenuItem>
+
+      <MenuItem Header="{x:Static local:Strings.ViewMenu}">
+        <MenuItem Header="{x:Static local:Strings.ViewZoomIn}" Click="OnZoomIn" />
+        <MenuItem Header="{x:Static local:Strings.ViewZoomOut}" Click="OnZoomOut" />
+        <MenuItem Header="{x:Static local:Strings.ViewActualSize}" Click="OnResetView" InputGesture="Ctrl+D0" />
+        <MenuItem Header="{x:Static local:Strings.ViewZoomToFit}" Click="OnZoomFit" InputGesture="Ctrl+D9" />
+        <Separator />
+        <MenuItem Header="{x:Static local:Strings.ViewShowMask}" x:Name="MaskItem" Click="OnToggleMask"
+                  ToggleType="CheckBox" InputGesture="Ctrl+M" />
+        <MenuItem Header="{x:Static local:Strings.ViewSpriteBounds}" x:Name="BoundsItem" Click="OnToggleBounds"
+                  ToggleType="CheckBox" InputGesture="Ctrl+B" />
+        <MenuItem Header="{x:Static local:Strings.ViewAxisGuides}" x:Name="GuidesItem" Click="OnToggleGuides"
+                  ToggleType="CheckBox" InputGesture="Ctrl+G" />
+        <Separator />
+        <MenuItem Header="{x:Static local:Strings.ViewResetPanelSizes}" Click="OnResetPanelSizes" />
+        <Separator />
+        <MenuItem Header="{x:Static local:Strings.ViewShowStatusBar}" x:Name="StatusBarItem" Click="OnToggleStatusBar" ToggleType="CheckBox" />
+      </MenuItem>
+
+      <!-- Sprites: everything that reads or writes the .sff. -->
+      <MenuItem Header="_Sprites">
+        <MenuItem Header="_New Sprite File" Click="OnNewSff"
+                  ToolTip.Tip="Starts a blank sprite file in place of the open one." />
+        <MenuItem Header="_Open" Click="OnOpen" InputGesture="Ctrl+O" />
+        <!-- Ctrl+S is global and tab-aware (saves whichever tab is active) rather
+             than tied to this one item; see OnKeyDown/SaveCurrentTab in the
+             code-behind, and Help > Keyboard Shortcuts. -->
+        <MenuItem Header="_Save" x:Name="SaveSpritesItem" Click="OnSave" />
+        <MenuItem Header="Save _As" Click="OnSaveAs" InputGesture="Ctrl+Shift+S" />
+        <MenuItem Header="Save Like Spr_Maker" Click="OnSaveLikeSprMaker"
+                  ToolTip.Tip="Saves a copy built the way SprMaker 0.97 or 2.01 would." />
+        <Separator />
+        <MenuItem Header="Export _All With Manifest" Click="OnExportAllSprites"
+                  ToolTip.Tip="Exports every sprite with a manifest; you choose the format, palette PNGs and padding." />
+        <MenuItem Header="_Import All From Manifest" Click="OnImportAllSpritesAndPalettes"
+                  ToolTip.Tip="Imports from an Export All manifest. Asks before overwriting." />
+        <MenuItem Header="_Link All Duplicate Sprites" Click="OnShareAllDuplicateSprites"
+                  ToolTip.Tip="Links sprites with identical pixels to one copy. Makes the file smaller." />
+        <MenuItem Header="Unl_ink All Sprites" Click="OnUnshareAllSprites"
+                  ToolTip.Tip="Gives every linked sprite its own pixels. Makes the file bigger." />
+        <MenuItem Header="Import from S_heet" Click="OnAddSpriteSheet"
+                  ToolTip.Tip="Finds the sprites in one image and adds each as its own sprite, cropped tight." />
+
+      </MenuItem>
+
+      <MenuItem Header="Pa_lettes" SubmenuOpened="OnPalettesMenuOpened">
+        <MenuItem Header="_Import" Click="OnImportPaletteFiles" />
+        <MenuItem Header="_Create From Images" Click="OnCreatePaletteFromImages"
+                  ToolTip.Tip="Builds one palette from the colors of PNG or PCX images, most used first. Over 255 colors are reduced." />
+        <MenuItem x:Name="CombinePalettesMenuItem" Header="Com_bine Into New" Click="OnCombinePalettes"
+                  ToolTip.Tip="Builds a temp palette from the colors of the selected palettes. Nothing else changes." />
+        <MenuItem x:Name="MergePalettesMenuItem" Header="_Merge and Update Sprites" Click="OnMergePalettes"
+                  ToolTip.Tip="Merges the selected palettes into one and remaps their sprites. Imported palettes only add colors." />
+        <Separator />
+        <MenuItem Header="_Find Duplicate Palettes" Click="OnFindDuplicatePalettes"
+                  ToolTip.Tip="Finds duplicate embedded palettes and lets you merge or link them." />
+        <MenuItem Header="Find _Unused Palettes" Click="OnFindUnusedPalettes"
+                  ToolTip.Tip="Lists unused embedded palettes, excluding group 1 and external palettes." />
+      </MenuItem>
+
+      <MenuItem Header="_Animations">
+        <MenuItem Header="_New Animation File" Click="OnNewAir"
+                  ToolTip.Tip="Starts a blank animation file in place of the open one." />
+        <MenuItem Header="_Open .air or .def" Click="OnOpenAir" />
+        <MenuItem Header="_Save .air" x:Name="SaveAnimationsItem" Click="OnSaveAir" />
+        <MenuItem Header="Save .air _As" Click="OnSaveAirAs" />
+        <Separator />
+        <MenuItem Header="_Sort Actions Ascending" Click="OnSortActionsAscending"
+                  ToolTip.Tip="Reorders every action by number, ascending" />
+        <MenuItem Header="_Apply Suggested Names to All Actions" Click="OnApplyAllSuggestedNames"
+                  ToolTip.Tip="Adds the standard action name as the comment where there is none." />
+        <MenuItem Header="Auto _Clsn2 For All" Click="OnAutoHurtBoxesForAll"
+                  ToolTip.Tip="Replaces Clsn2 on every frame that has its own, in every action." />
+        <MenuItem Header="Sort _Boxes For All" Click="OnSortBoxesForAll"
+                  ToolTip.Tip="Reorders every frame's own Clsn and every default, and fixes Clsn counts and numbering." />
+
+      </MenuItem>
+
+      <MenuItem Header="S_ounds">
+        <MenuItem Header="_New Sound File" Click="OnNewSnd"
+                  ToolTip.Tip="Starts a blank sound file in place of the open one." />
+        <MenuItem Header="_Open .snd" Click="OnOpenSnd" />
+        <MenuItem Header="_Save .snd" x:Name="SaveSoundsItem" Click="OnSaveSnd" />
+        <MenuItem Header="Save .snd _As" Click="OnSaveSndAs" />
+        <MenuItem Header="_Sort Ascending" Click="OnSortSoundsAscending"
+                  ToolTip.Tip="Reorders sounds by group, then number, ascending" />
+        <Separator />
+        <MenuItem Header="Export _All With Manifest" Click="OnExportAllSounds"
+                  ToolTip.Tip="Exports every sound as .wav, with a manifest." />
+        <MenuItem Header="_Import All From Manifest" Click="OnImportAllSounds"
+                  ToolTip.Tip="Imports from an Export All manifest. Asks before overwriting." />
+        <MenuItem Header="_Downsample All" Click="OnDownsampleAll"
+                  ToolTip.Tip="Lowers every sound above the chosen rate. One undo step." />
+      </MenuItem>
+
+      <MenuItem Header="_Settings">
+        <MenuItem Header="_Preferences" Click="OnPreferences" />
+        <MenuItem Header="_Suggested Action Names" Click="OnEditActionNames" />
+        <MenuItem Header="_Open Settings File" Click="OnOpenSettingsFile" />
+        <MenuItem Header="Open _Themes Folder" Click="OnOpenThemesFolder" />
+        <MenuItem Header="Open _Crash Logs Folder" Click="OnOpenCrashLogsFolder"
+                  ToolTip.Tip="Opens the folder with crash.log and trace.log." />
+      </MenuItem>
+
+      <MenuItem Header="_Help">
+        <MenuItem Header="Keyboard _Shortcuts" Click="OnShortcuts" />
+        <MenuItem Header="_About" Click="OnAbout" />
+      </MenuItem>
+    </Menu>
+
+    <Border x:Name="StatusBar" DockPanel.Dock="Bottom" Background="{DynamicResource ThemePanelBg}" Padding="8,4">
+      <Grid ColumnDefinitions="*,Auto,*">
+        <TextBlock Grid.Column="0" x:Name="StatusText" Text="No file loaded" Foreground="{DynamicResource ThemeMutedText}" />
+        <TextBlock Grid.Column="1" x:Name="CursorStatusText" Foreground="{DynamicResource ThemeMutedText}" HorizontalAlignment="Center" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+          <TextBlock x:Name="SffStatusText" Foreground="{DynamicResource ThemeMutedText}" Margin="12,0,0,0" />
+          <TextBlock x:Name="AirStatusText" Foreground="{DynamicResource ThemeMutedText}" Margin="12,0,0,0" />
+          <TextBlock x:Name="PaletteStatusText" Foreground="{DynamicResource ThemeMutedText}" Margin="12,0,0,0" />
+          <TextBlock x:Name="SndStatusText" Foreground="{DynamicResource ThemeMutedText}" Margin="12,0,0,0" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <TabControl x:Name="Tabs" SelectionChanged="OnTabChanged" Margin="0,-4,0,0" Background="{DynamicResource ThemePanelBg}"
+                Theme="{StaticResource SharedTabControlTheme}">
+      <TabControl.Resources>
+        <ControlTheme x:Key="SharedTabControlTheme" TargetType="TabControl">
+          <Setter Property="Margin" Value="0" />
+          <Setter Property="Padding" Value="{DynamicResource TabItemMargin}" />
+          <Setter Property="Background" Value="{DynamicResource TabControlBackground}" />
+          <Setter Property="Template">
+            <ControlTemplate>
+              <Border BorderBrush="{TemplateBinding BorderBrush}"
+                      BorderThickness="{TemplateBinding BorderThickness}"
+                      CornerRadius="{TemplateBinding CornerRadius}"
+                      Background="{TemplateBinding Background}"
+                      HorizontalAlignment="{TemplateBinding HorizontalAlignment}"
+                      VerticalAlignment="{TemplateBinding VerticalAlignment}">
+                <Grid RowDefinitions="Auto,Auto,*">
+                  <ItemsPresenter Name="PART_ItemsPresenter" Margin="{DynamicResource TabControlTopPlacementItemMargin}"
+                                  ItemsPanel="{TemplateBinding ItemsPanel}" />
+                  <Border Grid.Row="1" Height="{DynamicResource PanelSeparatorWidth}"
+                          Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                  <ContentPresenter Grid.Row="2" Name="PART_SelectedContentHost"
+                                    Margin="{TemplateBinding Padding}"
+                                    HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                    VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                    Content="{TemplateBinding SelectedContent}"
+                                    ContentTemplate="{TemplateBinding SelectedContentTemplate}" />
+                </Grid>
+              </Border>
+            </ControlTemplate>
+          </Setter>
+        </ControlTheme>
+      </TabControl.Resources>
+      <TabControl.Styles>
+        <!-- Tab headers are chrome: deliberately larger than body text so
+             they read as chrome. The negative margin above pulls the strip up
+             under the menu bar; tune if it clips. -->
+        <Style Selector="TabItem">
+          <Setter Property="FontSize" Value="{DynamicResource UiFont16}" />
+        </Style>
+        <!-- A dimmed header just means the file that feeds the tab isn't
+             loaded; dimmed tabs stay selectable (the `empty` class is
+             toggled in code, see SyncTabDimming). Dim alone carries the
+             effect — an extra Opacity setter on top stacked a second fade
+             onto it, fading the text well past what Dim already asks for. -->
+        <Style Selector="TabItem.empty">
+          <Setter Property="Foreground" Value="{DynamicResource ThemeDimText}" />
+        </Style>
+      </TabControl.Styles>
+
+
+      <!-- ============================ SPRITES ============================ -->
+      <TabItem x:Name="SpritesTab" Header="Sprites">
+        <Grid x:Name="SpritesGrid">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300" />
+            <ColumnDefinition Width="{DynamicResource PanelSeparatorTrack}" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="{DynamicResource PanelSeparatorTrack}" />
+            <ColumnDefinition Width="300" />
+          </Grid.ColumnDefinitions>
+
+          <!-- ClipToBounds: the table header is a Grid of Auto columns holding Borders with
+               explicit pixel widths (set in code by TextTableWidths). Avalonia's Grid keeps
+               Auto columns at their natural size even when the panel is narrower, and Grid
+               does not clip, so a narrow panel used to paint header cells past the panel
+               edge, over the splitter and under the neighboring column. The list rows were
+               already clipped (Fluent's ScrollContentPresenter overrides ClipToBounds to
+               true), so only the header leaked; clipping the panel stops both. -->
+          <Border Grid.Column="0" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}" ClipToBounds="True">
+            <Grid RowDefinitions="Auto,*">
+              <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+                <TextBlock x:Name="SpriteListLabel" Text="Sprites" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                <Button Grid.Column="1" x:Name="SpriteListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
+                        Click="OnToggleSpriteListPanel" ToolTip.Tip="Collapse this panel" />
+              </Grid>
+              <Grid Grid.Row="1" x:Name="SpriteListBody">
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="*" MinHeight="80" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,6">
+                  <TextBox Grid.Column="0" x:Name="FilterBox"
+                           Watermark="Filter, e.g. 5000 or 5000,10"
+                           TextChanged="OnFilterChanged" KeyDown="OnFilterKeyDown" />
+                  <Button Grid.Column="1" Content="Clear" Tag="FilterBox" Click="OnClearFilterClick" Margin="4,0,0,0" />
+                </Grid>
+
+                <Grid Grid.Row="1" RowDefinitions="Auto,*">
+                  <!-- Widths set in code (TextTableWidths); SharedSizeGroup did not keep the virtualized rows aligned. -->
+                  <Grid Grid.Row="0" x:Name="SpriteTableHeader">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="Auto" />
+                      <ColumnDefinition Width="Auto" />
+                      <ColumnDefinition Width="Auto" />
+                      <ColumnDefinition Width="Auto" />
+                      <ColumnDefinition Width="Auto" />
+                      <ColumnDefinition Width="Auto" />
+                      <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                      <TextBlock Text="#" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                    </Border>
+                    <Border Grid.Column="1" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                      <TextBlock Text="Group" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                    </Border>
+                    <Border Grid.Column="2" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                      <TextBlock Text="Number" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                    </Border>
+                    <Border Grid.Column="3" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                      <TextBlock Text="X" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                    </Border>
+                    <Border Grid.Column="4" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                      <TextBlock Text="Y" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                    </Border>
+                    <Border Grid.Column="5" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                      <TextBlock Text="Palette" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                    </Border>
+                    <Border Grid.Column="6" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,0,2" Padding="4,2">
+                      <TextBlock Text="Link" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                    </Border>
+                  </Grid>
+                  <!-- SpriteList is the visible table itself: a real virtualizing ListBox,
+                       so only the rows on screen are ever realized as controls regardless
+                       of sprite count. _current tracks the active sprite; multi-selection
+                       is used by the palette buttons. -->
+                  <ListBox Grid.Row="1" x:Name="SpriteList" SelectionMode="Multiple" SelectionChanged="OnSpriteSelected" AutoScrollToSelectedItem="False" Background="{DynamicResource ThemeListBg}">
+                    <ListBox.Styles>
+                      <Style Selector="ListBoxItem">
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="MinHeight" Value="0" />
+                      </Style>
+                      <Style Selector="ListBoxItem:selected">
+                        <Setter Property="Background" Value="{DynamicResource ThemeSelection}" />
+                      </Style>
+                      <Style Selector="Border.spritefillhandle">
+                        <Setter Property="Width" Value="7" />
+                        <Setter Property="Height" Value="7" />
+                        <Setter Property="HorizontalAlignment" Value="Right" />
+                        <Setter Property="VerticalAlignment" Value="Bottom" />
+                        <Setter Property="Background" Value="{DynamicResource ThemeAccent}" />
+                        <Setter Property="Cursor" Value="Cross" />
+                        <Setter Property="ZIndex" Value="11" />
+                        <Setter Property="IsVisible" Value="False" />
+                      </Style>
+                      <Style Selector="Border.cell:pointerover Border.spritefillhandle">
+                        <Setter Property="IsVisible" Value="True" />
+                      </Style>
+                      <Style Selector="Border.cell.filltarget > Grid">
+                        <Setter Property="Background" Value="{DynamicResource ThemeSelection}" />
+                      </Style>
+                    </ListBox.Styles>
+                    <ListBox.ItemTemplate>
+                      <DataTemplate>
+                        <Grid PointerPressed="OnSpriteRowPointerPressed" PointerMoved="OnSpriteRowPointerMoved"
+                              PointerReleased="OnSpriteRowPointerReleased">
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                          </Grid.ColumnDefinitions>
+                          <Border Grid.Column="0" Width="{Binding Widths[0]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1" Cursor="Hand">
+                            <TextBlock Text="{Binding Number}" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont13}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                          </Border>
+                          <!-- One click selects the row. Editable fields open their
+                               editor on double-click; DoubleTapped lives on the Border,
+                               not the TextBlock, for reliable hit testing. -->
+                          <Border Grid.Column="1" Width="{Binding Widths[1]}" Classes="cell" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
+                                  Background="Transparent" Tag="Group" DoubleTapped="OnSpriteCellDoubleTapped"
+                                  ToolTip.Tip="Double-click to change this sprite's group">
+                            <Grid>
+                              <TextBlock Text="{Binding GroupText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                              <Border Classes="spritefillhandle" Tag="Group" PointerPressed="OnSpriteFillHandlePressed" />
+                            </Grid>
+                          </Border>
+                          <Border Grid.Column="2" Width="{Binding Widths[2]}" Classes="cell" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
+                                  Background="Transparent" Tag="Number" DoubleTapped="OnSpriteCellDoubleTapped"
+                                  ToolTip.Tip="Double-click to change this sprite's number">
+                            <Grid>
+                              <TextBlock Text="{Binding NumberText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                              <Border Classes="spritefillhandle" Tag="Number" PointerPressed="OnSpriteFillHandlePressed" />
+                            </Grid>
+                          </Border>
+                          <Border Grid.Column="3" Width="{Binding Widths[3]}" Classes="cell" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
+                                  Background="Transparent" Tag="X" DoubleTapped="OnSpriteCellDoubleTapped"
+                                  ToolTip.Tip="Double-click to change this sprite's X offset">
+                            <Grid>
+                              <TextBlock Text="{Binding XText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                              <Border Classes="spritefillhandle" Tag="X" PointerPressed="OnSpriteFillHandlePressed" />
+                            </Grid>
+                          </Border>
+                          <Border Grid.Column="4" Width="{Binding Widths[4]}" Classes="cell" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
+                                  Background="Transparent" Tag="Y" DoubleTapped="OnSpriteCellDoubleTapped"
+                                  ToolTip.Tip="Double-click to change this sprite's Y offset">
+                            <Grid>
+                              <TextBlock Text="{Binding YText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                              <Border Classes="spritefillhandle" Tag="Y" PointerPressed="OnSpriteFillHandlePressed" />
+                            </Grid>
+                          </Border>
+                          <Border Grid.Column="5" Width="{Binding Widths[5]}" Classes="cell" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
+                                  Background="Transparent" Tag="Palette" DoubleTapped="OnSpriteCellDoubleTapped"
+                                  ToolTip.Tip="Double-click to choose this sprite's palette">
+                            <Grid>
+                              <TextBlock Text="{Binding PaletteText}" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont13}"
+                                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+                              <Border Classes="spritefillhandle" Tag="Palette" PointerPressed="OnSpriteFillHandlePressed" />
+                            </Grid>
+                          </Border>
+                          <Border Grid.Column="6" Width="{Binding Widths[6]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,0,1" Padding="4,1"
+                                  Background="Transparent" Tag="Shared" DoubleTapped="OnSpriteCellDoubleTapped"
+                                  ToolTip.Tip="Double-click to change the sprite link">
+                            <TextBlock Text="{Binding Flags}" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont13}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                          </Border>
+                        </Grid>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </Grid>
+
+                <Grid Grid.Row="2" RowDefinitions="Auto,Auto" Margin="0,6,0,0">
+                  <Grid Grid.Row="0" ColumnDefinitions="*,Auto,*">
+                    <Button Grid.Column="0" Content="Import" HorizontalAlignment="Stretch" Click="OnAddSprite" />
+                    <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                    <Button Grid.Column="2" Content="Export" HorizontalAlignment="Stretch" Click="OnExportSprite"
+                            ToolTip.Tip="Saves the selected sprite, asking for .png or .pcx." />
+                  </Grid>
+                  <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*" Margin="{DynamicResource UiGapTop}">
+                    <Button Grid.Column="0" Content="Replace" HorizontalAlignment="Stretch" Click="OnReplaceSprite" />
+                    <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                    <Button Grid.Column="2" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeleteSprite" />
+                  </Grid>
+                </Grid>
+              </Grid>
+            </Grid>
+          </Border>
+
+          <Border Grid.Column="1" Width="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+          <GridSplitter x:Name="SpritesLeftSplitter" Grid.Column="1" Width="{DynamicResource PanelSeparatorWidth}" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" ResizeDirection="Columns" />
+
+          <Grid Grid.Column="2" x:Name="SpriteCanvasArea">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" MinHeight="0" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" MinHeight="0" />
+              <RowDefinition Height="{DynamicResource PanelSeparatorTrack}" />
+              <RowDefinition Height="1*" MinHeight="80" />
+            </Grid.RowDefinitions>
+            <Border Grid.Row="0" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentHeaderPadding}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
+                <Button x:Name="PaintPanelToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9650;" Width="22" Height="18" Padding="0" FontSize="9"
+                        Click="OnTogglePaintPanel" ToolTip.Tip="Collapse this panel" />
+                <TextBlock Text="Paint" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+              </StackPanel>
+            </Border>
+            <Grid Grid.Row="1" x:Name="PaintPanelBody">
+              <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                <StackPanel>
+                  <Border Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}" BorderBrush="{DynamicResource ThemeSeparator}" BorderThickness="{DynamicResource PanelSeparatorBottomThickness}">
+                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
+                      <ToggleButton x:Name="PaintModeToggle" Content="Paint Mode" Click="OnTogglePaintMode" />
+                      <ToggleButton x:Name="LayersToggle" Content="Layers" Click="OnToggleLayers" IsEnabled="False" />
+                      <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                      <ToggleButton x:Name="PencilToolButton" Content="Pencil" Tag="Pencil" Click="OnSelectPaintTool" IsEnabled="False" />
+                      <ToggleButton x:Name="EraserToolButton" Content="Eraser" Tag="Eraser" Click="OnSelectPaintTool" IsEnabled="False" />
+                      <ToggleButton x:Name="FillToolButton" Content="Fill" Tag="Fill" Click="OnSelectPaintTool" IsEnabled="False" />
+                      <ToggleButton x:Name="EyedropperToolButton" Content="Eyedropper" Tag="Eyedropper" Click="OnSelectPaintTool" IsEnabled="False" />
+                      <ToggleButton x:Name="ReplaceToolButton" Content="Replace" Tag="Replace" Click="OnSelectPaintTool" IsEnabled="False"
+                                    ToolTip.Tip="Paints only over the Replace colors." />
+                      <ToggleButton x:Name="SelectionToolButton" Content="Select" Tag="Selection" Click="OnSelectPaintTool" IsEnabled="False"
+                                    ToolTip.Tip="Select a rectangle to copy or paste pixels." />
+                      <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                      <Button x:Name="CopySelectionButton" Content="Copy" Click="OnCopySelection" IsEnabled="False"
+                              ToolTip.Tip="Copies the selected pixels." />
+                      <Button x:Name="PasteSelectionButton" Content="Paste" Click="OnPasteSelection" IsEnabled="False"
+                              ToolTip.Tip="Pastes in place, as a floating selection." />
+                      <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                      <TextBlock Text="Brush" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                      <NumericUpDown x:Name="BrushSizeBox" Width="70" Minimum="1" Maximum="32" Increment="1" FormatString="0"
+                                     Value="1" IsEnabled="False" ValueChanged="OnBrushSizeChanged"
+                                     ToolTip.Tip="Brush size for Pencil, Eraser and Replace." />
+                      <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                      <Button x:Name="PaintCommitButton" Content="Commit" Click="OnCommitPaint" IsEnabled="False"
+                              ToolTip.Tip="Keeps the paint strokes as one undoable edit." />
+                      <Button x:Name="PaintResetButton" Content="Reset" Click="OnResetPaint" IsEnabled="False"
+                              ToolTip.Tip="Drops the pending paint changes." />
+                    </StackPanel>
+                  </Border>
+                  <Border x:Name="LayerPanel" IsVisible="False" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}" BorderBrush="{DynamicResource ThemeSeparator}" BorderThickness="{DynamicResource PanelSeparatorBottomThickness}">
+                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
+                      <ToggleButton x:Name="BottomLayerButton" Content="Bottom" Tag="Bottom" Click="OnSelectPaintLayer" IsEnabled="False" />
+                      <ToggleButton x:Name="TopLayerButton" Content="Top" Tag="Top" Click="OnSelectPaintLayer" IsEnabled="False"
+                                    ToolTip.Tip="Paint tools draw on the top layer, which Commit merges into the sprite." />
+                      <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                      <Button x:Name="AddLayerButton" Content="Add Layer" Click="OnAddPaintLayer" IsEnabled="False"
+                              ToolTip.Tip="Adds an empty top layer." />
+                      <Button x:Name="DeleteLayerButton" Content="Delete Layer" Click="OnDeletePaintLayer" IsEnabled="False"
+                              ToolTip.Tip="Discards the top layer's pixels." />
+                      <Button x:Name="MergeLayersButton" Content="Merge" Click="OnMergeLayers" IsEnabled="False"
+                              ToolTip.Tip="Flattens the visible layers into the bottom layer." />
+                      <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                      <CheckBox x:Name="BottomLayerVisibleBox" Content="Show bottom" Click="OnBottomLayerVisibleChanged" IsEnabled="False" IsChecked="True" VerticalAlignment="Center" />
+                      <CheckBox x:Name="TopLayerVisibleBox" Content="Show top" Click="OnTopLayerVisibleChanged" IsEnabled="False" IsChecked="True"
+                                VerticalAlignment="Center" ToolTip.Tip="Hidden layers are left out of the sprite." />
+                    </StackPanel>
+                  </Border>
+                  <Border x:Name="ColorReplacerPanel" IsVisible="False" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}" BorderBrush="{DynamicResource ThemeSeparator}" BorderThickness="{DynamicResource PanelSeparatorBottomThickness}">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                      <StackPanel Orientation="Vertical" Spacing="3">
+                        <TextBlock Text="Click a square, then click the sprite or a palette swatch. Paint with the Replace tool to apply."
+                                   Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont11}" />
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                          <TextBlock Text="Active" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont10}" Width="42" VerticalAlignment="Center" />
+                          <StackPanel Orientation="Horizontal" Spacing="4" x:Name="ReplaceActiveRow" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                          <TextBlock Text="Replace" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont10}" Width="42" VerticalAlignment="Center" />
+                          <StackPanel Orientation="Horizontal" Spacing="4" x:Name="ReplaceFromRow" />
+                        </StackPanel>
+                      </StackPanel>
+                      <Button Content="Clear" Click="OnClearReplaceSquares" VerticalAlignment="Center" />
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+              </ScrollViewer>
+            </Grid>
+
+            <!-- Sprites tab only; the Animations tab has its own Animation Onion Skin. -->
+            <Border Grid.Row="2" x:Name="OnionPanelHeader" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentHeaderPadding}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
+                <Button x:Name="OnionPanelToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9650;" Width="22" Height="18" Padding="0" FontSize="9"
+                        Click="OnToggleOnionPanel" ToolTip.Tip="Collapse this panel" />
+                <TextBlock Text="Sprite Onion Skin" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+              </StackPanel>
+            </Border>
+            <Grid Grid.Row="3" x:Name="OnionPanelBody">
+              <Border Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <ToggleButton x:Name="OnionEnabledBox" Content="Show" Click="OnToggleOnion" />
+                  <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                  <StackPanel x:Name="OnionOptionsPanel" Orientation="Horizontal" Spacing="10">
+                  <TextBlock Text="Opacity" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                  <Slider x:Name="OnionOpacitySlider" Minimum="0" Maximum="100" Width="100" VerticalAlignment="Center"
+                          SmallChange="1" LargeChange="10" TickFrequency="1" IsSnapToTickEnabled="True"
+                          ValueChanged="OnOnionOpacityChanged">
+                    <!-- Fluent reserves 15px above and below the thumb (min height 32); drop that so it fits the row. -->
+                    <Slider.Resources>
+                      <GridLength x:Key="SliderPreContentMargin">0</GridLength>
+                      <GridLength x:Key="SliderPostContentMargin">0</GridLength>
+                      <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
+                    </Slider.Resources>
+                  </Slider>
+                  <TextBlock Text="{Binding Value, ElementName=OnionOpacitySlider, StringFormat={}{0:0}%}"
+                             VerticalAlignment="Center" MinWidth="34" />
+                  <CheckBox x:Name="OnionGrayscaleBox" Content="Grayscale" Click="OnToggleOnionGrayscale" VerticalAlignment="Center" />
+                  <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                  <TextBlock Text="Pin sprite" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center"
+                             ToolTip.Tip="Always onion-skin this sprite." />
+                  <NumericUpDown x:Name="OnionGroupBox" Width="90" Minimum="0" Maximum="65535" Increment="1"
+                                 FormatString="0" Watermark="Group" ValueChanged="OnOnionFieldChanged" />
+                  <NumericUpDown x:Name="OnionIndexBox" Width="90" Minimum="0" Maximum="65535" Increment="1"
+                                 FormatString="0" Watermark="Number" ValueChanged="OnOnionFieldChanged" />
+                  <Button Content="Auto" Click="OnOnionUseAuto"
+                          ToolTip.Tip="Unpin: follow the previous sprite." />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+            </Grid>
+
+            <Border Grid.Row="4" Height="{DynamicResource PanelSeparatorWidth}" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+            <local:SpriteView Grid.Row="5" x:Name="SpriteCanvas" />
+          </Grid>
+
+          <Border Grid.Column="3" Width="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+          <GridSplitter x:Name="SpritesRightSplitter" Grid.Column="3" Width="{DynamicResource PanelSeparatorWidth}" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" ResizeDirection="Columns" />
+
+
+          <Border Grid.Column="4" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
+            <Grid RowDefinitions="Auto,*">
+              <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,4">
+                <Button x:Name="SpritePaletteToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9654;" Width="22" Height="22" Padding="0"
+                        Click="OnToggleSpritePalettePanel" ToolTip.Tip="Collapse this panel" />
+                <TextBlock Grid.Column="1" x:Name="SpritePaletteLabel" Text="Sprite tools" Foreground="{DynamicResource ThemeMutedText}"
+                           VerticalAlignment="Center" Margin="6,0,0,0" />
+              </Grid>
+              <Grid Grid.Row="1" x:Name="SpritePaletteBody">
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="*" />
+                  <RowDefinition Height="{DynamicResource PanelSeparatorTrack}" />
+                  <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Border Grid.Row="0" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="Sprite" Foreground="{DynamicResource ThemeMutedText}" />
+                    <!-- The button rows get their own stack so the gap between them is the
+                         setting, like every other tab. The outer 6 is only the label's gap
+                         down to the group, which is panel rhythm rather than button spacing;
+                         merging the two stacks would tie that to the button gap too. -->
+                    <StackPanel Spacing="{DynamicResource UiButtonGap}">
+                      <Grid ColumnDefinitions="*,Auto,*">
+                        <Button Grid.Column="0" Content="Crop" HorizontalAlignment="Stretch" Click="OnCropSprite"
+                                ToolTip.Tip="Trims each selected sprite's empty border." />
+                        <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                        <Button Grid.Column="2" Content="Resize Canvas" HorizontalAlignment="Stretch" Click="OnResizeSpriteCanvas"
+                                ToolTip.Tip="Grows or shrinks each selected sprite's canvas around its pixels." />
+                      </Grid>
+                      <Grid ColumnDefinitions="*,Auto,*">
+                        <Button Grid.Column="0" Content="Shift Offset" HorizontalAlignment="Stretch" Click="OnShiftSpriteOffsets"
+                                ToolTip.Tip="Shifts the selected sprites' axes by the same X/Y amount." />
+                        <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                        <Button Grid.Column="2" Content="Set Axis" HorizontalAlignment="Stretch" Click="OnSetSpriteAxis"
+                                ToolTip.Tip="Places each selected sprite's axis at the chosen canvas position." />
+                      </Grid>
+                      <Button Content="Resize" HorizontalAlignment="Stretch" Click="OnResizeSpritePixels"
+                              ToolTip.Tip="Scales each selected sprite's pixels to a new size." />
+                      <Grid ColumnDefinitions="*,Auto,*">
+                        <Button Grid.Column="0" Content="Flip" HorizontalAlignment="Stretch" Click="OnFlipSprite"
+                                ToolTip.Tip="Mirrors each selected sprite in place." />
+                        <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                        <Button Grid.Column="2" Content="Rotate" HorizontalAlignment="Stretch" Click="OnRotateSprite"
+                                ToolTip.Tip="Rotates each selected sprite by the chosen angle." />
+                      </Grid>
+                      <Button Content="Find Similar" HorizontalAlignment="Stretch" Click="OnFindSimilarSprites"
+                              ToolTip.Tip="Lists the sprites closest to the current one, without changing anything." />
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+                <Border Grid.Row="1" Height="{DynamicResource PanelSeparatorWidth}" VerticalAlignment="Center" Margin="{DynamicResource PanelContentBleed}" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                <GridSplitter Grid.Row="1" Height="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Stretch" ResizeDirection="Rows" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" />
+                <Border Grid.Row="2" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
+                  <Grid RowDefinitions="Auto,Auto,*">
+                    <TextBlock Grid.Row="0" Text="Palette tools" Foreground="{DynamicResource ThemeMutedText}" Margin="0,0,0,6" />
+                    <TextBlock Grid.Row="1" Text="Preview with" Foreground="{DynamicResource ThemeMutedText}" Margin="0,0,0,6" />
+                    <DockPanel Grid.Row="2">
+                      <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,8">
+                        <ComboBox x:Name="PaletteBox" HorizontalAlignment="Stretch"
+                                  SelectionChanged="OnPaletteSelected"
+                                  ToolTip.Tip="Chooses the palette used to preview this sprite." />
+                      </StackPanel>
+                      <StackPanel DockPanel.Dock="Bottom" Spacing="{DynamicResource UiButtonGap}" Margin="0,8,0,0">
+                        <Border Height="{DynamicResource UiSwatchInfoHeight}" ClipToBounds="True">
+                          <TextBlock x:Name="SwatchInfo" Foreground="{DynamicResource ThemeMutedText}" TextWrapping="Wrap" TextAlignment="Center" />
+                        </Border>
+                        <Button x:Name="AssignPaletteButton" Content="Apply Preview Palette"
+                                HorizontalAlignment="Stretch" IsEnabled="False" Click="OnAssignPalette"
+                                ToolTip.Tip="Applies the preview palette to the selected sprites. External palettes are imported into the SFF file." />
+                        <Button Content="Import Palette into Sprite" HorizontalAlignment="Stretch"
+                                Click="OnImportPaletteIntoSprite"
+                                ToolTip.Tip="Loads a palette file and applies it to the selected sprites." />
+                      </StackPanel>
+                      <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
+                        <local:PaletteView x:Name="Swatches" CellSize="0" HorizontalAlignment="Center" VerticalAlignment="Center" ReadOnly="True" SingleSelect="True"
+                                           ToolTip.Tip="Click to select a color." />
+                      </ScrollViewer>
+                    </DockPanel>
+                  </Grid>
+                </Border>
+              </Grid>
+            </Grid>
+          </Border>
+        </Grid>
+      </TabItem>
+
+      <!-- ========================== ANIMATIONS =========================== -->
+      <TabItem x:Name="PalettesTab" Header="Palettes">
+        <Grid x:Name="PalettesGrid">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" />
+            <ColumnDefinition Width="{DynamicResource PanelSeparatorTrack}" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="{DynamicResource PanelSeparatorTrack}" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+
+          <Border Grid.Column="0" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}" ClipToBounds="True">
+            <Grid RowDefinitions="Auto,*">
+              <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+                <TextBlock x:Name="PaletteListLabel" Text="Palettes" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                <Button Grid.Column="1" x:Name="PaletteListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
+                        Click="OnTogglePaletteListPanel" ToolTip.Tip="Collapse this panel" />
+              </Grid>
+              <DockPanel Grid.Row="1" x:Name="PaletteListBody">
+              <StackPanel DockPanel.Dock="Bottom" Spacing="{DynamicResource UiButtonGap}" Margin="0,8,0,0">
+                <Grid ColumnDefinitions="*,Auto,*">
+                  <Button Grid.Column="0" Content="Import" HorizontalAlignment="Stretch" Click="OnImportPaletteFiles" />
+                  <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                  <Button Grid.Column="2" Content="Export" HorizontalAlignment="Stretch" Click="OnExportPalette" />
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto,*">
+                  <Button Grid.Column="0" Content="New" HorizontalAlignment="Stretch" Click="OnNewPalette" />
+                  <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                  <Button Grid.Column="2" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeletePalette" />
+                </Grid>
+              </StackPanel>
+              <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,6">
+                <TextBox Grid.Column="0" x:Name="PaletteFilterBox"
+                         Watermark="Filter, e.g. 1 or 1,2"
+                         TextChanged="OnPaletteFilterChanged" />
+                <Button Grid.Column="1" Content="Clear" Tag="PaletteFilterBox" Click="OnClearFilterClick" Margin="4,0,0,0" />
+              </Grid>
+              <Grid RowDefinitions="Auto,*">
+                <!-- Widths set in code (TextTableWidths); SharedSizeGroup did not keep the virtualized rows aligned. -->
+                <Grid Grid.Row="0" x:Name="PaletteTableHeader">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <Border Grid.Column="0" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                    <TextBlock Text="#" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                  </Border>
+                  <Border Grid.Column="1" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                    <TextBlock Text="Group" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                  </Border>
+                  <Border Grid.Column="2" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                    <TextBlock Text="Index" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                  </Border>
+                  <Border Grid.Column="3" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                    <TextBlock Text="Source" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                  </Border>
+                  <Border Grid.Column="4" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                    <TextBlock Text="Colors" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                  </Border>
+                  <Border Grid.Column="5" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2"
+                          ToolTip.Tip="Linked palettes use the same colors.">
+                    <TextBlock Text="Link" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                  </Border>
+                </Grid>
+                <ListBox Grid.Row="1" x:Name="PaletteList" SelectionMode="Multiple" SelectionChanged="OnPaletteListSelected"
+                         Background="{DynamicResource ThemeListBg}">
+                  <ListBox.Styles>
+                    <Style Selector="ListBoxItem">
+                      <Setter Property="Padding" Value="0" />
+                      <Setter Property="MinHeight" Value="0" />
+                    </Style>
+                    <Style Selector="ListBoxItem:selected">
+                      <Setter Property="Background" Value="{DynamicResource ThemeSelection}" />
+                    </Style>
+                  </ListBox.Styles>
+                  <ListBox.ItemTemplate>
+                    <DataTemplate>
+                      <Grid ToolTip.Tip="{Binding Kind}">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="Auto" />
+                          <ColumnDefinition Width="Auto" />
+                          <ColumnDefinition Width="Auto" />
+                          <ColumnDefinition Width="Auto" />
+                          <ColumnDefinition Width="Auto" />
+                          <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Width="{Binding Widths[0]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1">
+                          <TextBlock Text="{Binding NumberText}" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont13}"
+                                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Border Grid.Column="1" Width="{Binding Widths[1]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
+                                Background="Transparent" Tag="Group" DoubleTapped="OnPaletteCellDoubleTapped"
+                                ToolTip.Tip="{Binding GroupToolTip}">
+                          <TextBlock Text="{Binding GroupText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Border Grid.Column="2" Width="{Binding Widths[2]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
+                                Background="Transparent" Tag="Index" DoubleTapped="OnPaletteCellDoubleTapped"
+                                ToolTip.Tip="{Binding IndexToolTip}">
+                          <TextBlock Text="{Binding IndexText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Border Grid.Column="3" Width="{Binding Widths[3]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1">
+                          <TextBlock Text="{Binding SourceText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Border Grid.Column="4" Width="{Binding Widths[4]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1">
+                          <TextBlock Text="{Binding ColorCountText}" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont13}"
+                                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Border Grid.Column="5" Width="{Binding Widths[5]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
+                                Background="Transparent" DoubleTapped="OnPaletteLinkCellDoubleTapped"
+                                ToolTip.Tip="{Binding LinkToolTip}">
+                          <TextBlock Text="{Binding LinkText}" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont13}"
+                                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </Grid>
+              </DockPanel>
+            </Grid>
+          </Border>
+
+          <Border Grid.Column="1" Width="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+          <GridSplitter x:Name="PalettesLeftSplitter" Grid.Column="1" Width="{DynamicResource PanelSeparatorWidth}" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" ResizeDirection="Columns" />
+
+          <!-- Center: the real palette and the scratch palette, given equal
+               weight now — an unconstrained "current" next to a fixed-height
+               "scratch" made current dominate and scratch feel like an
+               afterthought. Matching CellSize keeps both at a comfortable,
+               consistent swatch size regardless of how much room the row gets.
+               The swatches and the color editor split the column equally, so
+               they, and the preview panel to the right, all get the same width. -->
+          <Grid x:Name="PaletteSwatchEditorGrid" Grid.Column="2">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="{DynamicResource PanelSeparatorTrack}" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="*" />
+              <RowDefinition Height="{DynamicResource PanelSeparatorTrack}" />
+              <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <DockPanel Grid.Row="0" Grid.Column="0" Margin="{DynamicResource PanelContentMargin}">
+              <TextBlock DockPanel.Dock="Top" Text="Current palette" Foreground="{DynamicResource ThemeMutedText}"
+                         Margin="0,0,0,4" />
+              <Border Background="{DynamicResource ThemePanelBg}" Padding="4">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
+                  <local:PaletteView x:Name="BigSwatches" CellSize="0" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip.Tip="Click to select; Shift or Ctrl-click for more. Drag onto another palette." />
+                </ScrollViewer>
+              </Border>
+            </DockPanel>
+
+            <DockPanel Grid.Row="2" Grid.Column="0" Margin="{DynamicResource PanelContentMargin}">
+              <TextBlock DockPanel.Dock="Top" Text="Scratch (not saved)" Foreground="{DynamicResource ThemeMutedText}"
+                         Margin="0,0,0,4" />
+              <Button DockPanel.Dock="Bottom" Content="Clear" Click="OnClearScratch" HorizontalAlignment="Stretch"
+                      Margin="0,4,0,0" />
+              <Border Background="{DynamicResource ThemePanelBg}" Padding="4">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
+                  <local:PaletteView x:Name="ScratchSwatches" CellSize="0" HorizontalAlignment="Center" VerticalAlignment="Center" ColorsDropped="OnScratchColorsDropped" ToolTip.Tip="Click to select; Shift or Ctrl-click for more. Drag onto another palette." />
+                </ScrollViewer>
+              </Border>
+            </DockPanel>
+
+            <Border Grid.Row="1" Grid.Column="0" Height="{DynamicResource PanelSeparatorWidth}" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}"
+                    IsHitTestVisible="False" />
+            <GridSplitter Grid.Row="1" Grid.Column="0" Height="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeDirection="Rows" Background="Transparent" BorderBrush="Transparent" BorderThickness="0"
+                          ToolTip.Tip="Drag to resize Current palette vs Scratch" />
+            <Border Grid.Column="1" Grid.RowSpan="3" Width="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+            <GridSplitter Grid.Column="1" Grid.RowSpan="3" Width="{DynamicResource PanelSeparatorWidth}" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" ResizeDirection="Columns" />
+
+            <!-- The RGBA editor sits beside the swatches it edits now, rather
+                 than under the sprite preview in an entirely different panel.
+                 Always visible (not just once something's selected) so the
+                 sliders don't jump in and out as you click around; disabled
+                 rather than hidden when there's nothing to edit yet. -->
+            <ScrollViewer Grid.Column="2" Grid.RowSpan="3" VerticalContentAlignment="Center">
+            <StackPanel Spacing="6" VerticalAlignment="Center">
+            <Border x:Name="ColorEditor" Background="{DynamicResource ThemePanelBg}" CornerRadius="3"
+                    Padding="{DynamicResource PanelContentPadding}" IsEnabled="False" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="300">
+                <StackPanel Spacing="8">
+                  <TextBlock Text="Color" Foreground="{DynamicResource ThemeMutedText}" />
+                  <Grid ColumnDefinitions="20,*,30" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="R" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                    <Slider Grid.Row="0" Grid.Column="1" x:Name="RSlider" Minimum="0" Maximum="255" ValueChanged="OnColorChanged"
+                            SmallChange="1" TickFrequency="1" IsSnapToTickEnabled="True">
+                      <Slider.Resources>
+                        <GridLength x:Key="SliderPreContentMargin">0</GridLength>
+                        <GridLength x:Key="SliderPostContentMargin">0</GridLength>
+                        <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
+                      </Slider.Resources>
+                    </Slider>
+                    <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Value, ElementName=RSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="G" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                    <Slider Grid.Row="1" Grid.Column="1" x:Name="GSlider" Minimum="0" Maximum="255" ValueChanged="OnColorChanged"
+                            SmallChange="1" TickFrequency="1" IsSnapToTickEnabled="True">
+                      <Slider.Resources>
+                        <GridLength x:Key="SliderPreContentMargin">0</GridLength>
+                        <GridLength x:Key="SliderPostContentMargin">0</GridLength>
+                        <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
+                      </Slider.Resources>
+                    </Slider>
+                    <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Value, ElementName=GSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="B" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                    <Slider Grid.Row="2" Grid.Column="1" x:Name="BSlider" Minimum="0" Maximum="255" ValueChanged="OnColorChanged"
+                            SmallChange="1" TickFrequency="1" IsSnapToTickEnabled="True">
+                      <Slider.Resources>
+                        <GridLength x:Key="SliderPreContentMargin">0</GridLength>
+                        <GridLength x:Key="SliderPostContentMargin">0</GridLength>
+                        <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
+                      </Slider.Resources>
+                    </Slider>
+                    <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Value, ElementName=BSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="A" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                    <Slider Grid.Row="3" Grid.Column="1" x:Name="ASlider" Minimum="0" Maximum="255" ValueChanged="OnColorChanged"
+                            SmallChange="1" TickFrequency="1" IsSnapToTickEnabled="True">
+                      <Slider.Resources>
+                        <GridLength x:Key="SliderPreContentMargin">0</GridLength>
+                        <GridLength x:Key="SliderPostContentMargin">0</GridLength>
+                        <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
+                      </Slider.Resources>
+                    </Slider>
+                    <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding Value, ElementName=ASlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                  </Grid>
+                  <Button x:Name="PickColorButton" Content="Color Picker" Click="OnPickColor" HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Center"
+                          ToolTip.Tip="Opens the color picker for the selected color." />
+                  <Grid ColumnDefinitions="*,Auto,*">
+                    <ToggleButton Grid.Column="0" x:Name="EyedropperButton" Content="Copy Color" Click="OnToggleEyedropper"
+                                  HorizontalAlignment="Stretch"
+                                  ToolTip.Tip="Copies the next picked color into the selected swatch." />
+                    <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                    <ToggleButton Grid.Column="2" x:Name="PreviewEyedropperButton" Content="Select from Preview" Click="OnTogglePreviewEyedropper"
+                                  HorizontalAlignment="Stretch"
+                                  ToolTip.Tip="Selects a palette color from the sprite preview without changing it." />
+                  </Grid>
+                  <Separator />
+                  <TextBlock Text="Color operations" Foreground="{DynamicResource ThemeMutedText}" />
+                  <Grid ColumnDefinitions="*,Auto,*">
+                    <Button Grid.Column="0" Content="Invert" Click="OnInvertColor" HorizontalAlignment="Stretch"
+                            ToolTip.Tip="Inverts the selected colors." />
+                    <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                    <Button Grid.Column="2" Content="Grayscale" Click="OnGrayscaleColor" HorizontalAlignment="Stretch"
+                            ToolTip.Tip="Turns the selected colors gray." />
+                  </Grid>
+                  <Separator />
+                  <TextBlock Text="Adjustments" Foreground="{DynamicResource ThemeMutedText}" />
+                  <Grid ColumnDefinitions="20,*,30" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="R" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                    <Slider Grid.Row="0" Grid.Column="1" x:Name="RAddSlider" Minimum="-255" Maximum="255" Value="0" ValueChanged="OnColorAdjustChanged">
+                      <Slider.Resources>
+                        <GridLength x:Key="SliderPreContentMargin">0</GridLength>
+                        <GridLength x:Key="SliderPostContentMargin">0</GridLength>
+                        <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
+                      </Slider.Resources>
+                    </Slider>
+                    <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Value, ElementName=RAddSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="G" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                    <Slider Grid.Row="1" Grid.Column="1" x:Name="GAddSlider" Minimum="-255" Maximum="255" Value="0" ValueChanged="OnColorAdjustChanged">
+                      <Slider.Resources>
+                        <GridLength x:Key="SliderPreContentMargin">0</GridLength>
+                        <GridLength x:Key="SliderPostContentMargin">0</GridLength>
+                        <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
+                      </Slider.Resources>
+                    </Slider>
+                    <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Value, ElementName=GAddSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="B" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                    <Slider Grid.Row="2" Grid.Column="1" x:Name="BAddSlider" Minimum="-255" Maximum="255" Value="0" ValueChanged="OnColorAdjustChanged">
+                      <Slider.Resources>
+                        <GridLength x:Key="SliderPreContentMargin">0</GridLength>
+                        <GridLength x:Key="SliderPostContentMargin">0</GridLength>
+                        <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
+                      </Slider.Resources>
+                    </Slider>
+                    <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Value, ElementName=BAddSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="H" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" ToolTip.Tip="Hue" />
+                    <Slider Grid.Row="3" Grid.Column="1" x:Name="HueSlider" Minimum="-180" Maximum="180" Value="0" ValueChanged="OnColorAdjustChanged">
+                      <Slider.Resources>
+                        <GridLength x:Key="SliderPreContentMargin">0</GridLength>
+                        <GridLength x:Key="SliderPostContentMargin">0</GridLength>
+                        <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
+                      </Slider.Resources>
+                    </Slider>
+                    <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding Value, ElementName=HueSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="S" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" ToolTip.Tip="Saturation" />
+                    <Slider Grid.Row="4" Grid.Column="1" x:Name="SaturationSlider" Minimum="-100" Maximum="100" Value="0" ValueChanged="OnColorAdjustChanged">
+                      <Slider.Resources>
+                        <GridLength x:Key="SliderPreContentMargin">0</GridLength>
+                        <GridLength x:Key="SliderPostContentMargin">0</GridLength>
+                        <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
+                      </Slider.Resources>
+                    </Slider>
+                    <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding Value, ElementName=SaturationSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="L" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" ToolTip.Tip="Lighten" />
+                    <Slider Grid.Row="5" Grid.Column="1" x:Name="LightenSlider" Minimum="-255" Maximum="255" Value="0" ValueChanged="OnColorAdjustChanged">
+                      <Slider.Resources>
+                        <GridLength x:Key="SliderPreContentMargin">0</GridLength>
+                        <GridLength x:Key="SliderPostContentMargin">0</GridLength>
+                        <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
+                      </Slider.Resources>
+                    </Slider>
+                    <TextBlock Grid.Row="5" Grid.Column="2" Text="{Binding Value, ElementName=LightenSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                  </Grid>
+                  <Grid ColumnDefinitions="*,Auto,*">
+                    <Button Grid.Column="0" x:Name="AdjustCommitButton" Content="Commit Adjustments" Click="OnCommitColorAdjust" HorizontalAlignment="Stretch"
+                            ToolTip.Tip="Saves every color change in this panel as one undoable edit." IsEnabled="False" />
+                    <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                    <Button Grid.Column="2" Content="Reset" Click="OnResetColorAdjust" HorizontalAlignment="Stretch"
+                            ToolTip.Tip="Drops every uncommitted color change and resets the sliders." />
+                  </Grid>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+            </ScrollViewer>
+          </Grid>
+
+          <Border Grid.Column="3" Width="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+          <GridSplitter x:Name="PalettesRightSplitter" Grid.Column="3" Width="{DynamicResource PanelSeparatorWidth}" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" ResizeDirection="Columns" />
+
+          <!-- Right: just the sprite preview now — the color editor moved beside the swatches. -->
+          <Border Grid.Column="4" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
+            <Grid RowDefinitions="Auto,*">
+              <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,4">
+                <Button x:Name="PaletteRightToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9654;" Width="22" Height="22" Padding="0"
+                        Click="OnTogglePaletteRightPanel" ToolTip.Tip="Collapse this panel" />
+                <TextBlock Grid.Column="1" x:Name="PaletteRightLabel" Text="Preview" Foreground="{DynamicResource ThemeMutedText}"
+                           VerticalAlignment="Center" Margin="6,0,0,0" />
+              </Grid>
+              <!-- Preview (with its nav bar, so the splitter trades space between
+                   preview and reference image, not the nav bar) and the reference
+                   image. With no image, the reference row shrinks to its header
+                   strip (Auto) and the splitter is off. -->
+              <Grid Grid.Row="1" x:Name="PaletteRightBody">
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="*" />
+                  <RowDefinition Height="{DynamicResource PanelSeparatorTrack}" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <DockPanel Grid.Row="0">
+                <Grid DockPanel.Dock="Bottom" ColumnDefinitions="Auto,*,Auto,70" Margin="0,4,0,0">
+                  <Button Grid.Column="0" Content="&lt;" Width="24" Padding="0" Click="OnPalettePreviewPrev"
+                          ToolTip.Tip="Preview the previous sprite with this palette" />
+                  <Slider Grid.Column="1" x:Name="PalettePreviewNav" Minimum="0" Maximum="0" Value="0" Margin="4,0"
+                          ValueChanged="OnPalettePreviewNavChanged"
+                          ToolTip.Tip="Preview another sprite with this palette." />
+                  <Button Grid.Column="2" Content="&gt;" Width="24" Padding="0" Click="OnPalettePreviewNext"
+                          ToolTip.Tip="Preview the next sprite with this palette" />
+                  <TextBlock Grid.Column="3" x:Name="PalettePreviewLabel" Foreground="{DynamicResource ThemeMutedText}"
+                             FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" />
+                </Grid>
+                <local:SpriteView x:Name="PalettePreview" />
+                </DockPanel>
+                <Border Grid.Row="1" Height="{DynamicResource PanelSeparatorWidth}" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                <GridSplitter Grid.Row="1" x:Name="ReferenceSplitter" Height="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Stretch" ResizeDirection="Rows" IsEnabled="False" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" />
+                <DockPanel Grid.Row="2" x:Name="ReferenceImageSection">
+                  <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,4">
+                    <TextBlock Grid.Column="0" Text="Reference image" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Content="Open" Click="OnOpenScratchImage" Padding="{DynamicResource UiCompactButtonPadding}"
+                            Margin="{DynamicResource UiGapRight}" />
+                    <Button Grid.Column="2" x:Name="CloseReferenceButton" Content="&#x2715;" Click="OnCloseScratchImage" Padding="{DynamicResource UiCompactButtonPadding}"
+                            IsEnabled="False" ToolTip.Tip="Close the reference image" />
+                  </Grid>
+                  <Border x:Name="ReferenceImageBody" IsVisible="False" Background="{DynamicResource ThemePanelBg}" Padding="2">
+                    <local:ScratchImageView x:Name="ScratchImage" ColorPicked="OnScratchImageColorPicked"
+                                             ToolTip.Tip="Click to set the selected color from the image." />
+                  </Border>
+                </DockPanel>
+              </Grid>
+            </Grid>
+          </Border>
+        </Grid>
+      </TabItem>
+
+      <!-- ============================ SOUNDS ============================= -->
+      <TabItem x:Name="AnimationsTab" Header="Animations">
+        <Grid x:Name="AnimationsGrid">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="250" />
+            <ColumnDefinition Width="{DynamicResource PanelSeparatorTrack}" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="{DynamicResource PanelSeparatorTrack}" />
+            <ColumnDefinition Width="480" />
+          </Grid.ColumnDefinitions>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="{DynamicResource PanelSeparatorTrack}" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+
+          <Border Grid.Column="0" Grid.Row="0" Grid.RowSpan="3" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
+            <Grid RowDefinitions="Auto,*">
+              <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+                <TextBlock x:Name="ActionListLabel" Text="Actions" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                <Button Grid.Column="1" x:Name="ActionListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
+                        Click="OnToggleActionListPanel" ToolTip.Tip="Collapse this panel" />
+              </Grid>
+              <Grid Grid.Row="1" x:Name="ActionListBody">
+                <!-- The list takes all the height; the buttons only what they need. -->
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="*" MinHeight="120" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0" RowDefinitions="Auto,Auto,*" Grid.IsSharedSizeScope="True">
+                  <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,6">
+                    <TextBox Grid.Column="0" x:Name="ActionFilterBox"
+                             Watermark="Filter, e.g. 200 or punch"
+                             TextChanged="OnActionFilterChanged" />
+                    <Button Grid.Column="1" Content="Clear" Tag="ActionFilterBox" Click="OnClearFilterClick" Margin="4,0,0,0" />
+                  </Grid>
+                  <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="Auto" />
+                      <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <!-- Width set in code (ActionNumberWidth), same as every row's Number cell. -->
+                    <Border Grid.Column="0" x:Name="ActionNumberHeader" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                      <TextBlock Text="Number" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                    </Border>
+                    <Border Grid.Column="1" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,0,2" Padding="4,2">
+                      <TextBlock Text="Comment" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                    </Border>
+                  </Grid>
+                  <ListBox Grid.Row="2" x:Name="ActionList" SelectionChanged="OnActionSelected" Background="{DynamicResource ThemeListBg}">
+                    <ListBox.Styles>
+                      <Style Selector="ListBoxItem">
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="MinHeight" Value="0" />
+                      </Style>
+                      <Style Selector="ListBoxItem:selected">
+                        <Setter Property="Background" Value="{DynamicResource ThemeSelection}" />
+                      </Style>
+                    </ListBox.Styles>
+                    <ListBox.ItemTemplate>
+                      <DataTemplate>
+                        <Grid PointerPressed="OnActionRowPointerPressed"
+                              PointerMoved="OnActionRowPointerMoved" PointerReleased="OnActionRowPointerReleased">
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                          </Grid.ColumnDefinitions>
+                          <!-- DoubleTapped lives on the Border, not the TextBlock: an empty
+                               comment means empty text with nothing to hit-test against, so
+                               double-clicking an action with no comment had no target to land on.
+                               Background="Transparent" makes the Border itself hit-testable
+                               across its whole cell regardless of what the text says. -->
+                          <Border Grid.Column="0" Width="{Binding NumberWidth}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
+                                  Background="Transparent" DoubleTapped="OnActionNumberDoubleTapped"
+                                  ToolTip.Tip="Double-click to renumber this action">
+                            <TextBlock Text="{Binding NumberText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                          </Border>
+                          <Border Grid.Column="1" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,0,1" Padding="4,1"
+                                  Background="Transparent" DoubleTapped="OnActionCommentDoubleTapped"
+                                  ToolTip.Tip="Double-click to edit or add this action's comment">
+                            <!-- Keep virtualized action rows to one measured height;
+                                 double-click opens the full comment editor. -->
+                            <TextBlock Text="{Binding CommentText}" FontSize="{DynamicResource UiFont13}" TextAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                          </Border>
+                        </Grid>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </Grid>
+                <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*" Margin="0,6,0,0">
+                  <Button Grid.Column="0" Content="New" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="OnNewAction" />
+                  <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                  <Button Grid.Column="2" Content="Delete" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="OnDeleteAction" />
+                </Grid>
+              </Grid>
+            </Grid>
+          </Border>
+
+          <Border Grid.Column="1" Grid.RowSpan="3" Width="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+          <GridSplitter x:Name="AnimLeftSplitter" Grid.Column="1" Grid.Row="0" Grid.RowSpan="3" Width="{DynamicResource PanelSeparatorWidth}" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" ResizeDirection="Columns" />
+
+          <Grid Grid.Column="2" Grid.Row="0" x:Name="AnimCanvasArea">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="{DynamicResource PanelSeparatorTrack}" />
+              <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Border Grid.Row="0" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentHeaderPadding}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
+                <Button x:Name="AnimOnionPanelToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9650;" Width="22" Height="18" Padding="0" FontSize="9"
+                        Click="OnToggleAnimOnionPanel" ToolTip.Tip="Collapse this panel" />
+                <TextBlock Text="Animation Onion Skin" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+              </StackPanel>
+            </Border>
+            <Border Grid.Row="1" x:Name="AnimOnionPanelBody" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <ToggleButton x:Name="AnimOnionEnabledBox" Content="Show" Click="OnToggleAnimOnion" />
+                <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                <StackPanel x:Name="AnimOnionOptionsPanel" Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="Opacity" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                <Slider x:Name="AnimOnionOpacitySlider" Minimum="0" Maximum="100" Width="100" VerticalAlignment="Center"
+                        SmallChange="1" LargeChange="10" TickFrequency="1" IsSnapToTickEnabled="True"
+                        ValueChanged="OnAnimOnionOpacityChanged">
+                  <!-- Same margin fix as the Sprite Onion Skin slider. -->
+                  <Slider.Resources>
+                    <GridLength x:Key="SliderPreContentMargin">0</GridLength>
+                    <GridLength x:Key="SliderPostContentMargin">0</GridLength>
+                    <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
+                  </Slider.Resources>
+                </Slider>
+                <TextBlock Text="{Binding Value, ElementName=AnimOnionOpacitySlider, StringFormat={}{0:0}%}"
+                           VerticalAlignment="Center" MinWidth="34" />
+                <CheckBox x:Name="AnimOnionGrayscaleBox" Content="Grayscale" Click="OnToggleAnimOnionGrayscale" VerticalAlignment="Center" />
+                <CheckBox x:Name="AnimOnionClsnBox" Content="Clsn" Click="OnToggleAnimOnionClsn" VerticalAlignment="Center" />
+                <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                <TextBlock Text="Pin frame" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center"
+                           ToolTip.Tip="Always onion-skin this frame." />
+                <NumericUpDown x:Name="AnimOnionActionBox" Width="90" Minimum="0" Maximum="2147483647" Increment="1"
+                               FormatString="0" Watermark="Action" ValueChanged="OnAnimOnionFieldChanged" />
+                <NumericUpDown x:Name="AnimOnionFrameBox" Width="90" Minimum="1" Maximum="2147483647" Increment="1"
+                               FormatString="0" Watermark="Frame" ValueChanged="OnAnimOnionFieldChanged" />
+                <Button Content="Auto" Click="OnAnimOnionUseAuto"
+                        ToolTip.Tip="Unpin: follow the previous frame." />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+            <Border Grid.Row="2" Height="{DynamicResource PanelSeparatorWidth}" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+            <local:SpriteView Grid.Row="3" x:Name="AnimCanvas" />
+          </Grid>
+
+          <Border Grid.Column="2" Grid.Row="1" Height="{DynamicResource PanelSeparatorWidth}" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+
+          <!-- Playback bar and timeline sit under the canvas, spanning the same column. -->
+          <Border Grid.Column="2" Grid.Row="2" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
+            <StackPanel Spacing="6">
+              <local:Timeline x:Name="TimelineView" Height="34"
+                               FrameClicked="OnTimelineFrameClicked" />
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
+                <ToggleButton x:Name="PlayButton" Content="Play" Click="OnPlayPause" Width="80" />
+                <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                <Button Content="|&lt;" Click="OnFirstFrame" Width="44" />
+                <Button Content="&lt;" Click="OnPrevFrame" Width="44" />
+                <Button Content="&gt;" Click="OnNextFrame" Width="44" />
+                <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                <Button Content="Export GIF" Click="OnExportGif"
+                        ToolTip.Tip="Saves this action as a looping GIF." />
+                <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                <TextBlock x:Name="FrameInfo" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Grid.Column="3" Grid.RowSpan="3" Width="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+          <GridSplitter x:Name="AnimRightSplitter" Grid.Column="3" Grid.Row="0" Grid.RowSpan="3" Width="{DynamicResource PanelSeparatorWidth}" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" ResizeDirection="Columns" />
+
+          <Border Grid.Column="4" Grid.Row="0" Grid.RowSpan="3" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
+            <Grid RowDefinitions="Auto,*">
+              <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,4">
+                <Button x:Name="FramePanelToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9654;" Width="22" Height="22" Padding="0"
+                        Click="OnToggleFramePanel" ToolTip.Tip="Collapse this panel" />
+                <TextBlock Grid.Column="1" x:Name="FramePanelLabel" Text="Frames" Foreground="{DynamicResource ThemeMutedText}"
+                           VerticalAlignment="Center" Margin="6,0,0,0" />
+              </Grid>
+              <Grid Grid.Row="1" x:Name="FramePanelBody">
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="1.4*" MinHeight="160" />
+                  <RowDefinition Height="{DynamicResource PanelSeparatorTrack}" />
+                  <RowDefinition Height="1*" MinHeight="220" />
+                </Grid.RowDefinitions>
+
+              <DockPanel Grid.Row="0">
+                <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,6">
+                  <TextBlock Grid.Column="0" Text="Frames" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
+                    <ToggleButton x:Name="FrameTableViewButton" Content="Table" Tag="Table" Click="OnSelectFrameView" IsChecked="True"
+                                  ToolTip.Tip="One row per frame, one column per field." />
+                    <ToggleButton x:Name="FrameTextViewToggle" Content="Text" Tag="Text" Click="OnSelectFrameView"
+                                  ToolTip.Tip="The raw .air text for this action." />
+                  </StackPanel>
+                </Grid>
+                <Grid RowDefinitions="Auto,*">
+                  <!-- FrameList itself stays alive but never shown — List view is retired, but FrameList.SelectedIndex is
+                       still the one piece of state "current frame" is tracked through everywhere else (Boxes editing,
+                       canvas preview, Table, Text). The column-header row above it went with it, for the same reason. -->
+                  <ListBox Grid.Row="1" x:Name="FrameList" SelectionChanged="OnFrameSelected" Background="{DynamicResource ThemeListBg}" IsVisible="False">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate>
+                        <Grid ColumnDefinitions="30,60,44,*">
+                          <Border Grid.Column="0" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1">
+                            <TextBlock Text="{Binding Number}" Foreground="{DynamicResource ThemeMutedText}" />
+                          </Border>
+                          <Border Grid.Column="1" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1">
+                            <TextBlock Text="{Binding Sprite}" />
+                          </Border>
+                          <Border Grid.Column="2" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1">
+                            <TextBlock Text="{Binding Duration}" />
+                          </Border>
+                          <Border Grid.Column="3" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,0,1" Padding="4,1">
+                            <TextBlock Text="{Binding Flags}" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont11}" />
+                          </Border>
+                        </Grid>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                  <local:ActionTextView Grid.Row="1" x:Name="FrameTextView" IsVisible="False" />
+                  <!-- FrameTableList is a real virtualizing ListBox, same fix as the sprite table:
+                       only the rows on screen are ever realized as controls, regardless of frame count. -->
+                  <Grid Grid.Row="1" x:Name="FrameTablePanel" IsVisible="True" RowDefinitions="Auto,*">
+                    <!-- Column widths are set in code (FrameTableWidths), same numbers as every row's cells:
+                         SharedSizeGroup did not keep the virtualized rows aligned. -->
+                    <Grid Grid.Row="0" x:Name="FrameTableHeader">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                      </Grid.ColumnDefinitions>
+                      <Border Grid.Column="0" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                        <TextBlock Text="Frame" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont11}" HorizontalAlignment="Center"
+                                   />
+                      </Border>
+                      <Border Grid.Column="1" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                        <TextBlock Text="Group" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont11}" HorizontalAlignment="Center" />
+                      </Border>
+                      <Border Grid.Column="2" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                        <TextBlock Text="Number" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont11}" HorizontalAlignment="Center" />
+                      </Border>
+                      <Border Grid.Column="3" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                        <TextBlock Text="Off X" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont11}" HorizontalAlignment="Center" />
+                      </Border>
+                      <Border Grid.Column="4" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                        <TextBlock Text="Off Y" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont11}" HorizontalAlignment="Center" />
+                      </Border>
+                      <Border Grid.Column="5" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                        <TextBlock Text="Time" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont11}" HorizontalAlignment="Center" />
+                      </Border>
+                      <Border Grid.Column="6" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                        <TextBlock Text="H" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont11}" HorizontalAlignment="Center" />
+                      </Border>
+                      <Border Grid.Column="7" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                        <TextBlock Text="V" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont11}" HorizontalAlignment="Center" />
+                      </Border>
+                      <Border Grid.Column="8" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                        <TextBlock Text="Blend" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont11}" HorizontalAlignment="Center" />
+                      </Border>
+                      <Border Grid.Column="9" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                        <TextBlock Text="Scale X" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont11}" HorizontalAlignment="Center" />
+                      </Border>
+                      <Border Grid.Column="10" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                        <TextBlock Text="Scale Y" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont11}" HorizontalAlignment="Center" />
+                      </Border>
+                      <Border Grid.Column="11" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,0,2" Padding="4,2">
+                        <TextBlock Text="Angle" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont11}" HorizontalAlignment="Center" />
+                      </Border>
+                    </Grid>
+                    <ListBox Grid.Row="1" x:Name="FrameTableList" SelectionChanged="OnFrameTableSelected" PointerMoved="OnFrameTableHover" PointerExited="OnFrameTableExited" Background="{DynamicResource ThemeListBg}">
+                      <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                          <Setter Property="Padding" Value="0" />
+                          <Setter Property="MinHeight" Value="0" />
+                        </Style>
+                        <Style Selector="ListBoxItem:selected">
+                          <Setter Property="Background" Value="{DynamicResource ThemeSelection}" />
+                        </Style>
+                        <Style Selector="ListBoxItem">
+                          <Setter Property="ClipToBounds" Value="False" />
+                        </Style>
+                        <!-- Optional fields (Blend/Scale/Angle) at their "not written" default show blank;
+                             muted marks that as "default", distinct from a typed value. -->
+                        <!-- Known chrome, so the widths set in code fit (Fluent's own minimums are wider). -->
+                        <Style Selector="TextBox">
+                          <Setter Property="MinWidth" Value="0" />
+                          <Setter Property="Padding" Value="2,0" />
+                        </Style>
+                        <Style Selector="CheckBox">
+                          <Setter Property="MinWidth" Value="0" />
+                        </Style>
+                        <Style Selector="TextBox.muted">
+                          <Setter Property="Foreground" Value="{DynamicResource ThemeMutedText}" />
+                        </Style>
+                        <Style Selector="TextBlock.muted">
+                          <Setter Property="Foreground" Value="{DynamicResource ThemeMutedText}" />
+                        </Style>
+                        <!-- Interpolate marker: a tall down arrow centered on the grid line between
+                             frame N-1 and N, reaching into both cells (drawn from row N, shifted up by
+                             half its height; later rows render over earlier ones, so it stays on top).
+                             66% of the original 28px size, for ~32px rows. interpwrap = last frame → loop start (bottom edge). -->
+                        <Style Selector="Path.interp, Path.interpwrap">
+                          <Setter Property="Data" Value="M 3.3,0 L 3.3,17.2 M 0,13.2 L 3.3,17.8 L 6.6,13.2" />
+                          <Setter Property="Stroke" Value="{DynamicResource ThemeAccent}" />
+                          <Setter Property="StrokeThickness" Value="1.5" />
+                          <Setter Property="Width" Value="8" />
+                          <Setter Property="Height" Value="18" />
+                          <Setter Property="HorizontalAlignment" Value="Right" />
+                          <Setter Property="IsHitTestVisible" Value="False" />
+                          <Setter Property="ZIndex" Value="10" />
+                        </Style>
+                        <Style Selector="Path.interp">
+                          <Setter Property="VerticalAlignment" Value="Top" />
+                          <Setter Property="Margin" Value="0,-9,4,0" />
+                        </Style>
+                        <Style Selector="Path.interpwrap">
+                          <Setter Property="VerticalAlignment" Value="Bottom" />
+                          <Setter Property="Margin" Value="0,0,4,-9" />
+                        </Style>
+                        <!-- Excel-style fill handle: shown on the hovered cell; drag up/down to copy the value. -->
+                        <Style Selector="Border.fillhandle">
+                          <Setter Property="Width" Value="7" />
+                          <Setter Property="Height" Value="7" />
+                          <Setter Property="HorizontalAlignment" Value="Right" />
+                          <Setter Property="VerticalAlignment" Value="Bottom" />
+                          <Setter Property="Background" Value="{DynamicResource ThemeAccent}" />
+                          <Setter Property="Cursor" Value="Cross" />
+                          <Setter Property="ZIndex" Value="11" />
+                          <Setter Property="IsVisible" Value="False" />
+                        </Style>
+                        <Style Selector="Border.cell:pointerover Border.fillhandle">
+                          <Setter Property="IsVisible" Value="True" />
+                        </Style>
+                        <!-- On the Panel, not the cell: Blend's cell sets its own Background. -->
+                        <Style Selector="Border.cell.filltarget > Panel">
+                          <Setter Property="Background" Value="{DynamicResource ThemeSelection}" />
+                        </Style>
+                        <Style Selector="TextBlock.looptag">
+                          <Setter Property="FontSize" Value="11" />
+                          <Setter Property="FontWeight" Value="Bold" />
+                          <Setter Property="HorizontalAlignment" Value="Right" />
+                          <Setter Property="VerticalAlignment" Value="Top" />
+                          <Setter Property="IsHitTestVisible" Value="False" />
+                        </Style>
+                      </ListBox.Styles>
+                      <ListBox.ItemTemplate>
+                        <DataTemplate>
+                          <Grid>
+                                                      <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                      </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Width="{Binding Widths[0]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1">
+                              <Panel>
+                                <TextBlock Text="{Binding Number}" Foreground="{DynamicResource ThemeMutedText}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <!-- Loopstart frame; same purple as the Timeline's loop chevron. -->
+                                <TextBlock Classes="looptag" Text="L" Foreground="#c070d8" Margin="0,-2,-2,0" IsVisible="{Binding IsLoopFrame}" />
+                              </Panel>
+                            </Border>
+                            <Border Classes="cell" Grid.Column="1" Width="{Binding Widths[1]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Background="Transparent" Tag="Group" Tapped="OnFrameCellTapped">
+                              <Panel>
+                                <TextBlock Text="{Binding GroupText}" Tag="Group"
+                                         FontSize="{DynamicResource UiFont12}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                         />
+                              </Panel>
+                            </Border>
+                            <Border Classes="cell" Grid.Column="2" Width="{Binding Widths[2]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Background="Transparent" Tag="Index" Tapped="OnFrameCellTapped">
+                              <Panel>
+                                <TextBlock Text="{Binding IndexText}" Tag="Index"
+                                         FontSize="{DynamicResource UiFont12}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                         />
+                              </Panel>
+                            </Border>
+                            <Border Classes="cell" Grid.Column="3" Width="{Binding Widths[3]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Background="Transparent" Tag="OffsetX" Tapped="OnFrameCellTapped">
+                              <Panel>
+                                <TextBlock Text="{Binding OffsetXText}" Tag="OffsetX"
+                                         FontSize="{DynamicResource UiFont12}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                         />
+                                <Path Classes="interp" IsVisible="{Binding InterpOffset}" />
+                                <Path Classes="interpwrap" IsVisible="{Binding WrapOffset}" />
+                              </Panel>
+                            </Border>
+                            <Border Classes="cell" Grid.Column="4" Width="{Binding Widths[4]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Background="Transparent" Tag="OffsetY" Tapped="OnFrameCellTapped">
+                              <Panel>
+                                <TextBlock Text="{Binding OffsetYText}" Tag="OffsetY"
+                                         FontSize="{DynamicResource UiFont12}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                         />
+                                <Path Classes="interp" IsVisible="{Binding InterpOffset}" />
+                                <Path Classes="interpwrap" IsVisible="{Binding WrapOffset}" />
+                              </Panel>
+                            </Border>
+                            <Border Classes="cell" Grid.Column="5" Width="{Binding Widths[5]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Background="Transparent" Tag="Duration" Tapped="OnFrameCellTapped">
+                              <Panel>
+                                <TextBlock Text="{Binding DurationText}" Tag="Duration"
+                                         FontSize="{DynamicResource UiFont12}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                         />
+                              </Panel>
+                            </Border>
+                            <Border Classes="cell" Tag="FlipH" Background="Transparent" Grid.Column="6" Width="{Binding Widths[6]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1">
+                              <Panel>
+                                <CheckBox IsChecked="{Binding FlipH, Mode=TwoWay}" Click="OnFrameFlipHClicked" Padding="0"
+                                          Background="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                              </Panel>
+                            </Border>
+                            <Border Classes="cell" Tag="FlipV" Background="Transparent" Grid.Column="7" Width="{Binding Widths[7]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1">
+                              <Panel>
+                                <CheckBox IsChecked="{Binding FlipV, Mode=TwoWay}" Click="OnFrameFlipVClicked" Padding="0"
+                                          Background="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                              </Panel>
+                            </Border>
+                            <!-- Read-only display, no inline typing: the only way to change
+                                 Blend is the dialog (click or right-click), same as the
+                                 sprite/sound table's read-only double-click cells. An editable
+                                 control here (an AutoCompleteBox, previously) sits on top of
+                                 the Border and can consume the gesture before it ever bubbles
+                                 up, which is exactly why the dialog wasn't opening. -->
+                            <Border Classes="cell" Tag="Blend" Grid.Column="8" Width="{Binding Widths[8]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1"
+                                    Background="Transparent" Cursor="Hand"
+                                    Tapped="OnFrameBlendTapped" ContextRequested="OnFrameBlendContextRequested"
+                                    ToolTip.Tip="Click or right-click to edit">
+                              <Panel>
+                                <TextBlock Text="{Binding BlendText}" FontSize="{DynamicResource UiFont12}"
+                                          Classes.muted="{Binding BlendText, Converter={x:Static conv:StringConverters.IsNullOrEmpty}}"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Path Classes="interp" IsVisible="{Binding InterpBlend}" />
+                                <Path Classes="interpwrap" IsVisible="{Binding WrapBlend}" />
+                              </Panel>
+                            </Border>
+                            <Border Classes="cell" Grid.Column="9" Width="{Binding Widths[9]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Background="Transparent" Tag="ScaleX" Tapped="OnFrameCellTapped">
+                              <Panel>
+                                <TextBlock Text="{Binding ScaleXText}" Tag="ScaleX"
+                                         Classes.muted="{Binding ScaleXText, Converter={x:Static conv:StringConverters.IsNullOrEmpty}}"
+                                         FontSize="{DynamicResource UiFont12}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                         />
+                                <Path Classes="interp" IsVisible="{Binding InterpScale}" />
+                                <Path Classes="interpwrap" IsVisible="{Binding WrapScale}" />
+                              </Panel>
+                            </Border>
+                            <Border Classes="cell" Grid.Column="10" Width="{Binding Widths[10]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Background="Transparent" Tag="ScaleY" Tapped="OnFrameCellTapped">
+                              <Panel>
+                                <TextBlock Text="{Binding ScaleYText}" Tag="ScaleY"
+                                         Classes.muted="{Binding ScaleYText, Converter={x:Static conv:StringConverters.IsNullOrEmpty}}"
+                                         FontSize="{DynamicResource UiFont12}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                         />
+                                <Path Classes="interp" IsVisible="{Binding InterpScale}" />
+                                <Path Classes="interpwrap" IsVisible="{Binding WrapScale}" />
+                              </Panel>
+                            </Border>
+                            <Border Classes="cell" Grid.Column="11" Width="{Binding Widths[11]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,0,1" Background="Transparent" Tag="Angle" Tapped="OnFrameCellTapped">
+                              <Panel>
+                                <TextBlock Text="{Binding AngleText}" Tag="Angle"
+                                         Classes.muted="{Binding AngleText, Converter={x:Static conv:StringConverters.IsNullOrEmpty}}"
+                                         FontSize="{DynamicResource UiFont12}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                         />
+                                <Path Classes="interp" IsVisible="{Binding InterpAngle}" />
+                                <Path Classes="interpwrap" IsVisible="{Binding WrapAngle}" />
+                              </Panel>
+                            </Border>
+                          </Grid>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                    <!-- One shared editor, placed over the clicked text cell (see OpenFrameEditor). -->
+                    <TextBox x:Name="FrameCellEditor" Grid.Row="1" IsVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top"
+                             BorderBrush="{DynamicResource ThemeAccent}" BorderThickness="1" Background="{DynamicResource ThemeListBg}" Padding="2,0"
+                             FontSize="{DynamicResource UiFont12}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                             KeyDown="OnFrameEditorKeyDown" LostFocus="OnFrameEditorLostFocus" />
+                    <!-- One fill handle, drawn over the cell under the pointer (see OnFrameTableHover). -->
+                    <Border x:Name="FrameFillHandle" Grid.Row="1" IsVisible="False" Width="7" Height="7"
+                            HorizontalAlignment="Left" VerticalAlignment="Top" Background="{DynamicResource ThemeAccent}" Cursor="Cross"
+                            PointerPressed="OnFillHandlePressed" PointerExited="OnFrameTableExited" />
+                  </Grid>
+                </Grid>
+              </DockPanel>
+
+              <Border Grid.Row="1" Height="{DynamicResource PanelSeparatorWidth}" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+              <GridSplitter Grid.Row="1" Height="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeDirection="Rows" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" />
+
+              <ScrollViewer Grid.Row="2" Margin="0,8,0,0">
+              <StackPanel Spacing="{DynamicResource UiButtonGap}">
+                <Grid ColumnDefinitions="*,Auto,*,Auto,*">
+                  <Button Grid.Column="0" Content="Insert" HorizontalAlignment="Stretch" Click="OnInsertFrame" />
+                  <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                  <Button Grid.Column="2" Content="Duplicate" HorizontalAlignment="Stretch" Click="OnDuplicateFrame" />
+                  <Border Grid.Column="3" Width="{DynamicResource UiButtonGap}" />
+                  <Button Grid.Column="4" Content="Remove" HorizontalAlignment="Stretch" Click="OnRemoveFrame" />
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto,*,Auto,*">
+                  <Button Grid.Column="0" Content="Up" HorizontalAlignment="Stretch" Click="OnMoveFrameUp" />
+                  <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                  <Button Grid.Column="2" Content="Down" HorizontalAlignment="Stretch" Click="OnMoveFrameDown" />
+                  <Border Grid.Column="3" Width="{DynamicResource UiButtonGap}" />
+                  <Button Grid.Column="4" Content="Special Flags" HorizontalAlignment="Stretch" Click="OnSpecialFlags"
+                          ToolTip.Tip="Sets Loopstart and interpolation for this frame." />
+                </Grid>
+                <Button Content="Insert Sprite Group" HorizontalAlignment="Stretch" Click="OnInsertSpriteGroup"
+                        ToolTip.Tip="Adds every sprite of a group as frames." />
+
+                <Separator Margin="0,4" />
+
+                <CheckBox x:Name="ShowBoxesItem" Content="Show collision boxes"
+                          IsChecked="True" Click="OnToggleBoxes" />
+                <TextBlock x:Name="BoxInfo" Text="No Clsn selected" Foreground="{DynamicResource ThemeMutedText}" TextWrapping="Wrap" />
+                <Grid ColumnDefinitions="*,Auto,*">
+                  <Button Grid.Column="0" Content="Add Clsn1" HorizontalAlignment="Stretch" Click="OnAddAttackBox" />
+                  <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                  <Button Grid.Column="2" Content="Add Clsn2" HorizontalAlignment="Stretch" Click="OnAddHurtBox" />
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto,*">
+                  <Button Grid.Column="0" Content="Delete box" HorizontalAlignment="Stretch" Click="OnDeleteBox" />
+                  <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                  <Button Grid.Column="2" x:Name="MakeDefaultButton" Content="Toggle Default" HorizontalAlignment="Stretch" Click="OnMakeBoxDefault"
+                          ToolTip.Tip="Makes this frame's boxes the default for later frames." />
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto,*">
+                  <Button Grid.Column="0" Content="Copy from onion skin" HorizontalAlignment="Stretch" Click="OnCopyClsnFromOnion"
+                          ToolTip.Tip="Copies the onion skin frame's Clsn into this frame." />
+                  <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                  <Button Grid.Column="2" Content="Auto Clsn2" HorizontalAlignment="Stretch" Click="OnAutoHurtBoxes"
+                          ToolTip.Tip="Covers the sprite with Clsn2 boxes that fit its shape." />
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto,*">
+                  <Button Grid.Column="0" Content="Sort Boxes" HorizontalAlignment="Stretch" Click="OnSortBoxes"
+                          ToolTip.Tip="Reorders this frame's boxes." />
+                  <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                  <Button Grid.Column="2" Content="Delete All Boxes" HorizontalAlignment="Stretch" Click="OnDeleteAllBoxes"
+                          ToolTip.Tip="Removes this frame's own boxes" />
+                </Grid>
+              </StackPanel>
+              </ScrollViewer>
+              </Grid>
+            </Grid>
+          </Border>
+        </Grid>
+      </TabItem>
+
+      <!-- =========================== PALETTES ============================ -->
+      <TabItem x:Name="SoundsTab" Header="Sounds">
+        <Grid x:Name="SoundsGrid">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="280" />
+            <ColumnDefinition Width="{DynamicResource PanelSeparatorTrack}" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+
+          <Border Grid.Column="0" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}" ClipToBounds="True">
+            <Grid RowDefinitions="Auto,*">
+              <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+                <TextBlock x:Name="SoundListLabel" Text="Sounds" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                <Button Grid.Column="1" x:Name="SoundListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
+                        Click="OnToggleSoundListPanel" ToolTip.Tip="Collapse this panel" />
+              </Grid>
+              <DockPanel Grid.Row="1" x:Name="SoundListBody">
+              <!-- The .snd's summary line lives in the status bar now, next to
+                   the .air's filename — the list below already says what's loaded. -->
+              <Grid DockPanel.Dock="Bottom" RowDefinitions="Auto,Auto" Margin="0,6,0,0">
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto,*">
+                  <Button Grid.Column="0" Content="Import" HorizontalAlignment="Stretch" Click="OnAddSound"
+                          ToolTip.Tip="Adds a sound from a .wav." />
+                  <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                  <Button Grid.Column="2" Content="Export" HorizontalAlignment="Stretch" Click="OnExportSound"
+                          ToolTip.Tip="Saves the selected sound as a .wav." />
+                </Grid>
+                <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*" Margin="{DynamicResource UiGapTop}">
+                  <Button Grid.Column="0" Content="Replace" HorizontalAlignment="Stretch" Click="OnReplaceSound"
+                          ToolTip.Tip="Replaces the sound with a .wav." />
+                  <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                  <Button Grid.Column="2" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeleteSound" />
+                </Grid>
+              </Grid>
+              <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,6">
+                <TextBox Grid.Column="0" x:Name="SoundFilterBox" Watermark="Filter, e.g. 0 or 0,1"
+                         TextChanged="OnSoundFilterChanged" />
+                <Button Grid.Column="1" Content="Clear" Tag="SoundFilterBox" Click="OnClearFilterClick" Margin="4,0,0,0" />
+              </Grid>
+              <Grid RowDefinitions="Auto,*">
+                <!-- Widths set in code (TextTableWidths); SharedSizeGroup did not keep the virtualized rows aligned. -->
+                <Grid Grid.Row="0" x:Name="SoundTableHeader">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <Border Grid.Column="0" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                    <TextBlock Text="#" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                  </Border>
+                  <Border Grid.Column="1" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                    <TextBlock Text="Group" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                  </Border>
+                  <Border Grid.Column="2" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                    <TextBlock Text="Number" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                  </Border>
+                  <Border Grid.Column="3" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
+                    <TextBlock Text="Duration" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                  </Border>
+                  <Border Grid.Column="4" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,0,2" Padding="4,2">
+                    <TextBlock Text="Rate" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                  </Border>
+                </Grid>
+                <ListBox Grid.Row="1" x:Name="SoundList" SelectionMode="Multiple" SelectionChanged="OnSoundSelected" AutoScrollToSelectedItem="False" Background="{DynamicResource ThemeListBg}">
+                  <ListBox.Styles>
+                    <Style Selector="ListBoxItem">
+                      <Setter Property="Padding" Value="0" />
+                      <Setter Property="MinHeight" Value="0" />
+                    </Style>
+                    <Style Selector="ListBoxItem:selected">
+                      <Setter Property="Background" Value="{DynamicResource ThemeSelection}" />
+                    </Style>
+                  </ListBox.Styles>
+                  <ListBox.ItemTemplate>
+                    <DataTemplate>
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="Auto" />
+                          <ColumnDefinition Width="Auto" />
+                          <ColumnDefinition Width="Auto" />
+                          <ColumnDefinition Width="Auto" />
+                          <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Width="{Binding Widths[0]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
+                                Background="Transparent" DoubleTapped="OnSoundNumberDoubleTapped"
+                                ToolTip.Tip="Double-click to play this sound">
+                          <TextBlock Text="{Binding Number}" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont13}"
+                                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <!-- Same read-only-cell convention as the sprite and action
+                             lists: DoubleTapped on the Border, not the TextBlock. -->
+                        <Border Grid.Column="1" Width="{Binding Widths[1]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
+                                Background="Transparent" Tag="Group" DoubleTapped="OnSoundCellDoubleTapped"
+                                ToolTip.Tip="Double-click to change this sound's group">
+                          <TextBlock Text="{Binding GroupText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Border Grid.Column="2" Width="{Binding Widths[2]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
+                                Background="Transparent" Tag="Number" DoubleTapped="OnSoundCellDoubleTapped"
+                                ToolTip.Tip="Double-click to change this sound's number">
+                          <TextBlock Text="{Binding NumberText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Border Grid.Column="3" Width="{Binding Widths[3]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1">
+                          <TextBlock Text="{Binding DurationText}" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont13}"
+                                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Border Grid.Column="4" Width="{Binding Widths[4]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,0,1" Padding="4,1">
+                          <TextBlock Text="{Binding RateText}" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont13}"
+                                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </Grid>
+              </DockPanel>
+            </Grid>
+          </Border>
+
+          <Border Grid.Column="1" Width="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+          <GridSplitter x:Name="SoundsSplitter" Grid.Column="1" Width="{DynamicResource PanelSeparatorWidth}" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" ResizeDirection="Columns" />
+
+          <Grid Grid.Column="2" x:Name="SoundRightGrid">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="180" />
+              <RowDefinition Height="{DynamicResource PanelSeparatorTrack}" />
+              <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" Margin="24,16,24,8" Spacing="4">
+              <TextBlock x:Name="SoundTitle" FontSize="{DynamicResource UiFont16}" Foreground="{DynamicResource ThemeText}" Text="No sound selected" />
+              <TextBlock x:Name="SoundDetail" Foreground="{DynamicResource ThemeMutedText}" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <Border Grid.Row="1" Background="{DynamicResource ThemePanelBg}" Margin="24,0" Padding="{DynamicResource PanelContentPadding}" CornerRadius="3">
+              <DockPanel>
+                <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*" Margin="0,0,0,6">
+                  <TextBlock Grid.Column="0" Text="Waveform" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                  <TextBlock Grid.Column="1" x:Name="SoundSelectionText" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center"
+                             TextTrimming="CharacterEllipsis" ToolTip.Tip="Drag to select, click to clear." />
+                </Grid>
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="{DynamicResource UiButtonGap}" Margin="0,4,0,0">
+                  <Button x:Name="SoundPlayButton" Content="Play" Click="OnPlaySound" Width="70" />
+                  <Button x:Name="SoundLoopButton" Content="Loop" Click="OnPlaySoundLoop" Width="70" />
+                  <Button x:Name="SoundStopButton" Content="Stop" Click="OnStopSound" Width="70" />
+                </StackPanel>
+                <ScrollBar DockPanel.Dock="Bottom" x:Name="WaveformScroll" Orientation="Horizontal" AllowAutoHide="False" Margin="0,4,0,0" />
+                <local:WaveformView x:Name="Waveform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                    ToolTip.Tip="Wheel zooms, Shift+wheel scrolls." />
+              </DockPanel>
+            </Border>
+
+            <Border Grid.Row="2" Height="{DynamicResource PanelSeparatorWidth}" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+            <GridSplitter Grid.Row="2" x:Name="SoundsWaveformSplitter" Height="{DynamicResource PanelSeparatorWidth}" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" ResizeDirection="Rows" />
+
+            <ScrollViewer Grid.Row="3">
+              <StackPanel Margin="24,8,24,24" Spacing="12" MaxWidth="640" HorizontalAlignment="Left">
+                <Border Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}" CornerRadius="3">
+                  <StackPanel Spacing="10">
+                    <StackPanel Spacing="4">
+                      <TextBlock Text="Level" Foreground="{DynamicResource ThemeMutedText}" />
+                      <WrapPanel>
+                        <Button Content="Change Volume" Click="OnApplyVolume" Margin="{DynamicResource UiGapRightBottom}"
+                                ToolTip.Tip="Scales the volume up or down." />
+                        <Button Content="Maximize Volume" Click="OnMaximizeVolume" Margin="{DynamicResource UiGapRightBottom}"
+                                ToolTip.Tip="Raises the volume until the loudest sample reaches full scale." />
+                        <Button Content="Increase Loudness" Click="OnMaximizeLoudness" Margin="{DynamicResource UiGapRightBottom}"
+                                ToolTip.Tip="Makes quiet parts louder without changing the peak." />
+                        <Button Content="Fade In" Click="OnFadeIn" Margin="{DynamicResource UiGapRightBottom}"
+                                ToolTip.Tip="Fades in from silence." />
+                        <Button Content="Fade Out" Click="OnFadeOut" Margin="{DynamicResource UiGapRightBottom}"
+                                ToolTip.Tip="Fades out to silence." />
+                      </WrapPanel>
+                    </StackPanel>
+                    <StackPanel Spacing="4">
+                      <TextBlock Text="Time &amp; pitch" Foreground="{DynamicResource ThemeMutedText}" />
+                      <WrapPanel>
+                        <Button Content="Change Pitch" Click="OnChangePitch" Margin="{DynamicResource UiGapRightBottom}"
+                                ToolTip.Tip="Changes pitch, keeping the length." />
+                        <Button Content="Change Tempo" Click="OnChangeTempo" Margin="{DynamicResource UiGapRightBottom}"
+                                ToolTip.Tip="Changes speed, keeping the pitch." />
+                        <Button Content="Change Speed" Click="OnChangeSpeed" Margin="{DynamicResource UiGapRightBottom}"
+                                ToolTip.Tip="Changes pitch and length together, like tape speed." />
+                        <Button Content="Reverse" Click="OnReverse" Margin="{DynamicResource UiGapRightBottom}"
+                                ToolTip.Tip="Reverses the sound." />
+                      </WrapPanel>
+                    </StackPanel>
+                    <StackPanel Spacing="4">
+                      <TextBlock Text="Effects" Foreground="{DynamicResource ThemeMutedText}" />
+                      <WrapPanel>
+                        <Button Content="Echo" Click="OnEcho" Margin="{DynamicResource UiGapRightBottom}"
+                                ToolTip.Tip="Adds repeats that fade out, lengthening the sound if needed." />
+                      </WrapPanel>
+                    </StackPanel>
+                    <StackPanel Spacing="4">
+                      <TextBlock Text="Trim" Foreground="{DynamicResource ThemeMutedText}" />
+                      <WrapPanel>
+                        <Button Content="Trim Silence" Click="OnTrimSilence" Margin="{DynamicResource UiGapRightBottom}"
+                                ToolTip.Tip="Cuts silence from the start and end." />
+                        <Button x:Name="SoundTrimToSelectionButton" Content="Trim to Selection" Click="OnTrimToSelection" Margin="{DynamicResource UiGapRightBottom}"
+                                ToolTip.Tip="Keeps only the selected part." />
+                        <Button Content="Insert Silence" Click="OnInsertSilence" Margin="{DynamicResource UiGapRightBottom}"
+                                ToolTip.Tip="Adds leading or trailing silence (or both)." />
+                      </WrapPanel>
+                    </StackPanel>
+                    <StackPanel Spacing="4">
+                      <TextBlock Text="Format" Foreground="{DynamicResource ThemeMutedText}" />
+                      <WrapPanel>
+                        <Button Content="Resample" Click="OnResample" Margin="{DynamicResource UiGapRightBottom}"
+                                ToolTip.Tip="Changes the sample rate. Lower is smaller." />
+                        <Button Content="Change Bit Depth" Click="OnChangeBitDepth" Margin="{DynamicResource UiGapRightBottom}"
+                                ToolTip.Tip="Changes to 8, 16 or 24-bit. Lower is smaller." />
+                        <Button Content="Convert to Mono" x:Name="ConvertToMonoButton" Click="OnConvertToMono" Margin="{DynamicResource UiGapRightBottom}"
+                                ToolTip.Tip="Mixes all channels into one." />
+                      </WrapPanel>
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+
+                <!-- After every edit button: commit or drop what they did. -->
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
+                  <Button x:Name="SoundCommitButton" Content="Commit Changes" Click="OnCommitSoundEdits" IsEnabled="False"
+                          ToolTip.Tip="Keeps the pending edits as one undoable edit." />
+                  <Button x:Name="SoundResetButton" Content="Reset" Click="OnResetSoundEdits" IsEnabled="False"
+                          ToolTip.Tip="Drops the pending edits." />
+                </StackPanel>
+
+                <TextBlock x:Name="SoundWarnings" Foreground="{DynamicResource ThemeWarn}" TextWrapping="Wrap" />
+              </StackPanel>
+            </ScrollViewer>
+          </Grid>
+        </Grid>
+      </TabItem>
+
+    </TabControl>
+  </DockPanel>
+</Window>

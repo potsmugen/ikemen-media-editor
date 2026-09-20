@@ -1,0 +1,36 @@
+Ikemen Media Editor includes the third-party components below. Each one's full
+license text is in this folder, as published by its authors. Ikemen Media Editor's
+own license is LICENSE.txt in the folder above.
+
+Avalonia 11.3.2 (UI framework, all Avalonia.* files)
+  MIT. Copyright (c) AvaloniaUI OÜ.
+  https://github.com/AvaloniaUI/Avalonia
+  Avalonia-LICENSE.txt
+
+ANGLE, as packaged in Avalonia.Angle.Windows.Natives (av_libglesv2.dll)
+  BSD 3-Clause. Copyright 2018 The ANGLE Project Authors.
+  https://github.com/AvaloniaUI/angle
+  ANGLE-LICENSE.txt
+
+SkiaSharp 2.88.9 and HarfBuzzSharp 8.3.1.1 (graphics and text; libSkiaSharp, libHarfBuzzSharp)
+  MIT. Copyright Xamarin, Inc. and Microsoft Corporation.
+  https://github.com/mono/SkiaSharp
+  SkiaSharp-HarfBuzzSharp-LICENSE.txt
+  Their native libraries include Skia, HarfBuzz, libpng, zlib and other components:
+  SkiaSharp-HarfBuzzSharp-THIRD-PARTY-NOTICES.txt
+
+MicroCom.Runtime 0.11.0
+  MIT. Copyright (c) 2021 Nikita Tsukanov.
+  https://github.com/kekekeks/MicroCom
+  MicroCom-LICENSE.txt
+
+Tmds.DBus.Protocol 0.21.2 (Linux desktop integration)
+  MIT. Copyright 2006 Alp Toker, 2010 Other Contributors, 2016 Tom Deseyn.
+  https://github.com/tmds/Tmds.DBus
+  Tmds.DBus-LICENSE.txt
+
+.NET 8 runtime (self-contained builds) and System.IO.Pipelines
+  MIT. Copyright .NET Foundation and Contributors.
+  https://github.com/dotnet/runtime
+  dotnet-LICENSE.txt
+  dotnet-THIRD-PARTY-NOTICES.txt
