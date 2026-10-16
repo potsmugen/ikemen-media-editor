@@ -1156,8 +1156,11 @@
           <!-- Playback bar and timeline sit under the canvas, spanning the same column. -->
           <Border Grid.Column="2" Grid.Row="2" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
             <StackPanel Spacing="6">
-              <local:Timeline x:Name="TimelineView" Height="34"
-                               FrameClicked="OnTimelineFrameClicked" />
+              <StackPanel>
+                <local:Timeline x:Name="TimelineView" Height="34"
+                                 FrameClicked="OnTimelineFrameClicked" TickScrubbed="OnTimelineScrubbed" />
+                <ScrollBar x:Name="TimelineScroll" Orientation="Horizontal" AllowAutoHide="False" Margin="0,4,0,0" />
+              </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
                 <ToggleButton x:Name="PlayButton" Content="Play" Click="OnPlayPause" Width="80" />
                 <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />

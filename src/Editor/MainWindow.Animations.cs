@@ -595,7 +595,8 @@ public partial class MainWindow
         if (_action.Elements.Count > 0) FrameList.SelectedIndex = 0;
         _suppressEvents = false;
         if (_action.Elements.Count == 0) Pause();
-        TimelineView?.SetPlayTick(_clock is null ? -1 : 0);
+        TimelineView?.ResetView();
+        TimelineView?.SetPlayTick(_action.Elements.Count > 0 ? 0 : -1);
         ShowFrame();
         SyncTextFromAction();
         RebuildFrameTable();
@@ -799,6 +800,12 @@ public partial class MainWindow
                 ? (el.OwnHurtBoxes ? HurtColor : Clsn2DefaultColor) : null,
             Loop: i == loopAt)).ToList();
         TimelineView.Show(frames, FrameList.SelectedIndex);
+
+        // A frame picked any other way than playback or scrubbing moves the playhead (and where Play resumes) to its start.
+        int selected = FrameList.SelectedIndex;
+        if (selected >= 0 && selected < action.Elements.Count && action.PositionAt(_tick).Index != selected)
+            _tick = action.Elements.Take(selected).Sum(el => Math.Max(el.Duration, 0));
+        TimelineView.SetPlayTick(action.Elements.Count > 0 ? PlayheadTick(action) : -1);
     }
 
     private void OnTimelineFrameClicked(int frame)
@@ -1770,7 +1777,7 @@ public partial class MainWindow
         ResetPlaybackCaches();
         AnimCanvas.OffsetDraggingEnabled = true;
         if (PlayButton is not null) PlayButton.IsChecked = false;
-        TimelineView?.SetPlayTick(-1);
+        TimelineView?.SetPlayTick(_action is { Elements.Count: > 0 } a ? PlayheadTick(a) : -1); // parked where it stopped
     }
 
     /// <summary>_file.Find, through a lookup table while playing.</summary>
@@ -1841,19 +1848,64 @@ public partial class MainWindow
         }
     }
 
+    /// <summary>
+    /// Where the playhead sits for _tick. During the dwell it parks at the track's
+    /// end rather than wrapping around while the frame sits still. Finite actions
+    /// wrap through WrapTick, the same loopback ElementAt replays by, so the
+    /// playhead stays on the Loopstart element when the action loops.
+    /// </summary>
+    private int PlayheadTick(AnimationAction action)
+    {
+        if (action.LoopTime is not null) return action.WrapTick(_tick);
+        int finite = action.Elements.TakeWhile(e => !e.ShowsForever).Sum(e => Math.Max(e.Duration, 0));
+        return Math.Min(_tick, finite);
+    }
+
+    /// <summary>Drag on the timeline: pauses and shows the exact tick, interpolated.</summary>
+    private void OnTimelineScrubbed(int tick)
+    {
+        if (_action is not { Elements.Count: > 0 } action) return;
+        if (_clock is not null) Pause();
+        _tick = tick;
+        var (index, _) = action.PositionAt(tick);
+        if (index >= 0 && index != FrameList.SelectedIndex)
+        {
+            _suppressEvents = true;
+            FrameList.SelectedIndex = index;
+            _suppressEvents = false;
+            ShowFrame();
+            SyncFrameTableSelection();
+        }
+        TimelineView.SetPlayTick(PlayheadTick(action));
+        ApplyInterpolation(tick);
+    }
+
+    private bool _syncingTimelineScroll;
+
+    /// <summary>Keeps the scrollbar under the timeline in step with its zoom and position.</summary>
+    private void SyncTimelineScroll()
+    {
+        if (TimelineScroll is null || TimelineView is null) return;
+        _syncingTimelineScroll = true;
+        try
+        {
+            double visible = TimelineView.VisibleTicks, total = TimelineView.TotalTicks;
+            TimelineScroll.Minimum = 0;
+            TimelineScroll.Maximum = Math.Max(0, total - visible);
+            TimelineScroll.ViewportSize = visible;
+            TimelineScroll.Value = TimelineView.ViewStart;
+            TimelineScroll.IsEnabled = total > visible;
+        }
+        finally
+        {
+            _syncingTimelineScroll = false;
+        }
+    }
+
     /// <summary>Draws the frame and playhead for the current tick.</summary>
     private void ShowPlayTick(AnimationAction action)
     {
-        int finite = action.Elements.TakeWhile(e => !e.ShowsForever).Sum(e => Math.Max(e.Duration, 0));
-        bool infinite = action.LoopTime is null;
-
-        // During the dwell the playhead parks at the track's end rather than
-        // wrapping around while the frame sits still. Finite actions wrap
-        // through WrapTick, the same loopback ElementAt replays by — the old
-        // modulo over the whole length put the playhead at tick 0 whenever the
-        // action looped from a Loopstart past the beginning, while the frame
-        // jumped back to the Loopstart element.
-        TimelineView.SetPlayTick(infinite ? Math.Min(_tick, finite) : action.WrapTick(_tick));
+        TimelineView.SetPlayTick(PlayheadTick(action));
 
         var element = action.ElementAt(_tick);
         if (element is null) { Pause(); return; }

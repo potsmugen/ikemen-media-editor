@@ -181,6 +181,21 @@ public sealed class Settings
     /// <summary>Waveform Shift+wheel scroll per notch, as a fraction of the visible width.</summary>
     public double WaveformScrollStep { get; set; } = DefaultWaveformScrollStep;
 
+    // Animations playback bar (settings.json only).
+    public const double DefaultTimelineMaxPixelsPerTick = 16, DefaultTimelineZoomStep = 1.5, DefaultTimelineScrollStep = 0.1,
+        DefaultTimelineDragThresholdPixels = 3, DefaultTimelineTickMarkMinPixels = 4;
+
+    /// <summary>Deepest timeline zoom, in pixels per tick.</summary>
+    public double TimelineMaxPixelsPerTick { get; set; } = DefaultTimelineMaxPixelsPerTick;
+    /// <summary>Timeline zoom factor per wheel notch (above 1).</summary>
+    public double TimelineZoomStep { get; set; } = DefaultTimelineZoomStep;
+    /// <summary>Timeline Shift+wheel scroll per notch, as a fraction of the visible width.</summary>
+    public double TimelineScrollStep { get; set; } = DefaultTimelineScrollStep;
+    /// <summary>How far the mouse must move on the timeline before a press scrubs instead of jumping to the frame's start.</summary>
+    public double TimelineDragThresholdPixels { get; set; } = DefaultTimelineDragThresholdPixels;
+    /// <summary>Timeline tick marks show from this many pixels per tick.</summary>
+    public double TimelineTickMarkMinPixels { get; set; } = DefaultTimelineTickMarkMinPixels;
+
     /// <summary>Echo dialog pre-fills: delay in ms and decay (each repeat's level, % of the one before).</summary>
     public double EchoDelayMilliseconds { get; set; } = DefaultEchoDelayMilliseconds;
     public double EchoDecayPercent { get; set; } = DefaultEchoDecayPercent;

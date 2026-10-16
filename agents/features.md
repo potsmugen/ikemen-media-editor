@@ -146,6 +146,15 @@ and constraints that are easy to miss when reading one code path in isolation.
   ticks skips the extra time.
   While playing, sprites are looked up by table and AnimCanvas caches decoded
   bitmaps (CacheBitmaps); both reset on pause, action change, undo and redo.
+- **Playback bar (Timeline)**: a click jumps to the frame's start; a drag past
+  `TimelineDragThresholdPixels` pauses and scrubs to the exact tick, showing
+  Interpolate values. The playhead stays visible while paused, and picking a frame
+  any other way moves it (and where Play resumes) to that frame's start. Zoom
+  matches the waveform: the wheel zooms around the cursor, Shift+wheel scrolls,
+  and the scrollbar below is always shown, disabled at fit. A new action fits;
+  frame edits keep zoom. Same-size tick marks show from `TimelineTickMarkMinPixels`.
+  Holding and zero-length frames
+  take one tick of width, and the playhead uses the same layout as the cells.
 - **GIF export** splits playback into runs of identical drawn state to show
   Interpolate, and uses configured dwell for -1 holds. Delays are rounded to
   centiseconds with a 2-centisecond minimum. Frames use a local color table,

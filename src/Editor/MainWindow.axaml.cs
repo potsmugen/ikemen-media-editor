@@ -91,6 +91,18 @@ public partial class MainWindow : Window
             Settings.DefaultWaveformScrollStep, v => double.IsFinite(v) && v > 0);
         Waveform.DragThreshold = Settings.Checked(nameof(Settings.WaveformDragThresholdPixels), _settings.WaveformDragThresholdPixels,
             Settings.DefaultWaveformDragThresholdPixels, v => double.IsFinite(v) && v >= 0);
+        TimelineView.ViewChanged += SyncTimelineScroll;
+        TimelineScroll.ValueChanged += (_, e) => { if (!_syncingTimelineScroll) TimelineView.ViewStart = e.NewValue; };
+        TimelineView.MaxPixelsPerTick = Settings.Checked(nameof(Settings.TimelineMaxPixelsPerTick), _settings.TimelineMaxPixelsPerTick,
+            Settings.DefaultTimelineMaxPixelsPerTick, v => double.IsFinite(v) && v > 0);
+        TimelineView.ZoomStep = Settings.Checked(nameof(Settings.TimelineZoomStep), _settings.TimelineZoomStep,
+            Settings.DefaultTimelineZoomStep, v => double.IsFinite(v) && v > 1);
+        TimelineView.ScrollStep = Settings.Checked(nameof(Settings.TimelineScrollStep), _settings.TimelineScrollStep,
+            Settings.DefaultTimelineScrollStep, v => double.IsFinite(v) && v > 0);
+        TimelineView.DragThreshold = Settings.Checked(nameof(Settings.TimelineDragThresholdPixels), _settings.TimelineDragThresholdPixels,
+            Settings.DefaultTimelineDragThresholdPixels, v => double.IsFinite(v) && v >= 0);
+        TimelineView.TickMarkMinPixels = Settings.Checked(nameof(Settings.TimelineTickMarkMinPixels), _settings.TimelineTickMarkMinPixels,
+            Settings.DefaultTimelineTickMarkMinPixels, v => double.IsFinite(v) && v > 0);
         SpriteCanvas.AxisDragStarted += OnAxisDragStarted;
         SpriteCanvas.AxisDragFinished += OnAxisDragFinished;
         SpriteCanvas.ZoomChanged += UpdateStatus;
