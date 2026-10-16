@@ -67,6 +67,9 @@ public partial class MainWindow
     /// <summary>Playback time base: ticks due are counted from real elapsed time, not timer events.</summary>
     private readonly Stopwatch _playWatch = new();
     private long _playedTicks;
+    /// <summary>Sprite lookup built on first use while playing, when sprites can't change.</summary>
+    private Dictionary<(int, int), Sprite>? _playSprites;
+    private SffFile? _playSpritesFile;
     private string? _airError;
 
     /// <summary>The action's boxes captured before a box drag/nudge.</summary>
@@ -584,6 +587,7 @@ public partial class MainWindow
         if (_suppressEvents || _air is null || ActionList.SelectedItem is not ActionRow row) return;
         _action = row.Action;
         _tick = 0;
+        ResetPlaybackCaches(); // keeps the bitmap cache to one action's sprites
 
         RebuildFrameList();
         // Suppressed: OnFrameSelected pauses, and playback should carry on into the new action.
@@ -692,7 +696,7 @@ public partial class MainWindow
     {
         if (CurrentElement is not { } element || AnimCanvas is null) return;
 
-        var sprite = _file?.Find(element.Group, element.Index);
+        var sprite = FindAnimSprite(element.Group, element.Index);
         _animSprite = sprite; // null (missing sprite) means nothing to sync
         AnimCanvas.ElementOffset = new Point(element.OffsetX, element.OffsetY);
         AnimCanvas.FlipH = element.FlipH;
@@ -1746,6 +1750,7 @@ public partial class MainWindow
         AnimCanvas.OffsetDraggingEnabled = false;
         _playWatch.Restart();
         _playedTicks = 0;
+        AnimCanvas.CacheBitmaps = true;
         _clock = new DispatcherTimer { Interval = PlaybackPollInterval };
         _clock.Tick += (_, _) => Advance();
         _clock.Start();
@@ -1762,9 +1767,34 @@ public partial class MainWindow
         _clock?.Stop();
         _clock = null;
         _playWatch.Reset();
+        ResetPlaybackCaches();
         AnimCanvas.OffsetDraggingEnabled = true;
         if (PlayButton is not null) PlayButton.IsChecked = false;
         TimelineView?.SetPlayTick(-1);
+    }
+
+    /// <summary>_file.Find, through a lookup table while playing.</summary>
+    private Sprite? FindAnimSprite(int group, int index)
+    {
+        if (_file is null) return null;
+        if (_clock is null) return _file.Find(group, index);
+        if (_playSprites is null || !ReferenceEquals(_playSpritesFile, _file))
+        {
+            _playSprites = new(_file.Sprites.Count);
+            foreach (var s in _file.Sprites) _playSprites.TryAdd((s.Group, s.Index), s); // first wins, like Find
+            _playSpritesFile = _file;
+        }
+        return _playSprites.GetValueOrDefault((group, index));
+    }
+
+    /// <summary>Drops the playback sprite lookup and bitmap cache; starts a fresh cache if still playing.</summary>
+    private void ResetPlaybackCaches()
+    {
+        _playSprites = null;
+        _playSpritesFile = null;
+        if (AnimCanvas is null) return;
+        AnimCanvas.CacheBitmaps = false;
+        AnimCanvas.CacheBitmaps = _clock is not null;
     }
 
     /// <summary>Steps every tick due since the last poll, then draws only the latest one.</summary>

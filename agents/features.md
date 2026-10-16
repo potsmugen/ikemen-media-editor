@@ -144,6 +144,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   8 ms; late polls step the missed ticks and draw only the last, so a busy UI
   or screen recorder drops frames instead of slowing playback. A stall over 30
   ticks skips the extra time.
+  While playing, sprites are looked up by table and AnimCanvas caches decoded
+  bitmaps (CacheBitmaps); both reset on pause, action change, undo and redo.
 - **GIF export** splits playback into runs of identical drawn state to show
   Interpolate, and uses configured dwell for -1 holds. Delays are rounded to
   centiseconds with a 2-centisecond minimum. Frames use a local color table,

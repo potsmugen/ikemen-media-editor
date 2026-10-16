@@ -1043,6 +1043,7 @@ public partial class MainWindow : Window
             SpriteCanvas.Show(strokeSprite, ActivePalette(), _showMask);
             PaintCommitButton.IsEnabled = PaintResetButton.IsEnabled = _paintBaseline is not null;
             SyncDirtyFromUndo();
+            ResetPlaybackCaches();
             StatusText.Text = "Undid last paint stroke.";
             return;
         }
@@ -1053,6 +1054,7 @@ public partial class MainWindow : Window
         GoToUndoTab(view);
         ClearSoundSelection(); // undo can change a sound's length; a kept selection may no longer fit
         _undo.Undo();
+        ResetPlaybackCaches(); // undo can run while playing; cached sprites may be stale
         CrashLog.Trace($"[undo] complete: {name}");
         // The palette now holds the restored colors; rebase so they don't read as a pending adjustment.
         ResetColorAdjustBase();
@@ -1070,6 +1072,7 @@ public partial class MainWindow : Window
         GoToUndoTab(view);
         ClearSoundSelection();
         _undo.Redo();
+        ResetPlaybackCaches();
         CrashLog.Trace($"[redo] complete: {name}");
         // The palette now holds the restored colors; rebase so they don't read as a pending adjustment.
         ResetColorAdjustBase();

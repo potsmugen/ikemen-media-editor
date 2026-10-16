@@ -102,10 +102,32 @@ public class SpriteView : Control
 
     private Sprite? _sprite;
     private WriteableBitmap? _bitmap;
+    /// <summary>_bitmap belongs to _bitmapCache, which disposes it.</summary>
+    private bool _bitmapCached;
+    private Dictionary<(Sprite, Palette?, bool), WriteableBitmap>? _bitmapCache;
+
+    /// <summary>While on, decoded bitmaps are kept per sprite, palette and mask and reused.
+    /// Only for when pixels can't change (playback); turning it off frees them.</summary>
+    public bool CacheBitmaps
+    {
+        get => _bitmapCache is not null;
+        set
+        {
+            if (value) { _bitmapCache ??= new(); return; }
+            if (_bitmapCache is null) return;
+            foreach (var bmp in _bitmapCache.Values)
+                if (!ReferenceEquals(bmp, _bitmap)) bmp.Dispose();
+            _bitmapCache = null;
+            _bitmapCached = false; // the shown bitmap is ours again
+        }
+    }
     /// <summary>Color-inverted copy of _bitmap, alpha untouched — the Sub blend's darkening pass multiplies by this instead of the real colors.</summary>
     private WriteableBitmap? _invertedBitmap;
     /// <summary>Solid-black copy of _bitmap, alpha untouched — masks the Add/Sub dest pre-scale to the sprite's own opaque pixels.</summary>
     private WriteableBitmap? _silhouetteBitmap;
+    /// <summary>Built on first use: only Add/Sub/SubAdd frames need them.</summary>
+    private WriteableBitmap InvertedBitmap => _invertedBitmap ??= MakeBitmap(_sprite!, Invert(_sprite!.ToBgra(_palette, _showMask)));
+    private WriteableBitmap SilhouetteBitmap => _silhouetteBitmap ??= MakeBitmap(_sprite!, Blacken(_sprite!.ToBgra(_palette, _showMask)));
     private Palette? _palette;
     private bool _showMask;
 
@@ -208,6 +230,8 @@ public class SpriteView : Control
     private Sprite? _onionSprite;
     private WriteableBitmap? _onionBitmap;
     private Point _onionOffset;
+    private Palette? _onionPalette;
+    private bool _onionGrayscale;
 
     private int _zoomIdx = ZoomOne;
     private Point _pan;
@@ -363,21 +387,27 @@ public class SpriteView : Control
 
     /// <summary>
     /// Redecodes the bitmap from the current sprite/palette, e.g. after painting.
-    /// Also builds the inverted and silhouette copies DrawBlended needs — same
-    /// alpha channel as _bitmap, so they line up pixel-for-pixel with it.
+    /// Drops the inverted and silhouette copies; DrawBlended rebuilds them on demand
+    /// with the same alpha channel as _bitmap, so they line up pixel-for-pixel with it.
     /// </summary>
     private void RefreshBitmap()
     {
-        _bitmap?.Dispose();
+        if (!_bitmapCached) _bitmap?.Dispose();
         _invertedBitmap?.Dispose();
         _silhouetteBitmap?.Dispose();
         _bitmap = _invertedBitmap = _silhouetteBitmap = null;
+        _bitmapCached = false;
         if (_sprite is not { Width: > 0, Height: > 0 } || !_sprite.HasPixels) return;
 
-        var pixels = _sprite.ToBgra(_palette, _showMask);
-        _bitmap = MakeBitmap(_sprite, pixels);
-        _invertedBitmap = MakeBitmap(_sprite, Invert((byte[])pixels.Clone()));
-        _silhouetteBitmap = MakeBitmap(_sprite, Blacken((byte[])pixels.Clone()));
+        if (_bitmapCache is not null)
+        {
+            var key = (_sprite, _palette, _showMask);
+            if (!_bitmapCache.TryGetValue(key, out _bitmap))
+                _bitmapCache[key] = _bitmap = MakeBitmap(_sprite, _sprite.ToBgra(_palette, _showMask));
+            _bitmapCached = true;
+            return;
+        }
+        _bitmap = MakeBitmap(_sprite, _sprite.ToBgra(_palette, _showMask));
     }
 
     /// <summary>Flips RGB to their complements in place, keeping alpha as-is.</summary>
@@ -406,10 +436,16 @@ public class SpriteView : Control
     /// Grayscale strips color so the onion skin reads as a shape/outline
     /// reference rather than competing with the current sprite's own colors.
     /// </summary>
-    public void ShowOnion(Sprite? sprite, Palette? palette, Point offset = default, bool grayscale = false)
+    /// <param name="reuse">Keep the current bitmap when sprite, palette and grayscale match; only safe while pixels can't change (playback).</param>
+    public void ShowOnion(Sprite? sprite, Palette? palette, Point offset = default, bool grayscale = false, bool reuse = false)
     {
+        bool same = reuse && _onionBitmap is not null && ReferenceEquals(_onionSprite, sprite)
+            && ReferenceEquals(_onionPalette, palette) && _onionGrayscale == grayscale;
         _onionSprite = sprite;
         _onionOffset = offset;
+        if (same) { InvalidateVisual(); return; }
+        _onionPalette = palette;
+        _onionGrayscale = grayscale;
         _onionBitmap?.Dispose();
         _onionBitmap = sprite is { Width: > 0, Height: > 0 } && sprite.HasPixels
             ? MakeBitmap(sprite, grayscale ? Desaturate(sprite.ToBgra(palette, false)) : sprite.ToBgra(palette, false))
@@ -642,7 +678,7 @@ public class SpriteView : Control
                 // BlendZero/OneMinusSrcAlpha pass).
                 if (dstW < 1)
                     using (ctx.PushOpacity(1 - dstW))
-                        DrawBitmap(_silhouetteBitmap!);
+                        DrawBitmap(SilhouetteBitmap);
                 using (ctx.PushRenderOptions(default(RenderOptions) with { BitmapBlendingMode = BitmapBlendingMode.Plus }))
                 using (ctx.PushOpacity(srcW))
                     DrawSprite();
@@ -659,10 +695,10 @@ public class SpriteView : Control
                 // same complementary-color result the real subtract gives.
                 if (dstW < 1)
                     using (ctx.PushOpacity(1 - dstW))
-                        DrawBitmap(_silhouetteBitmap!);
+                        DrawBitmap(SilhouetteBitmap);
                 using (ctx.PushRenderOptions(default(RenderOptions) with { BitmapBlendingMode = BitmapBlendingMode.Multiply }))
                 using (ctx.PushOpacity(srcW))
-                    DrawBitmap(_invertedBitmap!);
+                    DrawBitmap(InvertedBitmap);
                 break;
 
             case BlendMode.SubAdd:
@@ -675,7 +711,7 @@ public class SpriteView : Control
                 // the same reason (see that case's comment).
                 using (ctx.PushRenderOptions(default(RenderOptions) with { BitmapBlendingMode = BitmapBlendingMode.Multiply }))
                 using (ctx.PushOpacity(dstW))
-                    DrawBitmap(_invertedBitmap!);
+                    DrawBitmap(InvertedBitmap);
                 using (ctx.PushRenderOptions(default(RenderOptions) with { BitmapBlendingMode = BitmapBlendingMode.Plus }))
                 using (ctx.PushOpacity(srcW))
                     DrawSprite();
@@ -983,6 +1019,7 @@ public class SpriteView : Control
 
         _sprite.PixelsDirty = true;
         PixelsPainted?.Invoke();
+        if (_bitmapCache?.Remove((_sprite, _palette, _showMask)) == true) _bitmapCached = false; // stale now
         RefreshBitmap();
         InvalidateVisual();
     }
