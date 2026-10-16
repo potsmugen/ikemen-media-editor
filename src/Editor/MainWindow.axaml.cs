@@ -2108,6 +2108,16 @@ public partial class MainWindow : Window
             return;
         }
 
+        // Another list leaves navigation keys unhandled at its ends (and sideways arrows always);
+        // swallow them so they don't fall through to stepping the sprite list.
+        if (e.Key is Key.Right or Key.Down or Key.Left or Key.Up or Key.PageDown or Key.PageUp or Key.Home or Key.End
+            && FocusManager?.GetFocusedElement() is Visual inList
+            && inList.FindAncestorOfType<ListBox>(true) is { } ownerList && ownerList != SpriteList)
+        {
+            e.Handled = true;
+            return;
+        }
+
         switch (e.Key)
         {
             case Key.Right or Key.Down: StepSprite(1); break;
