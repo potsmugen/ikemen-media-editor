@@ -140,6 +140,10 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Playback** waits `InfiniteAnimationTimeout` before restarting infinite actions
   or actions whose loop start is past frame 1. Dragging the sprite to change frame
   offsets is disabled while playback runs.
+  The clock counts ticks from a Stopwatch (60 per second), polled about every
+  8 ms; late polls step the missed ticks and draw only the last, so a busy UI
+  or screen recorder drops frames instead of slowing playback. A stall over 30
+  ticks skips the extra time.
 - **GIF export** splits playback into runs of identical drawn state to show
   Interpolate, and uses configured dwell for -1 holds. Delays are rounded to
   centiseconds with a 2-centisecond minimum. Frames use a local color table,

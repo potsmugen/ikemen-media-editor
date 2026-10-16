@@ -33,6 +33,12 @@ public partial class MainWindow
     private static readonly TimeSpan TickLength = TimeSpan.FromSeconds(1.0 / 60);
 
     /// <summary>Settings.InfiniteAnimationTimeout in ticks.</summary>
+    /// <summary>Playback polls the clock at about half a tick; late polls catch up instead of slowing playback.</summary>
+    private static readonly TimeSpan PlaybackPollInterval = TimeSpan.FromMilliseconds(8);
+
+    /// <summary>Most ticks one poll catches up; a longer stall skips the rest instead of fast-forwarding.</summary>
+    private const int MaxCatchUpTicks = 30;
+
     private int InfiniteAnimationTimeoutTicks => Math.Max(1, (int)Math.Round(_settings.InfiniteAnimationTimeout / TickLength.TotalSeconds));
 
     // The convention this project follows: red for a frame's own Clsn1, blue
@@ -58,6 +64,9 @@ public partial class MainWindow
     private bool _airDirty;
     private DispatcherTimer? _clock;
     private int _tick;
+    /// <summary>Playback time base: ticks due are counted from real elapsed time, not timer events.</summary>
+    private readonly Stopwatch _playWatch = new();
+    private long _playedTicks;
     private string? _airError;
 
     /// <summary>The action's boxes captured before a box drag/nudge.</summary>
@@ -1735,7 +1744,9 @@ public partial class MainWindow
 
         OnOffsetDragFinished();
         AnimCanvas.OffsetDraggingEnabled = false;
-        _clock = new DispatcherTimer { Interval = TickLength };
+        _playWatch.Restart();
+        _playedTicks = 0;
+        _clock = new DispatcherTimer { Interval = PlaybackPollInterval };
         _clock.Tick += (_, _) => Advance();
         _clock.Start();
         PlayButton.IsChecked = true;
@@ -1750,22 +1761,39 @@ public partial class MainWindow
     {
         _clock?.Stop();
         _clock = null;
+        _playWatch.Reset();
         AnimCanvas.OffsetDraggingEnabled = true;
         if (PlayButton is not null) PlayButton.IsChecked = false;
         TimelineView?.SetPlayTick(-1);
     }
 
+    /// <summary>Steps every tick due since the last poll, then draws only the latest one.</summary>
     private void Advance()
     {
         if (_action is null) { Pause(); return; }
+        long due = (long)(_playWatch.Elapsed.TotalSeconds / TickLength.TotalSeconds) - _playedTicks;
+        if (due <= 0) return;
+        if (due > MaxCatchUpTicks)
+        {
+            _playedTicks += due - MaxCatchUpTicks;
+            due = MaxCatchUpTicks;
+        }
+        _playedTicks += due;
+        for (long i = 0; i < due; i++) StepTick(_action);
+        ShowPlayTick(_action);
+    }
+
+    /// <summary>Moves playback one tick forward, restarting after the hold or intro dwell.</summary>
+    private void StepTick(AnimationAction action)
+    {
         _tick++;
 
         // Ticks before the final hold. The engine just stops an action that
         // ends in -1, but a preview that stops dead needs a manual restart
         // every time — so playback dwells on the hold frame briefly, then
         // loops like any other action.
-        int finite = _action.Elements.TakeWhile(e => !e.ShowsForever).Sum(e => Math.Max(e.Duration, 0));
-        bool infinite = _action.LoopTime is null;
+        int finite = action.Elements.TakeWhile(e => !e.ShowsForever).Sum(e => Math.Max(e.Duration, 0));
+        bool infinite = action.LoopTime is null;
         if (infinite && _tick >= finite + InfiniteAnimationTimeoutTicks) _tick = 0;
 
         // A Loopstart past the beginning means there's an intro before the
@@ -1775,12 +1803,19 @@ public partial class MainWindow
         // above, just measured from the *second* time the loop point is
         // reached (end of the initial play-through, plus one full repeat of
         // the loop body) rather than from the first.
-        if (!infinite && _action.LoopStart > 0 && _action.LoopTime is { } total)
+        if (!infinite && action.LoopStart > 0 && action.LoopTime is { } total)
         {
-            int head = _action.Elements.Take(_action.LoopStart).Sum(e => e.Duration);
+            int head = action.Elements.Take(action.LoopStart).Sum(e => e.Duration);
             int body = total - head;
             if (body > 0 && _tick >= total + body + InfiniteAnimationTimeoutTicks) _tick = 0;
         }
+    }
+
+    /// <summary>Draws the frame and playhead for the current tick.</summary>
+    private void ShowPlayTick(AnimationAction action)
+    {
+        int finite = action.Elements.TakeWhile(e => !e.ShowsForever).Sum(e => Math.Max(e.Duration, 0));
+        bool infinite = action.LoopTime is null;
 
         // During the dwell the playhead parks at the track's end rather than
         // wrapping around while the frame sits still. Finite actions wrap
@@ -1788,12 +1823,12 @@ public partial class MainWindow
         // modulo over the whole length put the playhead at tick 0 whenever the
         // action looped from a Loopstart past the beginning, while the frame
         // jumped back to the Loopstart element.
-        TimelineView.SetPlayTick(infinite ? Math.Min(_tick, finite) : _action.WrapTick(_tick));
+        TimelineView.SetPlayTick(infinite ? Math.Min(_tick, finite) : action.WrapTick(_tick));
 
-        var element = _action.ElementAt(_tick);
+        var element = action.ElementAt(_tick);
         if (element is null) { Pause(); return; }
 
-        int index = _action.Elements.IndexOf(element);
+        int index = action.Elements.IndexOf(element);
         if (index >= 0 && index != FrameList.SelectedIndex)
         {
             _suppressEvents = true;
