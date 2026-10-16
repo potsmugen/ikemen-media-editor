@@ -155,6 +155,12 @@ and constraints that are easy to miss when reading one code path in isolation.
   frame edits keep zoom. Same-size tick marks show from `TimelineTickMarkMinPixels`.
   Holding and zero-length frames
   take one tick of width, and the playhead uses the same layout as the cells.
+- **List keyboard look-ahead** (`MainWindow.ListLookahead.cs`): after an arrow,
+  Page, Home or End step in the sprite, palette, action, frame-table or sound list,
+  the next row in the direction of travel is scrolled fully into view, so the
+  highlight stops one row short of the edge. Avalonia 11.3's VirtualizingStackPanel
+  rebuilds every visible row when ScrollIntoView targets an unrealized row
+  (measured: ~50 ms per step on a 12k-sprite SFF, ~3 ms with the look-ahead).
 - **GIF export** splits playback into runs of identical drawn state to show
   Interpolate, and uses configured dwell for -1 holds. Delays are rounded to
   centiseconds with a 2-centisecond minimum. Frames use a local color table,

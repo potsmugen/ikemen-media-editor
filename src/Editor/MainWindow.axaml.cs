@@ -130,6 +130,7 @@ public partial class MainWindow : Window
         PalettePreview.BoxContextRequested += OnPalettePreviewContextRequested;
         ScratchImage.ImageContextRequested += OnScratchImageContextRequested;
         WireTimelineEvents();
+        WireListLookahead();
         AddHandler(DragDrop.DropEvent, OnFileDropped);
         DragDrop.SetAllowDrop(this, true);
 

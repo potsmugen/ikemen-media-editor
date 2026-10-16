@@ -128,6 +128,11 @@ one to `agents/todo.md` (the open-work list) and keep working on the current tas
 until it is done. Record the interruption and finish the in-progress work first;
 don't drop it to chase the new request.
 
+## Test checklists
+
+Don't add checks to `agents/todo.md` for changes the maintainer is testing with you in
+the current session. List under "Not yet checked in the app" only what is left untested.
+
 ## Reference notes
 
 Read the relevant feature and implementation-note sections in

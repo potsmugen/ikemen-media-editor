@@ -71,6 +71,20 @@ before a release. Remove items once they're done or checked.
 - Palette list is now multi-select: decide whether Delete (and other sidebar buttons) should act
   on every selected palette; today they act on the first selected one.
 
+- Lists: selecting a sprite clears then adds the selection (ApplySpriteRowSelection),
+  firing two SelectionChanged events per step; the first returns early, so it's minor.
+- Lists: time RebuildFrameTable on a long action (it rebuilds fully from 18 places)
+  before deciding whether it needs incremental updates.
+- Lists: the window-wide arrow fallback steps the sprite list from anywhere unless
+  something else handles the key; it caused the palette-list bug and is patched with a
+  list exception. Decide whether to narrow it (e.g. only when the Sprites canvas has focus).
+- Lists: compiled bindings (x:DataType) for the row templates instead of reflection.
+  The row classes are nested in MainWindow; they may need moving out for XAML to reach them.
+- Lists: lighter rows. A sprite row builds 12 Borders, 5 hover-only fill handles and
+  6 tooltips (~2.5 ms per row measured); the frame table has 41 bindings per row.
+  Build fill handles and tooltips on demand (e.g. one shared fill handle over the
+  hovered cell). Time it the same way as the look-ahead fix.
+
 ## Not yet checked in the app
 
 Built, but not tried by the maintainer yet.
