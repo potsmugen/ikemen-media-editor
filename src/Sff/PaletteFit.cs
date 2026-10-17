@@ -4,8 +4,9 @@ namespace Sff;
 /// compare as full RGBA, as duplicate palettes do; index 0 is the mask and never counts.</summary>
 public sealed class PaletteFit
 {
-    /// <summary>One image: its own colors by index (indexed only), the indexes it uses, and its visible colors (null when over 255).</summary>
-    private sealed record Entry(Rgba[]? Own, int[]? Used, HashSet<uint>? Colors);
+    /// <summary>One image: its own colors by index (indexed only), the indexes it uses, its visible colors
+    /// (null when over 256), and whether it has no transparent pixels.</summary>
+    private sealed record Entry(Rgba[]? Own, int[]? Used, HashSet<uint>? Colors, bool Opaque = false);
 
     private readonly List<Entry?> _images = [];
 
@@ -37,6 +38,10 @@ public sealed class PaletteFit
             if (e.Colors is not { } wanted) continue;
             usable ??= Usable(colors);
             if (usable.IsSupersetOf(wanted)) count++;
+            // Matches ImageImport: in an image without transparency, index 0's RGB is the mask.
+            else if (e.Opaque && colors.Length > 0
+                && wanted.All(c => usable.Contains(c) || (c & 0xFFFFFF) == (Key(colors[Sprite.TransparentIndex]) & 0xFFFFFF)))
+                count++;
         }
         return count;
     }
@@ -59,13 +64,14 @@ public sealed class PaletteFit
         if (s.Direct is { } bgra)
         {
             var colors = new HashSet<uint>();
+            bool transparent = false;
             for (int i = 0; i + 3 < bgra.Length; i += 4)
             {
-                if (bgra[i + 3] < threshold) continue;
+                if (bgra[i + 3] < threshold) { transparent = true; continue; }
                 colors.Add(Key(new Rgba(bgra[i + 2], bgra[i + 1], bgra[i], bgra[i + 3])));
-                if (colors.Count > 255) return new Entry(null, null, null); // more than any palette holds
+                if (colors.Count > 256) return new Entry(null, null, null); // more than any palette holds, mask included
             }
-            return new Entry(null, null, colors);
+            return new Entry(null, null, colors, Opaque: !transparent);
         }
         return null;
     }

@@ -226,6 +226,11 @@ and constraints that are easy to miss when reading one code path in isolation.
   pixels only. Indexed sprites stay indexed and preserve their palette; Area selects
   an existing index rather than inventing one. Resize Canvas remains the separate
   center crop/pad operation.
+- **Mask color on import**: nearest-color matching never picks index 0 for an opaque
+  pixel, except in images with no transparent pixels (PCX, PNGs exported with the mask
+  shown), where an exact match of the palette's index 0 RGB is the mask and goes to 0.
+  Images with transparency take their mask from alpha only, so a mask color shared with
+  real sprite colors (often black) can't punch holes. Decided per image, no option.
 - **Palette export/import** always writes a lossless `.rgba` text palette with exact color count, index order, and RGBA channels, plus a user-chosen ACT, JASC-PAL, or indexed PNG companion. For 1–7-bit palettes, PNG is a visual reference; `.rgba` is the exact round-trip format. `.rgba` imports preserve any 1–256 color count and all channels. Existing ACT, JASC-PAL, indexed PNG, and PCX imports remain supported. Without an SFF open, imported palette files are standalone documents; multiple files can be edited and saved to their source format. Indexed PNG and PCX saves replace the palette while preserving image data; saves confirm before dropping unrepresentable alpha or palette entries. Opening an SFF offers to keep standalone palettes as external SFF palettes, discard them, or cancel.
 - **Create From Images** (Palettes menu) builds one 256-color palette from the visible
   pixels of picked PNG or PCX files. Index 0 is a transparent black mask; pixels below the

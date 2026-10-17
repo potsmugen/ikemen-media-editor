@@ -133,6 +133,22 @@ public class EditingTests
     }
 
     [Fact]
+    public void MaskColorIsTheMaskOnlyInImagesWithoutTransparency()
+    {
+        var pal = new Palette { Colors = [new(255, 0, 255, 0), new(255, 0, 0, 255), new(0, 255, 0, 255)] };
+        // Opaque magenta (the mask color's RGB) and red; the second image adds a transparent pixel.
+        var opaque = PngExport.Encode(new byte[] { 255, 0, 255, 255, 0, 0, 255, 255 }, 2, 1);
+        var withAlpha = PngExport.Encode(new byte[] { 255, 0, 255, 255, 0, 0, 255, 255, 0, 0, 0, 0 }, 3, 1);
+
+        var masked = ImageImport.FromImage(opaque, ImportPlan.Given(pal, keepIndexes: false), out var report);
+        var byAlpha = ImageImport.FromImage(withAlpha, ImportPlan.Given(pal, keepIndexes: false), out _);
+
+        Assert.Equal([0, 1], masked.Indexed);
+        Assert.Equal(report.Colors, report.ExactMatches);
+        Assert.Equal([1, 1, 0], byAlpha.Indexed); // alpha is the mask; magenta is just a color
+    }
+
+    [Fact]
     public void ReplacingStopsSharing()
     {
         var f = MakeFile();

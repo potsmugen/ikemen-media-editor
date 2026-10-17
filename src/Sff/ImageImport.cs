@@ -338,7 +338,9 @@ public static class ImageImport
             return report;
         }
 
-        imported.Indexed = Match(ToBgra(img), target, out int colors, out int exact);
+        // Without transparent pixels the mask is drawn in its color (PCX, mask shown), so that color is the mask.
+        var bgra = ToBgra(img);
+        imported.Indexed = Match(bgra, target, out int colors, out int exact, maskColor: !AnyTransparent(bgra));
         var matched = new Report(img.Width, img.Height, colors, exact, false, false, false, 0);
         Commit();
         return matched;
@@ -411,13 +413,22 @@ public static class ImageImport
         return bgra;
     }
 
+    private static bool AnyTransparent(byte[] bgra)
+    {
+        for (int i = 3; i < bgra.Length; i += 4)
+            if (bgra[i] < TransparentAlphaThreshold) return true;
+        return false;
+    }
+
     /// <summary>
     /// Maps each pixel to its nearest palette entry. Pixels below the transparent
     /// alpha threshold become index 0, and index 0 is never chosen for an opaque
-    /// pixel, because it is the transparency mask rather than a usable color.
+    /// pixel, because it is the transparency mask rather than a usable color —
+    /// unless maskColor is set, where an exact match of index 0's RGB goes to 0.
     /// </summary>
-    private static byte[] Match(byte[] bgra, Palette pal, out int colors, out int exact)
+    private static byte[] Match(byte[] bgra, Palette pal, out int colors, out int exact, bool maskColor = false)
     {
+        var mask = maskColor && pal.Colors.Length > 0 ? pal.Colors[Sprite.TransparentIndex] : (Rgba?)null;
         var cache = new Dictionary<uint, byte>();
         var exactly = new HashSet<uint>();
         var outp = new byte[bgra.Length / 4];
@@ -430,7 +441,9 @@ public static class ImageImport
             uint key = (uint)(r << 16 | g << 8 | b);
             if (!cache.TryGetValue(key, out byte idx))
             {
-                idx = Nearest(pal, r, g, b, out bool isExact);
+                bool isExact = true;
+                if (mask is { } m && m.R == r && m.G == g && m.B == b) idx = Sprite.TransparentIndex;
+                else idx = Nearest(pal, r, g, b, out isExact);
                 cache[key] = idx;
                 if (isExact) exactly.Add(key);
             }

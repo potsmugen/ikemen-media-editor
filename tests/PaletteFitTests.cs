@@ -39,6 +39,17 @@ public class PaletteFitTests
     }
 
     [Fact]
+    public void NearestModeCountsTheMaskColorOnlyInImagesWithoutTransparency()
+    {
+        var pal = Pal(new Rgba(255, 0, 255, 0), C(1, 2, 3));
+        var opaque = new PaletteFit([Direct(C(255, 0, 255), C(1, 2, 3))]);
+        var withAlpha = new PaletteFit([Direct(C(255, 0, 255), C(1, 2, 3), new Rgba(0, 0, 0, 0))]);
+
+        Assert.Equal(1, opaque.Matches(pal, keepIndexes: false));
+        Assert.Equal(0, withAlpha.Matches(pal, keepIndexes: false));
+    }
+
+    [Fact]
     public void AlphaMustMatchToo()
     {
         var own = Pal(C(0, 0, 0), C(1, 2, 3));
