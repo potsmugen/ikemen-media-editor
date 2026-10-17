@@ -92,7 +92,7 @@ internal static class SffV1Writer
         BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(20), (uint)f.Sprites.Count);
         BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(24), HeaderSize);
         BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(28), SubHeaderSize);
-        header[32] = (byte)(usePreviousPalette ? 1 : 0); // palette type 2: use previous sprite's palette
+        header[32] = (byte)(usePreviousPalette ? 1 : 0); // SprMaker "Shared palette": flagged sprites use the first palette
         // Bytes 36-511 stay zero: SprMaker 0.97 clears them and writes nothing there.
 
         AtomicFile.Write(path, file =>

@@ -11,6 +11,8 @@ internal static class SffV1Reader
 {
     private const int HeaderSize = 512;
     private const int SubHeaderSize = 32;
+    /// <summary>Header byte 32: SprMaker 0.97's "Shared palette" type.</summary>
+    private const byte SharedPalette = 1;
 
 
     public static SffFile Decode(byte[] b, SffVersion version)
@@ -20,6 +22,7 @@ internal static class SffV1Reader
 
         uint imageCount = BinaryPrimitives.ReadUInt32LittleEndian(b.AsSpan(20));
         uint first = BinaryPrimitives.ReadUInt32LittleEndian(b.AsSpan(24));
+        bool shared = b[32] == SharedPalette;
 
         var f = new SffFile { Version = version, CompatVersion = version };
         var linkTo = new List<int>();
@@ -58,7 +61,7 @@ internal static class SffV1Reader
                     s.Width = img.Width;
                     s.Height = img.Height;
                     s.Indexed = img.Indices;
-                    s.Palette = ChoosePalette(f, img.Palette, samePalette);
+                    s.Palette = ChoosePalette(f, img.Palette, samePalette, shared);
                 }
                 catch (Exception e)
                 {
@@ -74,11 +77,12 @@ internal static class SffV1Reader
         return f;
     }
 
-    /// <summary>A sprite carries its own palette or reuses the latest palette via its subheader flag.</summary>
-    private static Palette? ChoosePalette(SffFile f, Rgba[]? own, bool samePalette)
+    /// <summary>A sprite carries its own palette, or its subheader flag says it has none: then it uses
+    /// the first palette in a shared-palette file, else the previous one (see Official tools in features.md).</summary>
+    private static Palette? ChoosePalette(SffFile f, Rgba[]? own, bool samePalette, bool shared)
     {
         if (samePalette || own is null)
-            return f.Palettes.Count > 0 ? f.Palettes[^1] : null;
+            return f.Palettes.Count == 0 ? null : shared ? f.Palettes[0] : f.Palettes[^1];
 
         var p = new Palette { Group = 1, Index = f.Palettes.Count + 1, Colors = own };
         f.Palettes.Add(p);

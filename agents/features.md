@@ -450,7 +450,7 @@ summaries; treat anything marked unverified as unknown.
   in parallel (`Parallel.ForEach` in `SffReader.ReadSprites`); each sprite decodes
   from its own `SourceData`. Loading is slower than saving because save reuses
   untouched bytes while load decodes every sprite. SFFv1 still decodes serially
-  because same-palette records depend on the previous palette.
+  because same-palette records depend on an earlier palette.
 - SFF palette byte 4 is alpha, despite the spec calling it unused.
 - LZ5 was reconstructed from mirrored excerpts because the Elecbyte wiki page
   is unavailable. Short packets recycle distance bits across groups of four;
@@ -459,7 +459,8 @@ summaries; treat anything marked unverified as unknown.
   distances against sprite width.
   Header compatibility bytes 24-27 remain unverified.
 - SFFv1 is a linked list of PCX subfiles that carry palettes. A sprite uses
-  its own palette or inherits the preceding sprite's; linked records share the
+  its own palette; a same-palette-flagged one uses the file's first palette when
+  header byte 32 = 1 (shared), else the preceding sprite's. Linked records share the
   palette object, so undo must restore palette references as well as colors.
   PCX data may lack the `0x0c` marker, so the final 768 bytes
   of the subfile contain its palette. Incomplete scanlines are decode errors;
@@ -728,13 +729,23 @@ The editor's writers follow these tools where applicable.
 
 - The official tools and their disassemblies are in `working/` (gitignored;
   README.txt there lists key addresses). Use them before disassembling again.
-- SprMaker 0.97's palette-type prompt offers 1 (Individual palette, header byte
-  32 = 0) and 2 (Use previous sprite's palette, byte 32 = 1). Type 2 uses
-  per-subheader same-palette flags; it is not a global instruction to use the
-  first sprite's palette. In `working/kfm - old.sff`, byte 32 is 1; among its
-  non-link records, the first two have the same-palette flag clear and the
-  remaining 210 have it set. Their PCX records still contain palette bytes,
-  which the same-palette flags make redundant.
+- SprMaker 0.97's file-wide palette type is 1 (Individual palette, header byte
+  32 = 0) or 2 (Shared palette, byte 32 = 1); "Use previous sprite's palette" is
+  the per-sprite override menu. Disassembled: the type lives at 0x55aec and is
+  copied to byte 32 (0x28b1). In shared mode every sprite after the first gets
+  the same-palette flag (0x2114) unless overridden as individual, and a flagged
+  sprite's last 768 PCX bytes are dropped (0x252f), so the flag only means "no
+  palette stored". mtools.txt: shared means "all sprites will use the palette
+  data of the first sprite", with individual sprites (e.g. 9000,1) as the
+  exception. So in shared files flagged sprites use the first palette, not the
+  previous one: with an individual 9000,1, "previous" would give every later
+  sprite the portrait's palette. Individual files only get the flag from -p,
+  where it means "same as previous". The engine's own reading is unverified.
+  Samples (byte 32 = 1): `working/kfm - old.sff` (0,0 flagged, takes 9000,0's
+  palette) and `working/Donald.sff` (0,0 keeps its own; 0,1 onward take
+  9000,0's, which equals Donald01.act). Flagged records in both still carry
+  palette bytes; the flag makes them redundant. V1Tests covers both layouts
+  and the individual case with synthetic files.
 - SprMaker 0.97 -p (disassembled) compares the previous palette with the
   current PCX's final 768 RGB bytes; on a match it omits the palette and sets
   the same-palette flag. The check runs only for non-link sprites. SprMaker

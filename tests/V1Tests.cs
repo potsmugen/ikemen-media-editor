@@ -64,39 +64,67 @@ public class V1Tests
         Assert.Same(file.Sprites[251].Palette, file.Sprites[252].Palette);
     }
 
-    [Fact]
-    public void HeaderPaletteTypeDoesNotOverridePerSpritePaletteFlags()
+    /// <summary>Saves one sprite per entry, each with its own distinct palette, then sets header
+    /// byte 32 and the flagged sprites' same-palette byte, so only the reader decides their palettes.</summary>
+    private static SffFile ReadV1(byte headerPaletteType, params (int Group, int Index, bool Flagged)[] sprites)
     {
-        static Palette MakePalette(byte red) => new()
+        var f = new SffFile { Version = SffVersions.V1 };
+        for (int i = 0; i < sprites.Length; i++)
         {
-            Colors = Enumerable.Range(0, 256).Select(i => new Rgba(red, (byte)i, 0, 255)).ToArray(),
-        };
-
-        var first = MakePalette(10);
-        var second = MakePalette(90);
-        var third = MakePalette(170);
-        var f = new SffFile { Version = SffVersions.V1, Palettes = [first, second, third] };
-        f.Sprites.Add(new Sprite { Group = 1, Index = 0, Width = 1, Height = 1, Palette = first, Indexed = [1] });
-        f.Sprites.Add(new Sprite { Group = 1, Index = 1, Width = 1, Height = 1, Palette = second, Indexed = [2] });
-        f.Sprites.Add(new Sprite { Group = 1, Index = 2, Width = 1, Height = 1, Palette = third, Indexed = [3] });
+            var pal = new Palette
+            {
+                Colors = Enumerable.Range(0, 256).Select(c => new Rgba((byte)(10 + i * 40), (byte)c, 0, 255)).ToArray(),
+            };
+            f.Palettes.Add(pal);
+            f.Sprites.Add(new Sprite { Group = sprites[i].Group, Index = sprites[i].Index, Width = 1, Height = 1, Palette = pal, Indexed = [1] });
+        }
 
         var tmp = Path.Combine(Path.GetTempPath(), $"v1pal-{Guid.NewGuid():N}.sff");
         try
         {
             f.Save(tmp, SffVersions.V1);
             var bytes = File.ReadAllBytes(tmp);
-            bytes[32] = 1;
-            uint firstNode = BitConverter.ToUInt32(bytes, 24);
-            uint secondNode = BitConverter.ToUInt32(bytes, (int)firstNode);
-            uint thirdNode = BitConverter.ToUInt32(bytes, (int)secondNode);
-            bytes[(int)thirdNode + 18] = 1;
+            bytes[32] = headerPaletteType;
+            uint node = BitConverter.ToUInt32(bytes, 24);
+            for (int i = 0; i < sprites.Length; i++)
+            {
+                if (sprites[i].Flagged) bytes[(int)node + 18] = 1;
+                node = BitConverter.ToUInt32(bytes, (int)node);
+            }
             File.WriteAllBytes(tmp, bytes);
-
-            var saved = SffFile.Open(tmp);
-            Assert.NotSame(saved.Sprites[0].Palette, saved.Sprites[1].Palette);
-            Assert.Same(saved.Sprites[1].Palette, saved.Sprites[2].Palette);
+            return SffFile.Open(tmp);
         }
         finally { File.Delete(tmp); }
+    }
+
+    /// <summary>Shared file shaped like kfm_win: 9000,1 has its own palette and 0,0 follows it
+    /// flagged, yet 0,0 and later flagged sprites take 9000,0's (the first) palette.</summary>
+    [Fact]
+    public void SharedFileGivesFlaggedSpritesTheFirstPalette()
+    {
+        var f = ReadV1(1, (9000, 0, false), (9000, 1, false), (0, 0, true), (0, 1, true));
+        Assert.NotSame(f.Sprites[0].Palette, f.Sprites[1].Palette);
+        Assert.Same(f.Sprites[0].Palette, f.Sprites[2].Palette);
+        Assert.Same(f.Sprites[0].Palette, f.Sprites[3].Palette);
+    }
+
+    /// <summary>Shared file shaped like Donald: an unflagged 0,0 keeps its stored palette;
+    /// the flagged sprites after it still take the first palette.</summary>
+    [Fact]
+    public void SharedFileKeepsUnflaggedSpritePalettes()
+    {
+        var f = ReadV1(1, (9000, 0, false), (0, 0, false), (0, 1, true));
+        Assert.NotSame(f.Sprites[0].Palette, f.Sprites[1].Palette);
+        Assert.Same(f.Sprites[0].Palette, f.Sprites[2].Palette);
+    }
+
+    /// <summary>Individual file: a flagged sprite (SprMaker -p) takes the previous palette.</summary>
+    [Fact]
+    public void IndividualFileGivesFlaggedSpritesThePreviousPalette()
+    {
+        var f = ReadV1(0, (9000, 0, false), (9000, 1, false), (0, 0, true));
+        Assert.NotSame(f.Sprites[0].Palette, f.Sprites[1].Palette);
+        Assert.Same(f.Sprites[1].Palette, f.Sprites[2].Palette);
     }
 
     /// <summary>Writing v1 back out and reading it again keeps every sprite.</summary>
