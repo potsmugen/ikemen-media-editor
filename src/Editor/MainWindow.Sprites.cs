@@ -1238,236 +1238,236 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// <summary>
-        /// Adds a batch of already-built sprites just after the selected one: one
-        /// undo step, numbers running upward from the dialog's choice, and any new
-        /// palette folded in and taken back out again. Shared by Add and Add From
-        /// Sheet so both place, number and undo identically.
-        /// </summary>
-        private async Task<bool> AddBuiltBatch(List<(Sprite Sprite, ImageImport.Report Report)> built,
-            ImportChoices choices, ImportPlan plan, string sourceName, string what)
-        {
-            var file = _file!;
+    /// Adds a batch of already-built sprites just after the selected one: one
+    /// undo step, numbers running upward from the dialog's choice, and any new
+    /// palette folded in and taken back out again. Shared by Add and Add From
+    /// Sheet so both place, number and undo identically.
+    /// </summary>
+    private async Task<bool> AddBuiltBatch(List<(Sprite Sprite, ImageImport.Report Report)> built,
+        ImportChoices choices, ImportPlan plan, string sourceName, string what)
+    {
+        var file = _file!;
 
-            // "The image's own palette" reuses an identical palette the file
-            // already has, so a re-import does not pile up duplicates. Scanned
-            // in batch order, so a run of identical images shares one palette.
-            // A genuinely new one gets the dialog's chosen Group/Index, walking
-            // past taken numbers the same way sprite numbers do below — several
-            // new palettes in one batch can't all claim the same number.
-            bool own = !plan.TrueColor && plan.OwnPalette;
-            int reused = 0;
-            var seen = file.Palettes.ToList();
-            var usedPalNumbers = file.Palettes.Where(p => p.Group == choices.PaletteGroup).Select(p => p.Index).ToHashSet();
-            int palNumber = choices.PaletteIndex;
-            if (own)
-                foreach (var (s, _) in built)
-                {
-                    if (seen.FirstOrDefault(p => p.Colors.AsSpan().SequenceEqual(s.Palette!.Colors)) is { } match)
-                    { s.Palette = match; reused++; }
-                    else
-                    {
-                        while (usedPalNumbers.Contains(palNumber)) palNumber++;
-                        s.Palette!.Group = choices.PaletteGroup;
-                        s.Palette!.Index = palNumber;
-                        usedPalNumbers.Add(palNumber);
-                        palNumber++;
-                        seen.Add(s.Palette!);
-                    }
-                }
-            int fresh = own ? seen.Count - file.Palettes.Count : 0;
-
-            // Numbers run from the chosen one; taken numbers are skipped.
-            var used = file.Sprites.Where(s => s.Group == choices.Group).Select(s => s.Index).ToHashSet();
-            int n = choices.Number;
-            var skipped = new List<int>();
+        // "The image's own palette" reuses an identical palette the file
+        // already has, so a re-import does not pile up duplicates. Scanned
+        // in batch order, so a run of identical images shares one palette.
+        // A genuinely new one gets the dialog's chosen Group/Index, walking
+        // past taken numbers the same way sprite numbers do below — several
+        // new palettes in one batch can't all claim the same number.
+        bool own = !plan.TrueColor && plan.OwnPalette;
+        int reused = 0;
+        var seen = file.Palettes.ToList();
+        var usedPalNumbers = file.Palettes.Where(p => p.Group == choices.PaletteGroup).Select(p => p.Index).ToHashSet();
+        int palNumber = choices.PaletteIndex;
+        if (own)
             foreach (var (s, _) in built)
             {
-                while (used.Contains(n))
+                if (seen.FirstOrDefault(p => p.Colors.AsSpan().SequenceEqual(s.Palette!.Colors)) is { } match)
+                { s.Palette = match; reused++; }
+                else
                 {
-                    skipped.Add(n);
-                    if (++n > 65535)
-                    {
-                        await Dialogs.ShowMessage(this, "No free numbers",
-                            $"Group {choices.Group} has no free number left for all {built.Count} {what}.");
-                        return false;
-                    }
+                    while (usedPalNumbers.Contains(palNumber)) palNumber++;
+                    s.Palette!.Group = choices.PaletteGroup;
+                    s.Palette!.Index = palNumber;
+                    usedPalNumbers.Add(palNumber);
+                    palNumber++;
+                    seen.Add(s.Palette!);
                 }
-                s.Group = choices.Group;
-                s.Index = n;
-                used.Add(n++);
             }
+        int fresh = own ? seen.Count - file.Palettes.Count : 0;
 
-            int at = _current is null ? file.Sprites.Count : file.PositionOf(_current) + 1;
-            var before = _current;
-            var added = built.Select(b => b.Sprite).ToList();
-            var addedPalettes = added.Select(s => s.Palette)
-                .OfType<Palette>().Where(p => !file.Palettes.Contains(p)).Distinct().ToList();
-
-            Edit(added.Count == 1 ? "add sprite" : $"add {added.Count} sprites",
-                () => { for (int i = 0; i < added.Count; i++) file.Insert(at + i, added[i]); _current = added[^1]; },
-                () =>
-                {
-                    foreach (var s in added) file.Remove(s);
-                    foreach (var p in addedPalettes) file.Palettes.Remove(p);
-                    _current = before;
-                });
-            MarkDirty();
-
-            var numbers = added.Select(s => s.Index).ToList();
-            string list = string.Join(", ", numbers.Take(5)) + (numbers.Count > 5 ? ", …" : "");
-            string skipNote = skipped.Count > 0
-                ? $"; skipped taken number{(skipped.Count == 1 ? "" : "s")} {string.Join(", ", skipped.Distinct())}"
-                : "";
-            string paletteFate = own
-                ? (fresh, reused) switch
-                {
-                    (> 0, 0) => $"Added {fresh} new palette{(fresh == 1 ? "" : "s")} to the file",
-                    (0, > 0) => $"Reused identical palette{(reused == 1 ? "" : "s")} already in the file",
-                    _ => $"Added {fresh} new palette{(fresh == 1 ? "" : "s")}, {reused} reused",
-                }
-                : "";
-            StatusText.Text = added.Count == 1
-                ? $"Added {choices.Group},{numbers[0]} from {sourceName}. {built[0].Report}"
-                  + (paletteFate.Length > 0 ? $" {paletteFate}." : "")
-                : $"Added {added.Count} sprites to group {choices.Group}: {list}{skipNote}. {built[0].Report}"
-                  + (paletteFate.Length > 0 ? $" {paletteFate}." : "");
-            if (built.Count > 1)
+        // Numbers run from the chosen one; taken numbers are skipped.
+        var used = file.Sprites.Where(s => s.Group == choices.Group).Select(s => s.Index).ToHashSet();
+        int n = choices.Number;
+        var skipped = new List<int>();
+        foreach (var (s, _) in built)
+        {
+            while (used.Contains(n))
             {
-                int reducedCount = built.Count(b => b.Report.Reduced);
-                if (reducedCount > 0)
+                skipped.Add(n);
+                if (++n > 65535)
                 {
-                    string reduction = reducedCount == 1
-                        ? "1 sprite was reduced"
-                        : $"{reducedCount} sprites were reduced";
-                    StatusText.Text += $" {reduction} to {Sff.GifImport.MaxSharedColors} colors by median cut.";
+                    await Dialogs.ShowMessage(this, "No free numbers",
+                        $"Group {choices.Group} has no free number left for all {built.Count} {what}.");
+                    return false;
                 }
             }
-            return true;
+            s.Group = choices.Group;
+            s.Index = n;
+            used.Add(n++);
         }
 
-        /// <summary>
-        /// Finds the sprites in one image and adds each as its own sprite, cropped
-        /// tight. Separate from Add because the layout is a per-image decision, and
-        /// one sheet is one file rather than a batch of them.
-        /// </summary>
-        private async void OnAddSpriteSheet(object? sender, RoutedEventArgs e)
+        int at = _current is null ? file.Sprites.Count : file.PositionOf(_current) + 1;
+        var before = _current;
+        var added = built.Select(b => b.Sprite).ToList();
+        var addedPalettes = added.Select(s => s.Palette)
+            .OfType<Palette>().Where(p => !file.Palettes.Contains(p)).Distinct().ToList();
+
+        Edit(added.Count == 1 ? "add sprite" : $"add {added.Count} sprites",
+            () => { for (int i = 0; i < added.Count; i++) file.Insert(at + i, added[i]); _current = added[^1]; },
+            () =>
+            {
+                foreach (var s in added) file.Remove(s);
+                foreach (var p in addedPalettes) file.Palettes.Remove(p);
+                _current = before;
+            });
+        MarkDirty();
+
+        var numbers = added.Select(s => s.Index).ToList();
+        string list = string.Join(", ", numbers.Take(5)) + (numbers.Count > 5 ? ", …" : "");
+        string skipNote = skipped.Count > 0
+            ? $"; skipped taken number{(skipped.Count == 1 ? "" : "s")} {string.Join(", ", skipped.Distinct())}"
+            : "";
+        string paletteFate = own
+            ? (fresh, reused) switch
+            {
+                (> 0, 0) => $"Added {fresh} new palette{(fresh == 1 ? "" : "s")} to the file",
+                (0, > 0) => $"Reused identical palette{(reused == 1 ? "" : "s")} already in the file",
+                _ => $"Added {fresh} new palette{(fresh == 1 ? "" : "s")}, {reused} reused",
+            }
+            : "";
+        StatusText.Text = added.Count == 1
+            ? $"Added {choices.Group},{numbers[0]} from {sourceName}. {built[0].Report}"
+              + (paletteFate.Length > 0 ? $" {paletteFate}." : "")
+            : $"Added {added.Count} sprites to group {choices.Group}: {list}{skipNote}. {built[0].Report}"
+              + (paletteFate.Length > 0 ? $" {paletteFate}." : "");
+        if (built.Count > 1)
         {
-            if (_file is null) return;
+            int reducedCount = built.Count(b => b.Report.Reduced);
+            if (reducedCount > 0)
+            {
+                string reduction = reducedCount == 1
+                    ? "1 sprite was reduced"
+                    : $"{reducedCount} sprites were reduced";
+                StatusText.Text += $" {reduction} to {Sff.GifImport.MaxSharedColors} colors by median cut.";
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Finds the sprites in one image and adds each as its own sprite, cropped
+    /// tight. Separate from Add because the layout is a per-image decision, and
+    /// one sheet is one file rather than a batch of them.
+    /// </summary>
+    private async void OnAddSpriteSheet(object? sender, RoutedEventArgs e)
+    {
+        if (_file is null) return;
+        try
+        {
+            if (await PickImages("Import from sheet", allowMultiple: false) is not { } picked) return;
+            var (bytes, name) = picked[0];
+
+            SheetLayout layout;
             try
             {
-                if (await PickImages("Import from sheet", allowMultiple: false) is not { } picked) return;
-                var (bytes, name) = picked[0];
+                layout = SheetImport.Detect(bytes);
+            }
+            catch (Exception ex)
+            {
+                CrashLog.Write("OnAddSpriteSheet", ex);
+                await Dialogs.ShowMessage(this, "Could not read the sheet", ex.Message);
+                return;
+            }
 
-                SheetLayout layout;
-                try
-                {
-                    layout = SheetImport.Detect(bytes);
-                }
+            if (layout.Count == 0)
+            {
+                await Dialogs.ShowMessage(this, "No sprites found",
+                    $"{name} has nothing that stands out from its background. Try a different background, or a lower size floor.");
+                return;
+            }
+
+            // The guess and the floor are the two things detection decided on
+            // the user's behalf, so both go past them before anything is added.
+            if (await Dialogs.PromptSheetDetect(this, name, bytes, layout, layout.Count,
+                    SheetImport.MinimumSize) is not { } detected) return;
+
+            // Re-detect if the floor or background moved, so what is imported
+            // is what the dialog just showed.
+            if (detected.MinimumSize != SheetImport.MinimumSize || detected.Background != layout.Background)
+            {
+                // Kept for the rest of the session, like Find Similar's choices; settings.json seeds it.
+                SheetImport.MinimumSize = detected.MinimumSize;
+                try { layout = SheetImport.Detect(bytes, detected.Background); }
                 catch (Exception ex)
                 {
                     CrashLog.Write("OnAddSpriteSheet", ex);
                     await Dialogs.ShowMessage(this, "Could not read the sheet", ex.Message);
                     return;
                 }
-
-                if (layout.Count == 0)
-                {
-                    await Dialogs.ShowMessage(this, "No sprites found",
-                        $"{name} has nothing that stands out from its background. Try a different background, or a lower size floor.");
-                    return;
-                }
-
-                // The guess and the floor are the two things detection decided on
-                // the user's behalf, so both go past them before anything is added.
-                if (await Dialogs.PromptSheetDetect(this, name, bytes, layout, layout.Count,
-                        SheetImport.MinimumSize) is not { } detected) return;
-
-                // Re-detect if the floor or background moved, so what is imported
-                // is what the dialog just showed.
-                if (detected.MinimumSize != SheetImport.MinimumSize || detected.Background != layout.Background)
-                {
-                    SheetImport.MinimumSize = detected.MinimumSize;
-                    try { layout = SheetImport.Detect(bytes, detected.Background); }
-                    catch (Exception ex)
-                    {
-                        CrashLog.Write("OnAddSpriteSheet", ex);
-                        await Dialogs.ShowMessage(this, "Could not read the sheet", ex.Message);
-                        return;
-                    }
-                }
-
-                if (detected.Excluded != null && detected.Excluded.Count > 0)
-                {
-                    var kept = layout.Cells.Where(c => !detected.Excluded.Contains(c)).ToList();
-                    layout = new Sff.SheetLayout(kept, layout.Background, layout.AssumedBackground);
-                }
-
-                if (layout.Count == 0)
-                {
-                    await Dialogs.ShowMessage(this, "No sprites found",
-                        $"{name} has nothing that stands out from that background at a floor of {detected.MinimumSize} pixels.");
-                    return;
-                }
-
-                var file = _file;
-                int group = _current?.Group ?? 0;
-                int number = NextFreeIndex(group);
-                var previous = file.PaletteBefore(_current is null ? file.Sprites.Count - 1 : file.PositionOf(_current));
-                var source = new PickedSource(name, bytes, null);
-
-                CrashLog.Trace($"OnAddSpriteSheet: {name}, {layout.Count} sprites, floor {detected.MinimumSize}, background {detected.Background?.ToString() ?? "(the sheet's own transparency)"}");
-
-                // The dialog's own choices still decide placement, palette and
-                // indexes, exactly as they do for Add.
-                if (await PromptImport("Import from sheet", [source], layout.Count, file, previous,
-                        askPlacement: true, group, number, group, layout) is not { } choices) return;
-
-                var plan = BuildPlan(choices, previous);
-                Palette? sharedPalette = null;
-                string colorNote = "";
-                if (!plan.TrueColor && plan.OwnPalette && !ImageImport.ImageIsIndexed(bytes))
-                {
-                    var colors = SheetImport.SharedColors(bytes, layout);
-                    if (colors.Overflows)
-                    {
-                        var choice = await Dialogs.PromptTooManyColors(
-                            this, name, colors.ColorCount, SffVersions.SupportsPng(file.Version));
-                        if (choice is null) return;
-                        if (choice == Dialogs.TooManyColorsChoice.TrueColor)
-                        {
-                            plan = ImportPlan.TrueColor32();
-                            colorNote = "Imported as 32-bit color.";
-                        }
-                        else
-                        {
-                            sharedPalette = colors.Reduced();
-                            colorNote = $"Colors were reduced to {Sff.GifImport.MaxSharedColors} by median cut.";
-                        }
-                    }
-                    else sharedPalette = colors.ToPalette();
-                }
-
-                List<Sprite> sprites;
-                List<ImageImport.Report> reports;
-                if (sharedPalette is null)
-                    sprites = SheetImport.ToSprites(bytes, layout, plan, out reports);
-                else
-                    sprites = SheetImport.ToSprites(bytes, layout, plan, sharedPalette, out reports);
-                var built = sprites.Select((s, i) => (s, reports[i])).ToList();
-                CrashLog.Trace($"OnAddSpriteSheet: built {built.Count} sprite(s), true color {plan.TrueColor}");
-
-                if (!await AddBuiltBatch(built, choices, plan, name, "sprites")) return;
-                if (colorNote.Length > 0) StatusText.Text += " " + colorNote;
             }
-            catch (Exception ex)
+
+            if (detected.Excluded != null && detected.Excluded.Count > 0)
             {
-                CrashLog.Write("OnAddSpriteSheet", ex);
-                await Dialogs.ShowMessage(this, "Could not import", ex.Message);
+                var kept = layout.Cells.Where(c => !detected.Excluded.Contains(c)).ToList();
+                layout = new Sff.SheetLayout(kept, layout.Background, layout.AssumedBackground);
             }
-        }
 
-        /// <summary>Duplicates the sprite to the next free number in its own group, just after it.
+            if (layout.Count == 0)
+            {
+                await Dialogs.ShowMessage(this, "No sprites found",
+                    $"{name} has nothing that stands out from that background at a floor of {detected.MinimumSize} pixels.");
+                return;
+            }
+
+            var file = _file;
+            int group = _current?.Group ?? 0;
+            int number = NextFreeIndex(group);
+            var previous = file.PaletteBefore(_current is null ? file.Sprites.Count - 1 : file.PositionOf(_current));
+            var source = new PickedSource(name, bytes, null);
+
+            CrashLog.Trace($"OnAddSpriteSheet: {name}, {layout.Count} sprites, floor {detected.MinimumSize}, background {detected.Background?.ToString() ?? "(the sheet's own transparency)"}");
+
+            // The dialog's own choices still decide placement, palette and
+            // indexes, exactly as they do for Add.
+            if (await PromptImport("Import from sheet", [source], layout.Count, file, previous,
+                    askPlacement: true, group, number, group, layout) is not { } choices) return;
+
+            var plan = BuildPlan(choices, previous);
+            Palette? sharedPalette = null;
+            string colorNote = "";
+            if (!plan.TrueColor && plan.OwnPalette && !ImageImport.ImageIsIndexed(bytes))
+            {
+                var colors = SheetImport.SharedColors(bytes, layout);
+                if (colors.Overflows)
+                {
+                    var choice = await Dialogs.PromptTooManyColors(
+                        this, name, colors.ColorCount, SffVersions.SupportsPng(file.Version));
+                    if (choice is null) return;
+                    if (choice == Dialogs.TooManyColorsChoice.TrueColor)
+                    {
+                        plan = ImportPlan.TrueColor32();
+                        colorNote = "Imported as 32-bit color.";
+                    }
+                    else
+                    {
+                        sharedPalette = colors.Reduced();
+                        colorNote = $"Colors were reduced to {Sff.GifImport.MaxSharedColors} by median cut.";
+                    }
+                }
+                else sharedPalette = colors.ToPalette();
+            }
+
+            List<Sprite> sprites;
+            List<ImageImport.Report> reports;
+            if (sharedPalette is null)
+                sprites = SheetImport.ToSprites(bytes, layout, plan, out reports);
+            else
+                sprites = SheetImport.ToSprites(bytes, layout, plan, sharedPalette, out reports);
+            var built = sprites.Select((s, i) => (s, reports[i])).ToList();
+            CrashLog.Trace($"OnAddSpriteSheet: built {built.Count} sprite(s), true color {plan.TrueColor}");
+
+            if (!await AddBuiltBatch(built, choices, plan, name, "sprites")) return;
+            if (colorNote.Length > 0) StatusText.Text += " " + colorNote;
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("OnAddSpriteSheet", ex);
+            await Dialogs.ShowMessage(this, "Could not import", ex.Message);
+        }
+    }
+
+    /// <summary>Duplicates the sprite to the next free number in its own group, just after it.
     /// The copy owns its pixels rather than linking them, so it can be painted or turned
     /// without touching the original; the palette stays shared, as the format intends.
     /// </summary>
@@ -1581,9 +1581,8 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// Swaps in new pixels, keeping the sprite's group, number and axis. A GIF
-    /// replaces with its first frame only, since one sprite cannot hold the
-    /// whole animation; Add is the path that brings every frame in.
+    /// Swaps in new pixels, keeping the sprite's group, number and axis. A
+    /// multi-frame GIF is refused, since one sprite cannot hold an animation.
     /// </summary>
     private async void OnReplaceSprite(object? sender, RoutedEventArgs e)
     {
@@ -1594,6 +1593,13 @@ public partial class MainWindow
             if (await PickImages($"Replace {_current.Group},{_current.Index}", allowMultiple: false) is not { } picked) return;
             var gif = Sff.GifDecoder.LooksLikeGif(picked[0].Bytes);
             int total = gif ? Sff.GifImport.FrameCount(picked[0].Bytes) : 0;
+            if (total > 1)
+            {
+                CrashLog.Error("OnReplaceSprite", $"{picked[0].Name}: {total} frames, refused");
+                await Dialogs.ShowMessage(this, "Cannot replace sprite",
+                    $"{picked[0].Name} has {total} frames. A sprite holds one image; use Add to import every frame.");
+                return;
+            }
 
             var file = _file;
             var sprite = _current;
@@ -1637,7 +1643,7 @@ public partial class MainWindow
             ImageImport.Report report;
             if (gif)
             {
-                // One sprite cannot hold the animation, so take the first frame.
+                // A single-frame GIF, so frame 0 is the whole image.
                 var frames = Sff.GifImport.DecodeFrames(picked[0].Bytes);
                 var first = Sff.GifImport.ToSprites([frames[0]], plan, out var gifReports)[0];
                 report = gifReports[0];
@@ -1690,9 +1696,7 @@ public partial class MainWindow
                 () => { Restore(sprite, after); sprite.Palette = afterPalette; (sprite.SrcFormat, sprite.SrcDepth) = afterFormat; AfterEdit(); });
             MarkDirty();
             AfterEdit();
-            StatusText.Text = gif
-                ? $"Replaced from {picked[0].Name} with its first frame of {total}. {report}"
-                : $"Replaced from {picked[0].Name}. {report}";
+            StatusText.Text = $"Replaced from {picked[0].Name}. {report}";
         }
         catch (Exception ex)
         {
@@ -1941,8 +1945,6 @@ public partial class MainWindow
         return n;
     }
 
-    /// <summary>Same idea as NextFreeIndex, but over the file's palettes rather than its sprites —
-    /// the default Index offered for a brand-new "own palette".</summary>
     /// <summary>In SFFv2 a temp palette moves into the SFF when applied, so no duplicate is left behind.</summary>
     private static bool MovesIntoSff(SffFile file, Palette chosen) => IsTempPalette(chosen) && !SffVersions.IsV1(file.Version);
 
@@ -1975,6 +1977,8 @@ public partial class MainWindow
         }, index);
     }
 
+    /// <summary>Same idea as NextFreeIndex, but over the file's palettes rather than its sprites —
+    /// the default Index offered for a brand-new "own palette".</summary>
     private int NextFreePaletteIndex(int group)
     {
         if (_file is null) return 0;
@@ -2035,7 +2039,7 @@ public partial class MainWindow
         var watch = Stopwatch.StartNew();
         var (scored, references, keepMatches, nearestMatches) = await Task.Run(() =>
         {
-            // Replace hands over a GIF unexpanded and uses its first frame only.
+            // Replace hands over a single-frame GIF unexpanded.
             var expanded = sources.Select(s => s.Frames is null && Sff.GifDecoder.LooksLikeGif(s.Bytes!)
                 ? new PickedSource(s.Name, null, Sff.GifImport.DecodeFrames(s.Bytes!).Take(1).ToList()) : s).ToList();
             var refs = ReferenceSprites(expanded, sheet);
@@ -2049,9 +2053,9 @@ public partial class MainWindow
         var defaultMatches = keepByDefault ? keepMatches : nearestMatches;
         bool Full(Palette? p) => p is not null && references.Count > 0
             && palettes.IndexOf(p) is int at && at >= 0 && defaultMatches[at] == references.Count;
-        var fullMatch = new[] { _specificPalette, _current?.Palette, previousPalette }.FirstOrDefault(Full)
+        var fullMatch = new[] { _current?.Palette, previousPalette }.FirstOrDefault(Full)
             ?? palettes.FirstOrDefault(Full);
-        var specificInitial = fullMatch ?? previousPalette ?? _specificPalette ?? _current?.Palette;
+        var specificInitial = fullMatch ?? previousPalette ?? _current?.Palette;
 
         var preview = new ImportPreview(
             c => BuildPreview(scored[0], sheet, BuildPlan(c, previousPalette)), _canvasLook);
@@ -2061,8 +2065,6 @@ public partial class MainWindow
             askPlacement, group, number, paletteGroup, NextFreePaletteIndex(paletteGroup), allIndexed,
             initial, paletteLabels, framesGif: anyGif,
             matches: new ImportPaletteMatches(keepMatches, nearestMatches, references.Count), preview: preview);
-        // The specific-palette pick is the one import choice worth remembering.
-        if (choices is not null) _specificPalette = choices.SpecificPalette;
         return choices;
     }
 

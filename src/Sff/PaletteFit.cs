@@ -1,11 +1,11 @@
 namespace Sff;
 
-/// <summary>Which palettes reproduce a batch of images exactly, by index or by color.
-/// Index 0 is the mask, so its color never counts.</summary>
+/// <summary>Which palettes reproduce a batch of images exactly, by index or by color. Colors
+/// compare as full RGBA, as duplicate palettes do; index 0 is the mask and never counts.</summary>
 public sealed class PaletteFit
 {
-    /// <summary>One image: its own colors by index (indexed only), the indexes it uses, and its opaque RGB colors (null when over 255).</summary>
-    private sealed record Entry(Rgba[]? Own, int[]? Used, HashSet<int>? Colors);
+    /// <summary>One image: its own colors by index (indexed only), the indexes it uses, and its visible colors (null when over 255).</summary>
+    private sealed record Entry(Rgba[]? Own, int[]? Used, HashSet<uint>? Colors);
 
     private readonly List<Entry?> _images = [];
 
@@ -24,7 +24,7 @@ public sealed class PaletteFit
     {
         ArgumentNullException.ThrowIfNull(palette);
         var colors = palette.Colors;
-        HashSet<int>? usable = null;
+        HashSet<uint>? usable = null;
         int count = 0;
         foreach (var e in _images)
         {
@@ -51,18 +51,18 @@ public sealed class PaletteFit
             foreach (var i in indexed) seen[i] = true;
             seen[Sprite.TransparentIndex] = false;
             var used = Enumerable.Range(0, 256).Where(i => seen[i]).ToArray();
-            var colors = new HashSet<int>();
+            var colors = new HashSet<uint>();
             foreach (var i in used)
                 if (i < pal.Colors.Length && pal.Colors[i].A >= threshold) colors.Add(Key(pal.Colors[i]));
             return new Entry(pal.Colors, used, colors);
         }
         if (s.Direct is { } bgra)
         {
-            var colors = new HashSet<int>();
+            var colors = new HashSet<uint>();
             for (int i = 0; i + 3 < bgra.Length; i += 4)
             {
                 if (bgra[i + 3] < threshold) continue;
-                colors.Add(bgra[i + 2] << 16 | bgra[i + 1] << 8 | bgra[i]);
+                colors.Add(Key(new Rgba(bgra[i + 2], bgra[i + 1], bgra[i], bgra[i + 3])));
                 if (colors.Count > 255) return new Entry(null, null, null); // more than any palette holds
             }
             return new Entry(null, null, colors);
@@ -81,12 +81,12 @@ public sealed class PaletteFit
     }
 
     /// <summary>Colors nearest-color mapping can land on: every entry but the mask.</summary>
-    private static HashSet<int> Usable(Rgba[] colors)
+    private static HashSet<uint> Usable(Rgba[] colors)
     {
-        var set = new HashSet<int>();
+        var set = new HashSet<uint>();
         for (int i = 1; i < colors.Length && i < 256; i++) set.Add(Key(colors[i]));
         return set;
     }
 
-    private static int Key(Rgba c) => c.R << 16 | c.G << 8 | c.B;
+    private static uint Key(Rgba c) => (uint)(c.A << 24 | c.R << 16 | c.G << 8 | c.B);
 }

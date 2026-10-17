@@ -39,6 +39,16 @@ public class PaletteFitTests
     }
 
     [Fact]
+    public void AlphaMustMatchToo()
+    {
+        var own = Pal(C(0, 0, 0), C(1, 2, 3));
+        var see = Pal(C(0, 0, 0), new Rgba(1, 2, 3, 0));
+
+        Assert.Equal(0, new PaletteFit([Indexed(own, 1)]).Matches(see, keepIndexes: true));
+        Assert.Equal(0, new PaletteFit([Direct(C(1, 2, 3))]).Matches(see, keepIndexes: false));
+    }
+
+    [Fact]
     public void CountsMatchesAcrossTheBatch()
     {
         var target = Pal(C(0, 0, 0), C(1, 2, 3));

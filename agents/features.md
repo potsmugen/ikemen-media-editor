@@ -303,22 +303,22 @@ and constraints that are easy to miss when reading one code path in isolation.
   reduction weights colors by occurrence, not by unique color. PNG, PCX, and GIF
   are supported; true-color sprites cannot be exported as PCX.
 - **Sprite import dialog palette help**: each palette's label counts how many of
-  the images it reproduces exactly. Keep indexes: same RGB at every index the
-  image uses. Nearest color: every opaque color present outside index 0. Index 0
-  never counts. The specific-palette dropdown opens on a palette matching every
-  image (ties: remembered pick, selected sprite's, previous sprite's, list order),
-  otherwise on the previous sprite's palette; radio defaults are unchanged. A
-  preview shows the first image as the current choices would import it, scaled
-  to fit (no zoom or pan) and rebuilt off the UI thread on each change. Shared
-  colors that overflow a palette preview reduced. The preview is square, as tall
-  as the options column; it fits the visible pixels, ignoring transparent borders.
+  the images it reproduces exactly, comparing full RGBA. Keep indexes: same color
+  at every index the image uses. Nearest color: every visible color present
+  outside index 0. Index 0 never counts. The specific-palette dropdown opens on a
+  palette matching every image (ties: selected sprite's, previous sprite's, list
+  order), otherwise on the previous sprite's palette; radio defaults are
+  unchanged. A preview shows the first image as the current choices would import
+  it, rebuilt off the UI thread on each change. It is square, as tall as the
+  options column, and fits the visible pixels, ignoring transparent borders; no
+  zoom or pan. Shared colors that overflow a palette preview reduced.
 - **GIF import** composites frame rectangles onto the logical screen and honors
   disposal and interlace. Transparency is binary and pinned to index 0. Truncated
   LZW data leaves undecoded pixels transparent. Repeated frames can be dropped by
   comparing each frame against all earlier kept frames; this reduces pose duration.
   Imported frames share one palette in first-seen play order. If their color union
   exceeds 255 colors, import must use true-color, reduce colors, or be canceled.
-  Replacing a sprite from GIF uses only the first frame.
+  Replacing a sprite from a multi-frame GIF is refused.
 - **Sprite-sheet import** uses connected components and groups detections into
   approximate reading-order bands. Opaque sheets use the most common color as a
   guessed background, cleared inside sprite crops as well. A configurable minimum

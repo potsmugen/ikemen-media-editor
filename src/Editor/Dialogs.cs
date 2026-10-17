@@ -2126,379 +2126,379 @@ public static class Dialogs
     }
 
     /// <summary>What the sheet dialog collected: a background, size floor, and excluded cells.</summary>
-        public sealed record SheetDetectChoices(Rgba? Background, int MinimumSize, IReadOnlyList<Sff.SheetCell> Excluded);
+    public sealed record SheetDetectChoices(Rgba? Background, int MinimumSize, IReadOnlyList<Sff.SheetCell> Excluded);
 
-        /// <summary>
-        /// Reports what sheet detection found and lets its background and size floor
-        /// be corrected before importing. Detected cells can also be excluded from
-        /// the import. Returns null if canceled.
-        /// </summary>
-        public static Task<SheetDetectChoices?> PromptSheetDetect(
-            Window owner, string name, byte[] bytes, Sff.SheetLayout layout, int found, int floor)
+    /// <summary>
+    /// Reports what sheet detection found and lets its background and size floor
+    /// be corrected before importing. Detected cells can also be excluded from
+    /// the import. Returns null if canceled.
+    /// </summary>
+    public static Task<SheetDetectChoices?> PromptSheetDetect(
+        Window owner, string name, byte[] bytes, Sff.SheetLayout layout, int found, int floor)
+    {
+        var result = new TaskCompletionSource<SheetDetectChoices?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var detected = new TextBlock { Foreground = ThemeBrush("ThemeMutedText") };
+        var foundBox = new NumericUpDown { Minimum = 0, Maximum = 4096, Increment = 1, FormatString = "0", Value = floor, Width = 100 };
+        var foundLabel = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
+
+        // The picker shows two choices when detection had to guess: the most
+        // common color, or the first top-left pixel. The label explains each
+        // choice; the raw value alone is useless.
+        var background = new ComboBox { MinWidth = 190 };
+        if (layout.AssumedBackground && layout.Background is { } guessed)
         {
-            var result = new TaskCompletionSource<SheetDetectChoices?>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            var detected = new TextBlock { Foreground = ThemeBrush("ThemeMutedText") };
-            var foundBox = new NumericUpDown { Minimum = 0, Maximum = 4096, Increment = 1, FormatString = "0", Value = floor, Width = 100 };
-            var foundLabel = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
-
-            // The picker shows two choices when detection had to guess: the most
-            // common color, or the first top-left pixel. The label explains each
-            // choice; the raw value alone is useless.
-            var background = new ComboBox { MinWidth = 190 };
-            if (layout.AssumedBackground && layout.Background is { } guessed)
+            var firstPixel = Sff.SheetImport.FirstPixelColor(bytes);
+            var choices = new[]
             {
-                var firstPixel = Sff.SheetImport.FirstPixelColor(bytes);
-                var choices = new[]
+                new { Label = $"Most common color ({Describe(guessed)})", Value = (Rgba?)guessed },
+                new { Label = $"First pixel ({Describe(firstPixel)})", Value = (Rgba?)firstPixel },
+            };
+            background.ItemsSource = choices;
+            background.DisplayMemberBinding = new Avalonia.Data.Binding("Label");
+            background.SelectedIndex = 0;
+        }
+
+        HashSet<Sff.SheetCell> excluded = new();
+        Bitmap? previewBitmap = null;
+        try
+        {
+            var decoded = ImageImport.DecodeToBgra(bytes);
+            using var ms = new MemoryStream(PngExport.Encode(decoded.Bgra, decoded.Width, decoded.Height));
+            previewBitmap = new Bitmap(ms);
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Error("PromptSheetDetect", $"could not render preview for {name}: {ex.Message}");
+        }
+        var previewCanvas = new Canvas();
+        var previewContent = new Canvas();
+        var previewImage = new Image { Stretch = Stretch.None, IsHitTestVisible = false };
+        double previewZoom = 1;
+        if (previewBitmap != null)
+        {
+            previewImage.Source = previewBitmap;
+            previewCanvas.Width = previewBitmap.PixelSize.Width;
+            previewCanvas.Height = previewBitmap.PixelSize.Height;
+            previewContent.Width = previewBitmap.PixelSize.Width;
+            previewContent.Height = previewBitmap.PixelSize.Height;
+            Canvas.SetLeft(previewImage, 0);
+            Canvas.SetTop(previewImage, 0);
+            previewContent.Children.Add(previewImage);
+            previewCanvas.Children.Add(previewContent);
+            previewCanvas.ClipToBounds = true;
+        }
+
+        void Update()
+        {
+            int size = (int)(foundBox.Value ?? floor);
+            var picked = background.SelectedIndex >= 0 && background.ItemCount > 0
+                ? (background.SelectedItem as dynamic)?.Value as Rgba?
+                : null;
+            var newLayout = LayoutWith(bytes, picked, size);
+            int again = newLayout?.Count ?? 0;
+            foundLabel.Text = again == 0
+                ? $"{found} sprite{(found == 1 ? "" : "s")}"
+                : $"{again} sprite{(again == 1 ? "" : "s")} (was {found})";
+            detected.Text = layout.AssumedBackground
+                ? $"Treating {Describe(picked ?? layout.Background!.Value)} as the background."
+                : "The sheet carries its own transparency.";
+            if (previewCanvas != null)
+            {
+                var old = previewContent.Children.OfType<Border>().ToList();
+                foreach (var r in old) previewContent.Children.Remove(r);
+                if (newLayout != null)
                 {
-                    new { Label = $"Most common color ({Describe(guessed)})", Value = (Rgba?)guessed },
-                    new { Label = $"First pixel ({Describe(firstPixel)})", Value = (Rgba?)firstPixel },
-                };
-                background.ItemsSource = choices;
-                background.DisplayMemberBinding = new Avalonia.Data.Binding("Label");
-                background.SelectedIndex = 0;
-            }
-
-            HashSet<Sff.SheetCell> excluded = new();
-            Bitmap? previewBitmap = null;
-            try
-            {
-                var decoded = ImageImport.DecodeToBgra(bytes);
-                using var ms = new MemoryStream(PngExport.Encode(decoded.Bgra, decoded.Width, decoded.Height));
-                previewBitmap = new Bitmap(ms);
-            }
-            catch (Exception ex)
-            {
-                CrashLog.Error("PromptSheetDetect", $"could not render preview for {name}: {ex.Message}");
-            }
-            var previewCanvas = new Canvas();
-            var previewContent = new Canvas();
-            var previewImage = new Image { Stretch = Stretch.None, IsHitTestVisible = false };
-            double previewZoom = 1;
-            if (previewBitmap != null)
-            {
-                previewImage.Source = previewBitmap;
-                previewCanvas.Width = previewBitmap.PixelSize.Width;
-                previewCanvas.Height = previewBitmap.PixelSize.Height;
-                previewContent.Width = previewBitmap.PixelSize.Width;
-                previewContent.Height = previewBitmap.PixelSize.Height;
-                Canvas.SetLeft(previewImage, 0);
-                Canvas.SetTop(previewImage, 0);
-                previewContent.Children.Add(previewImage);
-                previewCanvas.Children.Add(previewContent);
-                previewCanvas.ClipToBounds = true;
-            }
-
-            void Update()
-            {
-                int size = (int)(foundBox.Value ?? floor);
-                var picked = background.SelectedIndex >= 0 && background.ItemCount > 0
-                    ? (background.SelectedItem as dynamic)?.Value as Rgba?
-                    : null;
-                var newLayout = LayoutWith(bytes, picked, size);
-                int again = newLayout?.Count ?? 0;
-                foundLabel.Text = again == 0
-                    ? $"{found} sprite{(found == 1 ? "" : "s")}"
-                    : $"{again} sprite{(again == 1 ? "" : "s")} (was {found})";
-                detected.Text = layout.AssumedBackground
-                    ? $"Treating {Describe(picked ?? layout.Background!.Value)} as the background."
-                    : "The sheet carries its own transparency.";
-                if (previewCanvas != null)
-                {
-                    var old = previewContent.Children.OfType<Border>().ToList();
-                    foreach (var r in old) previewContent.Children.Remove(r);
-                    if (newLayout != null)
+                    var currentBg = picked ?? layout.Background;
+                    var activeBrush = ContrastBrush(currentBg);
+                    foreach (var cell in newLayout.Cells)
                     {
-                        var currentBg = picked ?? layout.Background;
-                        var activeBrush = ContrastBrush(currentBg);
-                        foreach (var cell in newLayout.Cells)
+                        bool isExcluded = excluded.Contains(cell);
+                        var rect = new Border
                         {
-                            bool isExcluded = excluded.Contains(cell);
-                            var rect = new Border
+                            Width = cell.Width,
+                            Height = cell.Height,
+                            BorderBrush = isExcluded ? Brushes.Gray : activeBrush,
+                            BorderThickness = new Avalonia.Thickness(2),
+                            Background = Brushes.Transparent,
+                            Opacity = isExcluded ? 0.35 : 1
+                        };
+                        ToolTip.SetTip(rect, "Click to exclude or restore this sprite.");
+                        Canvas.SetLeft(rect, cell.X);
+                        Canvas.SetTop(rect, cell.Y);
+                        rect.PointerPressed += (_, e) =>
+                        {
+                            if (excluded.Contains(cell))
                             {
-                                Width = cell.Width,
-                                Height = cell.Height,
-                                BorderBrush = isExcluded ? Brushes.Gray : activeBrush,
-                                BorderThickness = new Avalonia.Thickness(2),
-                                Background = Brushes.Transparent,
-                                Opacity = isExcluded ? 0.35 : 1
-                            };
-                            ToolTip.SetTip(rect, "Click to exclude or restore this sprite.");
-                            Canvas.SetLeft(rect, cell.X);
-                            Canvas.SetTop(rect, cell.Y);
-                            rect.PointerPressed += (_, e) =>
+                                excluded.Remove(cell);
+                                rect.BorderBrush = activeBrush;
+                                rect.Opacity = 1;
+                            }
+                            else
                             {
-                                if (excluded.Contains(cell))
-                                {
-                                    excluded.Remove(cell);
-                                    rect.BorderBrush = activeBrush;
-                                    rect.Opacity = 1;
-                                }
-                                else
-                                {
-                                    excluded.Add(cell);
-                                    rect.BorderBrush = Brushes.Gray;
-                                    rect.Opacity = 0.35;
-                                }
-                                e.Handled = true;
-                            };
-                            previewContent.Children.Add(rect);
-                        }
+                                excluded.Add(cell);
+                                rect.BorderBrush = Brushes.Gray;
+                                rect.Opacity = 0.35;
+                            }
+                            e.Handled = true;
+                        };
+                        previewContent.Children.Add(rect);
                     }
                 }
             }
+        }
 
-            foundBox.ValueChanged += (_, _) => Update();
-            background.SelectionChanged += (_, _) => Update();
+        foundBox.ValueChanged += (_, _) => Update();
+        background.SelectionChanged += (_, _) => Update();
 
-            var ok = new Button { Content = "Continue", MinWidth = 90, IsDefault = true };
-            var cancel = new Button { Content = "Cancel", MinWidth = 90 };
+        var ok = new Button { Content = "Continue", MinWidth = 90, IsDefault = true };
+        var cancel = new Button { Content = "Cancel", MinWidth = 90 };
 
-            var dialog = new Window
+        var dialog = new Window
+        {
+            Background = ThemeBrush("ThemePanelBg"),
+            Foreground = ThemeBrush("ThemeText"),
+            Title = "Sprites in sheet",
+            Width = 900,
+            Height = 700,
+            MinWidth = 500,
+            MinHeight = 420,
+            MaxWidth = 1400,
+            MaxHeight = 1000,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = true,
+            ShowInTaskbar = false,
+        };
+
+        ok.Click += (_, _) =>
+        {
+            var picked = background.SelectedIndex >= 0 && background.ItemCount > 0
+                ? (background.SelectedItem as dynamic)?.Value as Rgba?
+                : null;
+            result.TrySetResult(new SheetDetectChoices(picked, (int)(foundBox.Value ?? floor), excluded.ToList()));
+            dialog.Close();
+        };
+        cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
+
+        var body = new Grid
+        {
+            Margin = new Avalonia.Thickness(20),
+            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*,Auto,Auto,Auto,Auto"),
+        };
+        body.RowSpacing = 10;
+        body.Children.Add(new TextBlock { Text = name });
+        Grid.SetRow(foundLabel, 1);
+        body.Children.Add(foundLabel);
+        Grid.SetRow(detected, 2);
+        body.Children.Add(detected);
+        if (previewCanvas != null && previewBitmap != null)
+        {
+            var preview = new ScrollViewer
             {
-                Background = ThemeBrush("ThemePanelBg"),
-                Foreground = ThemeBrush("ThemeText"),
-                Title = "Sprites in sheet",
-                Width = 900,
-                Height = 700,
-                MinWidth = 500,
-                MinHeight = 420,
-                MaxWidth = 1400,
-                MaxHeight = 1000,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                CanResize = true,
-                ShowInTaskbar = false,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                Background = ThemeBrush("ThemeListBg"),
+                Content = previewCanvas,
             };
-
-            ok.Click += (_, _) =>
+            preview.AddHandler(Avalonia.Input.InputElement.PointerWheelChangedEvent, (_, e) =>
             {
-                var picked = background.SelectedIndex >= 0 && background.ItemCount > 0
-                    ? (background.SelectedItem as dynamic)?.Value as Rgba?
-                    : null;
-                result.TrySetResult(new SheetDetectChoices(picked, (int)(foundBox.Value ?? floor), excluded.ToList()));
-                dialog.Close();
-            };
-            cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
-
-            var body = new Grid
-            {
-                Margin = new Avalonia.Thickness(20),
-                RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*,Auto,Auto,Auto,Auto"),
-            };
-            body.RowSpacing = 10;
-            body.Children.Add(new TextBlock { Text = name });
-            Grid.SetRow(foundLabel, 1);
-            body.Children.Add(foundLabel);
-            Grid.SetRow(detected, 2);
-            body.Children.Add(detected);
-            if (previewCanvas != null && previewBitmap != null)
-            {
-                var preview = new ScrollViewer
+                if (e.Delta.Y == 0) return;
+                var levels = SpriteView.ZoomLevels;
+                int current = Array.IndexOf(levels, previewZoom);
+                if (current < 0) current = Array.FindIndex(levels, z => z >= previewZoom);
+                if (current < 0) current = levels.Length - 1;
+                int next = Math.Clamp(current + (e.Delta.Y > 0 ? 1 : -1), 0, levels.Length - 1);
+                if (next != current)
                 {
-                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                    Background = ThemeBrush("ThemeListBg"),
-                    Content = previewCanvas,
-                };
-                preview.AddHandler(Avalonia.Input.InputElement.PointerWheelChangedEvent, (_, e) =>
-                {
-                    if (e.Delta.Y == 0) return;
-                    var levels = SpriteView.ZoomLevels;
-                    int current = Array.IndexOf(levels, previewZoom);
-                    if (current < 0) current = Array.FindIndex(levels, z => z >= previewZoom);
-                    if (current < 0) current = levels.Length - 1;
-                    int next = Math.Clamp(current + (e.Delta.Y > 0 ? 1 : -1), 0, levels.Length - 1);
-                    if (next != current)
-                    {
-                        previewZoom = levels[next];
-                        previewContent.RenderTransform = new ScaleTransform(previewZoom, previewZoom);
-                        previewContent.RenderTransformOrigin = new Avalonia.RelativePoint(0, 0, Avalonia.RelativeUnit.Relative);
-                        previewCanvas.Width = previewBitmap.PixelSize.Width * previewZoom;
-                        previewCanvas.Height = previewBitmap.PixelSize.Height * previewZoom;
-                    }
-                    e.Handled = true;
-                }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
-                Grid.SetRow(preview, 3);
-                body.Children.Add(preview);
-            }
-            var minimumSize = new StackPanel
+                    previewZoom = levels[next];
+                    previewContent.RenderTransform = new ScaleTransform(previewZoom, previewZoom);
+                    previewContent.RenderTransformOrigin = new Avalonia.RelativePoint(0, 0, Avalonia.RelativeUnit.Relative);
+                    previewCanvas.Width = previewBitmap.PixelSize.Width * previewZoom;
+                    previewCanvas.Height = previewBitmap.PixelSize.Height * previewZoom;
+                }
+                e.Handled = true;
+            }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+            Grid.SetRow(preview, 3);
+            body.Children.Add(preview);
+        }
+        var minimumSize = new StackPanel
+        {
+            Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center,
+            Children =
+            {
+                new TextBlock { Text = "Ignore sprites smaller than", VerticalAlignment = VerticalAlignment.Center },
+                foundBox,
+                new TextBlock { Text = "pixels", VerticalAlignment = VerticalAlignment.Center },
+            },
+        };
+        Grid.SetRow(minimumSize, 4);
+        body.Children.Add(minimumSize);
+        var minimumNote = new TextBlock
+        {
+            Text = "Raising this drops the stray pixels a keyed sheet leaves behind; lowering it keeps sprites too small to be real.",
+            Foreground = ThemeBrush("ThemeMutedText"),
+        };
+        Grid.SetRow(minimumNote, 5);
+        body.Children.Add(minimumNote);
+        if (layout.AssumedBackground)
+        {
+            var backgroundRow = new StackPanel
             {
                 Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center,
                 Children =
                 {
-                    new TextBlock { Text = "Ignore sprites smaller than", VerticalAlignment = VerticalAlignment.Center },
-                    foundBox,
-                    new TextBlock { Text = "pixels", VerticalAlignment = VerticalAlignment.Center },
+                    new TextBlock { Text = "Background", VerticalAlignment = VerticalAlignment.Center },
+                    background,
                 },
             };
-            Grid.SetRow(minimumSize, 4);
-            body.Children.Add(minimumSize);
-            var minimumNote = new TextBlock
-            {
-                Text = "Raising this drops the stray pixels a keyed sheet leaves behind; lowering it keeps sprites too small to be real.",
-                Foreground = ThemeBrush("ThemeMutedText"),
-            };
-            Grid.SetRow(minimumNote, 5);
-            body.Children.Add(minimumNote);
-            if (layout.AssumedBackground)
-            {
-                var backgroundRow = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center,
-                    Children =
-                    {
-                        new TextBlock { Text = "Background", VerticalAlignment = VerticalAlignment.Center },
-                        background,
-                    },
-                };
-                Grid.SetRow(backgroundRow, 6);
-                body.Children.Add(backgroundRow);
-            }
-            var buttons = new StackPanel
-            {
-                Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
-                Spacing = 8, Margin = new Avalonia.Thickness(0, 8, 0, 0), Children = { ok, cancel },
-            };
-            Grid.SetRow(buttons, 7);
-            body.Children.Add(buttons);
-
-            dialog.Content = body;
-            dialog.Closed += (_, _) =>
-            {
-                result.TrySetResult(null);
-                previewBitmap?.Dispose();
-            };
-
-            Update();
-            dialog.ShowDialog(owner);
-            return result.Task;
+            Grid.SetRow(backgroundRow, 6);
+            body.Children.Add(backgroundRow);
         }
-
-        /// <summary>Names a color for the status line and the sheet dialog.</summary>
-        private static string Describe(Rgba c) => Sff.SheetImport.Describe(c);
-
-        /// <summary>Chooses a visible outline color for the sheet preview.</summary>
-        private static Brush ContrastBrush(Rgba? bg)
+        var buttons = new StackPanel
         {
-            if (bg is null) return new SolidColorBrush(Colors.Cyan);
-            var c = bg.Value;
-            return new SolidColorBrush(Color.FromRgb((byte)(255 - c.R), (byte)(255 - c.G), (byte)(255 - c.B)));
-        }
+            Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
+            Spacing = 8, Margin = new Avalonia.Thickness(0, 8, 0, 0), Children = { ok, cancel },
+        };
+        Grid.SetRow(buttons, 7);
+        body.Children.Add(buttons);
 
-        /// <summary>Redetects a sheet to preview another size floor or background.</summary>
-        private static SheetLayout? LayoutWith(byte[] bytes, Rgba? background, int minimumSize)
+        dialog.Content = body;
+        dialog.Closed += (_, _) =>
         {
-            int before = Sff.SheetImport.MinimumSize;
-            try
-            {
-                Sff.SheetImport.MinimumSize = minimumSize;
-                return Sff.SheetImport.Detect(bytes, background);
-            }
-            catch (Exception ex)
-            {
-                CrashLog.Error("PromptSheetDetect", $"layout with floor of {minimumSize} failed: {ex.Message}");
-                return null;
-            }
-            finally
-            {
-                Sff.SheetImport.MinimumSize = before;
-            }
-        }
+            result.TrySetResult(null);
+            previewBitmap?.Dispose();
+        };
 
-        public static Task<int?> PromptPaletteDepth(Window owner, int currentColors, IReadOnlyList<int> availableColors)
+        Update();
+        dialog.ShowDialog(owner);
+        return result.Task;
+    }
+
+    /// <summary>Names a color for the status line and the sheet dialog.</summary>
+    private static string Describe(Rgba c) => Sff.SheetImport.Describe(c);
+
+    /// <summary>Chooses a visible outline color for the sheet preview.</summary>
+    private static Brush ContrastBrush(Rgba? bg)
+    {
+        if (bg is null) return new SolidColorBrush(Colors.Cyan);
+        var c = bg.Value;
+        return new SolidColorBrush(Color.FromRgb((byte)(255 - c.R), (byte)(255 - c.G), (byte)(255 - c.B)));
+    }
+
+    /// <summary>Redetects a sheet to preview another size floor or background.</summary>
+    private static SheetLayout? LayoutWith(byte[] bytes, Rgba? background, int minimumSize)
+    {
+        int before = Sff.SheetImport.MinimumSize;
+        try
         {
-            var result = new TaskCompletionSource<int?>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var depths = Sff.PaletteDepth.SupportedColorCounts;
-            var choices = depths.Select((count, bits) => new ComboBoxItem
-            {
-                Content = $"{bits + 1}-bit ({count} colors)",
-                Tag = count,
-                IsEnabled = availableColors.Contains(count),
-            }).ToArray();
-            var depth = new ComboBox { ItemsSource = choices, MinWidth = 220 };
-            var apply = new Button { Content = "Convert", MinWidth = 90, IsDefault = true };
-            int initial = Array.IndexOf(depths, currentColors);
-            if (initial < 0 || !availableColors.Contains(currentColors))
-                initial = availableColors.Contains(256) ? Array.IndexOf(depths, 256)
-                    : Array.FindIndex(depths, availableColors.Contains);
-            depth.SelectedIndex = initial;
-            var note = new TextBlock { Foreground = ThemeBrush("ThemeMutedText"), TextWrapping = TextWrapping.Wrap };
-            void Update()
-            {
-                int selectedColors = depth.SelectedItem is ComboBoxItem { Tag: int count } ? count : 0;
-                bool enabled = selectedColors > 0 && availableColors.Contains(selectedColors);
-                note.Text = enabled
-                    ? selectedColors > currentColors
-                        ? "New entries are filled with opaque black."
-                        : "Existing colors and indexes are preserved."
-                    : "A sprite using this palette has indexes that exceed this depth, or is undecoded.";
-                apply.IsEnabled = enabled;
-            }
-            var cancel = new Button { Content = "Cancel", MinWidth = 90 };
-            depth.SelectionChanged += (_, _) => Update();
-            var body = new StackPanel { Spacing = 12, Margin = new Avalonia.Thickness(20), MaxWidth = 440 };
-            body.Children.Add(new TextBlock { Text = "Choose the indexed depth for this palette." });
-            body.Children.Add(depth);
-            body.Children.Add(note);
-            var buttons = new StackPanel
-            {
-                Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8,
-                Children = { apply, cancel },
-            };
-            body.Children.Add(buttons);
-            var dialog = new Window
-            {
-                Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-                Title = "Convert palette depth", SizeToContent = SizeToContent.WidthAndHeight,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
-                Content = body,
-            };
-            apply.Click += (_, _) =>
-            {
-                if (depth.SelectedItem is not ComboBoxItem { Tag: int count } || !availableColors.Contains(count)) return;
-                result.TrySetResult(count);
-                dialog.Close();
-            };
-            cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
-            dialog.Closed += (_, _) => result.TrySetResult(null);
-            Update();
-            dialog.ShowDialog(owner);
-            return result.Task;
+            Sff.SheetImport.MinimumSize = minimumSize;
+            return Sff.SheetImport.Detect(bytes, background);
         }
-
-        public static Task<TooManyColorsChoice?> PromptTooManyColors(
-            Window owner, string name, int colors, bool trueColorAvailable)
+        catch (Exception ex)
         {
-            int max = Sff.GifImport.MaxSharedColors;
-            string message = $"{name} has {colors} colors, more than the {max} one palette holds. "
-                + $"Reducing to {max} keeps it 8-bit but shifts colors that do not fit. ";
-            var buttons = new List<(string Label, TooManyColorsChoice? Value)>
-            {
-                ($"Reduce to {max} colors", TooManyColorsChoice.Reduce),
-            };
-            if (trueColorAvailable)
-            {
-                message += "32-bit color keeps every color exactly.";
-                buttons.Add(("Use 32-bit color", TooManyColorsChoice.TrueColor));
-            }
-            else message += "This SFF version does not support 32-bit color.";
-            buttons.Add(("Cancel", null));
-            return Show<TooManyColorsChoice?>(owner, "Too many colors for one palette",
-                message, buttons.ToArray(), null);
+            CrashLog.Error("PromptSheetDetect", $"layout with floor of {minimumSize} failed: {ex.Message}");
+            return null;
         }
-
-        public enum TooManyColorsChoice { Reduce, TrueColor }
-
-        public static Task<bool> ConfirmMedianCut(Window owner, IReadOnlyList<string> images)
+        finally
         {
-            ArgumentNullException.ThrowIfNull(images);
-            string message = images.Count == 1
-                ? $"{images[0]} has more than 256 colors.\nIt will be reduced to 256 colors using frequency-weighted median cut."
-                : $"{images.Count} images have more than 256 colors.\nThey will be reduced to 256 colors using frequency-weighted median cut.";
-            return Confirm(owner, "Reduce image colors", message, "Continue");
+            Sff.SheetImport.MinimumSize = before;
         }
+    }
 
-        /// <summary>Chooses whether this sprite keeps its indexes or maps them to a palette by color.</summary>
+    public static Task<int?> PromptPaletteDepth(Window owner, int currentColors, IReadOnlyList<int> availableColors)
+    {
+        var result = new TaskCompletionSource<int?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var depths = Sff.PaletteDepth.SupportedColorCounts;
+        var choices = depths.Select((count, bits) => new ComboBoxItem
+        {
+            Content = $"{bits + 1}-bit ({count} colors)",
+            Tag = count,
+            IsEnabled = availableColors.Contains(count),
+        }).ToArray();
+        var depth = new ComboBox { ItemsSource = choices, MinWidth = 220 };
+        var apply = new Button { Content = "Convert", MinWidth = 90, IsDefault = true };
+        int initial = Array.IndexOf(depths, currentColors);
+        if (initial < 0 || !availableColors.Contains(currentColors))
+            initial = availableColors.Contains(256) ? Array.IndexOf(depths, 256)
+                : Array.FindIndex(depths, availableColors.Contains);
+        depth.SelectedIndex = initial;
+        var note = new TextBlock { Foreground = ThemeBrush("ThemeMutedText"), TextWrapping = TextWrapping.Wrap };
+        void Update()
+        {
+            int selectedColors = depth.SelectedItem is ComboBoxItem { Tag: int count } ? count : 0;
+            bool enabled = selectedColors > 0 && availableColors.Contains(selectedColors);
+            note.Text = enabled
+                ? selectedColors > currentColors
+                    ? "New entries are filled with opaque black."
+                    : "Existing colors and indexes are preserved."
+                : "A sprite using this palette has indexes that exceed this depth, or is undecoded.";
+            apply.IsEnabled = enabled;
+        }
+        var cancel = new Button { Content = "Cancel", MinWidth = 90 };
+        depth.SelectionChanged += (_, _) => Update();
+        var body = new StackPanel { Spacing = 12, Margin = new Avalonia.Thickness(20), MaxWidth = 440 };
+        body.Children.Add(new TextBlock { Text = "Choose the indexed depth for this palette." });
+        body.Children.Add(depth);
+        body.Children.Add(note);
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8,
+            Children = { apply, cancel },
+        };
+        body.Children.Add(buttons);
+        var dialog = new Window
+        {
+            Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
+            Title = "Convert palette depth", SizeToContent = SizeToContent.WidthAndHeight,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
+            Content = body,
+        };
+        apply.Click += (_, _) =>
+        {
+            if (depth.SelectedItem is not ComboBoxItem { Tag: int count } || !availableColors.Contains(count)) return;
+            result.TrySetResult(count);
+            dialog.Close();
+        };
+        cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
+        dialog.Closed += (_, _) => result.TrySetResult(null);
+        Update();
+        dialog.ShowDialog(owner);
+        return result.Task;
+    }
+
+    public static Task<TooManyColorsChoice?> PromptTooManyColors(
+        Window owner, string name, int colors, bool trueColorAvailable)
+    {
+        int max = Sff.GifImport.MaxSharedColors;
+        string message = $"{name} has {colors} colors, more than the {max} one palette holds. "
+            + $"Reducing to {max} keeps it 8-bit but shifts colors that do not fit. ";
+        var buttons = new List<(string Label, TooManyColorsChoice? Value)>
+        {
+            ($"Reduce to {max} colors", TooManyColorsChoice.Reduce),
+        };
+        if (trueColorAvailable)
+        {
+            message += "32-bit color keeps every color exactly.";
+            buttons.Add(("Use 32-bit color", TooManyColorsChoice.TrueColor));
+        }
+        else message += "This SFF version does not support 32-bit color.";
+        buttons.Add(("Cancel", null));
+        return Show<TooManyColorsChoice?>(owner, "Too many colors for one palette",
+            message, buttons.ToArray(), null);
+    }
+
+    public enum TooManyColorsChoice { Reduce, TrueColor }
+
+    public static Task<bool> ConfirmMedianCut(Window owner, IReadOnlyList<string> images)
+    {
+        ArgumentNullException.ThrowIfNull(images);
+        string message = images.Count == 1
+            ? $"{images[0]} has more than 256 colors.\nIt will be reduced to 256 colors using frequency-weighted median cut."
+            : $"{images.Count} images have more than 256 colors.\nThey will be reduced to 256 colors using frequency-weighted median cut.";
+        return Confirm(owner, "Reduce image colors", message, "Continue");
+    }
+
+    /// <summary>Chooses whether this sprite keeps its indexes or maps them to a palette by color.</summary>
     public static Task<ImportIndexChoice?> PromptPaletteIndexMapping(
         Window owner, bool allowNearest, string? nearestDisabledReason = null, string? notice = null,
         bool multiple = false, bool allowKeep = true, string? keepDisabledReason = null)

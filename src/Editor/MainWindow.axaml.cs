@@ -62,7 +62,6 @@ public partial class MainWindow : Window
     // Null means "automatic" (previous sprite/frame); set means always use this one sprite.
     private int? _onionGroup;
     private int? _onionIndex;
-    private Palette? _specificPalette;    // the last "specific palette" pick, offered again next time
     private readonly UndoStack _undo = new();
     private (int G, int N, int X, int Y)? _axisBeforeDrag;
 
