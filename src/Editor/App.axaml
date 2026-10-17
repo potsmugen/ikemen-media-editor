@@ -41,9 +41,12 @@
       <Setter Property="BorderBrush" Value="{DynamicResource ThemeDim}" />
       <Setter Property="Foreground" Value="{DynamicResource ThemeMutedText}" />
     </Style>
+    <!-- Number boxes center their value, like button labels. -->
     <Style Selector="NumericUpDown">
       <Setter Property="ShowButtonSpinner" Value="True" />
       <Setter Property="MinWidth" Value="60" />
+      <Setter Property="TextAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
     <Style Selector="ButtonSpinner">
       <Setter Property="Template">

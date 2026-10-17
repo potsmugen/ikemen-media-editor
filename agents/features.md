@@ -105,6 +105,17 @@ and constraints that are easy to miss when reading one code path in isolation.
   the session pending. Closing the panel merges them the same way. Leaving Paint Mode asks Commit, Discard or Cancel when there are changes.
   Delete Layer discards the top, Reset drops everything, and Commit makes the merge one
   undo step. Layers are never saved.
+- **Sprite Tools swatch on reset**: Reset Panel Sizes fits each side panel to its natural
+  width; the swatch grid's natural cell is `SpriteSwatchCellSize` (16, a 256px grid), so
+  it starts at 256×256 when the tab is wide and tall enough (`PanelFitMaxPercent`).
+- **Paint panel** is a vertical column right of the Sprites canvas, left of Sprite Tools,
+  sized to its content and collapsible (▶). Top to bottom: Paint Mode, Commit/Reset, then
+  Tools, Tool Options (hidden when the active tool has none) and Layers sections. It lives inside the canvas column's own grid,
+  so SpritesGrid keeps its five columns (saved widths and fitting use 0 and 4).
+- **Paint tool panels**: each tool's options sit in their own panel under the tools,
+  shown only while that tool is active (`UpdateToolPanels`): Brush for Pencil and Eraser;
+  Copy and Paste for Select; Replace's colors plus its own Brush box (synced to the same
+  size) for Replace. Fill and Eyedropper have none. New tool options follow the same pattern.
 - **Paint selection and paste**: Paste returns the copy to where it was taken, as a
   floating selection, and switches to the Select tool. Dragging it past the sprite's
   edge clips the off-canvas part, which returns if dragged back until Commit. Transparent

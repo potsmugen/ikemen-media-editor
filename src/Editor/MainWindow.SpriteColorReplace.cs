@@ -12,10 +12,9 @@ namespace Editor;
 /// indices in the current sprite's own pixels, not the Palettes tab's RGBA
 /// table, which changes what a color looks like everywhere it's used.
 ///
-/// Two rows of squares, as many pairs as settings.json ColorReplacePairs asks
-/// for: top is "Active" (what a column becomes), bottom is "Replace" (what a
-/// column looks for). The rows are one long line, so a high setting gives a
-/// wide panel that scrolls rather than wrapping — cluttered by choice. Nothing
+/// One Old/New pair of squares per color, as many as settings.json ColorReplacePairs
+/// asks for, laid out two pairs per line: Old is what a pair looks for, New is what
+/// it becomes. A high setting gives a tall panel that scrolls. Nothing
 /// is typed — click a square to arm it, then click either the sprite canvas or
 /// a palette swatch to fill it with that pixel's/swatch's index. Only shown
 /// while Replace is the active tool, since the squares are meaningless
@@ -23,8 +22,8 @@ namespace Editor;
 /// </summary>
 public partial class MainWindow
 {
-    /// <summary>Color pairs on offer. Slots 0..N-1 are Active (top row); slot i pairs with
-    /// slot i + N (bottom row). Sized from settings.json by BuildReplaceSquares.</summary>
+    /// <summary>Color pairs on offer. Slots 0..N-1 are New; slot i pairs with Old slot i + N.
+    /// Sized from settings.json by BuildReplaceSquares.</summary>
     private int _replacePairCount;
     private int?[] _replaceSlotIndex = [];
     private Button[] _replaceSquares = [];
@@ -54,8 +53,16 @@ public partial class MainWindow
             };
             btn.Click += OnReplaceSquareClicked;
             _replaceSquares[slot] = btn;
-            (slot < _replacePairCount ? ReplaceActiveRow : ReplaceFromRow).Children.Add(btn);
         }
+        // Old on the left, matching the header labels' 26px width and 4px gap.
+        for (int pair = 0; pair < _replacePairCount; pair++)
+            ReplacePairsGrid.Children.Add(new StackPanel
+            {
+                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                Spacing = 4,
+                Margin = new Thickness(0, 0, 12, 4),
+                Children = { _replaceSquares[_replacePairCount + pair], _replaceSquares[pair] },
+            });
     }
 
     /// <summary>Called from OnSelectPaintTool: the panel only makes sense while Replace is the active tool.</summary>
@@ -100,6 +107,9 @@ public partial class MainWindow
         RefreshReplaceSquares();
     }
 
+    private static IBrush ThemeResource(string key) =>
+        Application.Current?.Resources.TryGetResource(key, null, out var v) == true && v is IBrush b ? b : Brushes.Gray;
+
     /// <summary>Paints each square with its assigned color (or a neutral empty look) and highlights whichever is armed.</summary>
     private void RefreshReplaceSquares()
     {
@@ -119,13 +129,14 @@ public partial class MainWindow
             }
             else
             {
-                btn.Background = new SolidColorBrush(Color.FromRgb(0x30, 0x30, 0x38));
-                btn.Foreground = Brushes.Gray;
+                // Theme Field with a Separator outline, so empty squares read on dark and light panels alike.
+                btn.Background = ThemeResource("ThemeFieldBg");
                 btn.Content = "";
                 ToolTip.SetTip(btn, null);
             }
-            btn.BorderBrush = _armedReplaceSlot == i ? Brushes.Orange : Brushes.Transparent;
-            btn.BorderThickness = new Thickness(_armedReplaceSlot == i ? 2 : 0);
+            bool empty = btn.Content is "";
+            btn.BorderBrush = _armedReplaceSlot == i ? ThemeResource("ThemeAccent") : empty ? ThemeResource("ThemeSeparator") : Brushes.Transparent;
+            btn.BorderThickness = new Thickness(_armedReplaceSlot == i ? 2 : empty ? 1 : 0);
         }
 
         UpdateReplaceMap();

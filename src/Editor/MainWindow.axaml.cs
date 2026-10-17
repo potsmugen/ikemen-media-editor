@@ -283,6 +283,8 @@ public partial class MainWindow : Window
         r["PanelContentPadding"] = new Thickness(contentInset);
         r["PanelContentHeaderPadding"] = new Thickness(contentInset, contentInset, contentInset, 0);
         r["PanelContentBleed"] = new Thickness(-contentInset, 0, -contentInset, 0);
+        r["PanelContentSides"] = new Thickness(contentInset, 0, contentInset, 0);
+        r["PanelRuleBleed"] = new Thickness(-contentInset, 4, -contentInset, 4); // section rules reaching the panel's sides
         r["PanelContentMargin"] = new Thickness(contentInset);
         r["PanelSeparatorWidth"] = separatorTrackWidth;
         r["PanelSeparatorTrack"] = new GridLength(separatorTrackWidth);
@@ -301,6 +303,10 @@ public partial class MainWindow : Window
         try
         {
             BrushSizeBox.Maximum = Math.Max(1, _settings.MaxBrushSize);
+            ReplaceBrushSizeBox.Maximum = BrushSizeBox.Maximum;
+            // Reset Panel Sizes fits Sprite Tools to this, so the swatch starts at 16 × cell.
+            Swatches.NaturalCellSize = Settings.Checked(nameof(Settings.SpriteSwatchCellSize), _settings.SpriteSwatchCellSize,
+                Settings.DefaultSpriteSwatchCellSize, v => double.IsFinite(v) && v >= PaletteView.MinCell && v <= PaletteView.MaxCell);
             OnionGroupBox.Maximum = SpriteFieldMax;
             OnionIndexBox.Maximum = SpriteFieldMax;
         }
@@ -654,6 +660,7 @@ public partial class MainWindow : Window
         res["ThemeMutedText"] = mutedBrush;
         res["ThemeDimText"] = dimBrush;
         res["ThemeCanvasBg"] = canvasBrush;
+        res["ThemeFieldBg"] = fieldBrush;
 
         // Menu bar (File, Edit, ...) and its dropdowns: idle background comes
         // from MainMenu's own Background="{DynamicResource ThemePanelBg}" in
@@ -751,6 +758,7 @@ public partial class MainWindow : Window
         if (ScratchImage is not null) { ScratchImage.Background = canvasBg; ScratchImage.InvalidateVisual(); }
         if (Waveform is not null) { Waveform.Background = canvasBg; Waveform.InvalidateVisual(); }
         if (TimelineView is not null) { TimelineView.Track = canvasBg; TimelineView.InvalidateVisual(); }
+        if (_replaceSquares.Length > 0) RefreshReplaceSquares(); // empty squares are painted from theme brushes
 
     }
 
@@ -1746,10 +1754,9 @@ public partial class MainWindow : Window
                 SpritePaletteBody.RowDefinitions[1].Height = splitter;
                 SpritePaletteBody.RowDefinitions[2].Height = star;
                 SpriteCanvasArea.RowDefinitions[1].Height = GridLength.Auto;
-                SpriteCanvasArea.RowDefinitions[3].Height = GridLength.Auto;
-                PaintPanelBody.IsVisible = true;
+                PaintPanelBody.IsVisible = PaintPanelLabel.IsVisible = true;
                 OnionPanelBody.IsVisible = true;
-                PaintPanelToggle.Content = "▲";
+                PaintPanelToggle.Content = "▶";
                 OnionPanelToggle.Content = "▲";
                 _preCollapseWidths.Remove(OnionPanelBody);
                 bodies.Add((SpriteListBody, SpriteListToggle, SpriteListLabel, "◀"));
@@ -1965,11 +1972,16 @@ public partial class MainWindow : Window
     private void OnToggleSoundListPanel(object? sender, RoutedEventArgs e) =>
         ToggleSidePanel(SoundsGrid, 0, SoundListBody, SoundListToggle, SoundsSplitter, SoundListLabel, "\u25C0", "\u25B6", new GridLength(280));
 
-    private void OnTogglePaintPanel(object? sender, RoutedEventArgs e) =>
-        ToggleTopPanel(SpriteCanvasArea, 1, PaintPanelBody, PaintPanelToggle, "\u25B2", "\u25BC");
+    /// <summary>The Paint column is sized to its content, so collapsing just hides the body and label.</summary>
+    private void OnTogglePaintPanel(object? sender, RoutedEventArgs e)
+    {
+        bool show = !PaintPanelBody.IsVisible;
+        PaintPanelBody.IsVisible = PaintPanelLabel.IsVisible = show;
+        PaintPanelToggle.Content = show ? "\u25B6" : "\u25C0";
+    }
 
     private void OnToggleOnionPanel(object? sender, RoutedEventArgs e) =>
-        ToggleTopPanel(SpriteCanvasArea, 3, OnionPanelBody, OnionPanelToggle, "\u25B2", "\u25BC");
+        ToggleTopPanel(SpriteCanvasArea, 1, OnionPanelBody, OnionPanelToggle, "\u25B2", "\u25BC");
 
     /// <summary>Jumps to a tab after opening that format's file, if the setting allows it.</summary>
     private void SwitchToTab(int index)

@@ -246,6 +246,9 @@ public sealed class Settings
     /// <summary>Palette swatch zoom limits, in pixels per cell.</summary>
     public double PaletteCellMin { get; set; } = DefaultPaletteCellMin;
     public double PaletteCellMax { get; set; } = DefaultPaletteCellMax;
+    public const double DefaultSpriteSwatchCellSize = 16;
+    /// <summary>Sprite Tools swatch cell size that Reset Panel Sizes fits the panel to (16 = 256px grid).</summary>
+    public double SpriteSwatchCellSize { get; set; } = DefaultSpriteSwatchCellSize;
     public const int DefaultPalettePngSwatchSize = 16;
     /// <summary>Export Palette as .png: pixels per swatch in the 16×16 grid.</summary>
     public int PalettePngSwatchSize { get; set; } = DefaultPalettePngSwatchSize;

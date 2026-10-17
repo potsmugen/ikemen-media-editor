@@ -398,138 +398,180 @@
           <Border Grid.Column="1" Width="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
           <GridSplitter x:Name="SpritesLeftSplitter" Grid.Column="1" Width="{DynamicResource PanelSeparatorWidth}" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" ResizeDirection="Columns" />
 
-          <Grid Grid.Column="2" x:Name="SpriteCanvasArea">
-            <Grid.RowDefinitions>
-              <RowDefinition Height="Auto" />
-              <RowDefinition Height="Auto" MinHeight="0" />
-              <RowDefinition Height="Auto" />
-              <RowDefinition Height="Auto" MinHeight="0" />
-              <RowDefinition Height="{DynamicResource PanelSeparatorTrack}" />
-              <RowDefinition Height="1*" MinHeight="80" />
-            </Grid.RowDefinitions>
-            <Border Grid.Row="0" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentHeaderPadding}">
-              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
-                <Button x:Name="PaintPanelToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9650;" Width="22" Height="18" Padding="0" FontSize="9"
-                        Click="OnTogglePaintPanel" ToolTip.Tip="Collapse this panel" />
-                <TextBlock Text="Paint" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
-              </StackPanel>
-            </Border>
-            <Grid Grid.Row="1" x:Name="PaintPanelBody">
-              <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                <StackPanel>
-                  <Border Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}" BorderBrush="{DynamicResource ThemeSeparator}" BorderThickness="{DynamicResource PanelSeparatorBottomThickness}">
-                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
-                      <ToggleButton x:Name="PaintModeToggle" Content="Paint Mode" Click="OnTogglePaintMode" />
-                      <ToggleButton x:Name="LayersToggle" Content="Layers" Click="OnToggleLayers" IsEnabled="False" />
-                      <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
-                      <ToggleButton x:Name="PencilToolButton" Content="Pencil" Tag="Pencil" Click="OnSelectPaintTool" IsEnabled="False" />
-                      <ToggleButton x:Name="EraserToolButton" Content="Eraser" Tag="Eraser" Click="OnSelectPaintTool" IsEnabled="False" />
-                      <ToggleButton x:Name="FillToolButton" Content="Fill" Tag="Fill" Click="OnSelectPaintTool" IsEnabled="False" />
-                      <ToggleButton x:Name="EyedropperToolButton" Content="Eyedropper" Tag="Eyedropper" Click="OnSelectPaintTool" IsEnabled="False" />
-                      <ToggleButton x:Name="ReplaceToolButton" Content="Replace" Tag="Replace" Click="OnSelectPaintTool" IsEnabled="False"
-                                    ToolTip.Tip="Paints only over the Replace colors." />
-                      <ToggleButton x:Name="SelectionToolButton" Content="Select" Tag="Selection" Click="OnSelectPaintTool" IsEnabled="False"
-                                    ToolTip.Tip="Select a rectangle to copy or paste pixels." />
-                      <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
-                      <Button x:Name="CopySelectionButton" Content="Copy" Click="OnCopySelection" IsEnabled="False"
-                              ToolTip.Tip="Copies the selected pixels." />
-                      <Button x:Name="PasteSelectionButton" Content="Paste" Click="OnPasteSelection" IsEnabled="False"
-                              ToolTip.Tip="Pastes in place, as a floating selection." />
-                      <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
-                      <TextBlock Text="Brush" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
-                      <NumericUpDown x:Name="BrushSizeBox" Width="70" Minimum="1" Maximum="32" Increment="1" FormatString="0"
-                                     Value="1" IsEnabled="False" ValueChanged="OnBrushSizeChanged"
-                                     ToolTip.Tip="Brush size for Pencil, Eraser and Replace." />
-                      <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
-                      <Button x:Name="PaintCommitButton" Content="Commit" Click="OnCommitPaint" IsEnabled="False"
-                              ToolTip.Tip="Keeps the paint strokes as one undoable edit." />
-                      <Button x:Name="PaintResetButton" Content="Reset" Click="OnResetPaint" IsEnabled="False"
-                              ToolTip.Tip="Drops the pending paint changes." />
-                    </StackPanel>
-                  </Border>
-                  <Border x:Name="LayerPanel" IsVisible="False" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}" BorderBrush="{DynamicResource ThemeSeparator}" BorderThickness="{DynamicResource PanelSeparatorBottomThickness}">
-                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
-                      <ToggleButton x:Name="BottomLayerButton" Content="Bottom" Tag="Bottom" Click="OnSelectPaintLayer" IsEnabled="False" />
-                      <ToggleButton x:Name="TopLayerButton" Content="Top" Tag="Top" Click="OnSelectPaintLayer" IsEnabled="False"
-                                    ToolTip.Tip="Paint tools draw on the top layer, which Commit merges into the sprite." />
-                      <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
-                      <Button x:Name="AddLayerButton" Content="Add Layer" Click="OnAddPaintLayer" IsEnabled="False"
-                              ToolTip.Tip="Adds an empty top layer." />
-                      <Button x:Name="DeleteLayerButton" Content="Delete Layer" Click="OnDeletePaintLayer" IsEnabled="False"
-                              ToolTip.Tip="Discards the top layer's pixels." />
-                      <Button x:Name="MergeLayersButton" Content="Merge" Click="OnMergeLayers" IsEnabled="False"
-                              ToolTip.Tip="Flattens the visible layers into the bottom layer." />
-                      <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
-                      <CheckBox x:Name="BottomLayerVisibleBox" Content="Show bottom" Click="OnBottomLayerVisibleChanged" IsEnabled="False" IsChecked="True" VerticalAlignment="Center" />
-                      <CheckBox x:Name="TopLayerVisibleBox" Content="Show top" Click="OnTopLayerVisibleChanged" IsEnabled="False" IsChecked="True"
-                                VerticalAlignment="Center" ToolTip.Tip="Hidden layers are left out of the sprite." />
-                    </StackPanel>
-                  </Border>
-                  <Border x:Name="ColorReplacerPanel" IsVisible="False" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}" BorderBrush="{DynamicResource ThemeSeparator}" BorderThickness="{DynamicResource PanelSeparatorBottomThickness}">
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                      <StackPanel Orientation="Vertical" Spacing="3">
-                        <TextBlock Text="Click a square, then click the sprite or a palette swatch. Paint with the Replace tool to apply."
-                                   Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont11}" />
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                          <TextBlock Text="Active" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont10}" Width="42" VerticalAlignment="Center" />
-                          <StackPanel Orientation="Horizontal" Spacing="4" x:Name="ReplaceActiveRow" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                          <TextBlock Text="Replace" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont10}" Width="42" VerticalAlignment="Center" />
-                          <StackPanel Orientation="Horizontal" Spacing="4" x:Name="ReplaceFromRow" />
-                        </StackPanel>
-                      </StackPanel>
-                      <Button Content="Clear" Click="OnClearReplaceSquares" VerticalAlignment="Center" />
-                    </StackPanel>
-                  </Border>
-                </StackPanel>
-              </ScrollViewer>
-            </Grid>
-
-            <!-- Sprites tab only; the Animations tab has its own Animation Onion Skin. -->
-            <Border Grid.Row="2" x:Name="OnionPanelHeader" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentHeaderPadding}">
-              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
-                <Button x:Name="OnionPanelToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9650;" Width="22" Height="18" Padding="0" FontSize="9"
-                        Click="OnToggleOnionPanel" ToolTip.Tip="Collapse this panel" />
-                <TextBlock Text="Sprite Onion Skin" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
-              </StackPanel>
-            </Border>
-            <Grid Grid.Row="3" x:Name="OnionPanelBody">
-              <Border Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                  <ToggleButton x:Name="OnionEnabledBox" Content="Show" Click="OnToggleOnion" />
-                  <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
-                  <StackPanel x:Name="OnionOptionsPanel" Orientation="Horizontal" Spacing="10">
-                  <TextBlock Text="Opacity" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
-                  <Slider x:Name="OnionOpacitySlider" Minimum="0" Maximum="100" Width="100" VerticalAlignment="Center"
-                          SmallChange="1" LargeChange="10" TickFrequency="1" IsSnapToTickEnabled="True"
-                          ValueChanged="OnOnionOpacityChanged">
-                    <!-- Fluent reserves 15px above and below the thumb (min height 32); drop that so it fits the row. -->
-                    <Slider.Resources>
-                      <GridLength x:Key="SliderPreContentMargin">0</GridLength>
-                      <GridLength x:Key="SliderPostContentMargin">0</GridLength>
-                      <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
-                    </Slider.Resources>
-                  </Slider>
-                  <TextBlock Text="{Binding Value, ElementName=OnionOpacitySlider, StringFormat={}{0:0}%}"
-                             VerticalAlignment="Center" MinWidth="34" />
-                  <CheckBox x:Name="OnionGrayscaleBox" Content="Grayscale" Click="OnToggleOnionGrayscale" VerticalAlignment="Center" />
-                  <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
-                  <TextBlock Text="Pin sprite" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center"
-                             ToolTip.Tip="Always onion-skin this sprite." />
-                  <NumericUpDown x:Name="OnionGroupBox" Width="90" Minimum="0" Maximum="65535" Increment="1"
-                                 FormatString="0" Watermark="Group" ValueChanged="OnOnionFieldChanged" />
-                  <NumericUpDown x:Name="OnionIndexBox" Width="90" Minimum="0" Maximum="65535" Increment="1"
-                                 FormatString="0" Watermark="Number" ValueChanged="OnOnionFieldChanged" />
-                  <Button Content="Auto" Click="OnOnionUseAuto"
-                          ToolTip.Tip="Unpin: follow the previous sprite." />
-                  </StackPanel>
+          <!-- Canvas, then the Paint panel on its right; SpritesGrid columns stay as they were. -->
+          <Grid Grid.Column="2">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="{DynamicResource PanelSeparatorTrack}" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid Grid.Column="0" x:Name="SpriteCanvasArea">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" MinHeight="0" />
+                <RowDefinition Height="{DynamicResource PanelSeparatorTrack}" />
+                <RowDefinition Height="1*" MinHeight="80" />
+              </Grid.RowDefinitions>
+              <!-- Sprites tab only; the Animations tab has its own Animation Onion Skin. -->
+              <Border Grid.Row="0" x:Name="OnionPanelHeader" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentHeaderPadding}">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
+                  <Button x:Name="OnionPanelToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9650;" Width="22" Height="18" Padding="0" FontSize="9"
+                          Click="OnToggleOnionPanel" ToolTip.Tip="Collapse this panel" />
+                  <TextBlock Text="Sprite Onion Skin" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                 </StackPanel>
               </Border>
-            </Grid>
+              <Grid Grid.Row="1" x:Name="OnionPanelBody">
+                <Border Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <ToggleButton x:Name="OnionEnabledBox" Content="Show" Click="OnToggleOnion" />
+                    <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                    <StackPanel x:Name="OnionOptionsPanel" Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="Pin sprite" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center"
+                               ToolTip.Tip="Always onion-skin this sprite." />
+                    <NumericUpDown x:Name="OnionGroupBox" Width="90" Minimum="0" Maximum="65535" Increment="1"
+                                   FormatString="0" Watermark="Group" ValueChanged="OnOnionFieldChanged" />
+                    <NumericUpDown x:Name="OnionIndexBox" Width="90" Minimum="0" Maximum="65535" Increment="1"
+                                   FormatString="0" Watermark="Number" ValueChanged="OnOnionFieldChanged" />
+                    <Button Content="Auto" Click="OnOnionUseAuto"
+                            ToolTip.Tip="Unpin: follow the previous sprite." />
+                    <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                    <TextBlock Text="Opacity" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                    <Slider x:Name="OnionOpacitySlider" Minimum="0" Maximum="100" Width="100" VerticalAlignment="Center"
+                            SmallChange="1" LargeChange="10" TickFrequency="1" IsSnapToTickEnabled="True"
+                            ValueChanged="OnOnionOpacityChanged">
+                      <!-- Fluent reserves 15px above and below the thumb (min height 32); drop that so it fits the row. -->
+                      <Slider.Resources>
+                        <GridLength x:Key="SliderPreContentMargin">0</GridLength>
+                        <GridLength x:Key="SliderPostContentMargin">0</GridLength>
+                        <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
+                      </Slider.Resources>
+                    </Slider>
+                    <TextBlock Text="{Binding Value, ElementName=OnionOpacitySlider, StringFormat={}{0:0}%}"
+                               VerticalAlignment="Center" MinWidth="34" />
+                    <CheckBox x:Name="OnionGrayscaleBox" Content="Grayscale" Click="OnToggleOnionGrayscale" VerticalAlignment="Center" />
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+              </Grid>
 
-            <Border Grid.Row="4" Height="{DynamicResource PanelSeparatorWidth}" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
-            <local:SpriteView Grid.Row="5" x:Name="SpriteCanvas" />
+              <Border Grid.Row="2" Height="{DynamicResource PanelSeparatorWidth}" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+              <local:SpriteView Grid.Row="3" x:Name="SpriteCanvas" />
+            </Grid>
+            <Border Grid.Column="1" Width="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+            <Border Grid.Column="2" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
+              <Grid RowDefinitions="Auto,*">
+                <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,4">
+                  <Button x:Name="PaintPanelToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9654;" Width="22" Height="22" Padding="0"
+                          Click="OnTogglePaintPanel" ToolTip.Tip="Collapse this panel" />
+                  <TextBlock Grid.Column="1" x:Name="PaintPanelLabel" Text="Paint" Foreground="{DynamicResource ThemeMutedText}"
+                             VerticalAlignment="Center" Margin="6,0,0,0" />
+                </Grid>
+                <ScrollViewer Grid.Row="1" x:Name="PaintPanelBody" Margin="{DynamicResource PanelContentBleed}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                  <StackPanel Width="210" Margin="{DynamicResource PanelContentSides}" Spacing="{DynamicResource UiButtonGap}">
+                    <ToggleButton x:Name="PaintModeToggle" Content="Paint Mode" Click="OnTogglePaintMode" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                    <Grid ColumnDefinitions="*,Auto,*">
+                      <Button Grid.Column="0" x:Name="PaintCommitButton" Content="Commit" Click="OnCommitPaint" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                              ToolTip.Tip="Keeps the paint strokes as one undoable edit." />
+                      <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                      <Button Grid.Column="2" x:Name="PaintResetButton" Content="Reset" Click="OnResetPaint" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                              ToolTip.Tip="Drops the pending paint changes." />
+                    </Grid>
+                    <Border Height="{DynamicResource PanelSeparatorWidth}" Margin="{DynamicResource PanelRuleBleed}" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                    <TextBlock Text="Tools" Foreground="{DynamicResource ThemeMutedText}" />
+                    <Grid ColumnDefinitions="*,Auto,*">
+                      <ToggleButton Grid.Column="0" x:Name="PencilToolButton" Content="Pencil" Tag="Pencil" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                      <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                      <ToggleButton Grid.Column="2" x:Name="EraserToolButton" Content="Eraser" Tag="Eraser" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto,*">
+                      <ToggleButton Grid.Column="0" x:Name="FillToolButton" Content="Fill" Tag="Fill" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                      <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                      <ToggleButton Grid.Column="2" x:Name="EyedropperToolButton" Content="Eyedropper" Tag="Eyedropper" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto,*">
+                      <ToggleButton Grid.Column="0" x:Name="ReplaceToolButton" Content="Replace" Tag="Replace" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                    ToolTip.Tip="Paints only over the Replace colors." />
+                      <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                      <ToggleButton Grid.Column="2" x:Name="SelectionToolButton" Content="Select" Tag="Selection" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                    ToolTip.Tip="Select a rectangle to copy or paste pixels." />
+                    </Grid>
+                    <!-- Shown only when the active tool has options (UpdateToolPanels). -->
+                    <StackPanel x:Name="ToolOptionsSection" IsVisible="False" Spacing="{DynamicResource UiButtonGap}">
+                      <Border Height="{DynamicResource PanelSeparatorWidth}" Margin="{DynamicResource PanelRuleBleed}" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                      <TextBlock Text="Tool Options" Foreground="{DynamicResource ThemeMutedText}" />
+                      <Border x:Name="BrushPanel" IsVisible="False">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}" HorizontalAlignment="Center">
+                          <TextBlock Text="Brush" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                          <NumericUpDown x:Name="BrushSizeBox" Width="70" Minimum="1" Maximum="32" Increment="1" FormatString="0"
+                                         Value="1" IsEnabled="False" ValueChanged="OnBrushSizeChanged"
+                                         ToolTip.Tip="Brush size for Pencil, Eraser and Replace." />
+                        </StackPanel>
+                      </Border>
+                      <Border x:Name="SelectionPanel" IsVisible="False">
+                        <Grid ColumnDefinitions="*,Auto,*">
+                          <Button Grid.Column="0" x:Name="CopySelectionButton" Content="Copy" Click="OnCopySelection" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                  ToolTip.Tip="Copies the selected pixels." />
+                          <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                          <Button Grid.Column="2" x:Name="PasteSelectionButton" Content="Paste" Click="OnPasteSelection" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                  ToolTip.Tip="Pastes in place, as a floating selection." />
+                        </Grid>
+                      </Border>
+                      <Border x:Name="ColorReplacerPanel" IsVisible="False">
+                        <StackPanel Spacing="6">
+                          <!-- Two pairs per line, Old then New; BuildReplaceSquares fills ReplacePairsGrid. -->
+                          <StackPanel Spacing="4" HorizontalAlignment="Center" Background="Transparent"
+                                      ToolTip.Tip="Click a square, then a color on the sprite or palette.">
+                            <UniformGrid Columns="2">
+                              <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,12,0">
+                                <TextBlock Text="Old" Width="26" TextAlignment="Center" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont10}" />
+                                <TextBlock Text="New" Width="26" TextAlignment="Center" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont10}" />
+                              </StackPanel>
+                              <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,12,0">
+                                <TextBlock Text="Old" Width="26" TextAlignment="Center" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont10}" />
+                                <TextBlock Text="New" Width="26" TextAlignment="Center" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont10}" />
+                              </StackPanel>
+                            </UniformGrid>
+                            <UniformGrid x:Name="ReplacePairsGrid" Columns="2" />
+                          </StackPanel>
+                          <Button Content="Clear" Click="OnClearReplaceSquares" HorizontalAlignment="Center" />
+                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}" HorizontalAlignment="Center">
+                            <TextBlock Text="Brush" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                            <NumericUpDown x:Name="ReplaceBrushSizeBox" Width="70" Minimum="1" Maximum="32" Increment="1" FormatString="0"
+                                           Value="1" IsEnabled="False" ValueChanged="OnBrushSizeChanged"
+                                           ToolTip.Tip="Brush size for Pencil, Eraser and Replace." />
+                          </StackPanel>
+                        </StackPanel>
+                      </Border>
+                    </StackPanel>
+                    <Border Height="{DynamicResource PanelSeparatorWidth}" Margin="{DynamicResource PanelRuleBleed}" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                    <TextBlock Text="Layers" Foreground="{DynamicResource ThemeMutedText}" />
+                    <ToggleButton x:Name="LayersToggle" Content="Layers" Click="OnToggleLayers" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                    <Border x:Name="LayerPanel" IsVisible="False">
+                      <StackPanel Spacing="{DynamicResource UiButtonGap}">
+                        <Grid ColumnDefinitions="*,Auto,*">
+                          <ToggleButton Grid.Column="0" x:Name="BottomLayerButton" Content="Bottom" Tag="Bottom" Click="OnSelectPaintLayer" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                          <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                          <ToggleButton Grid.Column="2" x:Name="TopLayerButton" Content="Top" Tag="Top" Click="OnSelectPaintLayer" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                        ToolTip.Tip="Paint tools draw on the top layer, which Commit merges into the sprite." />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto,*">
+                          <Button Grid.Column="0" x:Name="AddLayerButton" Content="Add Layer" Click="OnAddPaintLayer" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                  ToolTip.Tip="Adds an empty top layer." />
+                          <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                          <Button Grid.Column="2" x:Name="DeleteLayerButton" Content="Delete Layer" Click="OnDeletePaintLayer" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                  ToolTip.Tip="Discards the top layer's pixels." />
+                        </Grid>
+                        <Button x:Name="MergeLayersButton" Content="Merge" Click="OnMergeLayers" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                ToolTip.Tip="Flattens the visible layers into the bottom layer." />
+                        <CheckBox x:Name="BottomLayerVisibleBox" Content="Show bottom" Click="OnBottomLayerVisibleChanged" IsEnabled="False" IsChecked="True" />
+                        <CheckBox x:Name="TopLayerVisibleBox" Content="Show top" Click="OnTopLayerVisibleChanged" IsEnabled="False" IsChecked="True"
+                                  ToolTip.Tip="Hidden layers are left out of the sprite." />
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                </ScrollViewer>
+              </Grid>
+            </Border>
           </Grid>
 
           <Border Grid.Column="3" Width="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
@@ -541,7 +583,7 @@
               <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,4">
                 <Button x:Name="SpritePaletteToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9654;" Width="22" Height="22" Padding="0"
                         Click="OnToggleSpritePalettePanel" ToolTip.Tip="Collapse this panel" />
-                <TextBlock Grid.Column="1" x:Name="SpritePaletteLabel" Text="Sprite tools" Foreground="{DynamicResource ThemeMutedText}"
+                <TextBlock Grid.Column="1" x:Name="SpritePaletteLabel" Text="Sprite Tools" Foreground="{DynamicResource ThemeMutedText}"
                            VerticalAlignment="Center" Margin="6,0,0,0" />
               </Grid>
               <Grid Grid.Row="1" x:Name="SpritePaletteBody">
@@ -590,15 +632,17 @@
                 <GridSplitter Grid.Row="1" Height="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Stretch" ResizeDirection="Rows" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" />
                 <Border Grid.Row="2" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
                   <Grid RowDefinitions="Auto,Auto,*">
-                    <TextBlock Grid.Row="0" Text="Palette tools" Foreground="{DynamicResource ThemeMutedText}" Margin="0,0,0,6" />
+                    <TextBlock Grid.Row="0" Text="Palette Tools" Foreground="{DynamicResource ThemeMutedText}" Margin="0,0,0,6" />
                     <TextBlock Grid.Row="1" Text="Preview with" Foreground="{DynamicResource ThemeMutedText}" Margin="0,0,0,6" />
-                    <DockPanel Grid.Row="2">
-                      <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,8">
+                    <!-- Top-aligned so the swatch's spare height collects below the buttons, not around
+                         the swatch; the star row still lets the swatch shrink on a short window. -->
+                    <Grid Grid.Row="2" RowDefinitions="Auto,*,Auto" VerticalAlignment="Top">
+                      <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,8">
                         <ComboBox x:Name="PaletteBox" HorizontalAlignment="Stretch"
                                   SelectionChanged="OnPaletteSelected"
                                   ToolTip.Tip="Chooses the palette used to preview this sprite." />
                       </StackPanel>
-                      <StackPanel DockPanel.Dock="Bottom" Spacing="{DynamicResource UiButtonGap}" Margin="0,8,0,0">
+                      <StackPanel Grid.Row="2" Spacing="{DynamicResource UiButtonGap}" Margin="0,8,0,0">
                         <Border Height="{DynamicResource UiSwatchInfoHeight}" ClipToBounds="True">
                           <TextBlock x:Name="SwatchInfo" Foreground="{DynamicResource ThemeMutedText}" TextWrapping="Wrap" TextAlignment="Center" />
                         </Border>
@@ -609,11 +653,11 @@
                                 Click="OnImportPaletteIntoSprite"
                                 ToolTip.Tip="Loads a palette file and applies it to the selected sprites." />
                       </StackPanel>
-                      <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
-                        <local:PaletteView x:Name="Swatches" CellSize="0" HorizontalAlignment="Center" VerticalAlignment="Center" ReadOnly="True" SingleSelect="True"
+                      <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
+                        <local:PaletteView x:Name="Swatches" CellSize="0" HorizontalAlignment="Center" VerticalAlignment="Top" ReadOnly="True" SingleSelect="True"
                                            ToolTip.Tip="Click to select a color." />
                       </ScrollViewer>
-                    </DockPanel>
+                    </Grid>
                   </Grid>
                 </Border>
               </Grid>
@@ -983,7 +1027,7 @@
                 <GridSplitter Grid.Row="1" x:Name="ReferenceSplitter" Height="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Stretch" ResizeDirection="Rows" IsEnabled="False" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" />
                 <DockPanel Grid.Row="2" x:Name="ReferenceImageSection">
                   <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,4">
-                    <TextBlock Grid.Column="0" Text="Reference image" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="0" Text="Reference Image" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                     <Button Grid.Column="1" Content="Open" Click="OnOpenScratchImage" Padding="{DynamicResource UiCompactButtonPadding}"
                             Margin="{DynamicResource UiGapRight}" />
                     <Button Grid.Column="2" x:Name="CloseReferenceButton" Content="&#x2715;" Click="OnCloseScratchImage" Padding="{DynamicResource UiCompactButtonPadding}"
@@ -1120,6 +1164,15 @@
                 <ToggleButton x:Name="AnimOnionEnabledBox" Content="Show" Click="OnToggleAnimOnion" />
                 <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
                 <StackPanel x:Name="AnimOnionOptionsPanel" Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="Pin frame" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center"
+                           ToolTip.Tip="Always onion-skin this frame." />
+                <NumericUpDown x:Name="AnimOnionActionBox" Width="90" Minimum="0" Maximum="2147483647" Increment="1"
+                               FormatString="0" Watermark="Action" ValueChanged="OnAnimOnionFieldChanged" />
+                <NumericUpDown x:Name="AnimOnionFrameBox" Width="90" Minimum="1" Maximum="2147483647" Increment="1"
+                               FormatString="0" Watermark="Frame" ValueChanged="OnAnimOnionFieldChanged" />
+                <Button Content="Auto" Click="OnAnimOnionUseAuto"
+                        ToolTip.Tip="Unpin: follow the previous frame." />
+                <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
                 <TextBlock Text="Opacity" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                 <Slider x:Name="AnimOnionOpacitySlider" Minimum="0" Maximum="100" Width="100" VerticalAlignment="Center"
                         SmallChange="1" LargeChange="10" TickFrequency="1" IsSnapToTickEnabled="True"
@@ -1135,15 +1188,6 @@
                            VerticalAlignment="Center" MinWidth="34" />
                 <CheckBox x:Name="AnimOnionGrayscaleBox" Content="Grayscale" Click="OnToggleAnimOnionGrayscale" VerticalAlignment="Center" />
                 <CheckBox x:Name="AnimOnionClsnBox" Content="Clsn" Click="OnToggleAnimOnionClsn" VerticalAlignment="Center" />
-                <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
-                <TextBlock Text="Pin frame" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center"
-                           ToolTip.Tip="Always onion-skin this frame." />
-                <NumericUpDown x:Name="AnimOnionActionBox" Width="90" Minimum="0" Maximum="2147483647" Increment="1"
-                               FormatString="0" Watermark="Action" ValueChanged="OnAnimOnionFieldChanged" />
-                <NumericUpDown x:Name="AnimOnionFrameBox" Width="90" Minimum="1" Maximum="2147483647" Increment="1"
-                               FormatString="0" Watermark="Frame" ValueChanged="OnAnimOnionFieldChanged" />
-                <Button Content="Auto" Click="OnAnimOnionUseAuto"
-                        ToolTip.Tip="Unpin: follow the previous frame." />
                 </StackPanel>
               </StackPanel>
             </Border>

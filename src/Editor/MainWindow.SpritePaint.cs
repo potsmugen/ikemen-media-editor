@@ -90,6 +90,7 @@ public partial class MainWindow
         ReplaceToolButton.IsEnabled = on;
         SelectionToolButton.IsEnabled = on;
         BrushSizeBox.IsEnabled = on;
+        ReplaceBrushSizeBox.IsEnabled = on;
         if (on)
         {
             OnSelectPaintTool(PencilToolButton, new RoutedEventArgs()); // every session starts on Pencil
@@ -105,12 +106,29 @@ public partial class MainWindow
             SpriteCanvas.SetSelection(null);
         }
         UpdateSelectionControls();
-        UpdateColorReplacerVisibility();
+        UpdateToolPanels();
         RefreshLayerPanel();
     }
 
-    private void OnBrushSizeChanged(object? sender, NumericUpDownValueChangedEventArgs e) =>
-        SpriteCanvas.BrushSize = (int)(BrushSizeBox.Value ?? 1);
+    /// <summary>Shows only the active tool's option panels, like Replace's colors.</summary>
+    private void UpdateToolPanels()
+    {
+        bool on = SpriteCanvas.PaintMode;
+        var tool = SpriteCanvas.ActiveTool;
+        BrushPanel.IsVisible = on && tool is PaintTool.Pencil or PaintTool.Eraser;
+        SelectionPanel.IsVisible = on && tool == PaintTool.Selection;
+        UpdateColorReplacerVisibility();
+        ToolOptionsSection.IsVisible = BrushPanel.IsVisible || SelectionPanel.IsVisible || ColorReplacerPanel.IsVisible;
+    }
+
+    /// <summary>Replace's panel has its own Brush box; both edit the one shared size.</summary>
+    private void OnBrushSizeChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+    {
+        if (sender is not NumericUpDown box || BrushSizeBox is null || ReplaceBrushSizeBox is null) return;
+        var other = ReferenceEquals(box, BrushSizeBox) ? ReplaceBrushSizeBox : BrushSizeBox;
+        if (other.Value != box.Value) other.Value = box.Value;
+        SpriteCanvas.BrushSize = (int)(box.Value ?? 1);
+    }
 
     /// <summary>Tool buttons are hand-managed as a radio group — Avalonia's ToggleButton has no GroupName.</summary>
     private void OnSelectPaintTool(object? sender, RoutedEventArgs e)
@@ -134,7 +152,7 @@ public partial class MainWindow
             SettleFloatingPaste();
             SpriteCanvas.SetSelection(null);
         }
-        UpdateColorReplacerVisibility();
+        UpdateToolPanels();
     }
 
     /// <summary>Right-click on the Sprites tab canvas: Eyedropper is a one-shot pick here, whatever tool is currently active.</summary>

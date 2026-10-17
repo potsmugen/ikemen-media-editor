@@ -35,8 +35,11 @@ public class PaletteView : Control
     private Point _boxStart, _boxEnd;
     private SortedSet<int>? _boxBase; // selection a Ctrl box adds to; null when no box is armed
 
-    /// <summary>The unzoomed swatch size. Zero or less falls back to a sensible default.</summary>
+    /// <summary>The unzoomed swatch size. Zero or less falls back to NaturalCellSize.</summary>
     public double CellSize { get; set; }
+
+    /// <summary>Cell size wanted when nothing limits the grid, as when a panel measures its natural width.</summary>
+    public double NaturalCellSize { get; set; } = 12;
 
     /// <summary>Backdrop color; kept in step with the app theme (see MainWindow.ApplyTheme).</summary>
     public IBrush Background { get; set; } = new SolidColorBrush(Color.FromRgb(0x2a, 0x2a, 0x2e));
@@ -78,7 +81,7 @@ public class PaletteView : Control
     {
         get
         {
-            double cell = (CellSize > 0 ? CellSize : 12);
+            double cell = (CellSize > 0 ? CellSize : NaturalCellSize);
             if (Bounds.Width > 0 && Bounds.Height > 0)
                 cell = Math.Min((Bounds.Width - GridMargin) / 16, (Bounds.Height - GridMargin) / Rows);
             return Math.Clamp(cell, MinCell, MaxCell);
@@ -93,7 +96,7 @@ public class PaletteView : Control
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        double cell = (CellSize > 0 ? CellSize : 12);
+        double cell = (CellSize > 0 ? CellSize : NaturalCellSize);
         if (!double.IsInfinity(availableSize.Width)) cell = (availableSize.Width - GridMargin) / 16;
         if (!double.IsInfinity(availableSize.Height)) cell = Math.Min(cell, (availableSize.Height - GridMargin) / Rows);
         cell = Math.Clamp(cell, MinCell, MaxCell);

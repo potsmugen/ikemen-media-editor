@@ -34,7 +34,9 @@ and keep them current. Open, unchecked work is in `agents/todo.md`.
   matters. Don't repeat the label or explain units, ranges, format quirks,
   undo, or selection caveats. Explain all dropdown options or none; usually
   none. Put shared behavior on the shared control.
-- Dialog and popup titles use Title Case ("Global Shared Palette").
+- Dialog and popup titles use Title Case ("Global Shared Palette"), and so do panel
+  headers and section headings ("Sprite Tools", "Tool Options"). Field labels stay
+  sentence case ("Preview with", "Pin sprite").
 - No "..." in UI text; ask first if a case seems to need it. Approved
   exceptions: splash "Loading..." and the ", …" sprite-number truncation.
   Don't put the user's name in files or code.
