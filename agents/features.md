@@ -764,6 +764,9 @@ The editor's writers follow these tools where applicable.
   previous one: with an individual 9000,1, "previous" would give every later
   sprite the portrait's palette. Individual files only get the flag from -p,
   where it means "same as previous". The engine's own reading is unverified.
+  Opening such a file sets `SffFile.V1SharedPalette` and shows a one-time
+  "Global Shared Palette" popup saying a Save writes the standard "use previous
+  palette" format; the flag is never used for saving.
   Samples (byte 32 = 1): `working/kfm - old.sff` (0,0 flagged, takes 9000,0's
   palette) and `working/Donald.sff` (0,0 keeps its own; 0,1 onward take
   9000,0's, which equals Donald01.act). Flagged records in both still carry

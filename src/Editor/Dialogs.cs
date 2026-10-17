@@ -269,7 +269,7 @@ public static class Dialogs
         string loss = unsaved == 0 ? ""
             : unsaved == 1 ? "\n1 has unsaved changes that Discard loses."
             : $"\n{unsaved} have unsaved changes that Discard loses.";
-        return Show<StandalonePaletteChoice?>(owner, "Palettes are open",
+        return Show<StandalonePaletteChoice?>(owner, "Open Palettes",
             $"Keep {count} open {noun} in the palettes list for the SFF, or discard them?{loss}",
             [("Keep", StandalonePaletteChoice.Keep), ("Discard", StandalonePaletteChoice.Discard), ("Cancel", null)], null);
     }
@@ -313,7 +313,7 @@ public static class Dialogs
     {
         string frames = total == 1 ? "1 frame" : $"{total} frames";
         string repeats = duplicates == 1 ? "1 is a repeat" : $"{duplicates} are repeats";
-        return Show<bool?>(owner, "Repeated frames",
+        return Show<bool?>(owner, "Repeated Frames",
             $"{name} has {frames}, and {repeats} of an earlier frame. Dropping them leaves "
             + $"{total - duplicates}, so the animation may hold a pose for a shorter time. Keep every frame instead?",
             [("Drop Repeats", true), ("Keep Every Frame", false), ("Cancel", null)]);
@@ -330,7 +330,7 @@ public static class Dialogs
     {
         string many = frames == 1 ? "1 frame" : $"{frames} frames";
         int max = Sff.GifImport.MaxSharedColors;
-        return Show<GifOverflowChoice?>(owner, "Too many colors for one palette",
+        return Show<GifOverflowChoice?>(owner, "Too Many Colors for One Palette",
             $"{name} has {many} that use {colors} colors between them, more than the {max} one palette holds. "
             + $"32-bit color keeps every color exactly. Reducing to {max} keeps the frames 8-bit, "
             + "but shifts the colors that do not fit.",
@@ -2483,7 +2483,7 @@ public static class Dialogs
         }
         else message += "This SFF version does not support 32-bit color.";
         buttons.Add(("Cancel", null));
-        return Show<TooManyColorsChoice?>(owner, "Too many colors for one palette",
+        return Show<TooManyColorsChoice?>(owner, "Too Many Colors for One Palette",
             message, buttons.ToArray(), null);
     }
 
@@ -3788,7 +3788,7 @@ public static class Dialogs
             catch (Exception ex)
             {
                 CrashLog.Write("Preferences.BackgroundBrowse", ex);
-                await ShowMessage(dialog, "Could not open image", ex.Message);
+                await ShowMessage(dialog, "Could Not Open Image", ex.Message);
             }
         };
 
@@ -3858,7 +3858,7 @@ public static class Dialogs
             catch (Exception ex)
             {
                 CrashLog.Write("Preferences.CrosshairBrowse", ex);
-                await ShowMessage(dialog, "Could not open image", ex.Message);
+                await ShowMessage(dialog, "Could Not Open Image", ex.Message);
             }
         };
 

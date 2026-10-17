@@ -334,7 +334,7 @@ public partial class MainWindow
     private bool RefuseBorrowerEdit(Sprite sprite, string action)
     {
         if (sprite.SharesWith is not { } t) return false;
-        ShowPopup("Linked sprite", $"Can't {action} {sprite.Group},{sprite.Index}: it links to {t.Group},{t.Index}. Unlink it first.");
+        ShowPopup("Linked Sprite", $"Can't {action} {sprite.Group},{sprite.Index}: it links to {t.Group},{t.Index}. Unlink it first.");
         CrashLog.Error(action, $"refused: {sprite.Group},{sprite.Index} links to {t.Group},{t.Index}");
         return true;
     }
@@ -1090,7 +1090,7 @@ public partial class MainWindow
     {
         if (SffVersions.IsV1(file.Version) && sprite.SharesWith is not null)
         {
-            ShowPopup("Linked sprite", "A linked sprite uses the palette of its link target; unlink it first.");
+            ShowPopup("Linked Sprite", "A linked sprite uses the palette of its link target; unlink it first.");
             return;
         }
         var previous = file.PreviousPalette(sprite);
@@ -1115,7 +1115,7 @@ public partial class MainWindow
         if (!file.PaletteCanBeMadeUnique(sprite))
         {
             if (sprite.Palette is not null && SffVersions.IsV1(file.Version) && sprite.SharesWith is not null)
-                ShowPopup("Linked sprite", "A linked sprite cannot carry its own palette; unlink it first.");
+                ShowPopup("Linked Sprite", "A linked sprite cannot carry its own palette; unlink it first.");
             else
                 StatusText.Text = sprite.Palette is null ? "This sprite has no palette."
                     : $"{sprite.Group},{sprite.Index}'s palette is already its own.";

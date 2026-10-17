@@ -2344,7 +2344,7 @@ public partial class MainWindow
         catch (Exception ex)
         {
             CrashLog.Write("OnEditActionNames", ex);
-            ShowPopup("Action names file", $"Could not open the action names file: {ex.Message}");
+            ShowPopup("Action Names File", $"Could not open the action names file: {ex.Message}");
         }
     }
 }

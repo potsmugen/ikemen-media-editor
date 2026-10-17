@@ -103,6 +103,7 @@ public class V1Tests
     public void SharedFileGivesFlaggedSpritesTheFirstPalette()
     {
         var f = ReadV1(1, (9000, 0, false), (9000, 1, false), (0, 0, true), (0, 1, true));
+        Assert.True(f.V1SharedPalette);
         Assert.NotSame(f.Sprites[0].Palette, f.Sprites[1].Palette);
         Assert.Same(f.Sprites[0].Palette, f.Sprites[2].Palette);
         Assert.Same(f.Sprites[0].Palette, f.Sprites[3].Palette);
@@ -123,6 +124,7 @@ public class V1Tests
     public void IndividualFileGivesFlaggedSpritesThePreviousPalette()
     {
         var f = ReadV1(0, (9000, 0, false), (9000, 1, false), (0, 0, true));
+        Assert.False(f.V1SharedPalette);
         Assert.NotSame(f.Sprites[0].Palette, f.Sprites[1].Palette);
         Assert.Same(f.Sprites[1].Palette, f.Sprites[2].Palette);
     }

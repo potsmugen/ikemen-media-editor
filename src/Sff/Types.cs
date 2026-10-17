@@ -278,6 +278,9 @@ public sealed class SffFile
 {
     public SffVersion Version;
     public SffVersion CompatVersion;
+    /// <summary>Read from SFFv1 header byte 32 (SprMaker "Shared palette"), only to tell the
+    /// user; saving always writes the standard "use previous palette" format.</summary>
+    public bool V1SharedPalette;
     public List<Sprite> Sprites = [];
     public List<Palette> Palettes = [];
 
@@ -309,7 +312,7 @@ public sealed class SffFile
             return c;
         }
 
-        var copy = new SffFile { Version = Version, CompatVersion = CompatVersion };
+        var copy = new SffFile { Version = Version, CompatVersion = CompatVersion, V1SharedPalette = V1SharedPalette };
         foreach (var p in Palettes) copy.Palettes.Add(Map(p));
 
         var spr = new Dictionary<Sprite, Sprite>(Sprites.Count);

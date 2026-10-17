@@ -201,7 +201,7 @@ public partial class MainWindow
     {
         if (_recoverySnapshotFailureShown) return;
         _recoverySnapshotFailureShown = true;
-        ShowPopup("Recovery snapshot failed",
+        ShowPopup("Recovery Snapshot Failed",
             "Unsaved changes may not be recoverable after a crash:\n" + string.Join("\n", reasons));
     }
 
@@ -367,7 +367,7 @@ public partial class MainWindow
     {
         if (_file is null)
         {
-            ShowPopup("Palette not recovered", $"Recovered palette {item.Title} was not applied because its sprite file is not open.");
+            ShowPopup("Palette Not Recovered", $"Recovered palette {item.Title} was not applied because its sprite file is not open.");
             return;
         }
         byte[] data = File.ReadAllBytes(snapshot);

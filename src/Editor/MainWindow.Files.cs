@@ -33,7 +33,7 @@ public partial class MainWindow
         {
             CrashLog.Write("OpenFile", e);
             StatusText.Text = $"Could not open {Path.GetFileName(path)}.";
-            ShowPopup("Could not open file", $"Could not open {Path.GetFileName(path)}: {e.Message}");
+            ShowPopup("Could Not Open File", $"Could not open {Path.GetFileName(path)}: {e.Message}");
             return;
         }
 
@@ -57,6 +57,10 @@ public partial class MainWindow
         if (failed > 0) summary += $", {failed} failed to decode";
         if (_file.Version.Hi == 1) summary += ". Saving converts to SFFv2.";
         StatusText.Text = summary;
+        if (_file.V1SharedPalette)
+            ShowPopup("Global Shared Palette",
+                "This SFF file uses a global shared palette: sprites marked to reuse a palette use the first one.\n"
+                + "Saving it in the editor will convert it to the standard \u201cuse previous palette\u201d format.");
     }
 
     /// <summary>Reads an SFF on a background thread under the busy lock. Null when it can't be read; OpenFile then reports the error.</summary>
@@ -85,7 +89,7 @@ public partial class MainWindow
         {
             CrashLog.Write("OpenFile", e);
             StatusText.Text = $"Could not open {Path.GetFileName(path)}.";
-            ShowPopup("Could not open file", $"Could not open {Path.GetFileName(path)}: {e.Message}");
+            ShowPopup("Could Not Open File", $"Could not open {Path.GetFileName(path)}: {e.Message}");
             return;
         }
         OpenFile(path, loaded: loaded);
@@ -1343,7 +1347,7 @@ public partial class MainWindow
         catch (Exception ex)
         {
             CrashLog.Write("ReloadSavedSff", ex);
-            ShowPopup("Could not reload file", $"Could not reload {Path.GetFileName(path)}: {ex.Message}");
+            ShowPopup("Could Not Reload File", $"Could not reload {Path.GetFileName(path)}: {ex.Message}");
             return;
         }
         reloaded.Palettes.AddRange(externals);
@@ -1501,7 +1505,7 @@ public partial class MainWindow
                     MainMenu.Close();
                     CrashLog.Error("OpenRecent", $"file not found: {path}");
                     StatusText.Text = $"{path} is no longer there";
-                    ShowPopup("File not found", $"{path} is no longer there, so it was removed from Open Recent.");
+                    ShowPopup("File Not Found", $"{path} is no longer there, so it was removed from Open Recent.");
                     return;
                 }
 
@@ -1709,7 +1713,7 @@ public partial class MainWindow
             {
                 e.Cancel = true;
                 base.OnClosing(e);
-                ShowPopup("Still working", "Wait for the current action to finish, then close the window.");
+                ShowPopup("Still Working", "Wait for the current action to finish, then close the window.");
                 return;
             }
 

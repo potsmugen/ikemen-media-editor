@@ -426,7 +426,7 @@ public partial class MainWindow
         {
             string shown = string.Join("\n", skipped.Take(10));
             if (skipped.Count > 10) shown += $"\n…and {skipped.Count - 10} more (see crash.log).";
-            ShowPopup("Some sprites were skipped", shown);
+            ShowPopup("Sprites Skipped", shown);
         }
         if (summary is not null)
             StatusText.Text = summary + (skipped.Count > 0 ? $" Skipped {skipped.Count} (see crash.log)." : "");

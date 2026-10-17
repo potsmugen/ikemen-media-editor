@@ -24,7 +24,7 @@ internal static class SffV1Reader
         uint first = BinaryPrimitives.ReadUInt32LittleEndian(b.AsSpan(24));
         bool shared = b[32] == SharedPalette;
 
-        var f = new SffFile { Version = version, CompatVersion = version };
+        var f = new SffFile { Version = version, CompatVersion = version, V1SharedPalette = shared };
         var linkTo = new List<int>();
 
         // Walk the list. Each subheader points at the next; a pointer that does

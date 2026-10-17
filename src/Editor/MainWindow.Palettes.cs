@@ -1370,7 +1370,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             bool HasSpriteFallback()
             {
                 if (users == 0 || fallback is not null && file.Palettes.Contains(fallback)) return true;
-                ShowPopup("Delete palette", $"Can't delete palette {PaletteLabel(pal)}: sprites use it and no valid fallback palette is available.");
+                ShowPopup("Delete Palette", $"Can't delete palette {PaletteLabel(pal)}: sprites use it and no valid fallback palette is available.");
                 string target = fallback is null ? "none" : $"{fallback.Group},{fallback.Index} is not in the palette table";
                 CrashLog.Error("OnDeletePalette", $"refused: sprites use {pal.Group},{pal.Index}, and fallback target is {target}");
                 return false;

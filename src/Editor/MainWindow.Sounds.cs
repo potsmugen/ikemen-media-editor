@@ -1236,7 +1236,7 @@ public partial class MainWindow
             byte[]? Make(int frames, int place) =>
                 SndEdit.InsertSilence(s, place != 1 ? frames : 0, place != 0 ? frames : 0);
 
-            if (await PromptSoundEdit(s, "Insert silence", "Silence length in ms:", defaultMs.ToString("0.##", CultureInfo.InvariantCulture),
+            if (await PromptSoundEdit(s, "Insert Silence", "Silence length in ms:", defaultMs.ToString("0.##", CultureInfo.InvariantCulture),
                     raw => Parse(raw, out _),
                     raw =>
                     {
@@ -1416,7 +1416,7 @@ public partial class MainWindow
         int crossfade = SelectionCrossfadeFrames(s);
         double defaultAmount = Settings.Checked(nameof(Settings.LoudnessDefaultAmount), _settings.LoudnessDefaultAmount,
             SndEdit.DefaultLoudnessAmount, v => v >= SndEdit.MinLoudnessAmount && v <= SndEdit.MaxLoudnessAmount);
-        if (await PromptSoundEdit(s, "Increase loudness",
+        if (await PromptSoundEdit(s, "Increase Loudness",
                 "Amount (1-100; higher lifts quiet parts more, the peak never changes):",
                 defaultAmount.ToString("0.##", CultureInfo.InvariantCulture),
                 raw => Parse(raw, out _),
@@ -1629,7 +1629,7 @@ public partial class MainWindow
             return $"This will clip. Highest volume without clipping: {limit:0.#}%.";
         }
 
-        if (await PromptSoundEdit(s, "Change volume", "Volume % (100 = unchanged):", "100",
+        if (await PromptSoundEdit(s, "Change Volume", "Volume % (100 = unchanged):", "100",
                 raw => Parse(raw, out _),
                 raw =>
                 {
@@ -2159,7 +2159,7 @@ public partial class MainWindow
             ditherBox.IsCheckedChanged += (_, _) => dither = ditherBox.IsChecked == true;
             var extra = new StackPanel { Spacing = 8, Children = { radios, ditherBox } };
 
-            if (await PromptSoundEdit(s, "Change bit depth", $"New bit depth (now {current}-bit):", null,
+            if (await PromptSoundEdit(s, "Change Bit Depth", $"New bit depth (now {current}-bit):", null,
                     _ => null,
                     _ =>
                     {
