@@ -170,9 +170,10 @@ public partial class MainWindow
         FrameFlagsButton.IsEnabled = any;
 
         // Box-level buttons work on one frame: the canvas shows only the current one.
+        bool boxSelected = any && AnimCanvas.SelectedBox >= 0 && AnimCanvas.SelectedBox < AnimCanvas.Boxes.Count;
         AddAttackBoxButton.IsEnabled = AddHurtBoxButton.IsEnabled = single;
-        DeleteBoxButton.IsEnabled = MakeDefaultButton.IsEnabled =
-            single && AnimCanvas.SelectedBox >= 0 && AnimCanvas.SelectedBox < AnimCanvas.Boxes.Count;
+        // These act on the boxes selected on the canvas, whatever the frame selection.
+        DeleteBoxButton.IsEnabled = MakeDefaultButton.IsEnabled = boxSelected;
         CopyOnionClsnButton.IsEnabled = any && AnimOnionSource() is { } src && (src.Hurt.Count > 0 || src.Attack.Count > 0);
         AutoHurtBoxesButton.IsEnabled = elements.Any(el => !el.NoSprite);
         SortBoxesButton.IsEnabled = elements.Any(el => el.OwnAttackBoxes || el.OwnHurtBoxes);

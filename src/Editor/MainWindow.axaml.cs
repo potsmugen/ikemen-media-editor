@@ -2116,7 +2116,7 @@ public partial class MainWindow : Window
 
         if (e.Key == Key.Delete && Tabs?.SelectedIndex == 2 && AnimCanvas.SelectedBox >= 0)
         {
-            DeleteBox(AnimCanvas.SelectedBox);
+            DeleteSelectedBoxes();
             e.Handled = true;
             return;
         }

@@ -132,8 +132,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   selected frame. Insert and Insert Sprite Group add after the last selected frame (Insert
   templates on it). Special Flags sets Interpolate on every selected frame (a mixed flag left
   mixed changes nothing) and dims Loopstart. Auto Clsn, Sort Boxes, Delete All Boxes and
-  Copy from Onion Skin (and the menu's Paste Clsn) act on every selected frame as one undo step; Add Clsn1/2, Delete Box
-  and Toggle Default need a single frame. `UpdateFrameButtons` dims every frame and Clsn
+  Copy from Onion Skin (and the menu's Paste Clsn) act on every selected frame as one undo step; Add Clsn1/2 needs
+  a single frame. Delete Box (and the Delete key) and Toggle Default act on the boxes selected on the canvas,
+  so they work with any frame selection: Delete Box removes every selected box, and Toggle Default toggles each
+  kind with a selected box (both kinds as one undo step). `UpdateFrameButtons` dims every frame and Clsn
   button that can't act (no action, edges, last frame, no own boxes, no box selected). Ctrl+C / Ctrl+V copy frames and paste them after the current frame in any
   action with their lines (ClsnDefault, Interpolate, Loopstart), as pasted text would. Row rebuilds, fills and undo keep
   the selection (`RestoreFrameTableSelection(keep)`).

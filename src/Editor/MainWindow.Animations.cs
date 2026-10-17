@@ -1000,7 +1000,50 @@ public partial class MainWindow
         AnimCanvas.SelectBox(LastBoxOf(kind));
     }
 
-    private void OnDeleteBox(object? sender, RoutedEventArgs e) => DeleteBox(AnimCanvas.SelectedBox);
+    private void OnDeleteBox(object? sender, RoutedEventArgs e) => DeleteSelectedBoxes();
+
+    /// <summary>Deletes every box selected on the canvas as one undo step; a lone box goes through DeleteBox.
+    /// Boxes shown from a default declared on an earlier frame can't be deleted here.</summary>
+    private void DeleteSelectedBoxes()
+    {
+        var selected = AnimCanvas.SelectedBoxes.Where(i => i >= 0 && i < AnimCanvas.Boxes.Count).ToList();
+        if (selected.Count <= 1) { DeleteBox(AnimCanvas.SelectedBox); return; }
+        if (_action is not { } action || CurrentElement is not { } element) return;
+
+        var before = CaptureActionBoxes(action);
+        int inherited = 0;
+        foreach (var kind in new[] { ClsnKind.Hurt, ClsnKind.Attack })
+        {
+            var drop = selected.Where(i => ((ClsnKind?)AnimCanvas.Boxes[i].Tag ?? ClsnKind.Hurt) == kind)
+                .Select(i => AnimCanvas.Boxes[i].Index).ToHashSet();
+            if (drop.Count == 0) continue;
+            bool attack = kind == ClsnKind.Attack;
+            if (DeclaredSegmentHere(element, kind) is { } segment)
+            {
+                // Declaring frame: remove from the default; its last box removes the declaration.
+                var left = segment.Boxes.Where((_, i) => !drop.Contains(i)).ToList();
+                if (left.Count == 0) (attack ? action.DefaultAttackSegments : action.DefaultHurtSegments).Remove(segment);
+                else segment.Boxes = left;
+            }
+            else if (attack ? element.OwnAttackBoxes : element.OwnHurtBoxes)
+            {
+                // A kind left with no own boxes uses the default in force (never "ClsnX: 0").
+                var left = (attack ? element.Attack : element.Hurt).Where((_, i) => !drop.Contains(i)).ToList();
+                if (attack) { element.Attack = left; element.OwnAttackBoxes = left.Count > 0; }
+                else { element.Hurt = left; element.OwnHurtBoxes = left.Count > 0; }
+            }
+            else inherited += drop.Count;
+        }
+        var after = CaptureActionBoxes(action);
+        if (!SameActionBoxes(before, after))
+        {
+            _undo.Record("delete boxes", () => RestoreActionBoxes(action, before), () => RestoreActionBoxes(action, after));
+            MarkAirDirty();
+            RestoreActionBoxes(action, after); // rebakes inheriting frames and refreshes the views
+        }
+        if (inherited > 0)
+            StatusText.Text = $"{inherited} of the selected boxes come from a default declared on an earlier frame; edit them there.";
+    }
 
     /// <summary>Removes the current frame's own boxes (a default declared on it
     /// counts as its own). A frame left with no own Clsn uses the default in
@@ -1197,8 +1240,8 @@ public partial class MainWindow
     /// is) between the frame's own boxes and the action's default: if this
     /// frame currently has its own, they become the new default and the frame
     /// drops back to using it; if it's already showing the default, the frame
-    /// gets its own copy instead. Which kind toggles is decided entirely by
-    /// what's selected on the canvas — the two kinds are never touched together.
+    /// gets its own copy instead. Which kinds toggle is decided by what's selected
+    /// on the canvas: boxes of both kinds selected toggle both, as one undo step.
     /// </summary>
     private void OnMakeBoxDefault(object? sender, RoutedEventArgs e)
     {
@@ -1208,8 +1251,46 @@ public partial class MainWindow
             StatusText.Text = "Select a box first.";
             return;
         }
-        var kind = (ClsnKind?)AnimCanvas.Boxes[AnimCanvas.SelectedBox].Tag ?? ClsnKind.Hurt;
-        ToggleDefault(element, kind);
+        var kinds = AnimCanvas.SelectedBoxes.Append(AnimCanvas.SelectedBox)
+            .Where(i => i >= 0 && i < AnimCanvas.Boxes.Count)
+            .Select(i => (ClsnKind?)AnimCanvas.Boxes[i].Tag ?? ClsnKind.Hurt).Distinct().ToList();
+        if (kinds.Count == 1) ToggleDefault(element, kinds[0]);
+        else ToggleDefaultBothKinds(element);
+    }
+
+    /// <summary>ToggleDefault for Clsn1 and Clsn2 together, as one undo step; keeps the box selection.</summary>
+    private void ToggleDefaultBothKinds(AnimationElement element)
+    {
+        if (_action is not { } action) return;
+        int index = action.Elements.IndexOf(element);
+        var before = CaptureActionBoxes(action);
+        foreach (bool attack in new[] { false, true })
+        {
+            var segments = attack ? action.DefaultAttackSegments : action.DefaultHurtSegments;
+            if (attack ? element.OwnAttackBoxes : element.OwnHurtBoxes)
+            {
+                // Own boxes become the default declared here, as in ToggleDefault.
+                var boxes = (attack ? element.Attack : element.Hurt).ToList();
+                segments.RemoveAll(s => s.At == index);
+                segments.Add(new DefaultSegment { At = index, Boxes = boxes });
+                segments.Sort((a, b) => a.At.CompareTo(b.At));
+                if (attack) element.OwnAttackBoxes = false; else element.OwnHurtBoxes = false;
+            }
+            else
+            {
+                // The frame keeps a copy as its own; a default declared here is removed.
+                var governing = attack ? action.AttackSegmentAt(index) : action.HurtSegmentAt(index);
+                var boxes = governing?.Boxes.ToList() ?? [];
+                if (governing is not null && governing.At == index) segments.Remove(governing);
+                if (attack) { element.Attack = boxes; element.OwnAttackBoxes = true; }
+                else { element.Hurt = boxes; element.OwnHurtBoxes = true; }
+            }
+        }
+        var after = CaptureActionBoxes(action);
+        if (SameActionBoxes(before, after)) return;
+        _undo.Record("toggle default", () => ApplyBoxEdit(action, before), () => ApplyBoxEdit(action, after));
+        ApplyBoxEdit(action, after); // rebakes inheriting frames, keeps the box selection
+        MarkAirDirty();
     }
 
     private void MakeBoxDefault(int boxIndex)
@@ -1290,11 +1371,6 @@ public partial class MainWindow
             () => Apply(afterSegs, afterOwn, afterBoxes));
         Apply(afterSegs, afterOwn, afterBoxes);
         MarkAirDirty();
-        StatusText.Text = currentlyOwn
-            ? $"{(attack ? "Clsn1" : "Clsn2")} is now this action's default from frame {index + 1} onward."
-            : afterSegs.Count < beforeSegs.Count
-                ? $"{(attack ? "Clsn1" : "Clsn2")} is now this frame's own; the default declared here was removed."
-                : $"{(attack ? "Clsn1" : "Clsn2")} is now this frame's own.";
     }
 
     private async void OnSortBoxes(object? sender, RoutedEventArgs e)
