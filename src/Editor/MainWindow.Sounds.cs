@@ -160,6 +160,7 @@ public partial class MainWindow
         ApplySoundFilter();
         ShowSound(); // ApplySoundFilter selects row 0 with events suppressed, so nothing else shows it
         UpdateSndInfo();
+        FocusTabList();
         return true;
     }
 
@@ -461,70 +462,6 @@ public partial class MainWindow
         for (int i = 0; i < rows.Count; i++)
             if (!ReferenceEquals(rows[i].Sound, _snd.Sounds[_visibleSounds[i]])) return false;
         return true;
-    }
-
-    /// <summary>One row of the sound list's table: Group and Number (double-click to edit), plus duration and rate as their own columns.</summary>
-    public sealed class SoundRow(SoundEntry sound, int number) : INotifyPropertyChanged
-    {
-        private static readonly PropertyChangedEventArgs GroupTextChanged = new(nameof(GroupText));
-        private static readonly PropertyChangedEventArgs NumberTextChanged = new(nameof(NumberText));
-        private static readonly PropertyChangedEventArgs DurationTextChanged = new(nameof(DurationText));
-        private static readonly PropertyChangedEventArgs RateTextChanged = new(nameof(RateText));
-        private static readonly PropertyChangedEventArgs WidthsChanged = new(nameof(Widths));
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        private static string Duration(SoundEntry s) =>
-            s.Problem is not null ? "unreadable" : $"{s.Duration.TotalSeconds:0.00}s";
-
-        internal static string RateTextFor(SoundEntry s) =>
-            s.Problem is not null ? "" : $"{s.SampleRate / 1000.0:0.#}kHz";
-
-        private string _groupText = sound.Group.ToString(CultureInfo.InvariantCulture);
-        private string _numberText = sound.Index.ToString(CultureInfo.InvariantCulture);
-        private string _durationText = Duration(sound);
-        private string _rateText = RateTextFor(sound);
-        private double[] _widths = [];
-
-        public SoundEntry Sound { get; } = sound;
-        /// <summary>Row position, not the sound's own Number field. It follows the row's place
-        /// in the visible list, so a changed row set needs a rebuild rather than a refresh.</summary>
-        public string Number { get; } = number.ToString(CultureInfo.InvariantCulture);
-        public string GroupText { get => _groupText; private set => Set(ref _groupText, value, GroupTextChanged); }
-        public string NumberText { get => _numberText; private set => Set(ref _numberText, value, NumberTextChanged); }
-        public string DurationText { get => _durationText; private set => Set(ref _durationText, value, DurationTextChanged); }
-        public string RateText { get => _rateText; private set => Set(ref _rateText, value, RateTextChanged); }
-        /// <summary>Same array for every row and the header (TextTableWidths).</summary>
-        public double[] Widths
-        {
-            get => _widths;
-            set
-            {
-                // Rebuilt on every edit, but almost always identical; skipping the notification
-                // then keeps realized rows from re-reading every binding for nothing.
-                bool same = _widths.Length == value.Length;
-                for (int i = 0; same && i < value.Length; i++) same = _widths[i] == value[i];
-                if (same) return;
-                _widths = value;
-                PropertyChanged?.Invoke(this, WidthsChanged);
-            }
-        }
-
-        private void Set(ref string field, string value, PropertyChangedEventArgs args)
-        {
-            if (field == value) return;
-            field = value;
-            PropertyChanged?.Invoke(this, args);
-        }
-
-        /// <summary>Re-reads every cell this row shows from its sound, raising only what changed.</summary>
-        public void Refresh()
-        {
-            GroupText = Sound.Group.ToString(CultureInfo.InvariantCulture);
-            NumberText = Sound.Index.ToString(CultureInfo.InvariantCulture);
-            DurationText = Duration(Sound);
-            RateText = RateTextFor(Sound);
-        }
     }
 
     private void OnSoundFilterChanged(object? sender, TextChangedEventArgs e) => ApplySoundFilter();

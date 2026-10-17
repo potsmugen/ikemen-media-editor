@@ -306,7 +306,7 @@
                       </Style>
                     </ListBox.Styles>
                     <ListBox.ItemTemplate>
-                      <DataTemplate>
+                      <DataTemplate x:DataType="local:SpriteTableRow" x:CompileBindings="True">
                         <Grid PointerPressed="OnSpriteRowPointerPressed" PointerMoved="OnSpriteRowPointerMoved"
                               PointerReleased="OnSpriteRowPointerReleased">
                           <Grid.ColumnDefinitions>
@@ -702,7 +702,7 @@
                     </Style>
                   </ListBox.Styles>
                   <ListBox.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate x:DataType="local:PaletteRow" x:CompileBindings="True">
                       <Grid ToolTip.Tip="{Binding Kind}">
                         <Grid.ColumnDefinitions>
                           <ColumnDefinition Width="Auto" />
@@ -1060,7 +1060,7 @@
                       </Style>
                     </ListBox.Styles>
                     <ListBox.ItemTemplate>
-                      <DataTemplate>
+                      <DataTemplate x:DataType="local:ActionRow" x:CompileBindings="True">
                         <Grid PointerPressed="OnActionRowPointerPressed"
                               PointerMoved="OnActionRowPointerMoved" PointerReleased="OnActionRowPointerReleased">
                           <Grid.ColumnDefinitions>
@@ -1210,7 +1210,7 @@
                        canvas preview, Table, Text). The column-header row above it went with it, for the same reason. -->
                   <ListBox Grid.Row="1" x:Name="FrameList" SelectionChanged="OnFrameSelected" Background="{DynamicResource ThemeListBg}" IsVisible="False">
                     <ListBox.ItemTemplate>
-                      <DataTemplate>
+                      <DataTemplate x:DataType="local:FrameRow" x:CompileBindings="True">
                         <Grid ColumnDefinitions="30,60,44,*">
                           <Border Grid.Column="0" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1">
                             <TextBlock Text="{Binding Number}" Foreground="{DynamicResource ThemeMutedText}" />
@@ -1364,7 +1364,7 @@
                         </Style>
                       </ListBox.Styles>
                       <ListBox.ItemTemplate>
-                        <DataTemplate>
+                        <DataTemplate x:DataType="local:FrameTableRow" x:CompileBindings="True">
                           <Grid>
                                                       <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="Auto" />
@@ -1641,7 +1641,7 @@
                     </Style>
                   </ListBox.Styles>
                   <ListBox.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate x:DataType="local:SoundRow" x:CompileBindings="True">
                       <Grid>
                         <Grid.ColumnDefinitions>
                           <ColumnDefinition Width="Auto" />

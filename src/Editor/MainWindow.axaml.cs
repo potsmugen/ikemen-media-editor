@@ -1533,6 +1533,7 @@ public partial class MainWindow : Window
                 case 1: RefreshPaletteTab(); break;
                 default: Pause(); break;       // stop playback when leaving the tab
             }
+            FocusTabList();
         }
         catch (Exception ex)
         {
@@ -1608,6 +1609,26 @@ public partial class MainWindow : Window
     private void OnZoomOut(object? sender, RoutedEventArgs e) => SpriteCanvas.StepZoom(-1);
     private void OnResetView(object? sender, RoutedEventArgs e) => SpriteCanvas.ResetView();
     private void OnZoomFit(object? sender, RoutedEventArgs e) => SpriteCanvas.ZoomToFit();
+
+    /// <summary>Focuses the open tab's main list (its selected row when shown), so arrows work without a click.</summary>
+    private void FocusTabList()
+    {
+        // Loaded: after the tab's content is laid out and its rows exist.
+        Dispatcher.UIThread.Post(() =>
+        {
+            ListBox? list = Tabs?.SelectedIndex switch
+            {
+                0 => SpriteList,
+                1 => PaletteList,
+                2 => ActionList,
+                3 => SoundList,
+                _ => null,
+            };
+            if (list is null || !list.IsEffectivelyVisible) return;
+            if (list.ContainerFromIndex(list.SelectedIndex) is Control row) row.Focus();
+            else list.Focus();
+        }, DispatcherPriority.Loaded);
+    }
 
     private void StepSprite(int delta)
     {
@@ -2100,33 +2121,18 @@ public partial class MainWindow : Window
             return;
         }
 
-        // Plain arrows step the sprite list; a modified arrow (Ctrl, Shift, Alt) is
-        // left to the focused control, so Ctrl+arrows no longer double for stepping.
-        if ((e.Key is Key.Right or Key.Down or Key.Left or Key.Up)
-            && e.KeyModifiers != KeyModifiers.None)
+        // Arrows, Page Up/Down and Home/End belong to the focused list or control; nothing steps a list behind it.
+        // With nothing focused they'd wander into the menus, so they hand focus to the tab's list instead.
+        if (e.Key is Key.Left or Key.Right or Key.Up or Key.Down or Key.PageUp or Key.PageDown or Key.Home or Key.End
+            && FocusManager?.GetFocusedElement() is null)
         {
-            base.OnKeyDown(e);
-            return;
-        }
-
-        // Another list leaves navigation keys unhandled at its ends (and sideways arrows always);
-        // swallow them so they don't fall through to stepping the sprite list.
-        if (e.Key is Key.Right or Key.Down or Key.Left or Key.Up or Key.PageDown or Key.PageUp or Key.Home or Key.End
-            && FocusManager?.GetFocusedElement() is Visual inList
-            && inList.FindAncestorOfType<ListBox>(true) is { } ownerList && ownerList != SpriteList)
-        {
+            FocusTabList();
             e.Handled = true;
             return;
         }
 
         switch (e.Key)
         {
-            case Key.Right or Key.Down: StepSprite(1); break;
-            case Key.Left or Key.Up: StepSprite(-1); break;
-            case Key.PageDown: StepSprite(10); break;
-            case Key.PageUp: StepSprite(-10); break;
-            case Key.Home: StepSprite(int.MinValue / 2); break;
-            case Key.End: StepSprite(int.MaxValue / 2); break;
             case Key.Add or Key.OemPlus: SpriteCanvas.StepZoom(1); break;
             case Key.Subtract or Key.OemMinus: SpriteCanvas.StepZoom(-1); break;
             default: base.OnKeyDown(e); return;
@@ -2176,9 +2182,9 @@ public partial class MainWindow : Window
                 ]),
                 ("Navigation",
                 [
-                    ("Arrows", "Previous / next sprite"),
-                    ("Page Up / Down", "Jump ten"),
-                    ("Home / End", "First / last"),
+                    ("Arrows", "Previous / next row in the focused list"),
+                    ("Page Up / Down", "Jump a page"),
+                    ("Home / End", "First / last row"),
                     ("Ctrl or Shift+click", "Toggle a Clsn box in the selection"),
                     ("Arrows (canvas)", "Nudge selected boxes 1 pixel"),
                 ]),

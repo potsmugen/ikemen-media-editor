@@ -264,24 +264,8 @@ public partial class MainWindow
         foreach (var a in _air.Actions)
             if (a.FramesWithDefaultAndOwnClsn() is { Count: > 0 } both)
                 CrashLog.Trace($"[air] action {a.Number}: default and own Clsn on frame {string.Join(", ", both.Select(i => i + 1))}");
+        FocusTabList();
         CrashLog.Trace("LoadAir: done");
-    }
-
-    /// <summary>One row of the action list: a raw number, and a comment that is
-    /// the action's real comment when it has one, or a bracketed reserved-action
-    /// suggestion for a standalone .air or a character definition. The suggestion is never written to
-    /// the file on its own — double-clicking it is what injects it, and only
-    /// when there is no comment there to overwrite. Stages and other .defs get no suggestions.</summary>
-    private sealed class ActionRow
-    {
-        public required AnimationAction Action { get; init; }
-        public string NumberText => Action.Number.ToString(CultureInfo.InvariantCulture);
-        /// <summary>The same for every row (see ActionNumberWidth).</summary>
-        public double NumberWidth { get; init; }
-        public string? SuggestedName { get; init; }
-        public string CommentText => Action.Comments.Count > 0
-            ? Action.Comments[0]
-            : SuggestedName is { } s ? $"[{s}]" : "";
     }
 
     private void RebuildActionList()
@@ -637,15 +621,6 @@ public partial class MainWindow
         if (keep >= 0 && keep < _action.Elements.Count) FrameList.SelectedIndex = keep;
         _suppressEvents = false;
         UpdateTimeline();
-    }
-
-    /// <summary>One row of the frame list's table: sprite, duration and flip flags in their own columns instead of one packed string.</summary>
-    private sealed class FrameRow
-    {
-        public required string Number { get; init; }
-        public required string Sprite { get; init; }
-        public required string Duration { get; init; }
-        public required string Flags { get; init; }
     }
 
     private void OnFrameSelected(object? sender, SelectionChangedEventArgs e)

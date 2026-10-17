@@ -36,38 +36,6 @@ public partial class MainWindow
     private bool _frameTableActive = true;
     private readonly ObservableCollection<FrameTableRow> _frameTableRows = [];
 
-    /// <summary>One row's worth of what the ItemTemplate binds to — one row per frame, so row == frame.</summary>
-    public sealed class FrameTableRow(int frameRow)
-    {
-        public int FrameRow { get; } = frameRow;
-        public string Number { get; set; } = (frameRow + 1).ToString(CultureInfo.InvariantCulture);
-        /// <summary>The Loopstart frame: tagged "L" in the Frame cell.</summary>
-        public bool IsLoopFrame { get; set; }
-        public string GroupText { get; set; } = "";
-        public string IndexText { get; set; } = "";
-        public string OffsetXText { get; set; } = "";
-        public string OffsetYText { get; set; } = "";
-        public string DurationText { get; set; } = "";
-        public bool FlipH { get; set; }
-        public bool FlipV { get; set; }
-        public string BlendText { get; set; } = "";
-        public string ScaleXText { get; set; } = "";
-        public string ScaleYText { get; set; } = "";
-        public string AngleText { get; set; } = "";
-        // Interpolate markers, shown in the cells they affect (the mark sits on the frame being moved toward).
-        public bool InterpOffset { get; set; }
-        public bool InterpScale { get; set; }
-        public bool InterpAngle { get; set; }
-        public bool InterpBlend { get; set; }
-        // Last row only: the last frame interpolates toward the loop start (drawn at its bottom edge).
-        public bool WrapOffset { get; set; }
-        public bool WrapScale { get; set; }
-        public bool WrapAngle { get; set; }
-        public bool WrapBlend { get; set; }
-        /// <summary>Column widths, the same array for every row and the header (see FrameTableWidths).</summary>
-        public double[] Widths { get; set; } = [];
-    }
-
     private static readonly string[] FrameTableHeaders = ["Frame", "Group", "Number", "Off X", "Off Y", "Time", "H", "V", "Blend", "Scale X", "Scale Y", "Angle"];
     /// <summary>Layout floors, as the header's MinWidths were in XAML.</summary>
     private static readonly double[] FrameTableMinWidths = [48, 52, 52, 52, 52, 48, 26, 26, 76, 58, 58, 58];
@@ -149,6 +117,33 @@ public partial class MainWindow
         _suppressEvents = true;
         _frameTableRows[frameRow] = row;
         _suppressEvents = false;
+        RestoreFrameTableSelection();
+    }
+
+    /// <summary>A replaced or rebuilt row loses its selection and focus; puts both back on the current frame.</summary>
+    private void RestoreFrameTableSelection()
+    {
+        int frame = FrameList.SelectedIndex;
+        if (frame >= 0 && frame < _frameTableRows.Count && FrameTableList.SelectedIndex != frame)
+        {
+            _suppressEvents = true;
+            FrameTableList.SelectedIndex = frame;
+            _suppressEvents = false;
+        }
+        FocusFrameTableRow();
+    }
+
+    /// <summary>Focuses the selected row once layout settles, if focus is still with the table: nowhere,
+    /// the (now hidden) cell editor, or a row. Focus moved to another control is left alone.</summary>
+    private void FocusFrameTableRow()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_editorOpen || !FrameTableList.IsEffectivelyVisible) return;
+            if (FocusManager?.GetFocusedElement() is Visual now && now != FrameCellEditor
+                && now.FindAncestorOfType<ListBox>(true) != FrameTableList) return;
+            if (FrameTableList.ContainerFromIndex(FrameTableList.SelectedIndex) is Control row) row.Focus();
+        }, DispatcherPriority.Loaded);
     }
 
     /// <summary>Rebuilds the row objects and hands them to FrameTableList — cheap now that it's just plain data, not controls.</summary>
@@ -173,9 +168,8 @@ public partial class MainWindow
 
         _suppressEvents = true;
         FrameTableList.ItemsSource = _frameTableRows;
-        int frame = FrameList.SelectedIndex;
-        if (frame >= 0 && frame < rows.Count) FrameTableList.SelectedIndex = frame;
         _suppressEvents = false;
+        RestoreFrameTableSelection();
     }
 
     /// <summary>Clicking a row in the table selects that frame everywhere else.</summary>
@@ -235,6 +229,7 @@ public partial class MainWindow
     {
         _editorOpen = false;
         FrameCellEditor.IsVisible = false;
+        FocusFrameTableRow();
     }
 
     private void OnFrameEditorKeyDown(object? sender, KeyEventArgs e)
@@ -247,6 +242,7 @@ public partial class MainWindow
         var (dRow, dField) = e.Key == Key.Enter ? (1, 0) : (0, e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? -1 : 1);
         CommitFrameEditor();
         EditNextFrameCell(row.FrameRow, tag, dRow, dField);
+        FocusFrameTableRow(); // at the table's edge no next cell opens; does nothing if one did
     }
 
     /// <summary>The text cells, in the order Tab walks them. Blend and H/V aren't typed into, so Tab skips them.</summary>

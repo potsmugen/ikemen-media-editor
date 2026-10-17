@@ -1723,51 +1723,6 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         }
     }
 
-    /// <summary>One row of the Palettes tab's table: group, index, source ("sff" or
-    /// import format, plain text), color count and linked palette — same virtualizing-ListBox
-    /// model as the sprite table.</summary>
-    private sealed class PaletteRow : INotifyPropertyChanged
-    {
-        /// <summary>An empty name tells the binding layer every property on this row changed.
-        /// Cheaper than tracking a dozen cells that rarely change one at a time.</summary>
-        private static readonly PropertyChangedEventArgs AllChanged = new(string.Empty);
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        public required Palette Palette { get; init; }
-        public required string Number { get; init; }
-        public string NumberText => Number + (Palette.Dirty ? "*" : "");
-        public required string GroupText { get; set; }
-        public required string IndexText { get; set; }
-        public required string GroupToolTip { get; set; }
-        public required string IndexToolTip { get; set; }
-        public required string SourceText { get; set; }
-        public required string ColorCountText { get; set; }
-        public required string LinkText { get; set; }
-        public required string LinkToolTip { get; set; }
-        public required string Kind { get; set; }
-        /// <summary>Same array for every row and the header (TextTableWidths).</summary>
-        public double[] Widths { get; set; } = [];
-
-        /// <summary>Copies every cell from a freshly built row of the same palette. Number and
-        /// Palette are left alone: both follow the row's place in the list, so a changed row set
-        /// needs a rebuild rather than a refresh.</summary>
-        public void CopyFrom(PaletteRow from)
-        {
-            GroupText = from.GroupText;
-            IndexText = from.IndexText;
-            GroupToolTip = from.GroupToolTip;
-            IndexToolTip = from.IndexToolTip;
-            SourceText = from.SourceText;
-            ColorCountText = from.ColorCountText;
-            LinkText = from.LinkText;
-            LinkToolTip = from.LinkToolTip;
-            Kind = from.Kind;
-            Widths = from.Widths;
-            PropertyChanged?.Invoke(this, AllChanged);
-        }
-    }
-
     private static Dictionary<Palette, Sprite> V1PaletteCarriers(SffFile file)
     {
         var carriers = new Dictionary<Palette, Sprite>();

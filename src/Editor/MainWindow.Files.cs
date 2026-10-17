@@ -155,6 +155,7 @@ public partial class MainWindow
         SpriteCanvas.ResetView();
         UpdateTitle();
         UpdateSffInfo();
+        FocusTabList();
     }
 
     /// <summary>

@@ -155,6 +155,15 @@ and constraints that are easy to miss when reading one code path in isolation.
   frame edits keep zoom. Same-size tick marks show from `TimelineTickMarkMinPixels`.
   Holding and zero-length frames
   take one tick of width, and the playhead uses the same layout as the cells.
+- **List keyboard navigation**: arrows, Page Up/Down and Home/End act only in the focused
+  list or control; nothing steps a list behind it. Each tab's main list (sprites, palettes,
+  actions, sounds) gets focus when the tab opens and after a file loads (`FocusTabList`);
+  a navigation key with nothing focused does the same instead of moving through the menus.
+  The frame table reselects and refocuses the current frame after a row is replaced or
+  rebuilt (`RestoreFrameTableSelection`). Don't wrap `SelectedItems` edits in
+  `Selection.BatchUpdate()`: Avalonia then applies them twice (duplicate selection).
+- **List row models** live in `ListRows.cs` as top-level types so the row templates can use
+  compiled bindings (`x:DataType`); a binding typo is a build error.
 - **List keyboard look-ahead** (`MainWindow.ListLookahead.cs`): after an arrow,
   Page, Home or End step in the sprite, palette, action, frame-table or sound list,
   the next row in the direction of travel is scrolled fully into view, so the
