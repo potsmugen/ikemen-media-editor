@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Globalization;
 using Air;
 using Sff;
@@ -155,35 +156,95 @@ internal sealed class FrameRow
 }
 
 /// <summary>One row's worth of what the ItemTemplate binds to — one row per frame, so row == frame.</summary>
-public sealed class FrameTableRow(int frameRow)
+/// <summary>One frame-table row. Notifies changes so edits update the row in place: replacing row objects
+/// discards their controls, and Avalonia then re-created every visible row on each scroll step.</summary>
+public sealed class FrameTableRow(int frameRow) : INotifyPropertyChanged
 {
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private void Set<T>(ref T field, T value, [CallerMemberName] string? name = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value)) return;
+        field = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
     public int FrameRow { get; } = frameRow;
-    public string Number { get; set; } = (frameRow + 1).ToString(CultureInfo.InvariantCulture);
+    private string _number = (frameRow + 1).ToString(CultureInfo.InvariantCulture);
+    public string Number { get => _number; set => Set(ref _number, value); }
+    private bool _isLoopFrame;
     /// <summary>The Loopstart frame: tagged "L" in the Frame cell.</summary>
-    public bool IsLoopFrame { get; set; }
-    public string GroupText { get; set; } = "";
-    public string IndexText { get; set; } = "";
-    public string OffsetXText { get; set; } = "";
-    public string OffsetYText { get; set; } = "";
-    public string DurationText { get; set; } = "";
-    public bool FlipH { get; set; }
-    public bool FlipV { get; set; }
-    public string BlendText { get; set; } = "";
-    public string ScaleXText { get; set; } = "";
-    public string ScaleYText { get; set; } = "";
-    public string AngleText { get; set; } = "";
+    public bool IsLoopFrame { get => _isLoopFrame; set => Set(ref _isLoopFrame, value); }
+    private string _groupText = "";
+    public string GroupText { get => _groupText; set => Set(ref _groupText, value); }
+    private string _indexText = "";
+    public string IndexText { get => _indexText; set => Set(ref _indexText, value); }
+    private string _offsetXText = "";
+    public string OffsetXText { get => _offsetXText; set => Set(ref _offsetXText, value); }
+    private string _offsetYText = "";
+    public string OffsetYText { get => _offsetYText; set => Set(ref _offsetYText, value); }
+    private string _durationText = "";
+    public string DurationText { get => _durationText; set => Set(ref _durationText, value); }
+    private bool _flipH;
+    public bool FlipH { get => _flipH; set => Set(ref _flipH, value); }
+    private bool _flipV;
+    public bool FlipV { get => _flipV; set => Set(ref _flipV, value); }
+    private string _blendText = "";
+    public string BlendText { get => _blendText; set => Set(ref _blendText, value); }
+    private string _scaleXText = "";
+    public string ScaleXText { get => _scaleXText; set => Set(ref _scaleXText, value); }
+    private string _scaleYText = "";
+    public string ScaleYText { get => _scaleYText; set => Set(ref _scaleYText, value); }
+    private string _angleText = "";
+    public string AngleText { get => _angleText; set => Set(ref _angleText, value); }
     // Interpolate markers, shown in the cells they affect (the mark sits on the frame being moved toward).
-    public bool InterpOffset { get; set; }
-    public bool InterpScale { get; set; }
-    public bool InterpAngle { get; set; }
-    public bool InterpBlend { get; set; }
+    private bool _interpOffset;
+    public bool InterpOffset { get => _interpOffset; set => Set(ref _interpOffset, value); }
+    private bool _interpScale;
+    public bool InterpScale { get => _interpScale; set => Set(ref _interpScale, value); }
+    private bool _interpAngle;
+    public bool InterpAngle { get => _interpAngle; set => Set(ref _interpAngle, value); }
+    private bool _interpBlend;
+    public bool InterpBlend { get => _interpBlend; set => Set(ref _interpBlend, value); }
     // Last row only: the last frame interpolates toward the loop start (drawn at its bottom edge).
-    public bool WrapOffset { get; set; }
-    public bool WrapScale { get; set; }
-    public bool WrapAngle { get; set; }
-    public bool WrapBlend { get; set; }
+    private bool _wrapOffset;
+    public bool WrapOffset { get => _wrapOffset; set => Set(ref _wrapOffset, value); }
+    private bool _wrapScale;
+    public bool WrapScale { get => _wrapScale; set => Set(ref _wrapScale, value); }
+    private bool _wrapAngle;
+    public bool WrapAngle { get => _wrapAngle; set => Set(ref _wrapAngle, value); }
+    private bool _wrapBlend;
+    public bool WrapBlend { get => _wrapBlend; set => Set(ref _wrapBlend, value); }
+    private double[] _widths = [];
     /// <summary>Column widths, the same array for every row and the header (see FrameTableWidths).</summary>
-    public double[] Widths { get; set; } = [];
+    public double[] Widths { get => _widths; set => Set(ref _widths, value); }
+
+    /// <summary>Takes every shown value from a freshly built row; only changed values notify.</summary>
+    public void CopyFrom(FrameTableRow r)
+    {
+        Number = r.Number;
+        IsLoopFrame = r.IsLoopFrame;
+        GroupText = r.GroupText;
+        IndexText = r.IndexText;
+        OffsetXText = r.OffsetXText;
+        OffsetYText = r.OffsetYText;
+        DurationText = r.DurationText;
+        FlipH = r.FlipH;
+        FlipV = r.FlipV;
+        BlendText = r.BlendText;
+        ScaleXText = r.ScaleXText;
+        ScaleYText = r.ScaleYText;
+        AngleText = r.AngleText;
+        InterpOffset = r.InterpOffset;
+        InterpScale = r.InterpScale;
+        InterpAngle = r.InterpAngle;
+        InterpBlend = r.InterpBlend;
+        WrapOffset = r.WrapOffset;
+        WrapScale = r.WrapScale;
+        WrapAngle = r.WrapAngle;
+        WrapBlend = r.WrapBlend;
+        Widths = r.Widths;
+    }
 }
 
 /// <summary>One row of the sound list's table: Group and Number (double-click to edit), plus duration and rate as their own columns.</summary>

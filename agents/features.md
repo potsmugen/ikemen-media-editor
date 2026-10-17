@@ -189,6 +189,11 @@ and constraints that are easy to miss when reading one code path in isolation.
   `Selection.BatchUpdate()`: Avalonia then applies them twice (duplicate selection).
 - **List row models** live in `ListRows.cs` as top-level types so the row templates can use
   compiled bindings (`x:DataType`); a binding typo is a build error.
+- **Frame table rows update in place**: `FrameTableRow` notifies changes, `RefreshFrameTableRow`
+  copies into the existing row, and `RebuildFrameTable` updates rows and adds or removes only
+  the tail. Replacing or clearing rows (measured): ~80–180 ms of layout per edit, and after a
+  rebuild following edits every scroll step re-created all visible rows (~50 ms each). Don't
+  go back to replacing row objects.
 - **List keyboard look-ahead** (`MainWindow.ListLookahead.cs`): after an arrow,
   Page, Home or End step in the sprite, palette, action, frame-table or sound list,
   the next row in the direction of travel is scrolled fully into view, so the

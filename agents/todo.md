@@ -82,7 +82,8 @@ before a release. Remove items once they're done or checked.
 - Lists: selecting a sprite clears then adds the selection (ApplySpriteRowSelection),
   firing two SelectionChanged events per step; the first returns early, so it's minor.
 - Lists: time RebuildFrameTable on a long action (it rebuilds fully from 18 places)
-  before deciding whether it needs incremental updates.
+  before deciding whether it needs incremental updates. (Frame table rows now update in
+  place, which fixed the measured edit and scroll slowness; a full rebuild measured 5–35 ms.)
 - Lists: the window-wide arrow fallback steps the sprite list from anywhere unless
   something else handles the key; it caused the palette-list bug and is patched with a
   list exception. Decide whether to narrow it (e.g. only when the Sprites canvas has focus).
@@ -182,16 +183,15 @@ Built, but not tried by the maintainer yet.
 
 ### Animations
 
-- Test frame multi-selection: Ctrl/Shift click and Shift+arrows pick the current frame, cell
-  clicks with Ctrl/Shift don't open the editor, right-click inside the selection keeps it,
-  Remove/Duplicate/Move/Delete on non-contiguous rows, undo/redo restores the selection,
-  fills and cell edits keep it, Ctrl+C/Ctrl+V within and across actions (Clsn defaults,
-  Interpolate, Loopstart, inherited boxes). Buttons on a selection: Insert/Insert Sprite Group
-  position, Special Flags mixed states, Auto Clsn2/Sort/Delete All/Onion copy as one undo, and
-  each button dimming (edges, one frame left, no box selected, no sprite file, no action).
-- Test Left/Right on the focused timeline: steps frames, pauses playback, stops at the ends.
+- Let Auto Clsn2 also make Clsn1 (queued after the cell-edit timing work). Decided: one
+  button renamed Auto Clsn with a Clsn1/Clsn2 choice in its dialog; count and layout shared
+  between kinds; Auto Clsn2 For All stays Clsn2 only. The dialog opens on Clsn2 every time
+  (the kind is not remembered). Dialog: each label above its control, in order Kind
+  (Clsn1/Clsn2 dropdown), Boxes (text box), Layout (dropdown), then Generate/Cancel. For All
+  uses the same layout without Kind.
 - Support Copy Action animations.
 - Test Auto Clsn2 with true-color sprites.
+- Test/reject Auto Clsn when sprite has no mask color.
 
 ### Sounds
 

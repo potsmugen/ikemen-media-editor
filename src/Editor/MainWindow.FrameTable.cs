@@ -106,7 +106,8 @@ public partial class MainWindow
     {
         if (!_frameTableActive || _action is null || FrameTableList is null || frameRow < 0 || frameRow >= _frameTableRows.Count) return;
         var row = FrameTableRowFor(frameRow);
-        var widths = _frameTableRows[frameRow].Widths;
+        var target = _frameTableRows[frameRow];
+        var widths = target.Widths;
         var required = FrameTableWidths([row], updateHeader: false);
         if (required.Where((width, column) => width > widths[column]).Any())
         {
@@ -114,11 +115,7 @@ public partial class MainWindow
             return;
         }
         row.Widths = widths;
-        var keep = SelectedFrameRows();
-        _suppressEvents = true;
-        _frameTableRows[frameRow] = row;
-        _suppressEvents = false;
-        RestoreFrameTableSelection(keep);
+        target.CopyFrom(row); // in place: the row keeps its controls, selection and focus
     }
 
     /// <summary>A replaced or rebuilt row loses its selection and focus; puts both back.
@@ -224,15 +221,16 @@ public partial class MainWindow
 
         var widths = FrameTableWidths(rows);
 
-        _frameTableRows.Clear();
-        foreach (var row in rows)
-        {
-            row.Widths = widths;
-            _frameTableRows.Add(row);
-        }
-
+        // Existing rows update in place and only the tail is added or removed; clearing would discard every row's controls.
         _suppressEvents = true;
-        FrameTableList.ItemsSource = _frameTableRows;
+        while (_frameTableRows.Count > rows.Count) _frameTableRows.RemoveAt(_frameTableRows.Count - 1);
+        for (int i = 0; i < rows.Count; i++)
+        {
+            rows[i].Widths = widths;
+            if (i < _frameTableRows.Count) _frameTableRows[i].CopyFrom(rows[i]);
+            else _frameTableRows.Add(rows[i]);
+        }
+        if (!ReferenceEquals(FrameTableList.ItemsSource, _frameTableRows)) FrameTableList.ItemsSource = _frameTableRows;
         _suppressEvents = false;
         RestoreFrameTableSelection(keep);
     }
