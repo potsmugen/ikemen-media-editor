@@ -644,9 +644,11 @@ summaries; treat anything marked unverified as unknown.
 
 ### Avalonia and C#
 
-- **GitHub release**: `.github/workflows/release.yml` rebuilds the single `latest`
-  release on each push to main (not for `.md`/`agents/`-only changes). Version is the UTC
-  date; About shows `date+commit`. Assets: `ikemen-media-editor-win-x64.zip` and
+- **GitHub release**: `.github/workflows/release.yml` builds on each push to main (not for
+  `.md`/`agents/`-only changes) into one release per UTC commit date, tag `YYYY.MM.DD`;
+  a same-day build replaces that date's release, older dates are kept. Only the newest date
+  is marked Latest. Manual runs take an optional `ref` to rebuild an older commit under its
+  own date. About shows `date+commit`. Assets: `ikemen-media-editor-win-x64.zip` and
   `-linux-x64.tar.gz`, undated so `/releases/latest/download/` links stay stable.
 - **Release build** (local): from the repo root, into a fresh folder so no stale files ship:
   `dotnet publish src/Editor -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o build/publish/win-x64`

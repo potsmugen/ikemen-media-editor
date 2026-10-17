@@ -6,6 +6,13 @@ before a release. Remove items once they're done or checked.
 ## To do, easiest first
 
 - First time saving a file doesn't need to make a backup of it
+- Saves that change a file the user didn't edit, like the Global Shared Palette popup;
+  decide per case whether to keep the bytes or tell the user (verified on real files):
+  - Plain Save of SFFv1 re-encodes every PCX (`SffV1Writer`), dropping PCX header
+    fields (DPI, 16-color header palette) and palette bytes left in same-palette
+    records. Pixels and colors are unchanged. Seen in kfm_win's kfm.sff.
+  - Saving SFF drops header comment text (v1 bytes 36-511, v2 after byte 67), e.g.
+    "Made in VirtuallTek / Powered by Fighter Factory" in working/kfm-v1.sff and kfm-v2.sff.
 - There's another app that opens large SFF's faster than ours. Means we could improve that
 - Audit the menus and buttons for redundancy. The Sprites tab context menu repeated
   four entries the sidebar already has as buttons (Add, Replace, Delete, Shift Offset),

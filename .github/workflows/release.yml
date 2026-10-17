@@ -1,5 +1,5 @@
-# Rebuilds the single "latest" release on every push to main.
-# Version = UTC date; About shows date+commit so same-day builds differ.
+# One release per UTC commit date (tag YYYY.MM.DD); same-day builds replace it, older dates stay.
+# About shows date+commit so same-day builds differ. Dispatch with a ref to rebuild an older commit.
 name: Release
 
 on:
@@ -7,10 +7,14 @@ on:
     branches: [main]
     paths-ignore: ['**.md', 'agents/**']
   workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit to build (blank = main)
+        required: false
 
-# A newer push supersedes a build still in progress.
+# A newer push supersedes a build still in progress; rebuilds of other refs run separately.
 concurrency:
-  group: release
+  group: release-${{ inputs.ref || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -22,11 +26,17 @@ jobs:
     outputs:
       version: ${{ steps.v.outputs.version }}
       sha: ${{ steps.v.outputs.sha }}
+      full_sha: ${{ steps.v.outputs.full_sha }}
     steps:
       - id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF: ${{ inputs.ref || github.sha }}
         run: |
-          echo "version=$(date -u +%Y.%m.%d)" >> "$GITHUB_OUTPUT"
-          echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          read -r full date < <(gh api "repos/${{ github.repository }}/commits/$REF" --jq '.sha + " " + .commit.committer.date')
+          echo "version=$(date -u -d "$date" +%Y.%m.%d)" >> "$GITHUB_OUTPUT"
+          echo "sha=${full::7}" >> "$GITHUB_OUTPUT"
+          echo "full_sha=$full" >> "$GITHUB_OUTPUT"
 
   build:
     needs: version
@@ -46,6 +56,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.full_sha }}
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
@@ -78,16 +90,34 @@ jobs:
         with:
           path: dist
           merge-multiple: true
-      - name: Replace the latest release
+      - name: Replace this date's release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           VERSION: ${{ needs.version.outputs.version }}
           SHA: ${{ needs.version.outputs.sha }}
+          FULL_SHA: ${{ needs.version.outputs.full_sha }}
         run: |
+          tag="$VERSION"
+          # Legacy releases from older schemes.
           gh release delete latest --cleanup-tag --yes || true
-          gh release create latest dist/* \
-            --target "$GITHUB_SHA" \
+          gh release delete "v$tag" --cleanup-tag --yes || true
+          # Keep the tag if it already points here: GITHUB_TOKEN may not create tags on
+          # commits whose workflow files differ from main, so old rebuilds need a pushed tag.
+          gh release delete "$tag" --yes || true
+          existing=$(gh api "repos/$GH_REPO/commits/$tag" --jq .sha 2>/dev/null || true)
+          if [[ "$existing" == "$FULL_SHA" ]]; then
+            target=(--verify-tag)
+          else
+            [[ -n "$existing" ]] && gh api -X DELETE "repos/$GH_REPO/git/refs/tags/$tag"
+            target=(--target "$FULL_SHA")
+          fi
+          # Only the newest date is marked Latest, so rebuilding an old commit doesn't take it over.
+          newest=$(gh release list --limit 1000 --json tagName --jq '.[].tagName' | grep -E '^[0-9]{4}\.[0-9]{2}\.[0-9]{2}$' | sort | tail -n 1)
+          latest=true
+          [[ -n "$newest" && "$newest" > "$tag" ]] && latest=false
+          gh release create "$tag" dist/* \
+            "${target[@]}" \
             --title "$VERSION ($SHA)" \
-            --notes "Built from ${GITHUB_SHA} on ${VERSION}. macOS builds are untested; reports welcome." \
-            --latest
+            --notes "Built from ${FULL_SHA} on ${VERSION}." \
+            --latest=$latest
