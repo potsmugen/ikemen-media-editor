@@ -32,10 +32,11 @@ public partial class MainWindow
         if (_file is null) { SpriteList.ItemsSource = null; return true; }
 
         // SFFv1 stores palettes as a chain: a sprite whose palette is the
-        // previous carrier's reuses it ("Previous"); any other shows its
-        // group/number. SFFv2 always shows the key.
+        // previous carrier's reuses it ("Previous"); any other shows its S number.
+        // SFFv2 always shows the key.
         bool v1 = SffVersions.IsV1(_file.Version);
         var externalOrdinals = ExternalPaletteOrdinals(_file);
+        var v1Ordinals = V1PaletteOrdinals(_file);
         var spriteIndex = new Dictionary<Sprite, int>(_file.Sprites.Count);
         for (int s = 0; s < _file.Sprites.Count; s++) spriteIndex[_file.Sprites[s]] = s;
 
@@ -57,7 +58,7 @@ public partial class MainWindow
             else if (palette.Source == PaletteSource.External)
                 paletteText[sprite] = externalOrdinals.TryGetValue(palette, out int externalIndex) ? $"{ExternalGroup(palette)}{externalIndex}" : ExternalGroup(palette);
             else
-                paletteText[sprite] = $"{palette.Group},{palette.Index}";
+                paletteText[sprite] = v1Ordinals.TryGetValue(palette, out int sn) ? $"S{sn}" : $"{palette.Group},{palette.Index}";
             // Pixel links carry no palette in v1, so they don't advance the chain.
             if (sprite.SharesWith is null) previousPalette = palette;
         }

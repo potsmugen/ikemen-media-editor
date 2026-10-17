@@ -1325,7 +1325,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             }
             Edit("convert palette depth", () => Apply(after), () => Apply(before));
             int bits = Array.IndexOf(PaletteDepth.SupportedColorCounts, colors.Value) + 1;
-            StatusText.Text = $"Converted palette {palette.Group},{palette.Index} to {bits}-bit indexed depth.";
+            StatusText.Text = $"Converted palette {PaletteLabel(palette)} to {bits}-bit indexed depth.";
         }
         catch (Exception ex)
         {
@@ -1370,7 +1370,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             bool HasSpriteFallback()
             {
                 if (users == 0 || fallback is not null && file.Palettes.Contains(fallback)) return true;
-                ShowPopup("Delete palette", $"Can't delete palette {pal.Group},{pal.Index}: sprites use it and no valid fallback palette is available.");
+                ShowPopup("Delete palette", $"Can't delete palette {PaletteLabel(pal)}: sprites use it and no valid fallback palette is available.");
                 string target = fallback is null ? "none" : $"{fallback.Group},{fallback.Index} is not in the palette table";
                 CrashLog.Error("OnDeletePalette", $"refused: sprites use {pal.Group},{pal.Index}, and fallback target is {target}");
                 return false;
@@ -1397,7 +1397,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             {
                 string fallbackName = fallback is { Source: PaletteSource.External }
                     ? PaletteDisplayName(file, fallback)
-                    : $"palette {fallback!.Group},{fallback.Index}";
+                    : $"palette {PaletteKey(file, fallback)}";
                 var impact = new List<string>();
                 if (linkers.Count == 1)
                     impact.Add("1 palette links to this palette. It will be unlinked with its current colors preserved.");
@@ -1517,7 +1517,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             foreach (var set in sets)
             {
                 foreach (var duplicate in set.Skip(1))
-                    lines.Add(($"{duplicate.Group},{duplicate.Index} matches {set[0].Group},{set[0].Index}",
+                    lines.Add(($"{PaletteLabel(duplicate)} matches {PaletteLabel(set[0])}",
                         () => JumpToPalette(duplicate)));
             }
             lines.Add(("", null));
@@ -1635,7 +1635,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             {
                 lines.Add(("", null));
                 foreach (var palette in unused)
-                    lines.Add(($"Palette {palette.Group},{palette.Index}", () => JumpToPalette(palette)));
+                    lines.Add(($"Palette {PaletteKey(file, palette)}", () => JumpToPalette(palette)));
             }
 
             Dialogs.ShowReport(this, "Unused palettes", lines);
@@ -1752,6 +1752,20 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         return ordinals;
     }
 
+    /// <summary>SFFv1 stores no palette keys: its own palettes are numbered S1, S2… in list order.
+    /// Empty for SFFv2.</summary>
+    private static Dictionary<Palette, int> V1PaletteOrdinals(SffFile file)
+    {
+        var ordinals = new Dictionary<Palette, int>();
+        if (!SffVersions.IsV1(file.Version)) return ordinals;
+        int n = 0;
+        foreach (var palette in file.Palettes)
+            if (palette.Source == PaletteSource.Embedded) ordinals[palette] = ++n;
+        return ordinals;
+    }
+
+    private const string V1GroupToolTip = "S: stored in a sprite; SFFv1 has no palette keys";
+
     /// <summary>The displayed group of an external palette: T while it has no file, else F.</summary>
     private static string ExternalGroup(Palette p) => IsTempPalette(p) ? "T" : "F";
 
@@ -1765,8 +1779,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 ? $"{ExternalGroup(palette)}{ordinal} {palette.Describe()}"
                 : palette.Describe();
         }
-        // SFFv1 palettes keep the group/number the reader gave them (1,1, 1,2…).
-        return $"{palette.Group},{palette.Index} palette ({palette.Colors.Length} colors)";
+        return $"{PaletteKey(file, palette)} palette ({palette.Colors.Length} colors)";
     }
 
     private static int SpriteOrdinal(SffFile file, Sprite sprite, IReadOnlyDictionary<Sprite, int>? ordinals = null) =>
@@ -1775,22 +1788,25 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             : file.Sprites.IndexOf(sprite) + 1;
 
     private PaletteRow ToRow(Palette p, int number, bool v1,
+        IReadOnlyDictionary<Palette, int> v1Ordinals,
         IReadOnlyDictionary<Palette, Sprite> carriers,
         IReadOnlyDictionary<Palette, int> externalOrdinals,
         IReadOnlyDictionary<Sprite, int> spriteOrdinals) => new()
     {
         Palette = p,
         Number = number.ToString(CultureInfo.InvariantCulture),
-        // External rows use F / import-order labels; SFF rows (v1 too) use
-        // their group/number. In SFFv1 that key is not stored in the file.
+        // External rows use F/T and import order; SFFv1's own use S and list order,
+        // as SFFv1 stores no keys; SFFv2 rows use their group/number.
         GroupText = p.Source == PaletteSource.External ? ExternalGroup(p)
-            : p.Group.ToString(CultureInfo.InvariantCulture),
+            : v1Ordinals.ContainsKey(p) ? "S" : p.Group.ToString(CultureInfo.InvariantCulture),
         IndexText = p.Source == PaletteSource.External ? externalOrdinals[p].ToString(CultureInfo.InvariantCulture)
+            : v1Ordinals.TryGetValue(p, out int sn) ? sn.ToString(CultureInfo.InvariantCulture)
             : p.Index.ToString(CultureInfo.InvariantCulture),
         GroupToolTip = p.Source == PaletteSource.External ? ExternalGroupToolTip
-            : v1 ? "Palette group (SFFv1 does not store it)" : "Double-click to change this palette's group",
+            : v1 ? V1GroupToolTip : "Double-click to change this palette's group",
         IndexToolTip = p.Source == PaletteSource.External ? ExternalIndexToolTip
-            : v1 ? "Palette number (SFFv1 does not store it)" : "Double-click to change this palette's index",
+            : v1 ? carriers.TryGetValue(p, out var stored) ? $"Order within its group; stored in sprite {stored.Group},{stored.Index}" : ExternalIndexToolTip
+            : "Double-click to change this palette's index",
         SourceText = p.Source == PaletteSource.External
             ? IsTempPalette(p) ? "temp" : "file"
             : v1 && carriers.ContainsKey(p) ? "sprite" : "sff",
@@ -1893,7 +1909,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             // it are hidden — same spirit as the action list keeping Action.Number stable.
             var current = _paletteOverride >= 0 && _paletteOverride < _file.Palettes.Count ? _file.Palettes[_paletteOverride] : null;
 
-            var all = _file.Palettes.Select((p, i) => ToRow(p, i + 1, v1, carriers, externalOrdinals, spriteOrdinals)).ToList();
+            var v1Ordinals = V1PaletteOrdinals(_file);
+            var all = _file.Palettes.Select((p, i) => ToRow(p, i + 1, v1, v1Ordinals, carriers, externalOrdinals, spriteOrdinals)).ToList();
             // Widths over every palette, so filtering doesn't move the columns.
             var widths = TextTableWidths(PaletteTableHeader, all.Select(r => new[]
                 { r.NumberText, r.GroupText, r.IndexText, r.SourceText, r.ColorCountText, r.LinkText }).ToList());
@@ -2051,7 +2068,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                     else
                     {
                         CrashLog.Error("OnPaletteLinkCellDoubleTapped", $"refused unlink of unlinked palette {palette.Describe()}");
-                        StatusText.Text = $"Palette {palette.Group},{palette.Index} is not linked.";
+                        StatusText.Text = $"Palette {PaletteLabel(palette)} is not linked.";
                     }
                     break;
             }
@@ -2194,7 +2211,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
 
         Edit("merge palette", ApplyMerged, RestoreBefore);
         CrashLog.Trace($"[palettes] merged {sourceName} into {targetName}; redirected {changed.Sprites} sprite(s) and {changed.Palettes} linked palette(s)");
-        StatusText.Text = $"Merged palette {source.Group},{source.Index} into {target.Group},{target.Index}; redirected {changed.Sprites} sprite(s) and {changed.Palettes} linked palette(s).";
+        StatusText.Text = $"Merged palette {PaletteLabel(source)} into {PaletteLabel(target)}; redirected {changed.Sprites} sprite(s) and {changed.Palettes} linked palette(s).";
     }
 
     private async Task ChangePaletteLink(SffFile file, Palette source, Palette? target)
@@ -2438,7 +2455,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             var sprite = file.Sprites.FirstOrDefault(s => ReferenceEquals(s.Palette, pal));
             if (sprite is null)
             {
-                StatusText.Text = $"No sprite uses palette {pal.Group},{pal.Index}.";
+                StatusText.Text = $"No sprite uses palette {PaletteLabel(pal)}.";
                 return;
             }
 
@@ -2476,7 +2493,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             SyncPalettePreviewNav();
             RefreshPaletteTab();
             CrashLog.Trace($"[palettes] preview set to first sprite using {pal.Group},{pal.Index}: #{sprite.Group},{sprite.Index}; sync={_settings.SyncSpriteAcrossTabs}");
-            StatusText.Text = $"Previewing sprite {sprite.Group},{sprite.Index}, the first to use palette {pal.Group},{pal.Index}.";
+            StatusText.Text = $"Previewing sprite {sprite.Group},{sprite.Index}, the first to use palette {PaletteLabel(pal)}.";
         }
         catch (Exception ex)
         {

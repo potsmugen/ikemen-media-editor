@@ -33,7 +33,7 @@ public partial class MainWindow
             var choice = new Dialogs.SpriteExportChoice(Dialogs.SpriteExportFormat.Png, false);
             if (sprite.Indexed is not null)
             {
-                if (await Dialogs.PromptSpriteFormat(this, _lastSpriteExportFormat, PreviewOverridePalette()) is not { } c) return;
+                if (await Dialogs.PromptSpriteFormat(this, _lastSpriteExportFormat, PreviewOverridePalette() is { } preview ? PaletteLabel(preview) : null) is not { } c) return;
                 choice = c;
                 _lastSpriteExportFormat = c.Format; // the format carries over; the palette tick starts fresh each time
             }

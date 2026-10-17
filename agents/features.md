@@ -242,7 +242,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   deliberately, and closing still warns about unsaved ones. They show "temp" as their source and "New palette (not saved
   yet)" as their kind, and start unsaved. External palettes are labeled by group: F for
   palettes from a file, T for temp ones, each numbered in list order (F1, T1), with or
-  without an SFF open. Sort Ascending puts T after F. Save asks for a location and offers
+  without an SFF open. SFFv1 stores no palette keys, so its own palettes are labeled S,
+  numbered in list order (S1, S2), everywhere a palette is named (`PaletteKey`); the
+  Number tooltip names the sprite that stores it. The internal group/number is not
+  shown; real keys appear only on v1 → v2 conversion. Sort Ascending puts T after F. Save asks for a location and offers
   RGBA, ACT or JASC-PAL (not PNG/PCX, which need image pixels). Kept when an SFF opens,
   they become external palettes labeled temp until exported. Applying a temp palette to
   sprites in SFFv2 moves it into the SFF (group 1, first free index) as one palette shared

@@ -663,7 +663,7 @@ public static class Dialogs
     /// image with the preview palette. That checkbox appears only while a preview
     /// override is selected, since without one both answers are the same sprite
     /// palette. Null = canceled.</summary>
-    public static Task<SpriteExportChoice?> PromptSpriteFormat(Window owner, SpriteExportFormat initial, Palette? preview)
+    public static Task<SpriteExportChoice?> PromptSpriteFormat(Window owner, SpriteExportFormat initial, string? preview)
     {
         var result = new TaskCompletionSource<SpriteExportChoice?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -677,10 +677,10 @@ public static class Dialogs
         body.Children.Add(new TextBlock { Text = "Format:" });
         body.Children.Add(png);
         body.Children.Add(pcx);
-        if (preview is { } p)
+        if (preview is { } label)
         {
             // Named, so the choice never says which colors it will write.
-            previewBox = new CheckBox { Content = $"Use the preview palette ({p.Group},{p.Index})" };
+            previewBox = new CheckBox { Content = $"Use the preview palette ({label})" };
             body.Children.Add(previewBox);
         }
         body.Children.Add(new StackPanel

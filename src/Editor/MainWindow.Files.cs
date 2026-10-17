@@ -223,10 +223,10 @@ public partial class MainWindow
                 lines.Add(($"  Unused embedded palettes: {unused.Count} (group 1 not counted)", null));
                 Section("Decode failures:", bad.Select(s => ($"  Sprite {s.Group},{s.Index}: {s.DecodeError}", (Action)(() => JumpToSprite(s)))));
                 Section("Duplicate sprite keys (the later ones):", duplicateSprites.Select(s => ($"  Sprite {s.Group},{s.Index}", (Action)(() => JumpToSprite(s)))));
-                Section("Duplicate SFF palette keys (the later ones):", duplicatePaletteKeys.Select(p => ($"  Palette {p.Group},{p.Index}", (Action)(() => JumpToPalette(p)))));
+                Section("Duplicate SFF palette keys (the later ones):", duplicatePaletteKeys.Select(p => ($"  Palette {PaletteKey(file, p)}", (Action)(() => JumpToPalette(p)))));
                 Section("Duplicate embedded palette colors (later palettes match the first):", duplicatePaletteColors.Select(x =>
-                    ($"  Palette {x.Palette.Group},{x.Palette.Index} matches {x.Original.Group},{x.Original.Index}", (Action)(() => JumpToPalette(x.Palette)))));
-                Section("Unused embedded palettes:", unused.Select(p => ($"  Palette {p.Group},{p.Index}", (Action)(() => JumpToPalette(p)))));
+                    ($"  Palette {PaletteKey(file, x.Palette)} matches {PaletteKey(file, x.Original)}", (Action)(() => JumpToPalette(x.Palette)))));
+                Section("Unused embedded palettes:", unused.Select(p => ($"  Palette {PaletteKey(file, p)}", (Action)(() => JumpToPalette(p)))));
             }
             if (_air is { } air)
             {
@@ -855,11 +855,11 @@ public partial class MainWindow
             {
                 if (palette.SourcePath is null || !File.Exists(palette.SourcePath))
                 {
-                    await Dialogs.ShowMessage(this, "Palette not saved", $"Palette {palette.Group},{palette.Index} has no available source file. Use Save As from the Palettes tab.");
+                    await Dialogs.ShowMessage(this, "Palette not saved", $"Palette {PaletteLabel(palette)} has no available source file. Use Save As from the Palettes tab.");
                     continue;
                 }
                 if (!await SavePaletteDocument(palette)) continue;
-                saved.Add($"palette {palette.Group},{palette.Index}");
+                saved.Add($"palette {PaletteLabel(palette)}");
             }
             foreach (var palette in _standalonePalettes.Where(p => p.Dirty && !IsTempPalette(p)).ToList())
             {

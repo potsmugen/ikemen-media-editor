@@ -18,10 +18,11 @@ public partial class MainWindow
         return all.Where(chosen.Contains).ToList();
     }
 
-    /// <summary>Short label for dialogs: "g,i" for SFF palettes, "F1"/"T1" for external ones.</summary>
+    /// <summary>Short label for dialogs: "g,i" for SFF palettes, "S1" for SFFv1's own, "F1"/"T1" for external ones.</summary>
     private static string PaletteKey(SffFile file, Palette? p) =>
         p is null ? "no palette"
-        : p.Source == PaletteSource.Embedded ? $"{p.Group},{p.Index}"
+        : p.Source == PaletteSource.Embedded
+            ? V1PaletteOrdinals(file).TryGetValue(p, out int sn) ? $"S{sn}" : $"{p.Group},{p.Index}"
         : ExternalPaletteOrdinals(file).TryGetValue(p, out int n) ? $"{ExternalGroup(p)}{n}" : p.Describe();
 
     /// <summary>PaletteKey, or the F/T label when no SFF is open.</summary>
