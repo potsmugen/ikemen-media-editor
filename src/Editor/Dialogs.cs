@@ -83,6 +83,12 @@ public sealed record ImportChoices(
     ImportIndexChoice IndexChoice, BitDepthChoice BitDepth,
     int Group, int Number, int PaletteGroup, int PaletteIndex);
 
+/// <summary>How many of the imported images each palette (by list position) reproduces exactly, per index mode.</summary>
+public sealed record ImportPaletteMatches(int[] Keep, int[] Nearest, int Total);
+
+/// <summary>The import dialog's preview: builds the first image under given choices, drawn over the canvas look.</summary>
+public sealed record ImportPreview(Func<ImportChoices, Sprite> Build, CanvasLook Look);
+
 /// <summary>How the sprite canvas dimensions should change.</summary>
 public sealed record SpriteResizeChoices(bool Relative, int Width, int Height);
 
@@ -1827,14 +1833,15 @@ public static class Dialogs
     /// while Own is selected. Defaults come from initial, which the caller
     /// derives from the images rather than the previous import. Returns null
     /// if canceled. framesGif notes that the images are a GIF's frames, which
-    /// decode to color and so have no indexes to keep.
+    /// decode to color and so have no indexes to keep. matches adds match
+    /// counts to the palette labels; preview shows the first image as it would import.
     /// </summary>
     public static Task<ImportChoices?> PromptSpriteImport(
         Window owner, string title, int imageCount, bool trueColorAvailable,
         IReadOnlyList<Palette> palettes, Palette? previousPalette, Palette? specificInitial,
         bool askPlacement, int group, int number, int paletteGroup, int paletteIndex,
         bool imagesIndexed, ImportChoices initial, IReadOnlyList<string>? paletteLabels = null,
-        bool framesGif = false)
+        bool framesGif = false, ImportPaletteMatches? matches = null, ImportPreview? preview = null)
     {
         var result = new TaskCompletionSource<ImportChoices?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -1851,16 +1858,11 @@ public static class Dialogs
         {
             GroupName = "ImportPalette", Content = "A specific palette:", IsEnabled = palettes.Count > 0,
         };
-        var paletteBox = new ComboBox
-        {
-            IsEnabled = palettes.Count > 0,
-            ItemsSource = paletteLabels ?? palettes.Select((p, i) => $"{i + 1}. {p.Describe()}").ToList(),
-            MinWidth = 180,
-        };
+        var baseLabels = paletteLabels ?? palettes.Select((p, i) => $"{i + 1}. {p.Describe()}").ToList();
+        var paletteBox = new ComboBox { IsEnabled = palettes.Count > 0, MinWidth = 180 };
         int specificAt = -1;
         for (int i = 0; i < palettes.Count && specificAt < 0; i++)
             if (ReferenceEquals(palettes[i], specificInitial)) specificAt = i;
-        paletteBox.SelectedIndex = Math.Max(0, specificAt);
 
         var keep = new RadioButton
         {
@@ -1895,6 +1897,26 @@ public static class Dialogs
             : initial.PaletteChoice == ImportPaletteChoice.Specific && palettes.Count > 0 ? specific
             : own).IsChecked = true;
         (initial.IndexChoice == ImportIndexChoice.Keep && imagesIndexed ? keep : nearest).IsChecked = true;
+
+        // Labels count matches for the index mode in use, so they follow the Indexes radios.
+        string Suffix(int i, bool keepMode)
+        {
+            if (matches is null || i >= matches.Keep.Length) return "";
+            int m = keepMode ? matches.Keep[i] : matches.Nearest[i];
+            return m == 0 ? "" : matches.Total == 1 ? " — match"
+                : m == matches.Total ? $" — matches all {m}" : $" — matches {m} of {matches.Total}";
+        }
+        void Relabel()
+        {
+            int at = paletteBox.SelectedIndex;
+            bool keepMode = keep.IsChecked == true;
+            paletteBox.ItemsSource = baseLabels.Select((label, i) => label + Suffix(i, keepMode)).ToList();
+            paletteBox.SelectedIndex = at;
+        }
+        paletteBox.SelectedIndex = -1;
+        Relabel();
+        paletteBox.SelectedIndex = Math.Max(0, specificAt);
+        keep.IsCheckedChanged += (_, _) => Relabel();
         void UpdateEnabled()
         {
             bool tc = bitDepth.SelectedIndex == 1 && trueColorAvailable;
@@ -1930,14 +1952,14 @@ public static class Dialogs
             ShowInTaskbar = false,
         };
 
-        ok.Click += (_, _) =>
+        ImportChoices Current()
         {
             var palChoice = specific.IsChecked == true && palettes.Count > 0 ? ImportPaletteChoice.Specific
                 : previous.IsEnabled && previous.IsChecked == true ? ImportPaletteChoice.Previous
                 : ImportPaletteChoice.Own;
             // GIF frames carry no indexes to keep, so the disabled option must
             // not be read back as if it had been chosen.
-            var choices = new ImportChoices(
+            return new ImportChoices(
                 palChoice,
                 palettes.Count > 0 ? palettes[Math.Max(0, paletteBox.SelectedIndex)] : null,
                 keep.IsEnabled && keep.IsChecked == true ? ImportIndexChoice.Keep : ImportIndexChoice.Nearest,
@@ -1946,7 +1968,10 @@ public static class Dialogs
                 (int)(numberBox.Value ?? number),
                 (int)(palGroupBox.Value ?? paletteGroup),
                 (int)(palIndexBox.Value ?? paletteIndex));
-            result.TrySetResult(choices);
+        }
+        ok.Click += (_, _) =>
+        {
+            result.TrySetResult(Current());
             dialog.Close();
         };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
@@ -2014,17 +2039,90 @@ public static class Dialogs
                 Text = "A GIF's frames have no palette of their own, so they cannot keep its indexes.",
                 Foreground = ThemeBrush("ThemeMutedText"),
             });
-        body.Children.Add(new StackPanel
+        var buttons = new StackPanel
         {
             Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
             Spacing = 8, Margin = new Avalonia.Thickness(0, 8, 0, 0), Children = { ok, cancel },
-        });
+        };
 
-        dialog.Content = body;
+        if (preview is null)
+        {
+            body.Children.Add(buttons);
+            dialog.Content = body;
+        }
+        else
+        {
+            buttons.Margin = new Avalonia.Thickness(20, 0, 20, 20);
+            dialog.Content = new StackPanel
+            {
+                Children =
+                {
+                    new StackPanel { Orientation = Orientation.Horizontal, Children = { body, ImportPreviewPanel(dialog, preview, Current, Section,
+                        refresh => {
+                            foreach (var c in new ToggleButton[] { own, previous, specific, keep, nearest })
+                                c.IsCheckedChanged += (_, _) => refresh();
+                            paletteBox.SelectionChanged += (_, _) => refresh();
+                            bitDepth.SelectionChanged += (_, _) => refresh();
+                        }) } },
+                    buttons,
+                },
+            };
+        }
         dialog.Closed += (_, _) => result.TrySetResult(null);
 
         dialog.ShowDialog(owner);
         return result.Task;
+    }
+
+    /// <summary>The import dialog's preview pane. It rebuilds off the UI thread on each
+    /// change; a build overtaken by a newer one is dropped.</summary>
+    private static Control ImportPreviewPanel(Window dialog, ImportPreview preview, Func<ImportChoices> current,
+        Func<string, TextBlock> section, Action<Action> hookChanges)
+    {
+        var view = new FitPreviewView { Look = preview.Look };
+        var error = new TextBlock
+        {
+            TextWrapping = TextWrapping.Wrap, Margin = new Avalonia.Thickness(8), IsVisible = false,
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+        };
+
+        int generation = 0;
+        async void Refresh()
+        {
+            try
+            {
+                int mine = ++generation;
+                var choices = current();
+                Sprite? sprite = null;
+                string? failure = null;
+                try { sprite = await Task.Run(() => preview.Build(choices)); }
+                catch (Exception ex)
+                {
+                    failure = ex.Message;
+                    CrashLog.Error("ImportPreview", ex.Message);
+                }
+                if (mine != generation) return;
+                view.Show(sprite);
+                error.Text = failure ?? "";
+                error.IsVisible = failure is not null;
+            }
+            catch (Exception ex) { CrashLog.Write("ImportPreview", ex); }
+        }
+        hookChanges(Refresh);
+        dialog.Opened += (_, _) => Refresh();
+
+        var heading = section("Preview");
+        heading.Margin = new Avalonia.Thickness(0, 0, 0, 10);
+        // Square: the pane takes the options column's height, and its width follows.
+        var pane = new Grid { Children = { view, error } };
+        pane.SizeChanged += (_, e) => { if (e.HeightChanged) pane.Width = e.NewSize.Height; };
+        Grid.SetRow(pane, 1);
+        return new Grid
+        {
+            Margin = new Avalonia.Thickness(0, 20, 20, 20),
+            RowDefinitions = new RowDefinitions("Auto,*"),
+            Children = { heading, pane },
+        };
     }
 
     /// <summary>What the sheet dialog collected: a background, size floor, and excluded cells.</summary>

@@ -1,0 +1,92 @@
+namespace Sff;
+
+/// <summary>Which palettes reproduce a batch of images exactly, by index or by color.
+/// Index 0 is the mask, so its color never counts.</summary>
+public sealed class PaletteFit
+{
+    /// <summary>One image: its own colors by index (indexed only), the indexes it uses, and its opaque RGB colors (null when over 255).</summary>
+    private sealed record Entry(Rgba[]? Own, int[]? Used, HashSet<int>? Colors);
+
+    private readonly List<Entry?> _images = [];
+
+    /// <summary>Images in the batch, including any that could not be described.</summary>
+    public int Count => _images.Count;
+
+    /// <summary>A null sprite, or one without pixels, never matches.</summary>
+    public PaletteFit(IEnumerable<Sprite?> sprites)
+    {
+        ArgumentNullException.ThrowIfNull(sprites);
+        foreach (var s in sprites) _images.Add(Describe(s));
+    }
+
+    /// <summary>How many images the palette reproduces exactly, by index or by nearest color.</summary>
+    public int Matches(Palette palette, bool keepIndexes)
+    {
+        ArgumentNullException.ThrowIfNull(palette);
+        var colors = palette.Colors;
+        HashSet<int>? usable = null;
+        int count = 0;
+        foreach (var e in _images)
+        {
+            if (e is null) continue;
+            if (keepIndexes)
+            {
+                if (e.Own is { } own && e.Used is { } used && SameAt(own, colors, used)) count++;
+                continue;
+            }
+            if (e.Colors is not { } wanted) continue;
+            usable ??= Usable(colors);
+            if (usable.IsSupersetOf(wanted)) count++;
+        }
+        return count;
+    }
+
+    private static Entry? Describe(Sprite? s)
+    {
+        if (s is null || !s.HasPixels) return null;
+        int threshold = ImageImport.TransparentAlphaThreshold;
+        if (s.Indexed is { } indexed && s.Palette is { } pal)
+        {
+            var seen = new bool[256];
+            foreach (var i in indexed) seen[i] = true;
+            seen[Sprite.TransparentIndex] = false;
+            var used = Enumerable.Range(0, 256).Where(i => seen[i]).ToArray();
+            var colors = new HashSet<int>();
+            foreach (var i in used)
+                if (i < pal.Colors.Length && pal.Colors[i].A >= threshold) colors.Add(Key(pal.Colors[i]));
+            return new Entry(pal.Colors, used, colors);
+        }
+        if (s.Direct is { } bgra)
+        {
+            var colors = new HashSet<int>();
+            for (int i = 0; i + 3 < bgra.Length; i += 4)
+            {
+                if (bgra[i + 3] < threshold) continue;
+                colors.Add(bgra[i + 2] << 16 | bgra[i + 1] << 8 | bgra[i]);
+                if (colors.Count > 255) return new Entry(null, null, null); // more than any palette holds
+            }
+            return new Entry(null, null, colors);
+        }
+        return null;
+    }
+
+    private static bool SameAt(Rgba[] own, Rgba[] candidate, int[] used)
+    {
+        foreach (var i in used)
+        {
+            if (i >= own.Length || i >= candidate.Length) return false;
+            if (Key(own[i]) != Key(candidate[i])) return false;
+        }
+        return true;
+    }
+
+    /// <summary>Colors nearest-color mapping can land on: every entry but the mask.</summary>
+    private static HashSet<int> Usable(Rgba[] colors)
+    {
+        var set = new HashSet<int>();
+        for (int i = 1; i < colors.Length && i < 256; i++) set.Add(Key(colors[i]));
+        return set;
+    }
+
+    private static int Key(Rgba c) => c.R << 16 | c.G << 8 | c.B;
+}

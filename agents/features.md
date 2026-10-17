@@ -302,6 +302,16 @@ and constraints that are easy to miss when reading one code path in isolation.
   frequency-weighted median cut, reserving index 0 for transparency. Palette
   reduction weights colors by occurrence, not by unique color. PNG, PCX, and GIF
   are supported; true-color sprites cannot be exported as PCX.
+- **Sprite import dialog palette help**: each palette's label counts how many of
+  the images it reproduces exactly. Keep indexes: same RGB at every index the
+  image uses. Nearest color: every opaque color present outside index 0. Index 0
+  never counts. The specific-palette dropdown opens on a palette matching every
+  image (ties: remembered pick, selected sprite's, previous sprite's, list order),
+  otherwise on the previous sprite's palette; radio defaults are unchanged. A
+  preview shows the first image as the current choices would import it, scaled
+  to fit (no zoom or pan) and rebuilt off the UI thread on each change. Shared
+  colors that overflow a palette preview reduced. The preview is square, as tall
+  as the options column; it fits the visible pixels, ignoring transparent borders.
 - **GIF import** composites frame rectangles onto the logical screen and honors
   disposal and interlace. Transparency is binary and pinned to index 0. Truncated
   LZW data leaves undecoded pixels transparent. Repeated frames can be dropped by

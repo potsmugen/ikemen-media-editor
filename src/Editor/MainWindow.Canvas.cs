@@ -133,6 +133,9 @@ public partial class MainWindow
         return slot.Bitmap;
     }
 
+    /// <summary>The current canvas background, for previews outside the main window.</summary>
+    private CanvasLook _canvasLook = CanvasLook.Default;
+
     /// <summary>Hands the background and crosshair to the canvases. Startup, Preferences preview/OK/revert, and theme changes.</summary>
     private void ApplyCanvasDecor(Dialogs.CanvasValues v)
     {
@@ -177,6 +180,7 @@ public partial class MainWindow
         var checkerBrush = new SolidColorBrush(checkerColor);
         var checkerSize = Settings.Checked(nameof(Settings.CheckerSize), v.CheckerSize,
             Settings.DefaultCheckerSize, c => c >= Settings.CheckerSizeMin && c <= Settings.CheckerSizeMax);
+        _canvasLook = new CanvasLook(baseBrush, checkerBrush, v.Style == BackgroundStyle.Checkerboard, checkerSize);
         foreach (var c in AllCanvases())
         {
             c.Background = baseBrush;

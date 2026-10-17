@@ -1421,7 +1421,7 @@ public partial class MainWindow
                 // The dialog's own choices still decide placement, palette and
                 // indexes, exactly as they do for Add.
                 if (await PromptImport("Import from sheet", [source], layout.Count, file, previous,
-                        askPlacement: true, group, number, group) is not { } choices) return;
+                        askPlacement: true, group, number, group, layout) is not { } choices) return;
 
                 var plan = BuildPlan(choices, previous);
                 Palette? sharedPalette = null;
@@ -2007,10 +2007,12 @@ public partial class MainWindow
     /// previous sprite's palette" means here; imagesIndexed decides whether
     /// "keep the image's indexes" is offered at all. paletteGroup defaults the
     /// new-palette-group field to the sprite's own group; its Index field
-    /// defaults to the next free number in that group.
+    /// defaults to the next free number in that group. sheet is the detected
+    /// layout when the one source is a sprite sheet.
     /// </summary>
     private async Task<ImportChoices?> PromptImport(string title, List<PickedSource> sources, int spriteCount,
-        SffFile file, Palette? previousPalette, bool askPlacement, int group, int number, int paletteGroup)
+        SffFile file, Palette? previousPalette, bool askPlacement, int group, int number, int paletteGroup,
+        SheetLayout? sheet = null)
     {
         // A GIF's frames decode to color, never to indexes, so "keep the
         // image's indexes" is off for them, and they default to 32-bit color
@@ -2026,13 +2028,90 @@ public partial class MainWindow
         var initial = new ImportChoices(
             ImportPaletteChoice.Own, null, ImportIndexChoice.Keep, anyGif || !allIndexed ? BitDepthChoice.ThirtyTwoBit : BitDepthChoice.EightBit,
             group, number, paletteGroup, NextFreePaletteIndex(paletteGroup));
+
+        // Every image is scored against every palette once, so the dropdown can
+        // open on one that reproduces the whole batch exactly.
+        var palettes = file.Palettes.ToList();
+        var watch = Stopwatch.StartNew();
+        var (scored, references, keepMatches, nearestMatches) = await Task.Run(() =>
+        {
+            // Replace hands over a GIF unexpanded and uses its first frame only.
+            var expanded = sources.Select(s => s.Frames is null && Sff.GifDecoder.LooksLikeGif(s.Bytes!)
+                ? new PickedSource(s.Name, null, Sff.GifImport.DecodeFrames(s.Bytes!).Take(1).ToList()) : s).ToList();
+            var refs = ReferenceSprites(expanded, sheet);
+            var fit = new PaletteFit(refs);
+            return (expanded, refs, palettes.Select(p => fit.Matches(p, true)).ToArray(),
+                palettes.Select(p => fit.Matches(p, false)).ToArray());
+        });
+        CrashLog.Trace($"PromptImport: matched {references.Count} image(s) against {palettes.Count} palette(s) in {watch.ElapsedMilliseconds} ms");
+
+        bool keepByDefault = initial.IndexChoice == ImportIndexChoice.Keep && allIndexed;
+        var defaultMatches = keepByDefault ? keepMatches : nearestMatches;
+        bool Full(Palette? p) => p is not null && references.Count > 0
+            && palettes.IndexOf(p) is int at && at >= 0 && defaultMatches[at] == references.Count;
+        var fullMatch = new[] { _specificPalette, _current?.Palette, previousPalette }.FirstOrDefault(Full)
+            ?? palettes.FirstOrDefault(Full);
+        var specificInitial = fullMatch ?? previousPalette ?? _specificPalette ?? _current?.Palette;
+
+        var preview = new ImportPreview(
+            c => BuildPreview(scored[0], sheet, BuildPlan(c, previousPalette)), _canvasLook);
+
         var choices = await Dialogs.PromptSpriteImport(this, title, spriteCount, SffVersions.SupportsPng(file.Version),
-            file.Palettes, previousPalette, _specificPalette ?? _current?.Palette ?? previousPalette,
+            file.Palettes, previousPalette, specificInitial,
             askPlacement, group, number, paletteGroup, NextFreePaletteIndex(paletteGroup), allIndexed,
-            initial, paletteLabels, framesGif: anyGif);
+            initial, paletteLabels, framesGif: anyGif,
+            matches: new ImportPaletteMatches(keepMatches, nearestMatches, references.Count), preview: preview);
         // The specific-palette pick is the one import choice worth remembering.
         if (choices is not null) _specificPalette = choices.SpecificPalette;
         return choices;
+    }
+
+    /// <summary>One lossless sprite per image the import adds (own palette if indexed, else 32-bit).
+    /// A source that can't be built so (a PCX with no palette) yields nulls, which match nothing.</summary>
+    private static List<Sprite?> ReferenceSprites(List<PickedSource> sources, SheetLayout? sheet)
+    {
+        var result = new List<Sprite?>();
+        foreach (var source in sources)
+        {
+            try
+            {
+                if (source.Frames is { } frames)
+                    result.AddRange(GifImport.ToSprites(frames, ImportPlan.TrueColor32(), out _));
+                else if (sheet is not null)
+                    result.AddRange(SheetImport.ToSprites(source.Bytes!, sheet, LosslessPlan(source.Bytes!), out _));
+                else
+                    result.Add(ImageImport.FromImage(source.Bytes!, LosslessPlan(source.Bytes!), out _));
+            }
+            catch (Exception ex)
+            {
+                CrashLog.Write($"ReferenceSprites {source.Name}", ex);
+                for (int i = 0; i < (sheet?.Count ?? source.Count); i++) result.Add(null);
+            }
+        }
+        return result;
+    }
+
+    private static ImportPlan LosslessPlan(byte[] image) =>
+        ImageImport.ImageIsIndexed(image) ? ImportPlan.Own() : ImportPlan.TrueColor32();
+
+    /// <summary>The first sprite the import would add under a plan. Shared colors that
+    /// overflow a palette show reduced, one of the choices the import then offers.</summary>
+    private static Sprite BuildPreview(PickedSource source, SheetLayout? sheet, ImportPlan plan)
+    {
+        bool own = !plan.TrueColor && plan.OwnPalette;
+        if (source.Frames is { } frames)
+        {
+            var first = frames.Take(1).ToList();
+            if (!own) return GifImport.ToSprites(first, plan, out _)[0];
+            var colors = GifImport.SharedColors(frames);
+            return GifImport.ToSprites(first, plan, colors.Overflows ? colors.Reduced() : colors.ToPalette(), out _)[0];
+        }
+        var bytes = source.Bytes!;
+        if (sheet is null) return ImageImport.FromImage(bytes, plan, out _);
+        var firstCell = new SheetLayout([sheet.Cells[0]], sheet.Background, sheet.AssumedBackground);
+        if (!own || ImageImport.ImageIsIndexed(bytes)) return SheetImport.ToSprites(bytes, firstCell, plan, out _)[0];
+        var shared = SheetImport.SharedColors(bytes, sheet);
+        return SheetImport.ToSprites(bytes, firstCell, plan, shared.Overflows ? shared.Reduced() : shared.ToPalette(), out _)[0];
     }
 
     /// <summary>Turns the dialog's choices into a plan for ImageImport.</summary>
