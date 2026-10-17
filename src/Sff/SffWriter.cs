@@ -41,14 +41,42 @@ public static class SffWriter
     /// <summary>An s16 field: wrapped as before, or clamped to -32768..32767.</summary>
     internal static short S16(int v, bool clamp) => clamp ? (short)Math.Clamp(v, short.MinValue, short.MaxValue) : unchecked((short)v);
 
-    /// <summary>Group the SFF's own palettes get when a v1 file is written as
-    /// v2: group 1 stays free for the character's .act palettes.</summary>
+    /// <summary>Group a v1 palette gets on conversion to v2 when no sprite uses it,
+    /// so there is no sprite group to take.</summary>
     public const int V1ConvertedPaletteGroup = 2;
+
+    /// <summary>v1 → v2 keys for the SFF's own palettes. Sprite 0,0's palette takes 1,1
+    /// unless another written palette (an .act) holds it; every other palette takes the
+    /// group of the first sprite using it, numbered from 0 upward past taken keys.</summary>
+    public static Dictionary<Palette, (int Group, int Index)> V1ConvertedKeys(SffFile f)
+    {
+        static bool Own(Palette p) => p.Source == PaletteSource.Embedded && p.SourcePath is null;
+        var used = f.Sprites.Select(x => x.Palette).ToHashSet();
+        var taken = f.Palettes.Where(p => !Own(p) && (p.Source == PaletteSource.Embedded || used.Contains(p)))
+            .Select(p => (p.Group, p.Index)).ToHashSet();
+        var keys = new Dictionary<Palette, (int, int)>();
+        void Assign(Palette p, int group)
+        {
+            int index = 0;
+            while (!taken.Add((group, index))) index++;
+            keys[p] = (group, index);
+        }
+
+        if (f.Sprites.FirstOrDefault(x => x.Group == 0 && x.Index == 0)?.Palette is { } main
+            && Own(main) && taken.Add((1, 1)))
+            keys[main] = (1, 1);
+        // Sprites that store pixels first; links only carry a palette when nothing else uses it.
+        foreach (var s in f.Sprites.Where(x => x.SharesWith is null).Concat(f.Sprites.Where(x => x.SharesWith is not null)))
+            if (s.Palette is { } p && Own(p) && !keys.ContainsKey(p)) Assign(p, s.Group);
+        foreach (var p in f.Palettes)
+            if (Own(p) && !keys.ContainsKey(p)) Assign(p, V1ConvertedPaletteGroup);
+        return keys;
+    }
 
     /// <summary>The external palettes a v1 → v2 save would drop (no sprite uses
     /// them), each with its group-1 key: the palette's own index, or the next
     /// free slot on conflict. Only externals a sprite uses occupy group 1 in
-    /// that save — the SFF's own palettes rekey to group 2.</summary>
+    /// that save; the SFF's own palettes take free keys after them (V1ConvertedKeys).</summary>
     public static List<(Palette Palette, int Index)> EmbeddableExternals(SffFile f)
     {
         var referenced = f.Sprites.Select(s => s.Palette).ToHashSet();
@@ -71,19 +99,19 @@ public static class SffWriter
 
     private static void Save(SffFile f, string path, bool allowPng, bool clamp, SprMaker2Options? tool = null)
     {
-        // Converting v1 to v2 moves the SFF's own palettes to group 2
-        // (indexes unchanged); group 1 stays free for the .act palettes.
+        // Converting v1 to v2 rekeys the SFF's own palettes (V1ConvertedKeys).
         // v1-internal palettes have no source file; embedded .acts do.
         bool rekey = f.Version.Hi == 1;
+        var converted = rekey ? V1ConvertedKeys(f) : null;
 
         // External palette files stay outside the SFF until at least one
         // sprite uses them. Once referenced, they are written as SFF palettes.
         var palettes = f.Palettes.Where(p => p.Source == PaletteSource.Embedded
             || f.Sprites.Any(s => ReferenceEquals(s.Palette, p))).ToList();
-        // The converted table is written in key order, group 1 (.acts) first.
-        int WrittenGroup(Palette p) =>
-            rekey && p.Source == PaletteSource.Embedded && p.SourcePath is null ? V1ConvertedPaletteGroup : p.Group;
-        if (rekey) palettes = palettes.OrderBy(WrittenGroup).ThenBy(p => p.Index).ToList();
+        // The converted table is written in key order.
+        (int Group, int Index) WrittenKey(Palette p) =>
+            converted is not null && converted.TryGetValue(p, out var key) ? key : (p.Group, p.Index);
+        if (rekey) palettes = palettes.OrderBy(p => WrittenKey(p).Group).ThenBy(p => WrittenKey(p).Index).ToList();
         var palIdx = new Dictionary<Palette, int>();
         for (int i = 0; i < palettes.Count; i++) palIdx[palettes[i]] = i;
 
@@ -257,8 +285,8 @@ public static class SffWriter
         {
             var p = palettes[i];
             int n = (int)palTable + i * SffReader.PaletteNodeSize;
-            Put16(head, n + 0, U16(WrittenGroup(p), clamp));
-            Put16(head, n + 2, U16(p.Index, clamp));
+            Put16(head, n + 0, U16(WrittenKey(p).Group, clamp));
+            Put16(head, n + 2, U16(WrittenKey(p).Index, clamp));
             Put16(head, n + 4, (ushort)p.Colors.Length);
             if (palLink[i] is var link and >= 0)
             {

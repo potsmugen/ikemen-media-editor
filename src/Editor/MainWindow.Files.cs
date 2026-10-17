@@ -1117,13 +1117,16 @@ public partial class MainWindow
             rollback.Clear(); // on disk now; the session keeps the changes
             _file.Version = version; // what's on disk now; plain Save keeps it from here
             int droppedV1 = toV1 ? MatchSessionToV1() : 0;
+            bool mainTo11 = false;
             if (rekeyed)
             {
                 // Same keys and order on the session side, so a later plain
                 // Save matches; the .acts stay embedded (they have a source file).
-                foreach (var p in _file.Palettes)
-                    if (p.Source == PaletteSource.Embedded && p.SourcePath is null)
-                        p.Group = SffWriter.V1ConvertedPaletteGroup;
+                foreach (var (p, key) in SffWriter.V1ConvertedKeys(_file))
+                {
+                    (p.Group, p.Index) = key;
+                    mainTo11 |= key == (1, 1);
+                }
                 _file.Palettes = _file.Palettes.OrderBy(p => p.Group).ThenBy(p => p.Index).ToList();
             }
             if (rekeyed || toV1) // palette labels switch between keys and S numbers
@@ -1140,7 +1143,8 @@ public partial class MainWindow
             var size = new FileInfo(path).Length;
             UpdateSffInfo();
             var parts = new List<string>();
-            if (sffPalettes > 0) parts.Add($"{sffPalettes} SFF palette{(sffPalettes == 1 ? "" : "s")} moved to group 2");
+            if (sffPalettes > 0) parts.Add($"{sffPalettes} SFF palette{(sffPalettes == 1 ? "" : "s")} rekeyed to their sprites' groups"
+                + (mainTo11 ? "; sprite 0,0's palette is 1,1" : ""));
             if (embed.Count > 0)
                 parts.Add($"Embedded {embed.Count} external .act palette{(embed.Count == 1 ? "" : "s")}"
                     + (moved.Count > 0 ? $" (renumbered to avoid conflicts: {string.Join(", ", moved)})" : ""));
@@ -1185,7 +1189,7 @@ public partial class MainWindow
         bool repoints = embeddable.Any(e => e.Index == 1)
             && _file.Sprites.Any(s => s.Group == 0 && s.Index == 0 && s.Palette is not null);
         var embed = await Dialogs.PromptSffConversion(this, "Convert to SFFv2",
-            [$"Saving converts this file to SFF {version}: the session becomes the saved file, and the SFF's own palettes move to group 2."],
+            [$"Saving converts this file to SFF {version}: the session becomes the saved file, and the SFF's own palettes take their sprites' groups, and sprite 0,0's takes 1,1 unless an .act does."],
             embeddable.Count, repoints);
         if (embed is null) return null;
         return embed == true ? embeddable : [];
@@ -1240,7 +1244,7 @@ public partial class MainWindow
             bool fromV1 = SffVersions.IsV1(file.Version);
             var notes = new List<string> { "Options apply to the saved file only; the open file is not changed." };
             if (v2 && fromV1)
-                notes.Add("This SFFv1 file is converted: its own palettes move to group 2, and external .act palettes no sprite uses are not saved.");
+                notes.Add("This SFFv1 file is converted: its own palettes take their sprites' groups (sprite 0,0's takes 1,1), and external .act palettes no sprite uses are not saved.");
             if (!v2 && !fromV1)
             {
                 if (!await CanWriteV1()) return;

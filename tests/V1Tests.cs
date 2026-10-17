@@ -174,12 +174,10 @@ public class V1Tests
 
             Assert.Equal(2, converted.Version.Hi);
             Assert.Equal(original.Sprites.Count, converted.Sprites.Count);
-            // Conversion rekeys the SFF's own palettes to group 2, indexes unchanged.
+            // Conversion rekeys the SFF's own palettes; the table is written in key order, so match by key.
             Assert.Equal(original.Palettes.Count, converted.Palettes.Count);
-            // The table is written in key order, so match by index, not position.
-            Assert.All(converted.Palettes, p => Assert.Equal(SffWriter.V1ConvertedPaletteGroup, p.Group));
-            foreach (var o in original.Palettes)
-                Assert.Contains(converted.Palettes, c => c.Index == o.Index && c.Colors.SequenceEqual(o.Colors));
+            foreach (var (o, key) in SffWriter.V1ConvertedKeys(original))
+                Assert.Contains(converted.Palettes, c => (c.Group, c.Index) == key && c.Colors.SequenceEqual(o.Colors));
             for (int i = 0; i < original.Sprites.Count; i++)
             {
                 Assert.Null(converted.Sprites[i].DecodeError);

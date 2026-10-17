@@ -54,9 +54,19 @@ and constraints that are easy to miss when reading one code path in isolation.
   `--test-recovery` forces a snapshot and leaves the run marker for the next launch.
   Saving an `.air` warns if its on-disk bytes changed since load; confirming
   overwrites them with the current Media animation.
-- **Saving v1 as v2+**: every v1 → v2+ Save As rekeys the SFF's own palettes
-  to group 2 (indexes unchanged); group 1 remains available for character
-  palettes. The saved file's palette and sprite ordering is rebound into the
+- **Saving v1 as v2+**: every v1 → v2+ Save As (and Save Like SprMaker 2.01)
+  rekeys the SFF's own palettes, since v1 palettes have no keys
+  (`SffWriter.V1ConvertedKeys`, the one source for writer and session):
+  1. Embedded .act palettes and externals a sprite uses keep their group-1 keys
+     and are placed first.
+  2. Sprite 0,0's palette takes 1,1, unless an .act already holds it.
+  3. Every other palette takes the group of the first sprite using it (sprites
+     that store pixels before links), numbered from 0 and stepping up only past
+     taken keys, 1,1 and the .act keys included. E.g. a portrait palette carried
+     by 9000,1 becomes 9000,0 when 9000,0's palette went to 1,1.
+  4. A palette no sprite uses has no group to take: group 2, numbered the same.
+  Faithful to the data: a 0,0 that stores a stray palette puts it at 1,1.
+  The saved file's palette and sprite ordering is rebound into the
   open session. Before the filename picker, a conversion prompt offers to
   embed unused external .act palettes (off by default). Embedded palettes use
   group 1 and their .act index, advancing to the next free index on conflict.

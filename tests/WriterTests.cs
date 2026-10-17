@@ -137,8 +137,8 @@ public class WriterTests
         f.Sprites.Add(new Sprite { Group = 3, Index = 0, Width = 1, Height = 1, Palette = used, Indexed = [1], PixelsDirty = true });
 
         // act1 and act2 are referenced by no sprite, so both would be dropped;
-        // the SFF's own palette rekeys to group 2, so act1 keeps 1, while act2
-        // steps over the referenced external at 1,5 to 1,6.
+        // the .acts get their keys first, so act1 keeps 1, while act2 steps over
+        // the referenced external at 1,5 to 1,6.
         var embedded = SffWriter.EmbeddableExternals(f);
         Assert.Equal(2, embedded.Count);
         Assert.Equal((act1, 1), embedded[0]);
@@ -151,19 +151,20 @@ public class WriterTests
         {
             f.Save(tmp, SffVersions.V2);
             var r = SffFile.Open(tmp);
-            Assert.Equal(4, r.Palettes.Count); // key order: group 1 first
-            Assert.Equal((1, 1), (r.Palettes[0].Group, r.Palettes[0].Index));
-            Assert.Equal(act1.Colors, r.Palettes[0].Colors);
-            Assert.Equal((1, 5), (r.Palettes[1].Group, r.Palettes[1].Index));
-            Assert.Equal((1, 6), (r.Palettes[2].Group, r.Palettes[2].Index));
-            Assert.Equal((2, 1), (r.Palettes[3].Group, r.Palettes[3].Index));
-            Assert.Equal(pal.Colors, r.Palettes[3].Colors);
+            // Key order. act1 holds 1,1, so 0,0's palette takes its sprite's group: 0,0.
+            Assert.Equal(4, r.Palettes.Count);
+            Assert.Equal((0, 0), (r.Palettes[0].Group, r.Palettes[0].Index));
+            Assert.Equal(pal.Colors, r.Palettes[0].Colors);
+            Assert.Equal((1, 1), (r.Palettes[1].Group, r.Palettes[1].Index));
+            Assert.Equal(act1.Colors, r.Palettes[1].Colors);
+            Assert.Equal((1, 5), (r.Palettes[2].Group, r.Palettes[2].Index));
+            Assert.Equal((1, 6), (r.Palettes[3].Group, r.Palettes[3].Index));
         }
         finally { File.Delete(tmp); }
     }
 
     [Fact]
-    public void V1ConversionRekeysPalettesToGroup2AndFreesGroup1()
+    public void V1ConversionLetsAnActHold11()
     {
         var pal = new Palette { Group = 1, Index = 1, Colors = Enumerable.Range(0, 8).Select(i => new Rgba((byte)i, 0, 0, 255)).ToArray() };
         var f = new SffFile { Version = SffVersions.V1, Palettes = [pal] };
@@ -172,8 +173,8 @@ public class WriterTests
             Colors = Enumerable.Range(0, 8).Select(i => new Rgba(0, (byte)i, 0, 255)).ToArray() };
         f.Palettes.Add(act);
 
-        // The SFF's own palette moves to group 2 on conversion, so the .act
-        // keeps 1,1 without stepping.
+        // The .act gets its key first and keeps 1,1; sprite 0,0's palette then
+        // takes its sprite's group instead.
         var embedded = SffWriter.EmbeddableExternals(f);
         Assert.Single(embedded);
         Assert.Equal((act, 1), embedded[0]);
@@ -184,11 +185,45 @@ public class WriterTests
         {
             f.Save(tmp, SffVersions.V2);
             var r = SffFile.Open(tmp);
-            Assert.Equal(2, r.Palettes.Count);
-            Assert.Equal((1, 1), (r.Palettes[0].Group, r.Palettes[0].Index)); // key order: .act first
-            Assert.Equal(act.Colors, r.Palettes[0].Colors);
-            Assert.Equal((2, 1), (r.Palettes[1].Group, r.Palettes[1].Index));
-            Assert.Equal(pal.Colors, r.Palettes[1].Colors);
+            Assert.Equal(2, r.Palettes.Count); // key order
+            Assert.Equal((0, 0), (r.Palettes[0].Group, r.Palettes[0].Index));
+            Assert.Equal(pal.Colors, r.Palettes[0].Colors);
+            Assert.Equal((1, 1), (r.Palettes[1].Group, r.Palettes[1].Index));
+            Assert.Equal(act.Colors, r.Palettes[1].Colors);
+        }
+        finally { File.Delete(tmp); }
+    }
+
+    /// <summary>No .act: 0,0's palette takes 1,1; the rest take their first sprite's group,
+    /// numbered from 0 past taken keys (1,1 included); an unused palette goes to group 2.</summary>
+    [Fact]
+    public void V1ConversionKeysPalettesBySpriteGroup()
+    {
+        static Palette Pal(byte red) => new() { Colors = Enumerable.Range(0, 8).Select(i => new Rgba(red, (byte)i, 0, 255)).ToArray() };
+        var first = Pal(10); var portrait = Pal(30); var fx0 = Pal(50); var fx1 = Pal(70);
+        var g1a = Pal(90); var g1b = Pal(110); var unused = Pal(130);
+        var f = new SffFile { Version = SffVersions.V1, Palettes = [first, portrait, fx0, fx1, g1a, g1b, unused] };
+        void Add(int g, int i, Palette p) => f.Sprites.Add(new Sprite { Group = g, Index = i, Width = 1, Height = 1, Palette = p, Indexed = [1], PixelsDirty = true });
+        Add(9000, 0, first); Add(9000, 1, portrait); Add(0, 0, first); Add(0, 1, first);
+        Add(4005, 3, fx0); Add(4005, 4, fx1); Add(1, 5, g1a); Add(1, 6, g1b);
+
+        var keys = SffWriter.V1ConvertedKeys(f);
+        Assert.Equal((1, 1), keys[first]);
+        Assert.Equal((9000, 0), keys[portrait]);
+        Assert.Equal((4005, 0), keys[fx0]);
+        Assert.Equal((4005, 1), keys[fx1]);
+        Assert.Equal((1, 0), keys[g1a]);
+        Assert.Equal((1, 2), keys[g1b]); // 1,1 is taken by 0,0's palette
+        Assert.Equal((SffWriter.V1ConvertedPaletteGroup, 0), keys[unused]);
+
+        var tmp = Path.Combine(Path.GetTempPath(), $"v1keys-{Guid.NewGuid():N}.sff");
+        try
+        {
+            f.Save(tmp, SffVersions.V2);
+            var r = SffFile.Open(tmp);
+            foreach (var (p, key) in keys)
+                Assert.Contains(r.Palettes, c => (c.Group, c.Index) == key && c.Colors.SequenceEqual(p.Colors));
+            Assert.Equal((1, 1), (r.Sprites[2].Palette!.Group, r.Sprites[2].Palette!.Index));
         }
         finally { File.Delete(tmp); }
     }

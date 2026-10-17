@@ -48,9 +48,9 @@ public class RecoverySnapshotTests
             Assert.Equal(new byte[] { 10, 20, 30, 255 }, back.Sprites[1].Direct);
             Assert.Equal((1, 2), (back.Sprites[1].Palette!.Group, back.Sprites[1].Palette!.Index));
 
-            // Without the switch the writer converts: the SFF's own palettes move to group 2.
+            // Without the switch the writer converts: 0,0's palette takes 1,1, the other its sprite's group.
             f.Save(tmp, SffVersions.V2_1);
-            Assert.All(SffFile.Open(tmp).Palettes, p => Assert.Equal(SffWriter.V1ConvertedPaletteGroup, p.Group));
+            Assert.Equal(new[] { (0, 0), (1, 1) }, SffFile.Open(tmp).Palettes.Select(p => (p.Group, p.Index)));
         }
         finally { if (File.Exists(tmp)) File.Delete(tmp); }
     }
