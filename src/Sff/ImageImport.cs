@@ -25,11 +25,15 @@ public readonly record struct ImportPlan
     /// </summary>
     public bool KeepIndexes { get; init; }
 
+    /// <summary>When matching nearest colors from an indexed image, its index 0 pixels stay the mask whatever their color.</summary>
+    public bool KeepMask { get; init; }
+
     /// <summary>The image keeps its own palette and indexes, untouched.</summary>
     public static ImportPlan Own() => new() { OwnPalette = true, KeepIndexes = true };
 
     /// <summary>Pixels land in a chosen palette, keeping indexes or matching nearest colors.</summary>
-    public static ImportPlan Given(Palette palette, bool keepIndexes) => new() { Palette = palette, KeepIndexes = keepIndexes };
+    public static ImportPlan Given(Palette palette, bool keepIndexes, bool keepMask = false) =>
+        new() { Palette = palette, KeepIndexes = keepIndexes, KeepMask = keepMask };
 
     /// <summary>Store as 32-bit color. Needs SFF 2.0.1.0.</summary>
     public static ImportPlan TrueColor32() => new() { TrueColor = true };
@@ -338,9 +342,12 @@ public static class ImageImport
             return report;
         }
 
-        // Without transparent pixels the mask is drawn in its color (PCX, mask shown), so that color is the mask.
+        // Keep mask: an indexed image's index 0 is the mask. Otherwise, without transparent
+        // pixels the mask is drawn in its color (PCX, mask shown), so that color is the mask.
         var bgra = ToBgra(img);
-        imported.Indexed = Match(bgra, target, out int colors, out int exact, maskColor: !AnyTransparent(bgra));
+        var maskIndexes = plan.KeepMask ? img.Indices : null;
+        imported.Indexed = Match(bgra, target, out int colors, out int exact,
+            maskColor: maskIndexes is null && !AnyTransparent(bgra), maskIndexes);
         var matched = new Report(img.Width, img.Height, colors, exact, false, false, false, 0);
         Commit();
         return matched;
@@ -425,8 +432,10 @@ public static class ImageImport
     /// alpha threshold become index 0, and index 0 is never chosen for an opaque
     /// pixel, because it is the transparency mask rather than a usable color —
     /// unless maskColor is set, where an exact match of index 0's RGB goes to 0.
+    /// With maskIndexes, pixels at source index 0 go to 0 and take no part in matching.
     /// </summary>
-    private static byte[] Match(byte[] bgra, Palette pal, out int colors, out int exact, bool maskColor = false)
+    private static byte[] Match(byte[] bgra, Palette pal, out int colors, out int exact, bool maskColor = false,
+        byte[]? maskIndexes = null)
     {
         var mask = maskColor && pal.Colors.Length > 0 ? pal.Colors[Sprite.TransparentIndex] : (Rgba?)null;
         var cache = new Dictionary<uint, byte>();
@@ -436,7 +445,11 @@ public static class ImageImport
         for (int i = 0; i < outp.Length; i++)
         {
             byte b = bgra[i * 4], g = bgra[i * 4 + 1], r = bgra[i * 4 + 2], a = bgra[i * 4 + 3];
-            if (a < TransparentAlphaThreshold) { outp[i] = Sprite.TransparentIndex; continue; }
+            if (a < TransparentAlphaThreshold || maskIndexes is { } mi && i < mi.Length && mi[i] == Sprite.TransparentIndex)
+            {
+                outp[i] = Sprite.TransparentIndex;
+                continue;
+            }
 
             uint key = (uint)(r << 16 | g << 8 | b);
             if (!cache.TryGetValue(key, out byte idx))

@@ -2125,8 +2125,8 @@ public partial class MainWindow
         {
             // The dialog only offers these when the palette exists; fall back to
             // the image's own rather than guessing if one ever slips through.
-            ImportPaletteChoice.Previous when previous is not null => ImportPlan.Given(previous, keep),
-            ImportPaletteChoice.Specific when c.SpecificPalette is not null => ImportPlan.Given(c.SpecificPalette, keep),
+            ImportPaletteChoice.Previous when previous is not null => ImportPlan.Given(previous, keep, c.KeepMask),
+            ImportPaletteChoice.Specific when c.SpecificPalette is not null => ImportPlan.Given(c.SpecificPalette, keep, c.KeepMask),
             _ => ImportPlan.Own(),
         };
     }

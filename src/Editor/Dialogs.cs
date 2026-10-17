@@ -81,7 +81,11 @@ public enum BitDepthChoice { EightBit, ThirtyTwoBit }
 public sealed record ImportChoices(
     ImportPaletteChoice PaletteChoice, Palette? SpecificPalette,
     ImportIndexChoice IndexChoice, BitDepthChoice BitDepth,
-    int Group, int Number, int PaletteGroup, int PaletteIndex);
+    int Group, int Number, int PaletteGroup, int PaletteIndex)
+{
+    /// <summary>With nearest matching from an indexed image, its index 0 stays the mask.</summary>
+    public bool KeepMask { get; init; } = true;
+}
 
 /// <summary>How many of the imported images each palette (by list position) reproduces exactly, per index mode.</summary>
 public sealed record ImportPaletteMatches(int[] Keep, int[] Nearest, int Total);
@@ -1877,6 +1881,11 @@ public static class Dialogs
             GroupName = "ImportIndex", Content = "Match the nearest color",
         };
         ToolTip.SetTip(nearest, "Uses the closest color in the chosen palette.");
+        var keepMask = new CheckBox
+        {
+            Content = "Keep mask", IsChecked = initial.KeepMask, Margin = new Avalonia.Thickness(20, 0, 0, 0),
+        };
+        ToolTip.SetTip(keepMask, "Pixels at the image's index 0 stay transparent.");
 
         var bitDepth = new ComboBox { MinWidth = 220 };
         bitDepth.Items.Add(new ComboBoxItem { Content = "8-bit color" });
@@ -1929,11 +1938,12 @@ public static class Dialogs
             paletteBox.IsEnabled = !tc && specific.IsChecked == true;
             keep.IsEnabled = !tc && !ownSelected && imagesIndexed;
             nearest.IsEnabled = !tc && !ownSelected;
+            keepMask.IsEnabled = nearest.IsEnabled && nearest.IsChecked == true && imagesIndexed;
             // Only matters when Own actually creates a new palette object.
             palGroupBox.IsEnabled = !tc && ownSelected;
             palIndexBox.IsEnabled = !tc && ownSelected;
         }
-        foreach (var c in new ToggleButton[] { own, previous, specific })
+        foreach (var c in new ToggleButton[] { own, previous, specific, keep, nearest })
             c.IsCheckedChanged += (_, _) => UpdateEnabled();
         bitDepth.SelectionChanged += (_, _) => UpdateEnabled();
         UpdateEnabled();
@@ -1967,7 +1977,10 @@ public static class Dialogs
                 (int)(groupBox.Value ?? group),
                 (int)(numberBox.Value ?? number),
                 (int)(palGroupBox.Value ?? paletteGroup),
-                (int)(palIndexBox.Value ?? paletteIndex));
+                (int)(palIndexBox.Value ?? paletteIndex))
+            {
+                KeepMask = keepMask.IsChecked == true,
+            };
         }
         ok.Click += (_, _) =>
         {
@@ -2033,6 +2046,7 @@ public static class Dialogs
         body.Children.Add(Section("Indexes"));
         body.Children.Add(keep);
         body.Children.Add(nearest);
+        body.Children.Add(keepMask);
         if (framesGif)
             body.Children.Add(new TextBlock
             {
@@ -2059,7 +2073,7 @@ public static class Dialogs
                 {
                     new StackPanel { Orientation = Orientation.Horizontal, Children = { body, ImportPreviewPanel(dialog, preview, Current, Section,
                         refresh => {
-                            foreach (var c in new ToggleButton[] { own, previous, specific, keep, nearest })
+                            foreach (var c in new ToggleButton[] { own, previous, specific, keep, nearest, keepMask })
                                 c.IsCheckedChanged += (_, _) => refresh();
                             paletteBox.SelectionChanged += (_, _) => refresh();
                             bitDepth.SelectionChanged += (_, _) => refresh();

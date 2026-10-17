@@ -149,6 +149,21 @@ public class EditingTests
     }
 
     [Fact]
+    public void KeepMaskUsesTheImagesIndexZeroWhateverItsColor()
+    {
+        // Black mask and black outline in both palettes.
+        var pal = new Palette { Colors = [new(0, 0, 0, 0), new(255, 0, 0, 255), new(0, 0, 0, 255)] };
+        var plte = new Rgba[] { new(0, 0, 0, 255), new(0, 0, 0, 255), new(255, 0, 0, 255) };
+        var png = PngExport.EncodeIndexed([0, 1, 2], 3, 1, plte);
+
+        var kept = ImageImport.FromImage(png, ImportPlan.Given(pal, keepIndexes: false, keepMask: true), out _);
+        var byColor = ImageImport.FromImage(png, ImportPlan.Given(pal, keepIndexes: false), out _);
+
+        Assert.Equal([0, 2, 1], kept.Indexed);    // outline stays black, mask stays the mask
+        Assert.Equal([0, 0, 1], byColor.Indexed); // by color, black can't tell outline from mask
+    }
+
+    [Fact]
     public void ReplacingStopsSharing()
     {
         var f = MakeFile();
