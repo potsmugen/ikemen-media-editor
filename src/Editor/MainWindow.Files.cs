@@ -272,7 +272,7 @@ public partial class MainWindow
             if (lines.Count == 0) lines.Add(("No media is loaded.", null));
 
             _healthReport?.Close();
-            _healthReport = Dialogs.ShowReport(this, "Media health report", [.. lines, .. details]);
+            _healthReport = Dialogs.ShowReport(this, "Media Health Report", [.. lines, .. details]);
             _healthReport.Closed += (s, _) => { if (ReferenceEquals(s, _healthReport)) _healthReport = null; };
         }
         catch (Exception ex)
@@ -366,7 +366,7 @@ public partial class MainWindow
 
             var files = await PickOpen(new FilePickerOpenOptions
             {
-                Title = "Open character",
+                Title = "Open Character",
                 AllowMultiple = false,
                 FileTypeFilter = [new FilePickerFileType("Character definitions") { Patterns = ["*.def"] }],
             });
@@ -396,13 +396,13 @@ public partial class MainWindow
         catch (Exception ex)
         {
             CrashLog.Write("OpenCharacterFile", ex);
-            await Dialogs.ShowMessage(this, "Could not read the character definition", ex.Message);
+            await Dialogs.ShowMessage(this, "Could Not Read the Character Definition", ex.Message);
             return;
         }
 
         if (def.SpritePath is null && def.StageSpritePath is not null)
         {
-            await Dialogs.ShowMessage(this, "Could not read the character definition",
+            await Dialogs.ShowMessage(this, "Could Not Read the Character Definition",
                 "This looks like a stage .def (a [BGdef] spr= line, not [Files] sprite=) — try Open Stage instead.");
             return;
         }
@@ -484,7 +484,7 @@ public partial class MainWindow
 
             var files = await PickOpen(new FilePickerOpenOptions
             {
-                Title = "Open stage",
+                Title = "Open Stage",
                 AllowMultiple = false,
                 FileTypeFilter = [new FilePickerFileType("Stage definitions") { Patterns = ["*.def"] }],
             });
@@ -526,13 +526,13 @@ public partial class MainWindow
         catch (Exception ex)
         {
             CrashLog.Write("OpenStageFile", ex);
-            await Dialogs.ShowMessage(this, "Could not read the stage definition", ex.Message);
+            await Dialogs.ShowMessage(this, "Could Not Read the Stage Definition", ex.Message);
             return;
         }
 
         if (def.StageSpritePath is null)
         {
-            await Dialogs.ShowMessage(this, "Could not read the stage definition",
+            await Dialogs.ShowMessage(this, "Could Not Read the Stage Definition",
                 def.SpritePath is not null
                     ? "This looks like a character .def (a [Files] sprite= line, not [BGdef] spr=) — try Open Character instead."
                     : "No [BGdef] spr= line found — this doesn't look like a stage .def.");
@@ -586,7 +586,7 @@ public partial class MainWindow
 
             var files = await PickOpen(new FilePickerOpenOptions
             {
-                Title = "Open other (screenpack / lifebar / storyboard)",
+                Title = "Open Other (Screenpack / Lifebar / Storyboard)",
                 AllowMultiple = false,
                 FileTypeFilter = [new FilePickerFileType("Definitions") { Patterns = ["*.def"] }],
             });
@@ -631,19 +631,19 @@ public partial class MainWindow
         catch (Exception ex)
         {
             CrashLog.Write("OpenOtherDefFile", ex);
-            await Dialogs.ShowMessage(this, "Could not read the definition", ex.Message);
+            await Dialogs.ShowMessage(this, "Could Not Read the Definition", ex.Message);
             return;
         }
 
         if (def.SpritePath is not null)
         {
-            await Dialogs.ShowMessage(this, "Could not read the definition",
+            await Dialogs.ShowMessage(this, "Could Not Read the Definition",
                 "This looks like a character .def (a [Files] sprite= line) — try Open Character instead.");
             return;
         }
         if (def.StageSpritePath is not null)
         {
-            await Dialogs.ShowMessage(this, "Could not read the definition",
+            await Dialogs.ShowMessage(this, "Could Not Read the Definition",
                 "This looks like a stage .def (a [BGdef] spr= line) — try Open Stage instead.");
             return;
         }
@@ -670,7 +670,7 @@ public partial class MainWindow
         }
         else
         {
-            await Dialogs.ShowMessage(this, "Could not read the definition",
+            await Dialogs.ShowMessage(this, "Could Not Read the Definition",
                 "Doesn't look like a screenpack, lifebar, or storyboard .def — no [Files] spr=/sff= or [SceneDef] spr= line found.");
             return;
         }
@@ -855,7 +855,7 @@ public partial class MainWindow
             {
                 if (palette.SourcePath is null || !File.Exists(palette.SourcePath))
                 {
-                    await Dialogs.ShowMessage(this, "Palette not saved", $"Palette {PaletteLabel(palette)} has no available source file. Use Save As from the Palettes tab.");
+                    await Dialogs.ShowMessage(this, "Palette Not Saved", $"Palette {PaletteLabel(palette)} has no available source file. Use Save As from the Palettes tab.");
                     continue;
                 }
                 if (!await SavePaletteDocument(palette)) continue;
@@ -912,8 +912,8 @@ public partial class MainWindow
         if (_sndDirty) what.Add("sounds");
         if (HasDirtyExternalPalettes()) what.Add("external palettes");
         if (HasDirtyStandalonePalettes()) what.Add("standalone palettes");
-        return await Dialogs.Confirm(this, "Unsaved changes",
-            $"There are unsaved changes to the {string.Join(", ", what)}.", "Discard them");
+        return await Dialogs.Confirm(this, "Unsaved Changes",
+            $"There are unsaved changes to the {string.Join(", ", what)}.", "Discard Them");
     }
 
     /// <summary>The _Sprites menu's own "Save" entry — always the .sff,
@@ -993,7 +993,7 @@ public partial class MainWindow
         {
             CrashLog.Write("SaveSprites", ex);
             StatusText.Text = $"Could not save {Path.GetFileName(_path)}.";
-            await Dialogs.ShowMessage(this, "Save failed", ex.Message);
+            await Dialogs.ShowMessage(this, "Save Failed", ex.Message);
             return false;
         }
     }
@@ -1160,7 +1160,7 @@ public partial class MainWindow
         {
             for (int i = rollback.Count - 1; i >= 0; i--) rollback[i]();
             CrashLog.Write("SaveAs", ex);
-            await Dialogs.ShowMessage(this, $"Could not save as SFF {version}", ex.Message);
+            await Dialogs.ShowMessage(this, $"Could Not Save as SFF {version}", ex.Message);
         }
     }
 
@@ -1206,7 +1206,7 @@ public partial class MainWindow
             .Select(s => $"{s.Group},{s.Index}").ToList();
         if (bad.Count == 0) return true;
         CrashLog.Error("CanWriteV1", $"SFFv1 save refused: {bad.Count} true-color or undecoded sprite(s)");
-        await Dialogs.ShowMessage(this, "Can't save as SFFv1",
+        await Dialogs.ShowMessage(this, "Can't Save as SFFv1",
             $"SFFv1 holds 8-bit sprites only; {bad.Count} sprite{(bad.Count == 1 ? " is" : "s are")} true color or undecoded: "
             + string.Join(", ", bad.Take(5)) + (bad.Count > 5 ? ", …" : "") + ".");
         return false;
@@ -1301,7 +1301,7 @@ public partial class MainWindow
             {
                 CrashLog.Write("SaveLikeSprMaker", ex);
                 StatusText.Text = $"Could not save {Path.GetFileName(path)}.";
-                await Dialogs.ShowMessage(this, $"Could not save like {(v2 ? "SprMaker 2.01" : "SprMaker 0.97")}", ex.Message);
+                await Dialogs.ShowMessage(this, $"Could Not Save Like {(v2 ? "SprMaker 2.01" : "SprMaker 0.97")}", ex.Message);
                 return;
             }
 
@@ -1318,7 +1318,7 @@ public partial class MainWindow
 
             var pathCase = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
             if (_path is not null && Path.GetFullPath(path).Equals(Path.GetFullPath(_path), pathCase)
-                && await Dialogs.Confirm(this, "Reload sprites",
+                && await Dialogs.Confirm(this, "Reload Sprites",
                     "The open sprites no longer match the file you saved over. Reload them from the file? Unsaved changes and undo history go.",
                     "Reload"))
                 ReloadSavedSff(path);
@@ -1379,7 +1379,7 @@ public partial class MainWindow
         if (_file is null || SffVersions.IsV1(version)) return true;
 
         int png = SffVersions.SupportsPng(version) ? 0 : SffWriter.StoredAsPng(_file);
-        return png == 0 || await Dialogs.Confirm(this, "PNG sprites",
+        return png == 0 || await Dialogs.Confirm(this, "PNG Sprites",
             $"{png} sprite(s) are stored as PNG, which SFF {version} can't hold. "
             + "Re-encode them as LZ5/RLE8 in the saved file? No pixels change.", "Re-encode");
     }

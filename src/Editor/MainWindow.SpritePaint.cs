@@ -143,13 +143,13 @@ public partial class MainWindow
         if (boxIndex >= 0)
         {
             ShowContextMenu(SpriteCanvas,
-                ("Center image in canvas", SpriteCanvas.CenterImage),
+                ("Center Image in Canvas", SpriteCanvas.CenterImage),
                 MenuSeparator,
                 ("Pin onion skin to this sprite", PinSpriteAsOnion));
             return;
         }
         ShowContextMenu(SpriteCanvas,
-            ("Center image in canvas", SpriteCanvas.CenterImage),
+            ("Center Image in Canvas", SpriteCanvas.CenterImage),
             MenuSeparator,
             ("Eyedropper: Pick Color Here", () => SpriteCanvas.PickColorAt(pos)),
             MenuSeparator,

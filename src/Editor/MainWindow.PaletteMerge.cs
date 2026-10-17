@@ -142,7 +142,7 @@ public partial class MainWindow
             var chosen = SelectedPalettesInOrder();
             if (chosen.Count < 2)
             {
-                await Dialogs.ShowMessage(this, "Combine palettes", "Select two or more palettes in the list (Ctrl or Shift-click).");
+                await Dialogs.ShowMessage(this, "Combine Palettes", "Select two or more palettes in the list (Ctrl or Shift-click).");
                 return;
             }
             if (!await SettlePendingColorAdjust()) return;
@@ -153,7 +153,7 @@ public partial class MainWindow
             int count = PaddedColorCount(chosen, users, padOf, keepUsed: false);
             int initial = basePalette is not null && chosen.Contains(basePalette) ? chosen.IndexOf(basePalette) : 0;
             // Over 256 the button itself asks for the reduction.
-            if (await Dialogs.PromptMergeOptions(this, "Combine palettes", count <= 256 ? "Combine" : "Reduce and Combine",
+            if (await Dialogs.PromptMergeOptions(this, "Combine Palettes", count <= 256 ? "Combine" : "Reduce and Combine",
                     chosen.Select(PaletteLabel).ToList(), initial, paddings, $"Colors: {count} of 256") is not { } choice) return;
             var first = chosen[choice.Target];
             chosen = [first, .. chosen.Where(p => !ReferenceEquals(p, first))];
@@ -162,7 +162,7 @@ public partial class MainWindow
             catch (InvalidOperationException ex)
             {
                 CrashLog.Error("OnCombinePalettes", ex.Message);
-                await Dialogs.ShowMessage(this, "Combine palettes", "No colors are left.");
+                await Dialogs.ShowMessage(this, "Combine Palettes", "No colors are left.");
                 return;
             }
             AddTempPalette(new Palette { Colors = result.Colors }, "combine palettes");
@@ -189,14 +189,14 @@ public partial class MainWindow
             var chosen = SelectedPalettesInOrder();
             if (chosen.Count < 2)
             {
-                await Dialogs.ShowMessage(this, "Merge palettes", "Select two or more palettes in the list (Ctrl or Shift-click).");
+                await Dialogs.ShowMessage(this, "Merge Palettes", "Select two or more palettes in the list (Ctrl or Shift-click).");
                 return;
             }
             var embedded = chosen.Where(p => p.Source == PaletteSource.Embedded).ToList();
             if (embedded.Count == 0)
             {
                 CrashLog.Error("OnMergePalettes", "refused: no SFF palette selected");
-                await Dialogs.ShowMessage(this, "Cannot merge palettes", "Select at least one SFF palette.");
+                await Dialogs.ShowMessage(this, "Cannot Merge Palettes", "Select at least one SFF palette.");
                 return;
             }
             bool v1 = SffVersions.IsV1(file.Version);
@@ -205,7 +205,7 @@ public partial class MainWindow
             if (candidates.Count == 0)
             {
                 CrashLog.Error("OnMergePalettes", "refused: every selected SFF palette is a link");
-                await Dialogs.ShowMessage(this, "Cannot merge palettes", "Every selected SFF palette is a link. Unlink one first.");
+                await Dialogs.ShowMessage(this, "Cannot Merge Palettes", "Every selected SFF palette is a link. Unlink one first.");
                 return;
             }
             if (!await SettlePendingColorAdjust() || !ReferenceEquals(_file, file)) return;
@@ -216,7 +216,7 @@ public partial class MainWindow
                 foreach (string item in users.Blocked) CrashLog.Error("Merge palettes", "refused: " + item);
                 string shown = string.Join("\n", users.Blocked.Take(10));
                 if (users.Blocked.Count > 10) shown += $"\n…and {users.Blocked.Count - 10} more (see crash.log).";
-                await Dialogs.ShowMessage(this, "Cannot merge palettes", "These sprites can't be remapped:\n" + shown);
+                await Dialogs.ShowMessage(this, "Cannot Merge Palettes", "These sprites can't be remapped:\n" + shown);
                 return;
             }
             var padOf = DetectPadding(chosen);
@@ -226,11 +226,11 @@ public partial class MainWindow
             {
                 string msg = $"These palettes use {count} colors; a palette holds 256.";
                 CrashLog.Error("OnMergePalettes", "refused: " + msg);
-                await Dialogs.ShowMessage(this, "Cannot merge palettes", msg);
+                await Dialogs.ShowMessage(this, "Cannot Merge Palettes", msg);
                 return;
             }
             int initial = into is not null && candidates.Contains(into) ? candidates.IndexOf(into) : 0;
-            if (await Dialogs.PromptMergeOptions(this, "Merge palettes", "Continue", candidates.Select(p => PaletteKey(file, p)).ToList(),
+            if (await Dialogs.PromptMergeOptions(this, "Merge Palettes", "Continue", candidates.Select(p => PaletteKey(file, p)).ToList(),
                     initial, paddings, $"Colors: {count} of 256") is not { } choice
                 || !ReferenceEquals(_file, file)) return;
             var target = candidates[choice.Target];
@@ -243,14 +243,14 @@ public partial class MainWindow
             catch (InvalidOperationException ex)
             {
                 CrashLog.Error("OnMergePalettes", ex.Message);
-                await Dialogs.ShowMessage(this, "Merge palettes", "No colors are left.");
+                await Dialogs.ShowMessage(this, "Merge Palettes", "No colors are left.");
                 return;
             }
             if (MergeColorCount(result) > 256)
             {
                 string msg = $"These palettes use {MergeColorCount(result)} colors; a palette holds 256.";
                 CrashLog.Error("OnMergePalettes", "refused: " + msg);
-                await Dialogs.ShowMessage(this, "Cannot merge palettes", msg);
+                await Dialogs.ShowMessage(this, "Cannot Merge Palettes", msg);
                 return;
             }
 
@@ -260,7 +260,7 @@ public partial class MainWindow
                 + $"\n\nColors: {MergeColorCount(result)} of 256"
                 + (v1 ? $"\nPalettes changed: {targets.Count}" : dropped.Count > 0 ? $"\nRemoved: {string.Join(", ", dropped.Select(p => PaletteKey(file, p)))}" : "")
                 + $"\nSprites remapped: {users.Sprites}";
-            if (!await Dialogs.Confirm(this, "Merge palettes", text, "Merge")) return;
+            if (!await Dialogs.Confirm(this, "Merge Palettes", text, "Merge")) return;
             if (!ReferenceEquals(_file, file) || chosen.Any(p => !file.Palettes.Contains(p))) return;
 
             var remapped = new List<(Sprite Owner, byte[] Pixels)>();

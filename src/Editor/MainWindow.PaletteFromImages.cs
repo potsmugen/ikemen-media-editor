@@ -16,7 +16,7 @@ public partial class MainWindow
         {
             var files = await PickOpen(new FilePickerOpenOptions
             {
-                Title = "Create palette from images",
+                Title = "Create Palette from Images",
                 AllowMultiple = true,
                 FileTypeFilter = [PngPcxType],
             });
@@ -50,7 +50,7 @@ public partial class MainWindow
             {
                 if (read > 0) CrashLog.Error("OnCreatePaletteFromImages", "the picked images have no visible pixels");
                 errors.Insert(0, read > 0 ? "The picked images have no visible pixels." : "No image could be read.");
-                await Dialogs.ShowMessage(this, "Create palette from images", string.Join("\n", errors));
+                await Dialogs.ShowMessage(this, "Create Palette from Images", string.Join("\n", errors));
                 return;
             }
 
@@ -63,7 +63,7 @@ public partial class MainWindow
                 ? $"Created a temp palette from {from}; {sourceColors} colors reduced to 255."
                 : $"Created a temp palette from {from} ({sourceColors} colors).";
             if (errors.Count > 0)
-                await Dialogs.ShowMessage(this, "Some images could not be read", string.Join("\n", errors));
+                await Dialogs.ShowMessage(this, "Some Images Could Not Be Read", string.Join("\n", errors));
         }
         catch (Exception ex)
         {

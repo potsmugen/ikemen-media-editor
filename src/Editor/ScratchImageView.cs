@@ -15,7 +15,7 @@ namespace Editor;
 /// the decoded pixels this already has rather than reading back out of the
 /// displayed bitmap. Zoom and pan follow the sprite canvas's mouse buttons:
 /// wheel to zoom, middle-drag to pan, middle-click to put the view back,
-/// right-click for "Center image in canvas".
+/// right-click for "Center Image in Canvas".
 /// </summary>
 public class ScratchImageView : Control
 {

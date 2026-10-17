@@ -61,8 +61,8 @@ public partial class MainWindow
         try
         {
             if (!await ResolvePendingSoundEditsBeforeSwitch()) return;
-            if (_sndDirty && !await Dialogs.Confirm(this, "Unsaved sound changes",
-                    "The sound file has unsaved changes.", "Discard them"))
+            if (_sndDirty && !await Dialogs.Confirm(this, "Unsaved Sound Changes",
+                    "The sound file has unsaved changes.", "Discard Them"))
                 return;
 
             _snd = new SndFile();
@@ -87,13 +87,13 @@ public partial class MainWindow
         try
         {
             if (!await ResolvePendingSoundEditsBeforeSwitch()) return;
-            if (_sndDirty && !await Dialogs.Confirm(this, "Unsaved sound changes",
-                    "The sound file has unsaved changes.", "Discard them"))
+            if (_sndDirty && !await Dialogs.Confirm(this, "Unsaved Sound Changes",
+                    "The sound file has unsaved changes.", "Discard Them"))
                 return;
 
             var files = await PickOpen(new FilePickerOpenOptions
             {
-                Title = "Open sound file",
+                Title = "Open Sound File",
                 AllowMultiple = false,
                 FileTypeFilter = [SndType],
             });
@@ -111,7 +111,7 @@ public partial class MainWindow
             if (preloaded is null || !LoadSnd(path, preloaded))
             {
                 StatusText.Text = $"Could not open {Path.GetFileName(path)}.";
-                await Dialogs.ShowMessage(this, "Could not read the sound file", _sndError ?? "unknown problem");
+                await Dialogs.ShowMessage(this, "Could Not Read the Sound File", _sndError ?? "unknown problem");
                 return;
             }
             SwitchToTab(3);
@@ -179,7 +179,7 @@ public partial class MainWindow
             {
                 var file = await PickSave(new FilePickerSaveOptions
                 {
-                    Title = "Save sounds",
+                    Title = "Save Sounds",
                     DefaultExtension = "snd",
                     FileTypeChoices = [SndType],
                 });
@@ -190,7 +190,7 @@ public partial class MainWindow
             else
             {
                 StatusText.Text = $"Could not save {Path.GetFileName(savePath)}.";
-                await Dialogs.ShowMessage(this, "Could not save the sound file", _sndError ?? "unknown problem");
+                await Dialogs.ShowMessage(this, "Could Not Save the Sound File", _sndError ?? "unknown problem");
             }
         }
         catch (Exception ex)
@@ -525,7 +525,7 @@ public partial class MainWindow
             // async void: an exception here has nowhere else to go — log it
             // explicitly rather than relying on it reaching AppDomain intact.
             CrashLog.Write("OnSoundSelected", ex);
-            await Dialogs.ShowMessage(this, "Something went wrong", ex.Message);
+            await Dialogs.ShowMessage(this, "Something Went Wrong", ex.Message);
         }
     }
 
@@ -607,7 +607,7 @@ public partial class MainWindow
             if (CurrentSound is not { } s) return;
             if (s.Problem is not null)
             {
-                await Dialogs.ShowMessage(this, "Cannot play", $"This sound is {s.Problem}.");
+                await Dialogs.ShowMessage(this, "Cannot Play", $"This sound is {s.Problem}.");
                 return;
             }
 
@@ -624,7 +624,7 @@ public partial class MainWindow
             catch (Exception ex)
             {
                 CrashLog.Write("PlayCurrent", ex);
-                await Dialogs.ShowMessage(this, "Could not play the sound",
+                await Dialogs.ShowMessage(this, "Could Not Play the Sound",
                     $"{ex.Message}\n\nYou can still use Export .wav and play it with any player.");
             }
         }
@@ -812,7 +812,7 @@ public partial class MainWindow
 
             var file = await PickSave(new FilePickerSaveOptions
             {
-                Title = "Export sound",
+                Title = "Export Sound",
                 SuggestedFileName = $"{s.Group}_{s.Index}.wav",
                 DefaultExtension = "wav",
                 FileTypeChoices = [WavType],
@@ -837,7 +837,7 @@ public partial class MainWindow
             string suggested = _sndPath is null ? "export" : Path.GetFileNameWithoutExtension(_sndPath);
             var file = await PickSave(new FilePickerSaveOptions
             {
-                Title = "Export sounds - choose the manifest .txt",
+                Title = "Export Sounds - Choose the Manifest .txt",
                 SuggestedFileName = $"{suggested}.txt",
                 DefaultExtension = "txt",
                 FileTypeChoices = [TxtType],
@@ -850,7 +850,7 @@ public partial class MainWindow
             {
                 var keys = string.Join(", ", duplicateKeys.Select(g => $"{g.Key.Group},{g.Key.Index}"));
                 CrashLog.Error("OnExportAllSounds", $"Cannot export duplicate sound keys: {keys}");
-                await Dialogs.ShowMessage(this, "Cannot export duplicate sound keys", keys);
+                await Dialogs.ShowMessage(this, "Cannot Export Duplicate Sound Keys", keys);
                 return;
             }
 
@@ -871,7 +871,7 @@ public partial class MainWindow
         catch (Exception ex)
         {
             CrashLog.Write("OnExportAllSounds", ex);
-            await Dialogs.ShowMessage(this, "Export failed", $"Export failed: {ex.Message} (see crash.log)");
+            await Dialogs.ShowMessage(this, "Export Failed", $"Export failed: {ex.Message} (see crash.log)");
         }
     }
 
@@ -886,7 +886,7 @@ public partial class MainWindow
             {
                 var picked = await PickOpen(new FilePickerOpenOptions
                 {
-                    Title = "Import sounds - choose the manifest .txt",
+                    Title = "Import Sounds - Choose the Manifest .txt",
                     FileTypeFilter = [TxtType],
                 });
                 if (picked.Count == 0 || picked[0].TryGetLocalPath() is not { } txtPath) return;
@@ -899,14 +899,14 @@ public partial class MainWindow
                 {
                     var message = string.Join(", ", duplicateKeys.Select(g => $"{g.Key.Group},{g.Key.Index}"));
                     CrashLog.Error("ImportAllSounds", $"{txtPath}: duplicate sound keys: {message}");
-                    await Dialogs.ShowMessage(this, "Duplicate sound entries", $"The manifest repeats these sound keys: {message}");
+                    await Dialogs.ShowMessage(this, "Duplicate Sound Entries", $"The manifest repeats these sound keys: {message}");
                     return;
                 }
                 if (unexpectedTypes.Count > 0)
                 {
                     LogBulkProblems("ImportAllSounds", errors, []);
                     CrashLog.Error("ImportAllSounds", $"{txtPath}: unexpected entry types: {string.Join(", ", unexpectedTypes)}");
-                    await Dialogs.ShowMessage(this, "Not a sound export", "This manifest contains entries that aren't sounds.");
+                    await Dialogs.ShowMessage(this, "Not a Sound Export", "This manifest contains entries that aren't sounds.");
                     return;
                 }
 
@@ -952,7 +952,7 @@ public partial class MainWindow
                 {
                     StatusText.Text = "Nothing imported.";
                     if (errors.Count > 0)
-                        await Dialogs.ShowMessage(this, "Some entries could not be imported", SummarizeBulkErrors(errors));
+                        await Dialogs.ShowMessage(this, "Some Entries Could Not Be Imported", SummarizeBulkErrors(errors));
                     return;
                 }
 
@@ -976,12 +976,12 @@ public partial class MainWindow
                 if (errors.Count > 0) summary += $"; {errors.Count} error(s)";
                 StatusText.Text = summary;
                 if (errors.Count > 0)
-                    await Dialogs.ShowMessage(this, "Some entries could not be imported", SummarizeBulkErrors(errors));
+                    await Dialogs.ShowMessage(this, "Some Entries Could Not Be Imported", SummarizeBulkErrors(errors));
             }
             catch (Exception ex)
             {
                 CrashLog.Write("OnImportAllSounds", ex);
-                await Dialogs.ShowMessage(this, "Could not import", $"{ex.Message}\n\nDetails were written to {CrashLog.Path}");
+                await Dialogs.ShowMessage(this, "Could Not Import", $"{ex.Message}\n\nDetails were written to {CrashLog.Path}");
             }
         }
         catch (Exception ex)
@@ -1301,7 +1301,7 @@ public partial class MainWindow
         var file = _snd;
         double defaultAmount = Settings.Checked(nameof(Settings.LoudnessDefaultAmount), _settings.LoudnessDefaultAmount,
             SndEdit.DefaultLoudnessAmount, v => v >= SndEdit.MinLoudnessAmount && v <= SndEdit.MaxLoudnessAmount);
-        string? text = await Dialogs.PromptText(this, "Increase loudness",
+        string? text = await Dialogs.PromptText(this, "Increase Loudness",
             $"Amount ({SndEdit.MinLoudnessAmount:0}-{SndEdit.MaxLoudnessAmount:0}; higher lifts quiet parts more, each sound's peak stays unchanged):",
             defaultAmount.ToString("0.##", CultureInfo.InvariantCulture));
         if (text is null) return;
@@ -1527,7 +1527,7 @@ public partial class MainWindow
         try
         {
             if (!await ResolvePendingSoundEditsBeforeSwitch()) return;
-            if (await Dialogs.PromptText(this, "Downsample all",
+            if (await Dialogs.PromptText(this, "Downsample All",
                     "Lower every sound above this rate to it (Hz; common: 44100, 22050, 11025):",
                     Settings.Checked(nameof(Settings.DownsampleAllRate), _settings.DownsampleAllRate, Settings.DefaultDownsampleAllRate,
                         v => v >= SndEdit.MinSampleRate && v <= SndEdit.MaxSampleRate).ToString(CultureInfo.InvariantCulture)) is not { } text) return;
@@ -2177,7 +2177,7 @@ public partial class MainWindow
                 StatusText.Text = $"Already {current}-bit.";
                 return;
             }
-            if (to > current && !await Dialogs.Confirm(this, "Raise bit depth",
+            if (to > current && !await Dialogs.Confirm(this, "Raise Bit Depth",
                     $"Raising from {current} to {to}-bit adds no detail and makes the sound bigger.\n" +
                     $"It's only worth it before several edits on a {current}-bit sound.",
                     "Raise")) return;
@@ -2234,7 +2234,7 @@ public partial class MainWindow
             if (result is null) return;
             if (!int.TryParse(result.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int val) || val < 0)
             {
-                await Dialogs.ShowMessage(this, "Not a number", "Type a whole number of 0 or more.");
+                await Dialogs.ShowMessage(this, "Not a Number", "Type a whole number of 0 or more.");
                 return;
             }
             CommitSoundField(row, isGroup ? val : null, isGroup ? null : val);
@@ -2244,7 +2244,7 @@ public partial class MainWindow
             // async void: an exception here has nowhere else to go — log it
             // explicitly rather than relying on it reaching AppDomain intact.
             CrashLog.Write("OnSoundCellDoubleTapped", ex);
-            await Dialogs.ShowMessage(this, "Something went wrong", ex.Message);
+            await Dialogs.ShowMessage(this, "Something Went Wrong", ex.Message);
         }
     }
 

@@ -248,7 +248,7 @@ public static class Dialogs
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-            Title = "Recover unsaved work", SizeToContent = SizeToContent.WidthAndHeight,
+            Title = "Recover Unsaved Work", SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
             Content = body,
         };
@@ -277,7 +277,7 @@ public static class Dialogs
     public static Task<StandalonePaletteOpenChoice> PromptUnsavedStandalonePalettes(Window owner, int count)
     {
         string noun = count == 1 ? "palette file has" : "palette files have";
-        return Show(owner, "Unsaved palette changes",
+        return Show(owner, "Unsaved Palette Changes",
             $"{count} standalone {noun} unsaved changes.",
             [("Save", StandalonePaletteOpenChoice.Save), ("Discard", StandalonePaletteOpenChoice.Discard), ("Cancel", StandalonePaletteOpenChoice.Cancel)],
             StandalonePaletteOpenChoice.Cancel);
@@ -293,16 +293,16 @@ public static class Dialogs
             string noun = linkedPaletteCount == 1 ? "linked palette will be" : "linked palettes will be";
             message += $"\n{linkedPaletteCount} {noun} unlinked with their current colors preserved.";
         }
-        return Show(owner, "Delete sprites and palettes?", message,
-            [("Delete sprites and palettes", DeleteSpritesPaletteChoice.DeleteSpritesAndPalettes),
-                ("Delete sprites only", DeleteSpritesPaletteChoice.DeleteSpritesOnly),
+        return Show(owner, "Delete Sprites and Palettes?", message,
+            [("Delete Sprites and Palettes", DeleteSpritesPaletteChoice.DeleteSpritesAndPalettes),
+                ("Delete Sprites Only", DeleteSpritesPaletteChoice.DeleteSpritesOnly),
                 ("Cancel", DeleteSpritesPaletteChoice.Cancel)],
             DeleteSpritesPaletteChoice.Cancel);
     }
 
     public static Task<bool> PromptShortPalette(Window owner, int needed, int available) =>
-        Show(owner, "Palette has fewer colors", $"This sprite uses color indexes up to {needed - 1}, so it needs {needed} palette entries. The file contains {available}. Reject the import, or pad the missing entries with opaque black?",
-            [("Reject import", false), ("Pad with opaque black", true)], false);
+        Show(owner, "Palette Has Fewer Colors", $"This sprite uses color indexes up to {needed - 1}, so it needs {needed} palette entries. The file contains {available}. Reject the import, or pad the missing entries with opaque black?",
+            [("Reject Import", false), ("Pad with Opaque Black", true)], false);
 
     /// <summary>
     /// A GIF repeats frames to hold a pose, and often returns to an earlier
@@ -316,7 +316,7 @@ public static class Dialogs
         return Show<bool?>(owner, "Repeated frames",
             $"{name} has {frames}, and {repeats} of an earlier frame. Dropping them leaves "
             + $"{total - duplicates}, so the animation may hold a pose for a shorter time. Keep every frame instead?",
-            [("Drop repeats", true), ("Keep every frame", false), ("Cancel", null)]);
+            [("Drop Repeats", true), ("Keep Every Frame", false), ("Cancel", null)]);
     }
 
     /// <summary>
@@ -334,14 +334,14 @@ public static class Dialogs
             $"{name} has {many} that use {colors} colors between them, more than the {max} one palette holds. "
             + $"32-bit color keeps every color exactly. Reducing to {max} keeps the frames 8-bit, "
             + "but shifts the colors that do not fit.",
-            [("Use 32-bit color", GifOverflowChoice.TrueColor),
-             ($"Reduce to {max} colors", GifOverflowChoice.Reduce),
+            [("Use 32-bit Color", GifOverflowChoice.TrueColor),
+             ($"Reduce to {max} Colors", GifOverflowChoice.Reduce),
              ("Cancel", null)], null);
     }
 
     public static Task<bool> PromptSffV1AlphaLoss(Window owner) =>
-        Show(owner, "SFFv1 cannot store palette alpha", "SFFv1 stores palette colors as RGB. Alpha from this palette will be lost when saved. Continue without alpha?",
-            [("Cancel", false), ("Continue without alpha", true)], false);
+        Show(owner, "SFFv1 Cannot Store Palette Alpha", "SFFv1 stores palette colors as RGB. Alpha from this palette will be lost when saved. Continue without alpha?",
+            [("Cancel", false), ("Continue without Alpha", true)], false);
 
     /// <summary>A single-line text prompt. Returns null if canceled. Null sizes mean several sprites,
     /// which have no single current canvas: the line and the pre-filled values are left out.</summary>
@@ -640,7 +640,7 @@ public static class Dialogs
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-            Title = "Export sprites", SizeToContent = SizeToContent.WidthAndHeight,
+            Title = "Export Sprites", SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
             Content = body,
         };
@@ -698,7 +698,7 @@ public static class Dialogs
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-            Title = "Export sprite", SizeToContent = SizeToContent.WidthAndHeight,
+            Title = "Export Sprite", SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
             Content = body,
         };
@@ -750,7 +750,7 @@ public static class Dialogs
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-            Title = "Flip sprite", SizeToContent = SizeToContent.WidthAndHeight,
+            Title = "Flip Sprite", SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
             Content = body,
         };
@@ -830,7 +830,7 @@ public static class Dialogs
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-            Title = "Rotate sprite", SizeToContent = SizeToContent.WidthAndHeight,
+            Title = "Rotate Sprite", SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
             Content = body,
         };
@@ -957,7 +957,7 @@ public static class Dialogs
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-            Title = "Save like SprMaker", SizeToContent = SizeToContent.WidthAndHeight,
+            Title = "Save Like SprMaker", SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
             Content = body,
         };
@@ -990,7 +990,7 @@ public static class Dialogs
             quiet.IsChecked = o.QuietMode;
         }
         Show(current);
-        return OptionsDialog(owner, "Save like SprMaker 0.97", notes,
+        return OptionsDialog(owner, "Save Like SprMaker 0.97", notes,
             [crop, link, pal, summary, quiet],
             () => Show(new SprMakerOptions()),
             () => new SprMakerOptions
@@ -1044,7 +1044,7 @@ public static class Dialogs
             Orientation = Orientation.Horizontal, Spacing = 8,
             Children = { new TextBlock { Text = label, Width = 110, VerticalAlignment = VerticalAlignment.Center }, box },
         };
-        return OptionsDialog(owner, "Save like SprMaker 2.01", notes,
+        return OptionsDialog(owner, "Save Like SprMaker 2.01", notes,
             [crop, link, detect, verbose, veryVerbose, quiet,
              Row("5-bit sprites", c5), Row("8-bit sprites", c8), Row("True color", c24), decompress, discard],
             () => Show(new SprMaker2Options()),
@@ -1223,7 +1223,7 @@ public static class Dialogs
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-            Title = "Sprite linking", SizeToContent = SizeToContent.WidthAndHeight,
+            Title = "Sprite Linking", SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
             Content = body,
         };
@@ -1279,7 +1279,7 @@ public static class Dialogs
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-            Title = "Sprite target", SizeToContent = SizeToContent.WidthAndHeight,
+            Title = "Sprite Target", SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
             Content = body,
         };
@@ -1338,7 +1338,7 @@ public static class Dialogs
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-            Title = "Palette linking and merging", SizeToContent = SizeToContent.WidthAndHeight,
+            Title = "Palette Linking and Merging", SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
             Content = body,
         };
@@ -1396,7 +1396,7 @@ public static class Dialogs
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-            Title = "Palette target", SizeToContent = SizeToContent.WidthAndHeight,
+            Title = "Palette Target", SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
             Content = body,
         };
@@ -1474,7 +1474,7 @@ public static class Dialogs
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-            Title = "New palette key", SizeToContent = SizeToContent.WidthAndHeight,
+            Title = "New Palette Key", SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
             Content = body,
         };
@@ -1703,7 +1703,7 @@ public static class Dialogs
         {
             Background = ThemeBrush("ThemePanelBg"),
             Foreground = ThemeBrush("ThemeText"),
-            Title = "Find similar sprites",
+            Title = "Find Similar Sprites",
             SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             CanResize = false,
@@ -2258,7 +2258,7 @@ public static class Dialogs
         {
             Background = ThemeBrush("ThemePanelBg"),
             Foreground = ThemeBrush("ThemeText"),
-            Title = "Sprites in sheet",
+            Title = "Sprites in Sheet",
             Width = 900,
             Height = 700,
             MinWidth = 500,
@@ -2449,7 +2449,7 @@ public static class Dialogs
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-            Title = "Convert palette depth", SizeToContent = SizeToContent.WidthAndHeight,
+            Title = "Convert Palette Depth", SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
             Content = body,
         };
@@ -2474,12 +2474,12 @@ public static class Dialogs
             + $"Reducing to {max} keeps it 8-bit but shifts colors that do not fit. ";
         var buttons = new List<(string Label, TooManyColorsChoice? Value)>
         {
-            ($"Reduce to {max} colors", TooManyColorsChoice.Reduce),
+            ($"Reduce to {max} Colors", TooManyColorsChoice.Reduce),
         };
         if (trueColorAvailable)
         {
             message += "32-bit color keeps every color exactly.";
-            buttons.Add(("Use 32-bit color", TooManyColorsChoice.TrueColor));
+            buttons.Add(("Use 32-bit Color", TooManyColorsChoice.TrueColor));
         }
         else message += "This SFF version does not support 32-bit color.";
         buttons.Add(("Cancel", null));
@@ -2495,7 +2495,7 @@ public static class Dialogs
         string message = images.Count == 1
             ? $"{images[0]} has more than 256 colors.\nIt will be reduced to 256 colors using frequency-weighted median cut."
             : $"{images.Count} images have more than 256 colors.\nThey will be reduced to 256 colors using frequency-weighted median cut.";
-        return Confirm(owner, "Reduce image colors", message, "Continue");
+        return Confirm(owner, "Reduce Image Colors", message, "Continue");
     }
 
     /// <summary>Chooses whether this sprite keeps its indexes or maps them to a palette by color.</summary>
@@ -2527,7 +2527,7 @@ public static class Dialogs
         {
             Background = ThemeBrush("ThemePanelBg"),
             Foreground = ThemeBrush("ThemeText"),
-            Title = "Palette index mapping",
+            Title = "Palette Index Mapping",
             SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             CanResize = false,
@@ -2575,39 +2575,39 @@ public static class Dialogs
     }
 
     public static Task<SaveChoice> AskToSave(Window owner, string fileName) =>
-        Show(owner, "Unsaved changes",
+        Show(owner, "Unsaved Changes",
             $"{fileName} has changes that have not been saved.",
             [("Save", SaveChoice.Save), ("Discard", SaveChoice.Discard), ("Cancel", SaveChoice.Cancel)],
             SaveChoice.Cancel);
 
     public static Task<PendingPaintChoice> AskAboutPendingPaint(Window owner) =>
-        Show(owner, "Uncommitted paint changes",
+        Show(owner, "Uncommitted Paint Changes",
             "This sprite has paint strokes that haven't been committed yet.",
             [("Commit", PendingPaintChoice.Commit), ("Discard", PendingPaintChoice.Discard), ("Cancel", PendingPaintChoice.Cancel)],
             PendingPaintChoice.Cancel);
 
     public static Task<PendingAdjustChoice> AskAboutPendingColorAdjust(Window owner) =>
-        Show(owner, "Uncommitted color adjustment",
+        Show(owner, "Uncommitted Color Adjustment",
             "This palette has a color adjustment that hasn't been committed yet.",
             [("Commit", PendingAdjustChoice.Commit), ("Discard", PendingAdjustChoice.Discard), ("Cancel", PendingAdjustChoice.Cancel)],
             PendingAdjustChoice.Cancel);
 
     public static Task<PendingSoundEditChoice> AskAboutPendingSoundEdits(Window owner) =>
-        Show(owner, "Uncommitted sound changes",
+        Show(owner, "Uncommitted Sound Changes",
             "This sound has edits that haven't been committed yet.",
             [("Commit", PendingSoundEditChoice.Commit), ("Discard", PendingSoundEditChoice.Discard), ("Cancel", PendingSoundEditChoice.Cancel)],
             PendingSoundEditChoice.Cancel);
 
     public static Task<bool> AskFindDuplicatesAgain(Window owner) =>
-        Show(owner, "Duplicate palettes changed",
+        Show(owner, "Duplicate Palettes Changed",
             "The duplicate palettes changed while the report was open.",
-            [("Find again", true), ("Cancel", false)],
+            [("Find Again", true), ("Cancel", false)],
             false);
 
     public static Task<bool> AskOpenSpriteFile(Window owner) =>
-        Show(owner, "Sprite file not open",
+        Show(owner, "Sprite File Not Open",
             "This frame's sprite is not in the loaded .sff.",
-            [("Open file…", true), ("Cancel", false)],
+            [("Open File", true), ("Cancel", false)],
             false);
 
     /// <summary>Which channel(s) to linearly interpolate for a gradient. Returns null if canceled or nothing is checked.</summary>
@@ -2628,7 +2628,7 @@ public static class Dialogs
         {
             Background = ThemeBrush("ThemePanelBg"),
             Foreground = ThemeBrush("ThemeText"),
-            Title = "Create gradient",
+            Title = "Create Gradient",
             SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             CanResize = false,
@@ -2751,7 +2751,7 @@ public static class Dialogs
         {
             Background = ThemeBrush("ThemePanelBg"),
             Foreground = ThemeBrush("ThemeText"),
-            Title = "Sort boxes",
+            Title = "Sort Boxes",
             SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             CanResize = false,
@@ -2809,7 +2809,7 @@ public static class Dialogs
         {
             Background = ThemeBrush("ThemePanelBg"),
             Foreground = ThemeBrush("ThemeText"),
-            Title = "Sort colors",
+            Title = "Sort Colors",
             SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             CanResize = false,
@@ -2918,7 +2918,7 @@ public static class Dialogs
         {
             Background = ThemeBrush("ThemePanelBg"),
             Foreground = ThemeBrush("ThemeText"),
-            Title = "Swap colors",
+            Title = "Swap Colors",
             SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             CanResize = false,
@@ -3235,7 +3235,7 @@ public static class Dialogs
         {
             Background = ThemeBrush("ThemePanelBg"),
             Foreground = ThemeBrush("ThemeText"),
-            Title = "Export palette",
+            Title = "Export Palette",
             SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             CanResize = false,

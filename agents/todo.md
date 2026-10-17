@@ -122,7 +122,7 @@ Built, but not tried by the maintainer yet.
 - Add tooltips to most buttons
 - Test the new refusal and failure popups (linked sprite, axis, palette delete/convert/
   link, recovery, open/reload/export errors, skipped-sprite list). Check Save All's
-  missing-source palette warning and whether Find again and Open file work.
+  missing-source palette warning and whether Find Again and Open File work.
 - Test the multi-selection busy lock and status progress: crop, resize canvas,
   rotate, flip, palette apply/import, Increase Loudness on several sounds,
   Downsample All, and the bulk export/import commands all disable the menu and
@@ -169,7 +169,7 @@ Built, but not tried by the maintainer yet.
   (whole-file crop with links followed).
 - Test JPG/BMP reference images.
 - Test the reference image's wheel zoom, middle-drag pan, middle-click reset and
-  Center image in canvas, including color picking at a zoomed scale and after
+  Center Image in Canvas, including color picking at a zoomed scale and after
   panning.
 
 ### Animations

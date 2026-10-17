@@ -42,7 +42,7 @@ public partial class MainWindow
             var (ext, type) = format == Dialogs.SpriteExportFormat.Pcx ? ("pcx", PcxType) : ("png", PngType);
             var file = await PickSave(new FilePickerSaveOptions
             {
-                Title = "Export sprite",
+                Title = "Export Sprite",
                 SuggestedFileName = $"{sprite.Group}_{sprite.Index}.{ext}",
                 DefaultExtension = ext,
                 FileTypeChoices = [type],
@@ -70,7 +70,7 @@ public partial class MainWindow
                 && (!options.IncludePalettes
                     || !sff.Palettes.Any(p => p.Source != PaletteSource.External)))
             {
-                await Dialogs.ShowMessage(this, "Nothing to export",
+                await Dialogs.ShowMessage(this, "Nothing to Export",
                     "There are no exportable sprites or palettes with the selected options.");
                 return;
             }
@@ -226,7 +226,7 @@ public partial class MainWindow
         {
             var picked = await PickOpen(new FilePickerOpenOptions
             {
-                Title = "Import sprites and palettes - choose the manifest .txt",
+                Title = "Import Sprites and Palettes - Choose the Manifest .txt",
                 FileTypeFilter = [TxtType],
             });
             if (picked.Count == 0 || picked[0].TryGetLocalPath() is not { } txtPath) return;
@@ -241,14 +241,14 @@ public partial class MainWindow
             {
                 var keys = string.Join(", ", duplicateKeys.Select(g => $"{g.Key.Type} {g.Key.Group},{g.Key.Index}"));
                 CrashLog.Error("ImportAllSpritesAndPalettes", $"{txtPath}: duplicate entries: {keys}");
-                await Dialogs.ShowMessage(this, "Duplicate manifest entries", keys);
+                await Dialogs.ShowMessage(this, "Duplicate Manifest Entries", keys);
                 return;
             }
             if (unexpectedTypes.Count > 0)
             {
                 LogBulkProblems("ImportAllSpritesAndPalettes", errors, []);
                 CrashLog.Error("ImportAllSpritesAndPalettes", $"{txtPath}: unexpected entry types: {string.Join(", ", unexpectedTypes)}");
-                await Dialogs.ShowMessage(this, "Not a sprite export", "This manifest contains entries that aren't sprites or palettes.");
+                await Dialogs.ShowMessage(this, "Not a Sprite Export", "This manifest contains entries that aren't sprites or palettes.");
                 return;
             }
 
@@ -407,7 +407,7 @@ public partial class MainWindow
             {
                 StatusText.Text = "Nothing imported.";
                 if (errors.Count > 0)
-                    await Dialogs.ShowMessage(this, "Some entries could not be imported", SummarizeBulkErrors(errors));
+                    await Dialogs.ShowMessage(this, "Some Entries Could Not Be Imported", SummarizeBulkErrors(errors));
                 return;
             }
 
@@ -451,7 +451,7 @@ public partial class MainWindow
             if (errors.Count > 0) summary += $"; {errors.Count} error(s)";
             StatusText.Text = summary;
             if (errors.Count > 0)
-                await Dialogs.ShowMessage(this, "Some entries could not be imported", SummarizeBulkErrors(errors));
+                await Dialogs.ShowMessage(this, "Some Entries Could Not Be Imported", SummarizeBulkErrors(errors));
         }
         catch (Exception ex)
         {
@@ -471,7 +471,7 @@ public partial class MainWindow
                 }
             }
             CrashLog.Write("OnImportAllSpritesAndPalettes", ex);
-            await Dialogs.ShowMessage(this, "Could not import", $"{ex.Message}\n\nDetails were written to {CrashLog.Path}");
+            await Dialogs.ShowMessage(this, "Could Not Import", $"{ex.Message}\n\nDetails were written to {CrashLog.Path}");
         }
         finally
         {
@@ -486,7 +486,7 @@ public partial class MainWindow
         string suggested = _path is null ? "export" : Path.GetFileNameWithoutExtension(_path);
         var file = await PickSave(new FilePickerSaveOptions
         {
-            Title = "Export sprites - choose the manifest .txt",
+            Title = "Export Sprites - Choose the Manifest .txt",
             SuggestedFileName = $"{suggested}.txt",
             DefaultExtension = "txt",
             FileTypeChoices = [TxtType],
@@ -508,7 +508,7 @@ public partial class MainWindow
                 .Concat(duplicatePaletteKeys.Select(g => $"palette {g.Key.Group},{g.Key.Index}"));
             var message = string.Join(", ", conflicts);
             CrashLog.Error("ExportAllSpritesAndPalettes", $"Cannot export duplicate keys: {message}");
-            await Dialogs.ShowMessage(this, "Cannot export duplicate keys", message);
+            await Dialogs.ShowMessage(this, "Cannot Export Duplicate Keys", message);
             return;
         }
         var canvas = options.PadCanvas ? CommonCanvas(eligible) : default;
@@ -556,7 +556,7 @@ public partial class MainWindow
         catch (Exception ex)
         {
             CrashLog.Write("ExportAllSpritesAndPalettes", ex);
-            await Dialogs.ShowMessage(this, "Export failed", $"Export failed: {ex.Message} (see crash.log)");
+            await Dialogs.ShowMessage(this, "Export Failed", $"Export failed: {ex.Message} (see crash.log)");
         }
         finally
         {

@@ -90,8 +90,8 @@ public partial class MainWindow
     {
         try
         {
-            if (_airDirty && !await Dialogs.Confirm(this, "Unsaved animation changes",
-                    "The animation file has unsaved changes.", "Discard them"))
+            if (_airDirty && !await Dialogs.Confirm(this, "Unsaved Animation Changes",
+                    "The animation file has unsaved changes.", "Discard Them"))
                 return;
 
             LoadAirFromEmbeddedText(new AirFile(), showSuggestedNames: true);
@@ -112,8 +112,8 @@ public partial class MainWindow
             if (_airDirty)
             {
                 CrashLog.Trace("OnOpenAir: awaiting unsaved-changes confirm");
-                if (!await Dialogs.Confirm(this, "Unsaved animation changes",
-                        "The animation file has unsaved changes.", "Discard them"))
+                if (!await Dialogs.Confirm(this, "Unsaved Animation Changes",
+                        "The animation file has unsaved changes.", "Discard Them"))
                 {
                     CrashLog.Trace("OnOpenAir: canceled at unsaved-changes confirm");
                     return;
@@ -123,7 +123,7 @@ public partial class MainWindow
             CrashLog.Trace("OnOpenAir: awaiting file picker");
             var files = await PickOpen(new FilePickerOpenOptions
             {
-                Title = "Open animation file",
+                Title = "Open Animation File",
                 AllowMultiple = false,
                 FileTypeFilter = [AnimationSourceType],
             });
@@ -137,7 +137,7 @@ public partial class MainWindow
             if (!LoadAnimationSource(path))
             {
                 CrashLog.Trace("OnOpenAir: LoadAir failed");
-                await Dialogs.ShowMessage(this, "Could not read the animation file", _airError ?? "unknown problem");
+                await Dialogs.ShowMessage(this, "Could Not Read the Animation File", _airError ?? "unknown problem");
                 return;
             }
             CrashLog.Trace("OnOpenAir: LoadAir finished ok");
@@ -153,7 +153,7 @@ public partial class MainWindow
             // async void: an exception here has nowhere else to go — log it
             // explicitly rather than relying on it reaching AppDomain intact.
             CrashLog.Write("OnOpenAir", ex);
-            await Dialogs.ShowMessage(this, "Something went wrong opening the animation file", ex.Message);
+            await Dialogs.ShowMessage(this, "Something Went Wrong Opening the Animation File", ex.Message);
         }
     }
 
@@ -412,7 +412,7 @@ public partial class MainWindow
                 + $"({string.Join(", ", linted.Select(x => x.Number))}).");
         if (encoding is not null) text.Add(encoding);
         text.Add("Nothing else changes.");
-        return await Dialogs.Confirm(this, "Saving will change the file", string.Join(Environment.NewLine + Environment.NewLine, text), "Save");
+        return await Dialogs.Confirm(this, "Saving Will Change the File", string.Join(Environment.NewLine + Environment.NewLine, text), "Save");
     }
 
     /// <summary>Tells, right after a save, what it wrote differently from the file without being edited.
@@ -429,7 +429,7 @@ public partial class MainWindow
                 + $"{string.Join(", ", SaveChangeParts(linted, done: true))}.");
         if (encoding is not null) text.Add(encoding);
         text.Add("Nothing else changed.");
-        await Dialogs.ShowMessage(this, "Saved with changes", string.Join(Environment.NewLine + Environment.NewLine, text));
+        await Dialogs.ShowMessage(this, "Saved with Changes", string.Join(Environment.NewLine + Environment.NewLine, text));
     }
 
     /// <summary>Forgets the Clsn lint (after a save wrote the file clean).</summary>
@@ -520,7 +520,7 @@ public partial class MainWindow
             string message = definition
                 ? $"{Path.GetFileName(path)} changed on disk since it was opened. Saving will replace its [Begin Action] blocks with the actions in Media and preserve the other current contents."
                 : $"{Path.GetFileName(path)} changed on disk since it was opened. Saving will overwrite it with the animation currently in Media.";
-            if (!await Dialogs.Confirm(this, "File changed outside Media", message, "Save"))
+            if (!await Dialogs.Confirm(this, "File Changed Outside Media", message, "Save"))
                 return (false, null);
             acceptedHash = hash;
         }
@@ -1497,7 +1497,7 @@ public partial class MainWindow
             // async void: an exception here has nowhere else to go — log it
             // explicitly rather than relying on it reaching AppDomain intact.
             CrashLog.Write("OnAutoHurtBoxes", ex);
-            await Dialogs.ShowMessage(this, "Something went wrong generating Clsn2 boxes", ex.Message);
+            await Dialogs.ShowMessage(this, "Something Went Wrong Generating Clsn2 Boxes", ex.Message);
         }
     }
 
@@ -1686,9 +1686,9 @@ public partial class MainWindow
             {
                 ItemsSource = new List<object>
                 {
-                    MenuAction("Center image in canvas", AnimCanvas.CenterImage),
+                    MenuAction("Center Image in Canvas", AnimCanvas.CenterImage),
                     new Separator(),
-                    MenuAction("Pin onion skin to this frame", PinFrameAsOnion, hasFrame),
+                    MenuAction("Pin Onion Skin to This Frame", PinFrameAsOnion, hasFrame),
                 },
             };
             OpenContextMenu(AnimCanvas, empty);
@@ -1698,13 +1698,13 @@ public partial class MainWindow
         var menu = new ContextMenu();
         var items = new List<object>
         {
-            MenuAction("Center image in canvas", AnimCanvas.CenterImage),
+            MenuAction("Center Image in Canvas", AnimCanvas.CenterImage),
             new Separator(),
             MenuAction("Delete", () => DeleteBox(index)),
             MenuAction("Duplicate", () => DuplicateBox(index)),
-            MenuAction("Make default", () => MakeBoxDefault(index)),
+            MenuAction("Make Default", () => MakeBoxDefault(index)),
             new Separator(),
-            MenuAction("Pin onion skin to this frame", PinFrameAsOnion, hasFrame),
+            MenuAction("Pin Onion Skin to This Frame", PinFrameAsOnion, hasFrame),
         };
         menu.ItemsSource = items;
         OpenContextMenu(AnimCanvas, menu);
@@ -2104,7 +2104,7 @@ public partial class MainWindow
             if (_air is null || _action is null) return;
             var action = _action;
             var name = SuggestedActionName(action.Number) is { } n ? $"{action.Number} ({n})" : $"{action.Number}";
-            if (!await Dialogs.Confirm(this, "Delete action", $"Delete action {name}?", "Delete")) return;
+            if (!await Dialogs.Confirm(this, "Delete Action", $"Delete action {name}?", "Delete")) return;
 
             var air = _air;
             int at = air.Actions.IndexOf(action);
@@ -2161,7 +2161,7 @@ public partial class MainWindow
                 StatusText.Text = "Every action already has a name, or none have a suggested one.";
                 return;
             }
-            if (!await Dialogs.Confirm(this, "Apply suggested names",
+            if (!await Dialogs.Confirm(this, "Apply Suggested Names",
                     $"Save the suggested name as the comment for {targets.Count} action(s) that don't have one yet?", "Apply"))
                 return;
 
@@ -2210,13 +2210,13 @@ public partial class MainWindow
 
             if (row.Action.Comments.Count == 0 && row.SuggestedName is { } suggestion)
             {
-                if (await Dialogs.Confirm(this, "Add suggested name",
+                if (await Dialogs.Confirm(this, "Add Suggested Name",
                         $"Save \"{suggestion}\" as this action's comment?", "Add"))
                     SetActionComment(row.Action, [suggestion]);
                 return;
             }
 
-            var text = await Dialogs.PromptText(this, "Action comment", "Comment for this action:",
+            var text = await Dialogs.PromptText(this, "Action Comment", "Comment for this action:",
                 row.Action.Comments.Count > 0 ? row.Action.Comments[0] : "");
             if (text is null) return;
             var trimmed = text.Trim();
@@ -2233,19 +2233,19 @@ public partial class MainWindow
         if (_air is null) return;
         SelectAction(action);
 
-        var result = await Dialogs.PromptText(this, "Renumber action", "New action number:",
+        var result = await Dialogs.PromptText(this, "Renumber Action", "New action number:",
             action.Number.ToString(CultureInfo.InvariantCulture));
         if (result is null) return;
         if (!int.TryParse(result.Trim(), out int number) || number < 0)
         {
             // Ikemen keys actions by int32 and reserves -1 as Copy Action's
             // "unset" sentinel, so negative numbers are out regardless of mode.
-            await Dialogs.ShowMessage(this, "Not a number", "Type a whole number of 0 or more.");
+            await Dialogs.ShowMessage(this, "Not a Number", "Type a whole number of 0 or more.");
             return;
         }
         if (number != action.Number && _air.Find(number) is not null)
         {
-            await Dialogs.ShowMessage(this, "Already used", $"Action {number} already exists in this file.");
+            await Dialogs.ShowMessage(this, "Already Used", $"Action {number} already exists in this file.");
             return;
         }
 

@@ -224,7 +224,7 @@
           <Border Grid.Column="0" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}" ClipToBounds="True">
             <Grid RowDefinitions="Auto,*">
               <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
-                <TextBlock x:Name="SpriteListLabel" Text="Sprites" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                <TextBlock x:Name="SpriteListLabel" Text="Sprite List" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                 <Button Grid.Column="1" x:Name="SpriteListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
                         Click="OnToggleSpriteListPanel" ToolTip.Tip="Collapse this panel" />
               </Grid>
@@ -636,7 +636,7 @@
           <Border Grid.Column="0" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}" ClipToBounds="True">
             <Grid RowDefinitions="Auto,*">
               <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
-                <TextBlock x:Name="PaletteListLabel" Text="Palettes" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                <TextBlock x:Name="PaletteListLabel" Text="Palette List" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                 <Button Grid.Column="1" x:Name="PaletteListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
                         Click="OnTogglePaletteListPanel" ToolTip.Tip="Collapse this panel" />
               </Grid>
@@ -1019,7 +1019,7 @@
           <Border Grid.Column="0" Grid.Row="0" Grid.RowSpan="3" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
             <Grid RowDefinitions="Auto,*">
               <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
-                <TextBlock x:Name="ActionListLabel" Text="Actions" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                <TextBlock x:Name="ActionListLabel" Text="Action List" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                 <Button Grid.Column="1" x:Name="ActionListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
                         Click="OnToggleActionListPanel" ToolTip.Tip="Collapse this panel" />
               </Grid>
@@ -1538,13 +1538,13 @@
                   <Button Grid.Column="2" Content="Add Clsn2" HorizontalAlignment="Stretch" Click="OnAddHurtBox" />
                 </Grid>
                 <Grid ColumnDefinitions="*,Auto,*">
-                  <Button Grid.Column="0" Content="Delete box" HorizontalAlignment="Stretch" Click="OnDeleteBox" />
+                  <Button Grid.Column="0" Content="Delete Box" HorizontalAlignment="Stretch" Click="OnDeleteBox" />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
                   <Button Grid.Column="2" x:Name="MakeDefaultButton" Content="Toggle Default" HorizontalAlignment="Stretch" Click="OnMakeBoxDefault"
                           ToolTip.Tip="Makes this frame's boxes the default for later frames." />
                 </Grid>
                 <Grid ColumnDefinitions="*,Auto,*">
-                  <Button Grid.Column="0" Content="Copy from onion skin" HorizontalAlignment="Stretch" Click="OnCopyClsnFromOnion"
+                  <Button Grid.Column="0" Content="Copy from Onion Skin" HorizontalAlignment="Stretch" Click="OnCopyClsnFromOnion"
                           ToolTip.Tip="Copies the onion skin frame's Clsn into this frame." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
                   <Button Grid.Column="2" Content="Auto Clsn2" HorizontalAlignment="Stretch" Click="OnAutoHurtBoxes"
@@ -1577,7 +1577,7 @@
           <Border Grid.Column="0" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}" ClipToBounds="True">
             <Grid RowDefinitions="Auto,*">
               <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
-                <TextBlock x:Name="SoundListLabel" Text="Sounds" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                <TextBlock x:Name="SoundListLabel" Text="Sound List" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                 <Button Grid.Column="1" x:Name="SoundListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
                         Click="OnToggleSoundListPanel" ToolTip.Tip="Collapse this panel" />
               </Grid>

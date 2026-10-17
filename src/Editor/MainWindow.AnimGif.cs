@@ -71,7 +71,7 @@ public partial class MainWindow
 
             var file = await PickSave(new FilePickerSaveOptions
             {
-                Title = "Export animation as GIF",
+                Title = "Export Animation as GIF",
                 SuggestedFileName = $"action{action.Number}.gif",
                 DefaultExtension = "gif",
                 FileTypeChoices = [GifType],

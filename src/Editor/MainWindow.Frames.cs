@@ -162,7 +162,7 @@ public partial class MainWindow
             if (_action is null) { StatusText.Text = "Open or create an action first."; return; }
             if (_file is null) { StatusText.Text = "No sprite file loaded to insert from."; return; }
 
-            var text = await Dialogs.PromptText(this, "Insert sprite group",
+            var text = await Dialogs.PromptText(this, "Insert Sprite Group",
                 "Sprite group number — every sprite in that group is appended as its own frame, in index order.", "");
             if (text is null) return;
             if (!int.TryParse(text.Trim(), out int group))

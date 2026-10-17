@@ -204,7 +204,7 @@ public partial class MainWindow
         if (files[0].TryGetLocalPath() is not { } path)
         {
             CrashLog.Error("Import Palette into Sprite", $"{files[0].Name}: selected file has no local path");
-            await Dialogs.ShowMessage(this, "Could not import palette", "The selected file has no local path.");
+            await Dialogs.ShowMessage(this, "Could Not Import Palette", "The selected file has no local path.");
             return;
         }
         if (!ReferenceEquals(_file, file)) return;
@@ -214,7 +214,7 @@ public partial class MainWindow
         catch (Exception ex)
         {
             CrashLog.Write($"Import Palette into Sprite {path}", ex);
-            await Dialogs.ShowMessage(this, "Could not import palette", $"{Path.GetFileName(path)}: {ex.Message}");
+            await Dialogs.ShowMessage(this, "Could Not Import Palette", $"{Path.GetFileName(path)}: {ex.Message}");
             return;
         }
 

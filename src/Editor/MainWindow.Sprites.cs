@@ -219,7 +219,7 @@ public partial class MainWindow
             if (count == 0) { StatusText.Text = "No duplicate sprites to link."; return; }
 
             bool v1 = SffVersions.IsV1(file.Version);
-            if (!await Dialogs.Confirm(this, "Link all duplicate sprites",
+            if (!await Dialogs.Confirm(this, "Link All Duplicate Sprites",
                     $"Link {count} sprite(s) to {sets.Count} identical original(s)? Each linked sprite keeps its own group, number and axis"
                     + (v1 ? "" : " and palette") + ". Makes the saved file smaller. One undo step.",
                     "Link All"))
@@ -314,7 +314,7 @@ public partial class MainWindow
             }
 
             _similarReport?.Close();
-            _similarReport = Dialogs.ShowReport(this, "Similar sprites", lines);
+            _similarReport = Dialogs.ShowReport(this, "Similar Sprites", lines);
             _similarReport.Closed += (s, _) => { if (ReferenceEquals(s, _similarReport)) _similarReport = null; };
             StatusText.Text = matches.Count == 0
                 ? $"No sprite is {levelName.ToLowerInvariant()} to {sprite.Group},{sprite.Index}."
@@ -367,7 +367,7 @@ public partial class MainWindow
         if (file.PositionOf(target) > file.PositionOf(sprite))
         {
             CrashLog.Error("Sprite linking", $"refused {sprite.Group},{sprite.Index} to later sprite {target.Group},{target.Index}");
-            await Dialogs.ShowMessage(this, "Cannot link to later sprite",
+            await Dialogs.ShowMessage(this, "Cannot Link to Later Sprite",
                 $"Sprite {target.Group},{target.Index} appears after {sprite.Group},{sprite.Index} in the sprite list. Choose an earlier sprite.");
             return;
         }
@@ -574,7 +574,7 @@ public partial class MainWindow
             long maxY = Math.Min((long)int.MaxValue, selected.Min(sprite => (long)SpriteAxisMax - sprite.AxisY));
             if (minX > maxX || minY > maxY)
             {
-                await Dialogs.ShowMessage(this, "Can't shift offsets", "The selected sprites cannot all be shifted into the permitted axis range.");
+                await Dialogs.ShowMessage(this, "Can't Shift Offsets", "The selected sprites cannot all be shifted into the permitted axis range.");
                 return;
             }
 
@@ -653,7 +653,7 @@ public partial class MainWindow
             {
                 CrashLog.Error("Set Sprite Axis", $"refused position {positionLabel} for sprites outside the permitted axis range: "
                     + string.Join(", ", outOfRange.Select(item => $"{item.Sprite.Group},{item.Sprite.Index} ({item.X},{item.Y})")));
-                await Dialogs.ShowMessage(this, "Can't set axis", $"Can't set axis position: {outOfRange.Count} selected sprite(s) exceed the permitted axis range.");
+                await Dialogs.ShowMessage(this, "Can't Set Axis", $"Can't set axis position: {outOfRange.Count} selected sprite(s) exceed the permitted axis range.");
                 return;
             }
             if (before.SequenceEqual(after)) return;
@@ -688,11 +688,11 @@ public partial class MainWindow
             var chosen = _file.Palettes[_paletteOverride];
             if (IsTempPalette(chosen))
             {
-                if (!await Dialogs.Confirm(this, "Move temp palette",
+                if (!await Dialogs.Confirm(this, "Move Temp Palette",
                         "Applying this temp palette moves it into the SFF file.", "Apply"))
                     return;
             }
-            else if (chosen.Source == PaletteSource.External && !await Dialogs.Confirm(this, "Import external palette",
+            else if (chosen.Source == PaletteSource.External && !await Dialogs.Confirm(this, "Import External Palette",
                     "Applying this external palette imports a copy of it into the SFF file.", "Apply"))
                 return;
             if (selected.Count > 1)
@@ -792,24 +792,24 @@ public partial class MainWindow
             var sprite = selected[0];
             if (sprite.Indexed is null && sprite.Direct is null)
             {
-                await Dialogs.ShowMessage(this, "Cannot import palette", "This sprite has no pixels for a palette to map.");
+                await Dialogs.ShowMessage(this, "Cannot Import Palette", "This sprite has no pixels for a palette to map.");
                 return;
             }
             var current = sprite.Palette;
             if (sprite.Indexed is not null && current is null)
             {
-                await Dialogs.ShowMessage(this, "Cannot import palette", "This sprite has no palette. Give it a palette first.");
+                await Dialogs.ShowMessage(this, "Cannot Import Palette", "This sprite has no palette. Give it a palette first.");
                 return;
             }
             bool v1 = SffVersions.IsV1(file.Version);
             if (v1 && sprite.SharesWith is not null)
             {
-                await Dialogs.ShowMessage(this, "Cannot import palette", "This sprite links to another sprite and cannot carry its own palette. Unlink it first.");
+                await Dialogs.ShowMessage(this, "Cannot Import Palette", "This sprite links to another sprite and cannot carry its own palette. Unlink it first.");
                 return;
             }
             if (v1 && (current!.Source != PaletteSource.Embedded || file.PaletteCanBeMadeUnique(sprite)))
             {
-                await Dialogs.ShowMessage(this, "Cannot import palette", "This sprite still uses a palette inherited from another sprite. Set its Palette field to Own first, then import the file.");
+                await Dialogs.ShowMessage(this, "Cannot Import Palette", "This sprite still uses a palette inherited from another sprite. Set its Palette field to Own first, then import the file.");
                 return;
             }
 
@@ -823,7 +823,7 @@ public partial class MainWindow
             if (files[0].TryGetLocalPath() is not { } path)
             {
                 CrashLog.Error("OnImportPaletteIntoSprite", $"{files[0].Name}: selected file has no local path");
-                await Dialogs.ShowMessage(this, "Could not import palette", "The selected file has no local path.");
+                await Dialogs.ShowMessage(this, "Could Not Import Palette", "The selected file has no local path.");
                 return;
             }
 
@@ -832,7 +832,7 @@ public partial class MainWindow
             catch (Exception ex)
             {
                 CrashLog.Write($"OnImportPaletteIntoSprite {path}", ex);
-                await Dialogs.ShowMessage(this, "Could not import palette", $"{Path.GetFileName(path)}: {ex.Message}");
+                await Dialogs.ShowMessage(this, "Could Not Import Palette", $"{Path.GetFileName(path)}: {ex.Message}");
                 return;
             }
 
@@ -1287,7 +1287,7 @@ public partial class MainWindow
                 skipped.Add(n);
                 if (++n > 65535)
                 {
-                    await Dialogs.ShowMessage(this, "No free numbers",
+                    await Dialogs.ShowMessage(this, "No Free Numbers",
                         $"Group {choices.Group} has no free number left for all {built.Count} {what}.");
                     return false;
                 }
@@ -1355,7 +1355,7 @@ public partial class MainWindow
         if (_file is null) return;
         try
         {
-            if (await PickImages("Import from sheet", allowMultiple: false) is not { } picked) return;
+            if (await PickImages("Import from Sheet", allowMultiple: false) is not { } picked) return;
             var (bytes, name) = picked[0];
 
             SheetLayout layout;
@@ -1366,13 +1366,13 @@ public partial class MainWindow
             catch (Exception ex)
             {
                 CrashLog.Write("OnAddSpriteSheet", ex);
-                await Dialogs.ShowMessage(this, "Could not read the sheet", ex.Message);
+                await Dialogs.ShowMessage(this, "Could Not Read the Sheet", ex.Message);
                 return;
             }
 
             if (layout.Count == 0)
             {
-                await Dialogs.ShowMessage(this, "No sprites found",
+                await Dialogs.ShowMessage(this, "No Sprites Found",
                     $"{name} has nothing that stands out from its background. Try a different background, or a lower size floor.");
                 return;
             }
@@ -1392,7 +1392,7 @@ public partial class MainWindow
                 catch (Exception ex)
                 {
                     CrashLog.Write("OnAddSpriteSheet", ex);
-                    await Dialogs.ShowMessage(this, "Could not read the sheet", ex.Message);
+                    await Dialogs.ShowMessage(this, "Could Not Read the Sheet", ex.Message);
                     return;
                 }
             }
@@ -1405,7 +1405,7 @@ public partial class MainWindow
 
             if (layout.Count == 0)
             {
-                await Dialogs.ShowMessage(this, "No sprites found",
+                await Dialogs.ShowMessage(this, "No Sprites Found",
                     $"{name} has nothing that stands out from that background at a floor of {detected.MinimumSize} pixels.");
                 return;
             }
@@ -1420,7 +1420,7 @@ public partial class MainWindow
 
             // The dialog's own choices still decide placement, palette and
             // indexes, exactly as they do for Add.
-            if (await PromptImport("Import from sheet", [source], layout.Count, file, previous,
+            if (await PromptImport("Import from Sheet", [source], layout.Count, file, previous,
                     askPlacement: true, group, number, group, layout) is not { } choices) return;
 
             var plan = BuildPlan(choices, previous);
@@ -1463,7 +1463,7 @@ public partial class MainWindow
         catch (Exception ex)
         {
             CrashLog.Write("OnAddSpriteSheet", ex);
-            await Dialogs.ShowMessage(this, "Could not import", ex.Message);
+            await Dialogs.ShowMessage(this, "Could Not Import", ex.Message);
         }
     }
 
@@ -1486,7 +1486,7 @@ public partial class MainWindow
             int index = NextFreeIndex(group);
             if (index > 65535)
             {
-                await Dialogs.ShowMessage(this, "Duplicate sprite", $"Group {group} has no free number left.");
+                await Dialogs.ShowMessage(this, "Duplicate Sprite", $"Group {group} has no free number left.");
                 return;
             }
 
@@ -1521,7 +1521,7 @@ public partial class MainWindow
         if (_file is null) return;
         try
         {
-            if (await PickImages("Add sprite from image", allowMultiple: true) is not { } picked) return;
+            if (await PickImages("Add Sprite from Image", allowMultiple: true) is not { } picked) return;
             if (await ExpandPicked(picked) is not { } sources) return;
             int count = sources.Sum(s => s.Count);
 
@@ -1530,7 +1530,7 @@ public partial class MainWindow
             int number = NextFreeIndex(group);
             var previous = file.PaletteBefore(_current is null ? file.Sprites.Count - 1 : file.PositionOf(_current));
 
-            if (await PromptImport($"Add sprite from image{(count == 1 ? "" : "s")}", sources, count, file, previous,
+            if (await PromptImport($"Add Sprite from Image{(count == 1 ? "" : "s")}", sources, count, file, previous,
                     askPlacement: true, group, number, group) is not { } choices) return;
 
             CrashLog.Trace($"OnAddSprite: {count} sprite(s) into group {choices.Group} from number {choices.Number}");
@@ -1576,7 +1576,7 @@ public partial class MainWindow
         catch (Exception ex)
         {
             CrashLog.Write("OnAddSprite", ex);
-            await Dialogs.ShowMessage(this, "Could not import", ex.Message);
+            await Dialogs.ShowMessage(this, "Could Not Import", ex.Message);
         }
     }
 
@@ -1596,8 +1596,8 @@ public partial class MainWindow
             if (total > 1)
             {
                 CrashLog.Error("OnReplaceSprite", $"{picked[0].Name}: {total} frames, refused");
-                await Dialogs.ShowMessage(this, "Cannot replace sprite",
-                    $"{picked[0].Name} has {total} frames. A sprite holds one image; use Add to import every frame.");
+                await Dialogs.ShowMessage(this, "Cannot Replace Sprite",
+                    $"{picked[0].Name} has {total} frames, which would make {total} sprites.\nOne sprite can't be replaced by multiple sprites.\nUse Add to import the frames as new sprites.");
                 return;
             }
 
@@ -1609,9 +1609,9 @@ public partial class MainWindow
                     askPlacement: false, 0, 0, sprite.Group) is not { } choices) return;
 
             int dependents = file.Sprites.Count(s => ReferenceEquals(s.SharesWith, sprite));
-            if (dependents > 0 && !await Dialogs.Confirm(this, "Linked sprites",
+            if (dependents > 0 && !await Dialogs.Confirm(this, "Linked Sprites",
                     $"{dependents} other sprite(s) link to these pixels and will change too.",
-                    "Replace anyway"))
+                    "Replace Anyway"))
                 return;
 
             CrashLog.Trace($"OnReplaceSprite: {sprite.Group},{sprite.Index} from {picked[0].Name}");
@@ -1701,7 +1701,7 @@ public partial class MainWindow
         catch (Exception ex)
         {
             CrashLog.Write("OnReplaceSprite", ex);
-            await Dialogs.ShowMessage(this, "Could not import", ex.Message);
+            await Dialogs.ShowMessage(this, "Could Not Import", ex.Message);
         }
     }
 
@@ -1727,7 +1727,7 @@ public partial class MainWindow
                 string borrowers = string.Join(", ", dependents.Take(5).Select(d => $"{d.Group},{d.Index}"))
                     + (dependents.Count > 5 ? ", …" : "");
                 bool one = dependents.Count == 1;
-                await Dialogs.ShowMessage(this, "Cannot delete sprite",
+                await Dialogs.ShowMessage(this, "Cannot Delete Sprite",
                     $"{borrowers} {(one ? "uses" : "use")} pixels from the selected "
                     + (spritesToDelete.Count == 1 ? "sprite" : "sprites")
                     + $". Unlink {(one ? "it" : "them")} first, or select {(one ? "it" : "them")} too.");
@@ -1743,7 +1743,7 @@ public partial class MainWindow
                 .OrderBy(file.Palettes.IndexOf)
                 .ToList();
             bool deletePalettes = v1 && palettesToDelete.Count > 0;
-            var choice = await Dialogs.Confirm(this, "Delete sprite",
+            var choice = await Dialogs.Confirm(this, "Delete Sprite",
                 spritesToDelete.Count == 1 ? $"Delete {names[0]}?" : $"Delete {spritesToDelete.Count} sprites?",
                 "Delete");
             if (!choice || !ReferenceEquals(_file, file)

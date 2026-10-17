@@ -530,7 +530,7 @@ public partial class MainWindow
         {
             var files = await PickOpen(new FilePickerOpenOptions
             {
-                Title = "Open reference image",
+                Title = "Open Reference Image",
                 AllowMultiple = false,
                 FileTypeFilter = [ImageType],
             });
@@ -546,7 +546,7 @@ public partial class MainWindow
             catch (Exception ex)
             {
                 CrashLog.Write("OnOpenScratchImage", ex);
-                await Dialogs.ShowMessage(this, "Could not open image", ex.Message);
+                await Dialogs.ShowMessage(this, "Could Not Open Image", ex.Message);
             }
         }
         catch (Exception ex)
@@ -882,7 +882,7 @@ public partial class MainWindow
     {
         var items = new List<(string, Action)>
         {
-            ("Center image in canvas", PalettePreview.CenterImage),
+            ("Center Image in Canvas", PalettePreview.CenterImage),
             MenuSeparator,
             ("Select Color Here", () => PalettePreview.PickColorAt(pos)),
         };
@@ -897,7 +897,7 @@ public partial class MainWindow
     /// </summary>
     private void OnScratchImageContextRequested()
     {
-        ShowContextMenu(ScratchImage, ("Center image in canvas", ScratchImage.CenterImage));
+        ShowContextMenu(ScratchImage, ("Center Image in Canvas", ScratchImage.CenterImage));
     }
 
     /// <summary>Writes dropped colors into a palette starting at the drop slot.</summary>
@@ -955,7 +955,7 @@ public partial class MainWindow
             var indices = view.Selection.OrderBy(i => i).ToList();
             if (indices.Count < 2)
             {
-                await Dialogs.ShowMessage(this, "Create gradient",
+                await Dialogs.ShowMessage(this, "Create Gradient",
                     "Select at least two colors first — a gradient needs a start and an end.");
                 return;
             }
@@ -1042,7 +1042,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             var indices = ReorderSelection(view, pal);
             if (indices is null)
             {
-                await Dialogs.ShowMessage(this, "Sort colors",
+                await Dialogs.ShowMessage(this, "Sort Colors",
                     "Select at least two colors to sort. Index 0 never moves, so it doesn't count.");
                 return;
             }
@@ -1081,12 +1081,12 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             var indices = view.Selection.Where(i => i < pal.Colors.Length).OrderBy(i => i).ToList();
             if (indices.Count != 2)
             {
-                await Dialogs.ShowMessage(this, "Swap colors", "Select exactly two colors to swap.");
+                await Dialogs.ShowMessage(this, "Swap Colors", "Select exactly two colors to swap.");
                 return;
             }
             if (indices[0] == 0)
             {
-                await Dialogs.ShowMessage(this, "Swap colors", "Index 0 is the transparent slot and can't be swapped.");
+                await Dialogs.ShowMessage(this, "Swap Colors", "Index 0 is the transparent slot and can't be swapped.");
                 return;
             }
 
@@ -1176,7 +1176,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         StatusText.Text = $"{doneText}; updated {sprites} sprite{(sprites == 1 ? "" : "s")}"
             + (skipped.Count > 0 ? $"; skipped {skipped.Count}." : ".");
         if (skipped.Count > 0)
-            await Dialogs.ShowMessage(this, "Sprites not updated", string.Join("\n", skipped));
+            await Dialogs.ShowMessage(this, "Sprites Not Updated", string.Join("\n", skipped));
     }
 
     /// <summary>A sprite's pixel indexes to replace, with the old array and dirty flag for undo.</summary>
@@ -1285,7 +1285,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 .Where(colors => PaletteDepth.CanConvert(file, palette, colors)).ToArray();
             if (available.Length == 0)
             {
-                await Dialogs.ShowMessage(this, "Convert depth", "No different supported depth fits this palette's sprites.");
+                await Dialogs.ShowMessage(this, "Convert Depth", "No different supported depth fits this palette's sprites.");
                 return;
             }
 
@@ -1303,7 +1303,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
 
             if (!PaletteDepth.CanConvert(file, palette, colors.Value))
             {
-                await Dialogs.ShowMessage(this, "Convert depth", "This palette no longer fits the selected depth.");
+                await Dialogs.ShowMessage(this, "Convert Depth", "This palette no longer fits the selected depth.");
                 return;
             }
 
@@ -1341,7 +1341,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             {
                 if (_standalonePaletteOverride < 0 || _standalonePaletteOverride >= _standalonePalettes.Count) return;
                 var palette = _standalonePalettes[_standalonePaletteOverride];
-                if (palette.Dirty && !await Dialogs.Confirm(this, "Close palette file",
+                if (palette.Dirty && !await Dialogs.Confirm(this, "Close Palette File",
                         $"{Path.GetFileName(palette.SourcePath) ?? "New palette"} has unsaved changes.", "Discard")) return;
                 _standalonePalettes.RemoveAt(_standalonePaletteOverride);
                 _standalonePaletteOverride = Math.Min(_standalonePaletteOverride, _standalonePalettes.Count - 1);
@@ -1408,7 +1408,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 else if (users > 1)
                     impact.Add($"{users} sprites use this palette and will be reassigned to {fallbackName}.");
                 if (users > 0) impact.Add("Their displayed colors may change.");
-                if (!await Dialogs.Confirm(this, "Delete palette?", string.Join(" ", impact), "Delete"))
+                if (!await Dialogs.Confirm(this, "Delete Palette?", string.Join(" ", impact), "Delete"))
                     return;
             }
 
@@ -1525,7 +1525,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             lines.Add(("External palettes are ignored.", null));
 
             var reportChoice = new TaskCompletionSource<DuplicatePaletteAction?>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var report = Dialogs.ShowReport(this, "Duplicate palettes", lines, new (string Label, string Tip, Action Click)[]
+            var report = Dialogs.ShowReport(this, "Duplicate Palettes", lines, new (string Label, string Tip, Action Click)[]
             {
                 ("Merge", "Make all sprites use the first palette. Delete the later ones.",
                     () => reportChoice.TrySetResult(DuplicatePaletteAction.Merge)),
@@ -1638,7 +1638,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                     lines.Add(($"Palette {PaletteKey(file, palette)}", () => JumpToPalette(palette)));
             }
 
-            Dialogs.ShowReport(this, "Unused palettes", lines);
+            Dialogs.ShowReport(this, "Unused Palettes", lines);
             CrashLog.Trace($"[palettes] found {unused.Count} unused embedded palette(s); ignored group 1 and external palettes");
         }
         catch (Exception ex)
@@ -1975,7 +1975,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             if (result is null) return;
             if (!int.TryParse(result.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int val))
             {
-                await Dialogs.ShowMessage(this, "Not a number", "Type a whole number.");
+                await Dialogs.ShowMessage(this, "Not a Number", "Type a whole number.");
                 return;
             }
             if (val < 0 || val > SpriteFieldMax)
@@ -1991,8 +1991,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             if (newGroup != pal.Group || newIndex != pal.Index)
             {
                 bool collides = _file.Palettes.Any(p => !ReferenceEquals(p, pal) && p.Group == newGroup && p.Index == newIndex);
-                if (collides && !await Dialogs.Confirm(this, "Group/index already used",
-                        $"Another palette already uses group {newGroup}, index {newIndex}. Continue anyway?", "Change anyway"))
+                if (collides && !await Dialogs.Confirm(this, "Group/Index Already Used",
+                        $"Another palette already uses group {newGroup}, index {newIndex}. Continue anyway?", "Change Anyway"))
                     return;
             }
 
@@ -2003,7 +2003,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             // async void: an exception here has nowhere else to go — log it
             // explicitly rather than relying on it reaching AppDomain intact.
             CrashLog.Write("OnPaletteCellDoubleTapped", ex);
-            await Dialogs.ShowMessage(this, "Something went wrong", ex.Message);
+            await Dialogs.ShowMessage(this, "Something Went Wrong", ex.Message);
         }
     }
 
@@ -2018,13 +2018,13 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             if (palette.Source != PaletteSource.Embedded)
             {
                 CrashLog.Error("OnPaletteLinkCellDoubleTapped", $"refused external palette {palette.Describe()}");
-                await Dialogs.ShowMessage(this, "Cannot link or merge palette", "Only embedded SFFv2 palettes can be linked or merged.");
+                await Dialogs.ShowMessage(this, "Cannot Link or Merge Palette", "Only embedded SFFv2 palettes can be linked or merged.");
                 return;
             }
             if (SffVersions.IsV1(file.Version))
             {
                 CrashLog.Error("OnPaletteLinkCellDoubleTapped", "refused SFFv1 palette link or merge: SFFv1 has no palette link table");
-                await Dialogs.ShowMessage(this, "Cannot link or merge palette", "Palette links and merges are available only in SFFv2.");
+                await Dialogs.ShowMessage(this, "Cannot Link or Merge Palette", "Palette links and merges are available only in SFFv2.");
                 return;
             }
 
@@ -2149,13 +2149,13 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         if (!file.Palettes.Contains(target))
         {
             CrashLog.Error("Palette merging", "refused target that is no longer in the palette table");
-            await Dialogs.ShowMessage(this, "Cannot merge palettes", "The target palette is no longer in the palette table.");
+            await Dialogs.ShowMessage(this, "Cannot Merge Palettes", "The target palette is no longer in the palette table.");
             return;
         }
         if (PaletteShareTargetError(file, source, target) is { } error)
         {
             CrashLog.Error("Palette merging", $"refused {PaletteDisplayName(file, source)} into {PaletteDisplayName(file, target)}: {error}");
-            await Dialogs.ShowMessage(this, "Cannot merge palettes", error);
+            await Dialogs.ShowMessage(this, "Cannot Merge Palettes", error);
             return;
         }
 
@@ -2168,7 +2168,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         string impact = $"Palette #{sourceNumber} ({source.Group},{source.Index}) will be removed. "
             + $"{spriteUsers} sprite(s) and {linkedPalettes} linked palette(s) will be redirected to "
             + $"palette #{targetNumber} ({target.Group},{target.Index}) and use its colors. Their displayed colors may change.";
-        if (!await Dialogs.Confirm(this, "Merge palettes", impact, "Merge")) return;
+        if (!await Dialogs.Confirm(this, "Merge Palettes", impact, "Merge")) return;
         if (!ReferenceEquals(_file, file) || !file.Palettes.Contains(source) || !file.Palettes.Contains(target)) return;
 
         Palette? selected = _paletteOverride >= 0 && _paletteOverride < file.Palettes.Count
@@ -2227,26 +2227,26 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             if (target.Source != PaletteSource.Embedded)
             {
                 CrashLog.Error("Palette linking", $"refused external target {target.Describe()}");
-                await Dialogs.ShowMessage(this, "Cannot link palette", "Only embedded SFFv2 palettes can be linked.");
+                await Dialogs.ShowMessage(this, "Cannot Link Palette", "Only embedded SFFv2 palettes can be linked.");
                 return;
             }
             if (file.Palettes.IndexOf(target) > file.Palettes.IndexOf(source))
             {
                 CrashLog.Error("Palette linking", $"refused {PaletteDisplayName(file, source)} to later palette {PaletteDisplayName(file, target)}");
-                await Dialogs.ShowMessage(this, "Cannot link to later palette",
+                await Dialogs.ShowMessage(this, "Cannot Link to Later Palette",
                     $"Palette {PaletteDisplayName(file, target)} appears after {PaletteDisplayName(file, source)} in the palette list. Choose an earlier palette.");
                 return;
             }
             if (target.LinksTo is not null)
             {
                 CrashLog.Error("Palette linking", $"refused linked target {PaletteDisplayName(file, target)}");
-                await Dialogs.ShowMessage(this, "Cannot link to a linked palette", "Choose an embedded palette that is not already linked.");
+                await Dialogs.ShowMessage(this, "Cannot Link to a Linked Palette", "Choose an embedded palette that is not already linked.");
                 return;
             }
             if (PaletteShareTargetError(file, source, target) is { } error)
             {
                 CrashLog.Error("Palette linking", $"refused {PaletteDisplayName(file, source)} to {PaletteDisplayName(file, target)}: {error}");
-                await Dialogs.ShowMessage(this, "Cannot link palette", error);
+                await Dialogs.ShowMessage(this, "Cannot Link Palette", error);
                 return;
             }
             if (ReferenceEquals(source.LinksTo, target))
@@ -2257,7 +2257,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
 
             int sourceNumber = file.Palettes.IndexOf(source) + 1;
             int targetNumber = file.Palettes.IndexOf(target) + 1;
-            if (!await Dialogs.Confirm(this, "Link palette",
+            if (!await Dialogs.Confirm(this, "Link Palette",
                     $"Palette #{sourceNumber} ({source.Group},{source.Index}) will use the colors from palette #{targetNumber} ({target.Group},{target.Index}). Sprites and palettes using it will also show those colors.", "Link"))
                 return;
             if (!ReferenceEquals(_file, file)) return;
@@ -2517,7 +2517,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         {
             var files = await PickOpen(new FilePickerOpenOptions
             {
-                Title = "Open palette files",
+                Title = "Open Palette Files",
                 AllowMultiple = true,
                 FileTypeFilter = [PaletteFilesType],
             });
@@ -2629,7 +2629,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 UpdateTitle();
             }
             if (errors.Count > 0)
-                await Dialogs.ShowMessage(this, "Some palette files could not be read", string.Join("\n", errors));
+                await Dialogs.ShowMessage(this, "Some Palette Files Could Not Be Read", string.Join("\n", errors));
         }
         catch (Exception ex)
         {
@@ -2727,7 +2727,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         bool temp = palette.SourcePath is null;
         var file = await PickSave(new FilePickerSaveOptions
         {
-            Title = "Save palette",
+            Title = "Save Palette",
             SuggestedFileName = temp ? "palette" : Path.GetFileNameWithoutExtension(palette.SourcePath),
             DefaultExtension = ext,
             FileTypeChoices = temp ? [RgbaType, ActType, JascPalType] : [type],
@@ -2739,7 +2739,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         byte[]? sourceBytes = Path.GetExtension(path).Equals(Path.GetExtension(palette.SourcePath), StringComparison.OrdinalIgnoreCase)
             ? palette.SourceData : null;
         string? loss = StandalonePaletteLoss(palette, path, sourceBytes);
-        if (loss is not null && !await Dialogs.Confirm(this, "Palette save loses information", loss, "Save")) return;
+        if (loss is not null && !await Dialogs.Confirm(this, "Palette Save Loses Information", loss, "Save")) return;
         try
         {
             string targetExtension = Path.GetExtension(path).ToLowerInvariant();
@@ -2768,7 +2768,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         catch (Exception ex)
         {
             CrashLog.Write("SaveStandalonePaletteAs", ex);
-            await Dialogs.ShowMessage(this, "Could not save the palette", ex.Message);
+            await Dialogs.ShowMessage(this, "Could Not Save the Palette", ex.Message);
         }
     }
 
@@ -2785,7 +2785,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         {
             byte[]? sourceBytes = palette.SourceData is null ? null : (byte[])palette.SourceData.Clone();
             string? loss = StandalonePaletteLoss(palette, path, sourceBytes);
-            if (loss is not null && !await Dialogs.Confirm(this, "Palette save loses information", loss, "Save")) return false;
+            if (loss is not null && !await Dialogs.Confirm(this, "Palette Save Loses Information", loss, "Save")) return false;
             if (!await ConfirmRecoveredSourceWrite(path)) return false;
             if ((Path.GetExtension(path).Equals(".png", StringComparison.OrdinalIgnoreCase)
                     || Path.GetExtension(path).Equals(".pcx", StringComparison.OrdinalIgnoreCase)) && sourceBytes is null)
@@ -2818,7 +2818,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         catch (Exception ex)
         {
             CrashLog.Write("SavePaletteDocument", ex);
-            await Dialogs.ShowMessage(this, "Could not save the palette", ex.Message);
+            await Dialogs.ShowMessage(this, "Could Not Save the Palette", ex.Message);
             return false;
         }
     }
@@ -2866,7 +2866,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
 
             var file = await PickSave(new FilePickerSaveOptions
             {
-                Title = "Export palette",
+                Title = "Export Palette",
                 SuggestedFileName = pal.IsCharacterPalette ? $"pal{pal.Index}" : $"{pal.Group}_{pal.Index}",
                 DefaultExtension = ext,
                 FileTypeChoices = [type],
@@ -2875,7 +2875,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
 
             string rgbaPath = Path.ChangeExtension(path, ".rgba");
             if (File.Exists(rgbaPath)
-                && !await Dialogs.Confirm(this, "Replace RGBA palette?",
+                && !await Dialogs.Confirm(this, "Replace RGBA Palette?",
                     $"{Path.GetFileName(rgbaPath)} already exists and will be replaced.", "Replace"))
                 return;
 
@@ -2901,7 +2901,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         catch (Exception ex)
         {
             CrashLog.Write("OnExportPalette", ex);
-            await Dialogs.ShowMessage(this, "Could not export the palette", ex.Message);
+            await Dialogs.ShowMessage(this, "Could Not Export the Palette", ex.Message);
         }
     }
 }

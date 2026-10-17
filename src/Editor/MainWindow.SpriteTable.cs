@@ -232,7 +232,7 @@ public partial class MainWindow
             if (result is null || !ReferenceEquals(_file, file)) return;
             if (!int.TryParse(result.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int val))
             {
-                await Dialogs.ShowMessage(this, "Not a number", "Type a whole number.");
+                await Dialogs.ShowMessage(this, "Not a Number", "Type a whole number.");
                 return;
             }
             int minimum = isX || field == "Y" ? SpriteAxisMin : 0;
@@ -255,7 +255,7 @@ public partial class MainWindow
             // async void: an exception here has nowhere else to go — log it
             // explicitly rather than relying on it reaching AppDomain intact.
             CrashLog.Write("OnSpriteCellDoubleTapped", ex);
-            await Dialogs.ShowMessage(this, "Something went wrong", ex.Message);
+            await Dialogs.ShowMessage(this, "Something Went Wrong", ex.Message);
         }
     }
 
@@ -478,7 +478,7 @@ public partial class MainWindow
             if (problem is not null)
             {
                 CrashLog.Error("Sprite palette fill", problem);
-                await Dialogs.ShowMessage(this, "Palette fill needs manual changes", problem);
+                await Dialogs.ShowMessage(this, "Palette Fill Needs Manual Changes", problem);
                 return;
             }
             before.Clear();

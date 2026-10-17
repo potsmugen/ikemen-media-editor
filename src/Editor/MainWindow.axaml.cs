@@ -801,22 +801,22 @@ public partial class MainWindow : Window
                 MenuAction("Combine Into New", () => _ = CombinePalettesFrom(clickedPalette), selectedCount >= 2),
                 MenuAction("Merge and Update Sprites", () => _ = MergePalettesInto(clickedPalette), selectedCount >= 2 && _file is not null),
                 new Separator(),
-                MenuAction("Convert palette depth", () =>
+                MenuAction("Convert Palette Depth", () =>
                 {
                     if (rowPalette is { } palette) _ = ConvertPaletteDepth(palette);
                 }, single && rowPalette is not null && _file is not null
                     && PaletteDepth.SupportedColorCounts.Any(colors => PaletteDepth.CanConvert(_file, rowPalette, colors))),
                 new Separator(),
-                MenuAction("Preview first sprite using this palette", () =>
+                MenuAction("Preview First Sprite Using This Palette", () =>
                 {
                     if (rowPalette is { } p) PreviewFirstSpriteUsingPalette(p);
                 }, single),
                 new Separator(),
                 MenuAction("Sort Ascending", () => OnSortPalettesAscending(null, new RoutedEventArgs())),
                 new Separator(),
-                MenuAction("Save original file", () => OnSaveAct(null, new RoutedEventArgs()),
+                MenuAction("Save Original File", () => OnSaveAct(null, new RoutedEventArgs()),
                     single && rowPalette?.Source == PaletteSource.External),
-                MenuAction("Save SFF file", () => OnSave(null, new RoutedEventArgs()),
+                MenuAction("Save SFF File", () => OnSave(null, new RoutedEventArgs()),
                     rowPalette?.Source == PaletteSource.Embedded && _file is not null),
                 MenuAction("Export Palette", () => OnExportPalette(null, new RoutedEventArgs()), single),
             };
@@ -1221,7 +1221,7 @@ public partial class MainWindow : Window
     private async Task Failed(string source, Exception ex)
     {
         CrashLog.Write(source, ex);
-        try { await Dialogs.ShowMessage(this, "Something went wrong", $"{ex.Message}\n\nDetails were written to {CrashLog.Path}"); }
+        try { await Dialogs.ShowMessage(this, "Something Went Wrong", $"{ex.Message}\n\nDetails were written to {CrashLog.Path}"); }
         catch (Exception e2) { CrashLog.Write(source + " (error dialog)", e2); }
     }
 
@@ -2153,7 +2153,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            await Dialogs.ShowShortcuts(this, "Keyboard shortcuts",
+            await Dialogs.ShowShortcuts(this, "Keyboard Shortcuts",
             [
                 ("File",
                 [

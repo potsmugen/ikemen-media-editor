@@ -216,7 +216,7 @@ public partial class MainWindow
         if (path is null || !_recoverySourceHashes.TryGetValue(path, out var expected)) return true;
         string? current = RecoveryStore.HashFile(path);
         if (current == expected) return true;
-        bool overwrite = await Dialogs.Confirm(this, "File changed outside Media",
+        bool overwrite = await Dialogs.Confirm(this, "File Changed Outside Media",
             $"{Path.GetFileName(path)} changed on disk after its recovered snapshot. Saving will overwrite it.", "Save");
         if (overwrite && current is not null) _recoverySourceHashes[path] = current;
         return overwrite;

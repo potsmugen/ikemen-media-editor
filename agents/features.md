@@ -252,7 +252,7 @@ and constraints that are easy to miss when reading one code path in isolation.
   by those sprites, in one undo step, rather than copying it per sprite. In SFFv1 its
   colors are copied into each sprite's own palette (v1 palettes live in the sprites) and
   the temp palette leaves the list in the same undo step. Either way none is left behind.
-- **Palette list right-click** offers "Save original file" (imported palettes, to their source file) and "Save SFF file" (SFF palettes, same as File > Save). The option that does not apply to the clicked palette is dimmed, not hidden.
+- **Palette list right-click** offers "Save Original File" (imported palettes, to their source file) and "Save SFF File" (SFF palettes, same as File > Save). The option that does not apply to the clicked palette is dimmed, not hidden.
 - **Palette PNG export** preserves RGBA as indexed pixels with alpha.
 - **Palette selection** follows the palette object. A palette preview can display
   the active sprite without changing which palette is being edited. Dirty palettes
