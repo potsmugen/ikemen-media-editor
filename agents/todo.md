@@ -183,12 +183,6 @@ Built, but not tried by the maintainer yet.
 
 ### Animations
 
-- Let Auto Clsn2 also make Clsn1 (queued after the cell-edit timing work). Decided: one
-  button renamed Auto Clsn with a Clsn1/Clsn2 choice in its dialog; count and layout shared
-  between kinds; Auto Clsn2 For All stays Clsn2 only. The dialog opens on Clsn2 every time
-  (the kind is not remembered). Dialog: each label above its control, in order Kind
-  (Clsn1/Clsn2 dropdown), Boxes (text box), Layout (dropdown), then Generate/Cancel. For All
-  uses the same layout without Kind.
 - Support Copy Action animations.
 - Test Auto Clsn2 with true-color sprites.
 - Test/reject Auto Clsn when sprite has no mask color.

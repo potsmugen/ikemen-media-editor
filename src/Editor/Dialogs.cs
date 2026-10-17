@@ -3007,10 +3007,10 @@ public static class Dialogs
     }
 
     /// <summary>How many boxes Auto Clsn2 should use, and their layout.</summary>
-    public readonly record struct AutoBoxCount(int Boxes, CoverLayout Layout, bool SkipWithoutClsn2 = false);
+    public readonly record struct AutoBoxCount(int Boxes, CoverLayout Layout, bool SkipWithoutClsn2 = false, ClsnKind Kind = ClsnKind.Hurt);
 
     /// <summary>
-    /// Asks how many boxes Auto Clsn2 should cover the sprite with. Returns
+    /// Asks which kind (Auto Clsn only; For All is always Clsn2) and how many boxes cover the sprite. Returns
     /// null if canceled or the count is not a positive number. maxBoxes is
     /// the user's own ceiling from settings.json — above it auto-generated
     /// boxes stop being usable, but the sky is the limit if someone insists.
@@ -3021,15 +3021,18 @@ public static class Dialogs
         // For All only: leave frames that have no Clsn2 of their own alone.
         var skip = new CheckBox { Content = "Skip frames without Clsn2", IsChecked = false, IsVisible = forAll };
         var result = new TaskCompletionSource<AutoBoxCount?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        // Opens on Clsn2 every time; the kind isn't remembered.
+        var kind = new ComboBox { ItemsSource = new[] { "Clsn1", "Clsn2" }, SelectedIndex = 1, HorizontalAlignment = HorizontalAlignment.Stretch };
         var box = new TextBox { Text = initialBoxes.ToString(CultureInfo.InvariantCulture), MinWidth = 260 };
         // Same order as CoverLayout.
-        var layout = new ComboBox { ItemsSource = new[] { "Stacked", "Side by side", "Auto" }, SelectedIndex = (int)initialLayout, MinWidth = 140 };
+        var layout = new ComboBox { ItemsSource = new[] { "Stacked", "Side by side", "Auto" }, SelectedIndex = (int)initialLayout,
+            HorizontalAlignment = HorizontalAlignment.Stretch };
 
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"),
             Foreground = ThemeBrush("ThemeText"),
-            Title = forAll ? "Auto Clsn2 For All" : "Auto Clsn2",
+            Title = forAll ? "Auto Clsn2 For All" : "Auto Clsn",
             SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             CanResize = false,
@@ -3041,7 +3044,8 @@ public static class Dialogs
             if (!int.TryParse(box.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int n)) return;
             n = Math.Clamp(n, 1, Math.Max(1, maxBoxes));
             box.Text = n.ToString(CultureInfo.InvariantCulture); // reflect a clamped value
-            result.TrySetResult(new AutoBoxCount(n, (CoverLayout)Math.Max(0, layout.SelectedIndex), skip.IsChecked == true));
+            var chosen = forAll || kind.SelectedIndex != 0 ? ClsnKind.Hurt : ClsnKind.Attack;
+            result.TrySetResult(new AutoBoxCount(n, (CoverLayout)Math.Max(0, layout.SelectedIndex), skip.IsChecked == true, chosen));
             dialog.Close();
         }
 
@@ -3051,24 +3055,23 @@ public static class Dialogs
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         box.KeyDown += (_, e) => { if (e.Key == Avalonia.Input.Key.Enter) Accept(); };
 
+        // Each label sits above its control.
+        var kindLabel = new TextBlock { Text = "Kind", IsVisible = !forAll };
+        kind.IsVisible = !forAll;
         dialog.Content = new StackPanel
         {
             Margin = new Avalonia.Thickness(20),
-            Spacing = 12,
+            Spacing = 6,
             Children =
             {
-                new TextBlock { Text = forAll ? "How many Clsn2 boxes should cover each sprite?" : "How many Clsn2 boxes should cover this sprite?" },
-                box,
-                new StackPanel
-                {
-                    Orientation = Orientation.Horizontal, Spacing = 8,
-                    Children = { new TextBlock { Text = "Layout", VerticalAlignment = VerticalAlignment.Center }, layout },
-                },
+                kindLabel, kind,
+                new TextBlock { Text = "Boxes" }, box,
+                new TextBlock { Text = "Layout" }, layout,
                 skip,
                 new StackPanel
                 {
                     Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
-                    Spacing = 8, Children = { ok, cancel },
+                    Spacing = 8, Margin = new Avalonia.Thickness(0, 10, 0, 0), Children = { ok, cancel },
                 },
             },
         };

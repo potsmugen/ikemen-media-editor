@@ -1547,8 +1547,8 @@
                   <Button Grid.Column="0" x:Name="CopyOnionClsnButton" Content="Copy from Onion Skin" HorizontalAlignment="Stretch" Click="OnCopyClsnFromOnion"
                           ToolTip.Tip="Copies the onion skin frame's Clsn into the selected frames." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" x:Name="AutoHurtBoxesButton" Content="Auto Clsn2" HorizontalAlignment="Stretch" Click="OnAutoHurtBoxes"
-                          ToolTip.Tip="Covers the sprite with Clsn2 boxes that fit its shape." />
+                  <Button Grid.Column="2" x:Name="AutoHurtBoxesButton" Content="Auto Clsn" HorizontalAlignment="Stretch" Click="OnAutoHurtBoxes"
+                          ToolTip.Tip="Covers the sprite with Clsn1 or Clsn2 boxes that fit its shape." />
                 </Grid>
                 <Grid ColumnDefinitions="*,Auto,*">
                   <Button Grid.Column="0" x:Name="SortBoxesButton" Content="Sort Boxes" HorizontalAlignment="Stretch" Click="OnSortBoxes"

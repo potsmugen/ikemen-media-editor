@@ -131,7 +131,7 @@ and constraints that are easy to miss when reading one code path in isolation.
   least one frame, Move stops at either edge, Duplicate inserts the block after the last
   selected frame. Insert and Insert Sprite Group add after the last selected frame (Insert
   templates on it). Special Flags sets Interpolate on every selected frame (a mixed flag left
-  mixed changes nothing) and dims Loopstart. Auto Clsn2, Sort Boxes, Delete All Boxes and
+  mixed changes nothing) and dims Loopstart. Auto Clsn, Sort Boxes, Delete All Boxes and
   Copy from Onion Skin (and the menu's Paste Clsn) act on every selected frame as one undo step; Add Clsn1/2, Delete Box
   and Toggle Default need a single frame. `UpdateFrameButtons` dims every frame and Clsn
   button that can't act (no action, edges, last frame, no own boxes, no box selected). Ctrl+C / Ctrl+V copy frames and paste them after the current frame in any
@@ -155,8 +155,11 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **AIR save changes**: loading reports changes a save would make even without
   user edits, including Clsn recount/renumbering, comment movement, and legacy
   encoding conversion. Save requires confirmation; rewritten output is UTF-8.
-- **Auto Clsn2** generates boxes around visible pixels and merges/splits them to
-  the requested count, minimizing empty space. Frame offsets apply after making
+- **Auto Clsn** (the button; the menu's For All is Clsn2 only) generates Clsn1 or Clsn2
+  boxes around visible pixels and merges/splits them to the requested count, minimizing
+  empty space. Its dialog lists Kind (opens on Clsn2 every time), Boxes and Layout, each
+  label above its control; count and layout are remembered for the session and shared by
+  both kinds. Only the chosen kind is replaced. Frame offsets apply after making
   the cover relative to the sprite axis. It is intended as a starting point for
   hand editing; see **Auto Clsn2 experiments** before adding options. For batch
   generation, declared Clsn2 defaults are replaced; other frames receive owned

@@ -1492,7 +1492,7 @@ public partial class MainWindow
             }
             if (element.NoSprite)
             {
-                StatusText.Text = "This frame has no sprite (-1), so there's nothing for Auto Clsn2 to cover.";
+                StatusText.Text = "This frame has no sprite (-1), so there's nothing for Auto Clsn to cover.";
                 return;
             }
             var sprite = _file?.Find(element.Group, element.Index);
@@ -1515,41 +1515,45 @@ public partial class MainWindow
             if (await Dialogs.PromptAutoBoxCount(this, initialBoxes, initialLayout, _settings.MaxAutoBoxes) is not { } choice) return;
             _autoBoxCount = choice.Boxes;
             _autoLayout = choice.Layout;
-            CrashLog.Trace($"Auto Clsn2: cover sprite {element.Group},{element.Index} frame {FrameList.SelectedIndex + 1}, H={element.FlipH} V={element.FlipV} scale={element.ScaleX},{element.ScaleY} angle={element.Angle} boxes={choice.Boxes} layout={choice.Layout}");
+            var kind = choice.Kind;
+            string kindName = kind == ClsnKind.Attack ? "Clsn1" : "Clsn2", undoName = $"auto {kindName.ToLowerInvariant()}";
+            CrashLog.Trace($"Auto Clsn: {kindName} cover sprite {element.Group},{element.Index} frame {FrameList.SelectedIndex + 1}, H={element.FlipH} V={element.FlipV} scale={element.ScaleX},{element.ScaleY} angle={element.Angle} boxes={choice.Boxes} layout={choice.Layout}");
             var rects = SpriteCover.CoverTransformed(sprite, choice.Boxes, choice.Layout,
                 element.FlipH, element.FlipV, element.ScaleX, element.ScaleY, element.Angle);
-            CrashLog.Trace($"Auto Clsn2: generated {rects.Count} boxes for sprite {element.Group},{element.Index}");
+            CrashLog.Trace($"Auto Clsn: generated {rects.Count} boxes for sprite {element.Group},{element.Index}");
             if (rects.Count == 0)
             {
-                StatusText.Text = "Auto Clsn2 found no visible pixels to cover.";
+                StatusText.Text = "Auto Clsn found no visible pixels to cover.";
                 return;
             }
 
             // Covers come back relative to the sprite's axis; the frame offset moves the sprite, not the boxes.
             var boxes = rects.Select(r => new ClsnBox(r.X1 + element.OffsetX, r.Y1 + element.OffsetY,
                 r.X2 + element.OffsetX, r.Y2 + element.OffsetY)).ToList();
-            if (DeclaredSegmentHere(element, ClsnKind.Hurt) is { } segment)
+            if (DeclaredSegmentHere(element, kind) is { } segment)
             {
                 // Declaring frame: the new boxes replace the default itself.
-                RecordDefaultSegmentEdit("auto clsn2", ClsnKind.Hurt, segment, boxes);
+                RecordDefaultSegmentEdit(undoName, kind, segment, boxes);
                 return;
             }
+            // The other kind's boxes stay as they are.
+            bool attack = kind == ClsnKind.Attack;
             var before = Snapshot(element);
-            var after = new List<(ClsnBox, bool)>(before.Where(x => x.IsAttack));
-            foreach (var box in boxes) after.Add((box, false));
-            RecordBoxEdit("auto clsn2", element, after, ClsnKind.Hurt);
+            var after = new List<(ClsnBox, bool)>(before.Where(x => x.IsAttack != attack));
+            foreach (var box in boxes) after.Add((box, attack));
+            RecordBoxEdit(undoName, element, after, kind);
         }
         catch (Exception ex)
         {
             // async void: an exception here has nowhere else to go — log it
             // explicitly rather than relying on it reaching AppDomain intact.
             CrashLog.Write("OnAutoHurtBoxes", ex);
-            await Dialogs.ShowMessage(this, "Something Went Wrong Generating Clsn2 Boxes", ex.Message);
+            await Dialogs.ShowMessage(this, "Something Went Wrong Generating Clsn Boxes", ex.Message);
         }
     }
 
-    /// <summary>Auto Clsn2 on the selected frames: one dialog, one undo step. A declaring frame replaces its
-    /// default; others get own Clsn2. Frames with no usable sprite keep their boxes (counted in the status bar).</summary>
+    /// <summary>Auto Clsn on the selected frames: one dialog, one undo step. A declaring frame replaces its
+    /// default; others get own boxes of that kind. Frames with no usable sprite keep their boxes (counted in the status bar).</summary>
     private async Task AutoHurtBoxesForFrames(List<int> targets)
     {
         if (_action is not { } action) return;
@@ -1557,7 +1561,7 @@ public partial class MainWindow
         int noSprite = targets.Count - frames.Count;
         if (frames.Count == 0)
         {
-            StatusText.Text = "None of the selected frames has a sprite (-1), so there's nothing for Auto Clsn2 to cover.";
+            StatusText.Text = "None of the selected frames has a sprite (-1), so there's nothing for Auto Clsn to cover.";
             return;
         }
         var sprites = frames.Select(i => _file?.Find(action.Elements[i].Group, action.Elements[i].Index))
@@ -1582,19 +1586,26 @@ public partial class MainWindow
         _autoBoxCount = choice.Boxes;
         _autoLayout = choice.Layout;
         if (_action != action) return;
+        bool attack = choice.Kind == ClsnKind.Attack;
+        string kindName = attack ? "Clsn1" : "Clsn2";
 
         int missing = 0, blank = 0, done = 0;
-        EditFramesClsn("auto clsn2", Enumerable.Range(0, frames.Count), (act, k) =>
+        EditFramesClsn($"auto {kindName.ToLowerInvariant()}", Enumerable.Range(0, frames.Count), (act, k) =>
         {
             int i = frames[k];
             var el = act.Elements[i];
             string where = $"Action {act.Number}, frame {i + 1} (sprite {el.Group},{el.Index})";
-            if (sprites[k] is not { } sprite) { missing++; CrashLog.Error("Auto Clsn2", $"skipped {where}: sprite missing or empty"); return; }
+            if (sprites[k] is not { } sprite) { missing++; CrashLog.Error("Auto Clsn", $"skipped {where}: sprite missing or empty"); return; }
             var boxes = SpriteCover.CoverTransformed(sprite, choice.Boxes, choice.Layout,
                     el.FlipH, el.FlipV, el.ScaleX, el.ScaleY, el.Angle)
                 .Select(r => new ClsnBox(r.X1 + el.OffsetX, r.Y1 + el.OffsetY, r.X2 + el.OffsetX, r.Y2 + el.OffsetY)).ToList();
-            if (boxes.Count == 0) { blank++; CrashLog.Error("Auto Clsn2", $"skipped {where}: no visible pixels"); return; }
-            if (!el.OwnHurtBoxes && act.HurtSegmentAt(i) is { } seg && seg.At == i) seg.Boxes = boxes;
+            if (boxes.Count == 0) { blank++; CrashLog.Error("Auto Clsn", $"skipped {where}: no visible pixels"); return; }
+            if (attack)
+            {
+                if (!el.OwnAttackBoxes && act.AttackSegmentAt(i) is { } seg && seg.At == i) seg.Boxes = boxes;
+                else { el.Attack = boxes; el.OwnAttackBoxes = true; }
+            }
+            else if (!el.OwnHurtBoxes && act.HurtSegmentAt(i) is { } seg && seg.At == i) seg.Boxes = boxes;
             else { el.Hurt = boxes; el.OwnHurtBoxes = true; }
             done++;
         });
@@ -1602,7 +1613,7 @@ public partial class MainWindow
         if (missing > 0) notes.Add($"{missing} skipped (sprite missing)");
         if (blank > 0) notes.Add($"{blank} skipped (no visible pixels)");
         if (noSprite > 0) notes.Add($"{noSprite} without a sprite (-1) left alone");
-        StatusText.Text = $"Auto Clsn2: replaced Clsn2 on {done} frames" + (notes.Count > 0 ? ", " + string.Join(", ", notes) + "." : ".");
+        StatusText.Text = $"Auto Clsn: replaced {kindName} on {done} frames" + (notes.Count > 0 ? ", " + string.Join(", ", notes) + "." : ".");
     }
 
     /// <summary>
