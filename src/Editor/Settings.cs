@@ -127,6 +127,9 @@ public sealed class Settings
     public int AutoBoxesDefault { get; set; } = DefaultAutoBoxes;
     /// <summary>Auto Clsn2 dialog's layout pre-fill: Stacked, SideBySide or Auto.</summary>
     public string AutoBoxesLayout { get; set; } = "Stacked";
+    public const int DefaultAutoBoxesAlphaThreshold = 32;
+    /// <summary>Auto Clsn: a 32-bit pixel with alpha below this (1-255) counts as transparent.</summary>
+    public int AutoBoxesAlphaThreshold { get; set; } = DefaultAutoBoxesAlphaThreshold;
 
     /// <summary>Largest paint-brush square, in pixels per side.</summary>
     public int MaxBrushSize { get; set; } = 32;

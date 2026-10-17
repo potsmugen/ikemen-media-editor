@@ -73,24 +73,63 @@ public class SpriteCoverTests
     }
 
     [Fact]
-    public void SplitToRequestedCount()
+    public void SolidSpriteSplitsIntoEqualBands()
     {
-        var s = MakeSprite(["####", "####", "####", "####"]);
-        // Auto, not the default Stacked: Stacked cuts across rows only and
-        // cannot split a solid block to the requested count.
-        var boxes = SpriteCover.Cover(s, 5, CoverLayout.Auto);
-        Assert.Equal(5, boxes.Count);
+        // No transparency: equal strips with shared seams, not 1px slivers.
+        var s = MakeSprite(["####", "####", "####", "####", "####", "####"]);
+        var boxes = SpriteCover.Cover(s, 3, CoverLayout.Stacked);
+        Assert.Equal(new[] { (0, 0, 3, 1), (0, 1, 3, 3), (0, 3, 3, 5) }, boxes.Select(b => (b.X1, b.Y1, b.X2, b.Y2)));
         AssertOpaqueCovered(s, boxes);
     }
 
     [Fact]
-    public void SplitCapsAtOneBoxPerPixel()
+    public void SolidSpriteLayoutPicksStripDirection()
+    {
+        var wide = MakeSprite(["######", "######"]);
+        // Side by side: columns. Auto: along the longer side, so columns for a wide sprite.
+        foreach (var layout in new[] { CoverLayout.SideBySide, CoverLayout.Auto })
+            Assert.Equal(new[] { (0, 0, 2, 1), (2, 0, 5, 1) },
+                SpriteCover.Cover(wide, 2, layout).Select(b => (b.X1, b.Y1, b.X2, b.Y2)));
+        // Square: Auto uses bands.
+        var square = MakeSprite(["##", "##"]);
+        Assert.All(SpriteCover.Cover(square, 2, CoverLayout.Auto), b => Assert.Equal((0, 1), (b.X1, b.X2)));
+    }
+
+    [Fact]
+    public void SolidSpriteSplitCapsAtOnePerRow()
     {
         var s = MakeSprite(["##", "##"]);
-        var boxes = SpriteCover.Cover(s, 100, CoverLayout.Auto);
-        // Seam closure grows some boxes past 1x1; the budget and the
-        // coverage are what the budget promises.
-        Assert.Equal(4, boxes.Count);
+        var boxes = SpriteCover.Cover(s, 100, CoverLayout.Stacked);
+        Assert.Equal(new[] { (0, 0, 1, 0), (0, 0, 1, 1) }, boxes.Select(b => (b.X1, b.Y1, b.X2, b.Y2)));
+    }
+
+    [Fact]
+    public void SolidDirectSpriteSplitsEvenly()
+    {
+        // A 32-bit sprite with no transparent pixel, as from a PNG without alpha.
+        var s = MakeDirectSprite(new byte[] { 255, 255, 255, 255, 255, 255 }, 2, 3);
+        var boxes = SpriteCover.Cover(s, 3, CoverLayout.Stacked);
+        Assert.Equal(new[] { (0, 0, 1, 0), (0, 0, 1, 1), (0, 1, 1, 2) }, boxes.Select(b => (b.X1, b.Y1, b.X2, b.Y2)));
+    }
+
+    [Fact]
+    public void SolidSpriteTurned90SplitsTheTurnedRectangle()
+    {
+        // 4 wide, 2 tall, turned 90 degrees: 2 wide, 4 tall, so Auto makes bands.
+        var s = MakeSprite(["####", "####"]);
+        var boxes = SpriteCover.CoverTransformed(s, 2, CoverLayout.Auto, false, false, 1, 1, 90);
+        Assert.Equal(2, boxes.Count);
+        Assert.All(boxes, b => Assert.Equal(1, b.X2 - b.X1));
+        Assert.Equal(boxes[0].Y2, boxes[1].Y1);
+    }
+
+    [Fact]
+    public void SplitToRequestedCount()
+    {
+        // One transparent pixel keeps this on the regular cover (see SolidSpriteSplitsIntoEqualBands).
+        var s = MakeSprite(["####", "####", "####", "###."]);
+        var boxes = SpriteCover.Cover(s, 5, CoverLayout.Auto);
+        Assert.InRange(boxes.Count, 1, 5);
         AssertOpaqueCovered(s, boxes);
     }
 
@@ -121,6 +160,18 @@ public class SpriteCoverTests
         Assert.Equal(2, boxes.Count);
         AssertNoOverlap(boxes);
         // The transparent middle pixel must not be inside either box.
+        Assert.DoesNotContain(boxes, b => CoversPixel(s, b, 1, 0));
+    }
+
+    [Fact]
+    public void AlphaBelowThresholdIsTransparent()
+    {
+        // 3x1: opaque, faint (alpha 20), opaque. Default threshold 1: the faint pixel counts, so the row is solid.
+        var s = MakeDirectSprite(new byte[] { 255, 20, 255 }, 3, 1);
+        Assert.Contains(SpriteCover.Cover(s, 4, CoverLayout.Auto), b => CoversPixel(s, b, 1, 0));
+        // Threshold 32: the faint pixel is transparent and left uncovered.
+        var boxes = SpriteCover.Cover(s, 4, CoverLayout.Auto, alphaThreshold: 32);
+        Assert.Equal(2, boxes.Count);
         Assert.DoesNotContain(boxes, b => CoversPixel(s, b, 1, 0));
     }
 

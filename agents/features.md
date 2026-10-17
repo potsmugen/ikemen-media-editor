@@ -765,11 +765,15 @@ manual work; only count and layout remain.
   size rules either remove too much, re-create tiny pieces, or trade a little
   coverage for area. Fold worked best in trials (~5% minimum, exact count), if
   this design is ever revisited.
-- `Cover`'s default layout is `Stacked`, so it cuts across rows only. A
-  solid block (or a transparent pixel inside one row) therefore cannot be
-  split to the requested count or avoided by the default; tests wanting an
-  exact count over the whole sprite pass `CoverLayout.Auto` explicitly.
-  Don't change the default to chase a test.
+- `Cover`'s default layout is `Stacked`, so it cuts across rows only. Don't
+  change the default to chase a test.
+- A sprite with no transparent pixel (e.g. a 32-bit PNG without alpha) is split
+  into equal strips with shared seams (`EvenSplit`): every cut wastes nothing there,
+  so the search peeled off 1px slivers. Stacked = bands, Side by side = columns,
+  Auto = along the longer side (bands when square); also after a right-angle turn.
+- A 32-bit pixel counts as transparent to Auto Clsn when its alpha is below settings.json
+  `AutoBoxesAlphaThreshold` (default 32, 1-255), so faint edge pixels don't grow the boxes.
+  `SpriteCover` itself defaults to 1 (any alpha is visible) for other callers.
 
 ## Official tools
 

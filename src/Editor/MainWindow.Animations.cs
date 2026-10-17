@@ -1550,8 +1550,12 @@ public partial class MainWindow
         _ => boxes,
     };
 
-    /// <summary>Generates Clsn2 boxes covering this frame's transformed sprite,
-    /// replacing its own Hurt boxes. Clsn1 is untouched; the count and layout are
+    /// <summary>settings.json AutoBoxesAlphaThreshold, checked: 32-bit pixels below it are transparent to Auto Clsn.</summary>
+    private byte AutoBoxesAlphaThreshold() => (byte)Settings.Checked(nameof(Settings.AutoBoxesAlphaThreshold),
+        _settings.AutoBoxesAlphaThreshold, Settings.DefaultAutoBoxesAlphaThreshold, v => v is >= 1 and <= 255);
+
+    /// <summary>Generates Clsn1 or Clsn2 boxes covering this frame's transformed sprite,
+    /// replacing that kind's own boxes. The other kind is untouched; the count and layout are
     /// asked for in a dialog, remembered for the session.</summary>
     private int? _autoBoxCount; // last choice this session; starts at settings.json AutoBoxesDefault
     private CoverLayout? _autoLayout; // last choice this session; starts at settings.json AutoBoxesLayout
@@ -1595,7 +1599,7 @@ public partial class MainWindow
             string kindName = kind == ClsnKind.Attack ? "Clsn1" : "Clsn2", undoName = $"auto {kindName.ToLowerInvariant()}";
             CrashLog.Trace($"Auto Clsn: {kindName} cover sprite {element.Group},{element.Index} frame {FrameList.SelectedIndex + 1}, H={element.FlipH} V={element.FlipV} scale={element.ScaleX},{element.ScaleY} angle={element.Angle} boxes={choice.Boxes} layout={choice.Layout}");
             var rects = SpriteCover.CoverTransformed(sprite, choice.Boxes, choice.Layout,
-                element.FlipH, element.FlipV, element.ScaleX, element.ScaleY, element.Angle);
+                element.FlipH, element.FlipV, element.ScaleX, element.ScaleY, element.Angle, AutoBoxesAlphaThreshold());
             CrashLog.Trace($"Auto Clsn: generated {rects.Count} boxes for sprite {element.Group},{element.Index}");
             if (rects.Count == 0)
             {
@@ -1666,6 +1670,7 @@ public partial class MainWindow
         string kindName = attack ? "Clsn1" : "Clsn2";
 
         int missing = 0, blank = 0, done = 0;
+        byte alphaThreshold = AutoBoxesAlphaThreshold();
         EditFramesClsn($"auto {kindName.ToLowerInvariant()}", Enumerable.Range(0, frames.Count), (act, k) =>
         {
             int i = frames[k];
@@ -1673,7 +1678,7 @@ public partial class MainWindow
             string where = $"Action {act.Number}, frame {i + 1} (sprite {el.Group},{el.Index})";
             if (sprites[k] is not { } sprite) { missing++; CrashLog.Error("Auto Clsn", $"skipped {where}: sprite missing or empty"); return; }
             var boxes = SpriteCover.CoverTransformed(sprite, choice.Boxes, choice.Layout,
-                    el.FlipH, el.FlipV, el.ScaleX, el.ScaleY, el.Angle)
+                    el.FlipH, el.FlipV, el.ScaleX, el.ScaleY, el.Angle, alphaThreshold)
                 .Select(r => new ClsnBox(r.X1 + el.OffsetX, r.Y1 + el.OffsetY, r.X2 + el.OffsetX, r.Y2 + el.OffsetY)).ToList();
             if (boxes.Count == 0) { blank++; CrashLog.Error("Auto Clsn", $"skipped {where}: no visible pixels"); return; }
             if (attack)
@@ -1752,6 +1757,7 @@ public partial class MainWindow
             var progress = new Progress<int>(progressWindow.Report);
             var token = progressWindow.Token;
             List<List<ClsnBox>?> covers;
+            byte alphaThreshold = AutoBoxesAlphaThreshold(); // read here, not on the worker thread
             try
             {
                 covers = await Task.Run(() =>
@@ -1765,7 +1771,7 @@ public partial class MainWindow
                         if (t.Sprite is not { } sp) { list.Add(null); continue; }
                         var el = t.Action.Elements[t.Frame];
                         list.Add(SpriteCover.CoverTransformed(sp, choice.Boxes, choice.Layout,
-                                el.FlipH, el.FlipV, el.ScaleX, el.ScaleY, el.Angle)
+                                el.FlipH, el.FlipV, el.ScaleX, el.ScaleY, el.Angle, alphaThreshold)
                             .Select(r => new ClsnBox(r.X1 + el.OffsetX, r.Y1 + el.OffsetY, r.X2 + el.OffsetX, r.Y2 + el.OffsetY)).ToList());
                     }
                     return list;

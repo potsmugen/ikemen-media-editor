@@ -184,8 +184,6 @@ Built, but not tried by the maintainer yet.
 ### Animations
 
 - Support Copy Action animations.
-- Test Auto Clsn2 with true-color sprites.
-- Test/reject Auto Clsn when sprite has no mask color.
 
 ### Sounds
 

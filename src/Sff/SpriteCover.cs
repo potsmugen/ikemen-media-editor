@@ -21,21 +21,44 @@ public static class SpriteCover
 {
     public readonly record struct Rect(int X1, int Y1, int X2, int Y2);
 
-    public static List<Rect> Cover(Sprite sprite, int maxBoxes, CoverLayout layout = CoverLayout.Stacked)
+    /// <param name="alphaThreshold">32-bit pixels with alpha below this count as transparent.</param>
+    public static List<Rect> Cover(Sprite sprite, int maxBoxes, CoverLayout layout = CoverLayout.Stacked, byte alphaThreshold = 1)
     {
         int w = sprite.Width, h = sprite.Height;
         if (w <= 0 || h <= 0 || !sprite.HasPixels) return [];
         maxBoxes = Math.Max(1, maxBoxes);
 
-        var opaque = OpaquePixels(sprite, w, h);
+        var opaque = OpaquePixels(sprite, w, h, alphaThreshold);
         if (opaque is null) return [];
+        if (Array.TrueForAll(opaque, o => o)) return EvenSplit(w, h, maxBoxes, layout, -sprite.AxisX, -sprite.AxisY);
         return CoverMask(opaque, w, h, maxBoxes, layout, -sprite.AxisX, -sprite.AxisY);
+    }
+
+    /// <summary>A sprite with no transparency: every cut wastes nothing, so the search would peel off
+    /// 1px strips. Instead, equal strips with shared seams: Stacked bands, Side by side columns, Auto
+    /// along the longer side (bands when square). At most one strip per pixel row or column.</summary>
+    private static List<Rect> EvenSplit(int w, int h, int maxBoxes, CoverLayout layout, int offsetX, int offsetY)
+    {
+        bool columns = layout == CoverLayout.SideBySide || (layout == CoverLayout.Auto && w > h);
+        int length = columns ? w : h;
+        int n = Math.Clamp(maxBoxes, 1, length);
+        var result = new List<Rect>(n);
+        for (int i = 0; i < n; i++)
+        {
+            // Each strip starts on the previous strip's last pixel: the seam is shared, as in CoverMask.
+            int start = i == 0 ? 0 : i * length / n - 1;
+            int end = (i + 1) * length / n - 1;
+            result.Add(columns
+                ? new Rect(start + offsetX, offsetY, end + offsetX, h - 1 + offsetY)
+                : new Rect(offsetX, start + offsetY, w - 1 + offsetX, end + offsetY));
+        }
+        return result;
     }
 
     /// <summary>Generates boxes around the sprite after the frame's flip, scale,
     /// and rotation, returning coordinates relative to the sprite's local axis.</summary>
     public static List<Rect> CoverTransformed(Sprite sprite, int maxBoxes, CoverLayout layout,
-        bool flipH, bool flipV, double scaleX, double scaleY, double angle)
+        bool flipH, bool flipV, double scaleX, double scaleY, double angle, byte alphaThreshold = 1)
     {
         int w = sprite.Width, h = sprite.Height;
         if (w <= 0 || h <= 0 || !sprite.HasPixels) return [];
@@ -44,7 +67,7 @@ public static class SpriteCover
             throw new ArgumentOutOfRangeException(nameof(scaleX), "The frame transform must contain finite values.");
         if (scaleX == 0 || scaleY == 0) return [];
 
-        var source = OpaquePixels(sprite, w, h);
+        var source = OpaquePixels(sprite, w, h, alphaThreshold);
         if (source is null) return [];
 
         double sx = scaleX * (flipH ? -1 : 1);
@@ -71,6 +94,9 @@ public static class SpriteCover
 
         int transformedLength = (int)(transformedWidth * transformedHeight);
         int tw = (int)transformedWidth, th = (int)transformedHeight;
+        // No transparency and a right-angle turn: the result is still an upright rectangle.
+        if (Math.Abs(Math.IEEERemainder(angle, 90)) < 1e-9 && Array.TrueForAll(source, o => o))
+            return EvenSplit(tw, th, maxBoxes, layout, minX, minY);
         var transformed = new bool[transformedLength];
         for (int y = 0; y < h; y++)
             for (int x = 0; x < w; x++)
@@ -96,7 +122,7 @@ public static class SpriteCover
         }
     }
 
-    private static bool[]? OpaquePixels(Sprite sprite, int w, int h)
+    private static bool[]? OpaquePixels(Sprite sprite, int w, int h, byte alphaThreshold)
     {
         var opaque = new bool[checked(w * h)];
         var indexed = sprite.Indexed;
@@ -106,7 +132,7 @@ public static class SpriteCover
         {
             bool o = indexed is not null
                 ? indexed[i] != Sprite.TransparentIndex
-                : direct![i * 4 + 3] != 0; // BGRA: alpha is the 4th byte
+                : direct![i * 4 + 3] >= alphaThreshold; // BGRA: alpha is the 4th byte
             if (o) { opaque[i] = true; any = true; }
         }
         return any ? opaque : null;
