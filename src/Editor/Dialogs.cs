@@ -3274,19 +3274,22 @@ public static class Dialogs
     }
 
     /// <summary>A frame's Loopstart and the Interpolate lines written above it.</summary>
-    public sealed record SpecialFlags(bool LoopStart, bool Offset, bool Scale, bool Angle, bool Blend);
+    /// <summary>Null = mixed across several frames.</summary>
+    public sealed record SpecialFlags(bool? LoopStart, bool? Offset, bool? Scale, bool? Angle, bool? Blend);
 
-    /// <summary>Special Flags: checkboxes for the frame's Loopstart and Interpolate lines. Null = canceled.</summary>
-    public static Task<SpecialFlags?> PromptSpecialFlags(Window owner, int frameNumber, SpecialFlags initial, bool loopEnabled)
+    /// <summary>Special Flags: checkboxes for the frames' Loopstart and Interpolate lines. Null = canceled.</summary>
+    public static Task<SpecialFlags?> PromptSpecialFlags(Window owner, string heading, SpecialFlags initial, bool loopEnabled)
     {
         var result = new TaskCompletionSource<SpecialFlags?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        // Loopstart on frame 1 is the same as none, so it can't be set there.
-        var loop = new CheckBox { Content = "Loopstart", IsChecked = initial.LoopStart, IsEnabled = loopEnabled };
-        var offset = new CheckBox { Content = "Interpolate Offset", IsChecked = initial.Offset };
-        var scale = new CheckBox { Content = "Interpolate Scale", IsChecked = initial.Scale };
-        var angle = new CheckBox { Content = "Interpolate Angle", IsChecked = initial.Angle };
-        var blend = new CheckBox { Content = "Interpolate Blend", IsChecked = initial.Blend };
+        // Loopstart on frame 1 is the same as none, so it can't be set there. A mixed flag can be set back to mixed.
+        static CheckBox Flag(string text, bool? value, bool enabled = true) =>
+            new() { Content = text, IsChecked = value, IsThreeState = value is null, IsEnabled = enabled };
+        var loop = Flag("Loopstart", initial.LoopStart, loopEnabled);
+        var offset = Flag("Interpolate Offset", initial.Offset);
+        var scale = Flag("Interpolate Scale", initial.Scale);
+        var angle = Flag("Interpolate Angle", initial.Angle);
+        var blend = Flag("Interpolate Blend", initial.Blend);
 
         var dialog = new Window
         {
@@ -3303,8 +3306,7 @@ public static class Dialogs
         var cancel = new Button { Content = "Cancel", MinWidth = 90, IsCancel = true };
         ok.Click += (_, _) =>
         {
-            result.TrySetResult(new SpecialFlags(loop.IsChecked == true, offset.IsChecked == true,
-                scale.IsChecked == true, angle.IsChecked == true, blend.IsChecked == true));
+            result.TrySetResult(new SpecialFlags(loop.IsChecked, offset.IsChecked, scale.IsChecked, angle.IsChecked, blend.IsChecked));
             dialog.Close();
         };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
@@ -3315,7 +3317,7 @@ public static class Dialogs
             Spacing = 8,
             Children =
             {
-                new TextBlock { Text = $"Flags for frame {frameNumber}:" },
+                new TextBlock { Text = heading },
                 loop, offset, scale, angle, blend,
                 new StackPanel
                 {

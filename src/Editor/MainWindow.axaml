@@ -1287,7 +1287,7 @@
                         <TextBlock Text="Angle" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont11}" HorizontalAlignment="Center" />
                       </Border>
                     </Grid>
-                    <ListBox Grid.Row="1" x:Name="FrameTableList" SelectionChanged="OnFrameTableSelected" PointerMoved="OnFrameTableHover" PointerExited="OnFrameTableExited" Background="{DynamicResource ThemeListBg}">
+                    <ListBox Grid.Row="1" x:Name="FrameTableList" SelectionMode="Multiple" SelectionChanged="OnFrameTableSelected" PointerMoved="OnFrameTableHover" PointerExited="OnFrameTableExited" Background="{DynamicResource ThemeListBg}">
                       <ListBox.Styles>
                         <Style Selector="ListBoxItem">
                           <Setter Property="Padding" Value="0" />
@@ -1510,21 +1510,21 @@
               <ScrollViewer Grid.Row="2" Margin="0,8,0,0">
               <StackPanel Spacing="{DynamicResource UiButtonGap}">
                 <Grid ColumnDefinitions="*,Auto,*,Auto,*">
-                  <Button Grid.Column="0" Content="Insert" HorizontalAlignment="Stretch" Click="OnInsertFrame" />
+                  <Button Grid.Column="0" x:Name="FrameInsertButton" Content="Insert" HorizontalAlignment="Stretch" Click="OnInsertFrame" />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" Content="Duplicate" HorizontalAlignment="Stretch" Click="OnDuplicateFrame" />
+                  <Button Grid.Column="2" x:Name="FrameDuplicateButton" Content="Duplicate" HorizontalAlignment="Stretch" Click="OnDuplicateFrame" />
                   <Border Grid.Column="3" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="4" Content="Remove" HorizontalAlignment="Stretch" Click="OnRemoveFrame" />
+                  <Button Grid.Column="4" x:Name="FrameRemoveButton" Content="Remove" HorizontalAlignment="Stretch" Click="OnRemoveFrame" />
                 </Grid>
                 <Grid ColumnDefinitions="*,Auto,*,Auto,*">
-                  <Button Grid.Column="0" Content="Up" HorizontalAlignment="Stretch" Click="OnMoveFrameUp" />
+                  <Button Grid.Column="0" x:Name="FrameUpButton" Content="Up" HorizontalAlignment="Stretch" Click="OnMoveFrameUp" />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" Content="Down" HorizontalAlignment="Stretch" Click="OnMoveFrameDown" />
+                  <Button Grid.Column="2" x:Name="FrameDownButton" Content="Down" HorizontalAlignment="Stretch" Click="OnMoveFrameDown" />
                   <Border Grid.Column="3" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="4" Content="Special Flags" HorizontalAlignment="Stretch" Click="OnSpecialFlags"
-                          ToolTip.Tip="Sets Loopstart and interpolation for this frame." />
+                  <Button Grid.Column="4" x:Name="FrameFlagsButton" Content="Special Flags" HorizontalAlignment="Stretch" Click="OnSpecialFlags"
+                          ToolTip.Tip="Sets Loopstart and interpolation for the selected frames." />
                 </Grid>
-                <Button Content="Insert Sprite Group" HorizontalAlignment="Stretch" Click="OnInsertSpriteGroup"
+                <Button x:Name="InsertSpriteGroupButton" Content="Insert Sprite Group" HorizontalAlignment="Stretch" Click="OnInsertSpriteGroup"
                         ToolTip.Tip="Adds every sprite of a group as frames." />
 
                 <Separator Margin="0,4" />
@@ -1533,29 +1533,29 @@
                           IsChecked="True" Click="OnToggleBoxes" />
                 <TextBlock x:Name="BoxInfo" Text="No Clsn selected" Foreground="{DynamicResource ThemeMutedText}" TextWrapping="Wrap" />
                 <Grid ColumnDefinitions="*,Auto,*">
-                  <Button Grid.Column="0" Content="Add Clsn1" HorizontalAlignment="Stretch" Click="OnAddAttackBox" />
+                  <Button Grid.Column="0" x:Name="AddAttackBoxButton" Content="Add Clsn1" HorizontalAlignment="Stretch" Click="OnAddAttackBox" />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" Content="Add Clsn2" HorizontalAlignment="Stretch" Click="OnAddHurtBox" />
+                  <Button Grid.Column="2" x:Name="AddHurtBoxButton" Content="Add Clsn2" HorizontalAlignment="Stretch" Click="OnAddHurtBox" />
                 </Grid>
                 <Grid ColumnDefinitions="*,Auto,*">
-                  <Button Grid.Column="0" Content="Delete Box" HorizontalAlignment="Stretch" Click="OnDeleteBox" />
+                  <Button Grid.Column="0" x:Name="DeleteBoxButton" Content="Delete Box" HorizontalAlignment="Stretch" Click="OnDeleteBox" />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
                   <Button Grid.Column="2" x:Name="MakeDefaultButton" Content="Toggle Default" HorizontalAlignment="Stretch" Click="OnMakeBoxDefault"
                           ToolTip.Tip="Makes this frame's boxes the default for later frames." />
                 </Grid>
                 <Grid ColumnDefinitions="*,Auto,*">
-                  <Button Grid.Column="0" Content="Copy from Onion Skin" HorizontalAlignment="Stretch" Click="OnCopyClsnFromOnion"
-                          ToolTip.Tip="Copies the onion skin frame's Clsn into this frame." />
+                  <Button Grid.Column="0" x:Name="CopyOnionClsnButton" Content="Copy from Onion Skin" HorizontalAlignment="Stretch" Click="OnCopyClsnFromOnion"
+                          ToolTip.Tip="Copies the onion skin frame's Clsn into the selected frames." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" Content="Auto Clsn2" HorizontalAlignment="Stretch" Click="OnAutoHurtBoxes"
+                  <Button Grid.Column="2" x:Name="AutoHurtBoxesButton" Content="Auto Clsn2" HorizontalAlignment="Stretch" Click="OnAutoHurtBoxes"
                           ToolTip.Tip="Covers the sprite with Clsn2 boxes that fit its shape." />
                 </Grid>
                 <Grid ColumnDefinitions="*,Auto,*">
-                  <Button Grid.Column="0" Content="Sort Boxes" HorizontalAlignment="Stretch" Click="OnSortBoxes"
-                          ToolTip.Tip="Reorders this frame's boxes." />
+                  <Button Grid.Column="0" x:Name="SortBoxesButton" Content="Sort Boxes" HorizontalAlignment="Stretch" Click="OnSortBoxes"
+                          ToolTip.Tip="Reorders the selected frames' boxes." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" Content="Delete All Boxes" HorizontalAlignment="Stretch" Click="OnDeleteAllBoxes"
-                          ToolTip.Tip="Removes this frame's own boxes" />
+                  <Button Grid.Column="2" x:Name="DeleteAllBoxesButton" Content="Delete All Boxes" HorizontalAlignment="Stretch" Click="OnDeleteAllBoxes"
+                          ToolTip.Tip="Removes the selected frames' own boxes." />
                 </Grid>
               </StackPanel>
               </ScrollViewer>

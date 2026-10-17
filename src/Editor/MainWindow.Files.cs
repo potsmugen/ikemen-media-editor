@@ -811,6 +811,7 @@ public partial class MainWindow
         AnimCanvas.InvalidateVisual();
         TimelineView.Show([], -1);
         AirStatusText.Text = "";
+        UpdateFrameButtons();
 
         _snd = null;
         _sndPath = null;

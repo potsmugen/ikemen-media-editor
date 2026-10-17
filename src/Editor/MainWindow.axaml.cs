@@ -120,6 +120,7 @@ public partial class MainWindow : Window
         AnimCanvas.BoxChanged += OnBoxChanged;
         AnimCanvas.BoxEditFinished += OnBoxEditFinished;
         AnimCanvas.BoxSelected += UpdateBoxInfo;
+        UpdateFrameButtons(); // nothing open yet
         AnimCanvas.BoxContextRequested += OnBoxContextRequested;
         AnimCanvas.DragChangesOffset = true; // dragging the sprite here moves the frame's offset, not its axis
         AnimCanvas.OffsetDragStarted += OnOffsetDragStarted;
@@ -844,29 +845,25 @@ public partial class MainWindow : Window
         // FrameList itself is permanently hidden now that List view is retired
         // (see MainWindow.FrameText.cs) — the context menu moved to the Table
         // view, the only place a right-click on a frame is still reachable.
+        FrameTableList.AddHandler(PointerPressedEvent, OnFrameTablePressed, RoutingStrategies.Tunnel, handledEventsToo: true);
+        FrameTableList.AddHandler(PointerReleasedEvent, OnFrameTableReleased, RoutingStrategies.Tunnel, handledEventsToo: true);
         FrameTableList.ContextRequested += (_, e) =>
         {
-            SelectRowUnderPointer(FrameTableList, e.Source);
+            SelectFrameRowForContext(e.Source);
             OpenContextMenu(FrameTableList, new ContextMenu
             {
                 ItemsSource = new List<Control>
                 {
-                    MenuAction("Insert", () => OnInsertFrame(null, new RoutedEventArgs())),
-                    MenuAction("Duplicate", () => OnDuplicateFrame(null, new RoutedEventArgs())),
-                    MenuAction("Remove", () => OnRemoveFrame(null, new RoutedEventArgs())),
-                    new Separator(),
-                    MenuAction("Move Up", () => OnMoveFrameUp(null, new RoutedEventArgs())),
-                    MenuAction("Move Down", () => OnMoveFrameDown(null, new RoutedEventArgs())),
+                    // Insert/Duplicate/Remove/Move and Interpolate live on the panel buttons and Special Flags.
+                    MenuAction("Copy Frames", CopyFrames, CurrentElement is not null),
+                    MenuAction("Paste Frames", PasteFrames, _frameClipboard is not null && _action is not null),
                     new Separator(),
                     // Grayed out when there's nothing to copy / nothing copied yet.
                     MenuAction("Copy Clsn", CopyFrameClsn, CanCopyFrameClsn()),
                     MenuAction("Paste Clsn", PasteFrameClsn, _clsnClipboard is not null && CurrentElement is not null),
                     new Separator(),
-                    MenuAction("Loop From Here", () => OnSetLoopStart(null, new RoutedEventArgs())),
-                    MenuAction("Interpolate Offset", () => ToggleInterpolation("offset")),
-                    MenuAction("Interpolate Scale", () => ToggleInterpolation("scale")),
-                    MenuAction("Interpolate Angle", () => ToggleInterpolation("angle")),
-                    MenuAction("Interpolate Blend", () => ToggleInterpolation("blend")),
+                    MenuAction("Loop From Here", () => OnSetLoopStart(null, new RoutedEventArgs()),
+                        CurrentElement is not null && (FrameList.SelectedIndex > 0 || _action?.LoopStart > 0)),
                     new Separator(),
                     MenuAction("Pin as Onion Skin", PinFrameAsOnion, CurrentElement is not null),
                 },
@@ -1474,6 +1471,7 @@ public partial class MainWindow : Window
         try
         {
             if (_suppressEvents) return;
+            if (Tabs?.SelectedIndex == 2) UpdateFrameButtons(); // a sprite file may have opened meanwhile
             if (Tabs?.SelectedIndex != 0)
             {
                 CancelPick(restoreSelection: false);
@@ -2053,6 +2051,8 @@ public partial class MainWindow : Window
                 case Key.B: OnToggleBounds(this, new RoutedEventArgs()); e.Handled = true; return;
                 case Key.G: OnToggleGuides(this, new RoutedEventArgs()); e.Handled = true; return;
                 case Key.A: SelectAllCurrentList(); e.Handled = true; return;
+                case Key.C when Tabs?.SelectedIndex == 2: CopyFrames(); e.Handled = true; return;
+                case Key.V when Tabs?.SelectedIndex == 2: PasteFrames(); e.Handled = true; return;
             }
         }
         if (e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.O)
@@ -2066,6 +2066,15 @@ public partial class MainWindow : Window
             CancelPick(restoreSelection: true);
             CancelPaletteLinkPick(restoreSelection: true);
             StatusText.Text = "Canceled.";
+            e.Handled = true;
+            return;
+        }
+
+        // Focused timeline: Left/Right step frames like Prev/Next.
+        if (Tabs?.SelectedIndex == 2 && TimelineView.IsFocused && e.KeyModifiers == KeyModifiers.None
+            && e.Key is Key.Left or Key.Right)
+        {
+            StepFrame(e.Key == Key.Left ? -1 : 1);
             e.Handled = true;
             return;
         }
@@ -2144,6 +2153,7 @@ public partial class MainWindow : Window
         if (Tabs?.SelectedIndex == 0 && SpriteList is not null) SelectAllSprites();
         else if (Tabs?.SelectedIndex == 3 && SoundList is not null) SelectAllSounds();
         else if (Tabs?.SelectedIndex == 1 && _editingView is { } view) SelectAllSwatches(view);
+        else if (Tabs?.SelectedIndex == 2) SelectAllFrames();
     }
 
     // ---- help -------------------------------------------------------------
@@ -2167,7 +2177,8 @@ public partial class MainWindow : Window
                     ("Ctrl+Z", "Undo"),
                     ("Ctrl+Y", "Redo"),
                     ("Delete", "Delete items in the focused list, or the hovered Open Recent entry"),
-                    ("Ctrl+A", "Select all sprites, sounds and palette colors"),
+                    ("Ctrl+A", "Select all sprites, sounds, frames and palette colors"),
+                    ("Ctrl+C / Ctrl+V", "Copy the selected frames / paste them after the current frame"),
                     ("Ctrl+F", "Filter sprites"),
                 ]),
                 ("View",
@@ -2186,6 +2197,7 @@ public partial class MainWindow : Window
                     ("Home / End", "First / last row"),
                     ("Ctrl or Shift+click", "Toggle a Clsn box in the selection"),
                     ("Arrows (canvas)", "Nudge selected boxes 1 pixel"),
+                    ("Left / Right (timeline)", "Previous / next frame"),
                 ]),
                 ("Mouse",
                 [

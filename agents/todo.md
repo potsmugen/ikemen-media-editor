@@ -19,7 +19,8 @@ before a release. Remove items once they're done or checked.
   and under different names, so one action had two labels in one panel; the names now
   match. Check the other tabs the same way: anything a button already does probably
   does not need a menu entry, which leaves the menu free to mean "what the panel
-  cannot do". Decide per entry whether to prune or keep both.
+  cannot do". Decide per entry whether to prune or keep both. Frame table done: dropped
+  Insert/Duplicate/Remove/Move (buttons) and the four Interpolate toggles (Special Flags).
 - Status-bar summaries still listing skipped items "(see crash.log)": Bulk export/import
   (BulkIO.cs ~552), sound Increase Loudness / Downsample (Sounds.cs ~1372, 1391, 1589).
   Show a popup listing them like the palette batch does. Frame-insert group number
@@ -181,7 +182,14 @@ Built, but not tried by the maintainer yet.
 
 ### Animations
 
-- Support selecting multiple animation frames and copying/pasting them anywhere.
+- Test frame multi-selection: Ctrl/Shift click and Shift+arrows pick the current frame, cell
+  clicks with Ctrl/Shift don't open the editor, right-click inside the selection keeps it,
+  Remove/Duplicate/Move/Delete on non-contiguous rows, undo/redo restores the selection,
+  fills and cell edits keep it, Ctrl+C/Ctrl+V within and across actions (Clsn defaults,
+  Interpolate, Loopstart, inherited boxes). Buttons on a selection: Insert/Insert Sprite Group
+  position, Special Flags mixed states, Auto Clsn2/Sort/Delete All/Onion copy as one undo, and
+  each button dimming (edges, one frame left, no box selected, no sprite file, no action).
+- Test Left/Right on the focused timeline: steps frames, pauses playback, stops at the ends.
 - Support Copy Action animations.
 - Test Auto Clsn2 with true-color sprites.
 

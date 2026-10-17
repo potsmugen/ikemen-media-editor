@@ -243,6 +243,7 @@ public partial class MainWindow
         AnimCanvas.ShowOnion(null, null);
         FrameList.ItemsSource = null;
         TimelineView?.Show([], -1);
+        UpdateFrameButtons();
 
         CrashLog.Trace("LoadAir: rebuilding action list");
         _suppressEvents = true;
@@ -636,20 +637,15 @@ public partial class MainWindow
     /// a full RebuildFrameTable, so Timeline clicks and keyboard nav keep the
     /// table's selected row in sync without extra rebuild cost. Rows are one per
     /// frame now (the Loopstart row became an "L" tag), so FrameRow == position.
+    /// A frame inside a multi-selection keeps it; any other frame becomes the only selected row.
     /// </summary>
     private void SyncFrameTableSelection()
     {
-        if (!_frameTableActive || FrameTableList is null) return;
+        if (!_frameTableActive || FrameTableList?.ItemsSource is null) return;
         int idx = FrameList.SelectedIndex;
-        var rows = FrameTableList.ItemsSource as ICollection<FrameTableRow>;
-        if (rows is null) return;
-        int target = rows.ToList().FindIndex(r => r.FrameRow == idx);
-        if (idx < 0 || target < 0 || target == FrameTableList.SelectedIndex) return;
-
-        _suppressEvents = true;
-        FrameTableList.SelectedIndex = target;
-        _suppressEvents = false;
-        FrameTableList.ScrollIntoView(target);
+        if (idx < 0 || idx >= _frameTableRows.Count || SelectedFrameRows().Contains(idx)) return;
+        ApplyFrameRowSelection([idx]);
+        FrameTableList.ScrollIntoView(idx);
     }
 
     /// <summary>Draws the selected frame with its sprite and its boxes.</summary>
@@ -670,7 +666,7 @@ public partial class MainWindow
 
     private void ShowFrame()
     {
-        if (CurrentElement is not { } element || AnimCanvas is null) return;
+        if (CurrentElement is not { } element || AnimCanvas is null) { UpdateFrameButtons(); return; }
 
         var sprite = FindAnimSprite(element.Group, element.Index);
         _animSprite = sprite; // null (missing sprite) means nothing to sync
@@ -1012,6 +1008,19 @@ public partial class MainWindow
     private void OnDeleteAllBoxes(object? sender, RoutedEventArgs e)
     {
         if (_action is not { } action || CurrentElement is not { } element) return;
+        if (SelectedFrameTargets() is { Count: > 1 } targets)
+        {
+            var owners = targets.Where(i => HasOwnClsn(action, i)).ToList();
+            if (EditFramesClsn("delete all boxes", owners, (a, i) =>
+                {
+                    a.DefaultAttackSegments.RemoveAll(s => s.At == i);
+                    a.DefaultHurtSegments.RemoveAll(s => s.At == i);
+                    a.Elements[i].OwnHurtBoxes = a.Elements[i].OwnAttackBoxes = false;
+                }))
+                StatusText.Text = $"Deleted the own boxes of {owners.Count} frames.";
+            else StatusText.Text = "None of the selected frames has boxes of its own.";
+            return;
+        }
         int at = action.Elements.IndexOf(element);
         bool attackDeclared = !element.OwnAttackBoxes && action.AttackSegmentAt(at)?.At == at;
         bool hurtDeclared = !element.OwnHurtBoxes && action.HurtSegmentAt(at)?.At == at;
@@ -1030,6 +1039,20 @@ public partial class MainWindow
         _undo.Record("delete all boxes", () => RestoreActionBoxes(action, before), () => RestoreActionBoxes(action, after));
         RestoreActionBoxes(action, after); // rebakes inheriting frames and refreshes the views
         MarkAirDirty();
+    }
+
+    /// <summary>Applies a box change to several frames of the current action as one undo step.</summary>
+    private bool EditFramesClsn(string undoName, IEnumerable<int> frames, Action<AnimationAction, int> change)
+    {
+        if (_action is not { } action) return false;
+        var before = CaptureActionBoxes(action);
+        foreach (int at in frames) change(action, at);
+        var after = CaptureActionBoxes(action);
+        if (SameActionBoxes(before, after)) return false;
+        _undo.Record(undoName, () => RestoreActionBoxes(action, before), () => RestoreActionBoxes(action, after));
+        RestoreActionBoxes(action, after); // rebakes inheriting frames and refreshes the views
+        MarkAirDirty();
+        return true;
     }
 
     private sealed record ActionBoxState(List<DefaultSegment> Attack, List<DefaultSegment> Hurt,
@@ -1278,7 +1301,26 @@ public partial class MainWindow
     {
         try
         {
-            if (CurrentElement is not { } element) return;
+            if (CurrentElement is not { } element || _action is not { } action) return;
+            if (SelectedFrameTargets() is { Count: > 1 } targets)
+            {
+                var owners = targets.Where(i => action.Elements[i].OwnAttackBoxes || action.Elements[i].OwnHurtBoxes).ToList();
+                if (owners.Count == 0)
+                {
+                    StatusText.Text = "None of the selected frames has boxes of its own to sort.";
+                    return;
+                }
+                if (await Dialogs.PromptBoxSortOrder(this) is not { } multiOrder || _action != action) return;
+                // Own kinds only, as for one frame: an inherited default is shared with other frames.
+                EditFramesClsn($"sort boxes ({multiOrder})", owners, (a, i) =>
+                {
+                    var el = a.Elements[i];
+                    if (el.OwnAttackBoxes) el.Attack = Sorted(el.Attack.ToList(), multiOrder);
+                    if (el.OwnHurtBoxes) el.Hurt = Sorted(el.Hurt.ToList(), multiOrder);
+                });
+                StatusText.Text = $"Sorted the boxes of {owners.Count} frames.";
+                return;
+            }
             if (!element.OwnAttackBoxes && !element.OwnHurtBoxes)
             {
                 StatusText.Text = "This frame has no boxes of its own to sort — only a default it's inheriting.";
@@ -1443,6 +1485,11 @@ public partial class MainWindow
         try
         {
             if (CurrentElement is not { } element) return;
+            if (SelectedFrameTargets() is { Count: > 1 } targets)
+            {
+                await AutoHurtBoxesForFrames(targets);
+                return;
+            }
             if (element.NoSprite)
             {
                 StatusText.Text = "This frame has no sprite (-1), so there's nothing for Auto Clsn2 to cover.";
@@ -1499,6 +1546,63 @@ public partial class MainWindow
             CrashLog.Write("OnAutoHurtBoxes", ex);
             await Dialogs.ShowMessage(this, "Something Went Wrong Generating Clsn2 Boxes", ex.Message);
         }
+    }
+
+    /// <summary>Auto Clsn2 on the selected frames: one dialog, one undo step. A declaring frame replaces its
+    /// default; others get own Clsn2. Frames with no usable sprite keep their boxes (counted in the status bar).</summary>
+    private async Task AutoHurtBoxesForFrames(List<int> targets)
+    {
+        if (_action is not { } action) return;
+        var frames = targets.Where(i => !action.Elements[i].NoSprite).ToList();
+        int noSprite = targets.Count - frames.Count;
+        if (frames.Count == 0)
+        {
+            StatusText.Text = "None of the selected frames has a sprite (-1), so there's nothing for Auto Clsn2 to cover.";
+            return;
+        }
+        var sprites = frames.Select(i => _file?.Find(action.Elements[i].Group, action.Elements[i].Index))
+            .Select(s => s is { Width: > 0, Height: > 0, HasPixels: true } ? s : null).ToList();
+        if (sprites.All(s => s is null))
+        {
+            if (await Dialogs.AskOpenSpriteFile(this)) OnOpen(null, new RoutedEventArgs());
+            return;
+        }
+
+        int initialBoxes = _autoBoxCount ?? Settings.Checked(nameof(Settings.AutoBoxesDefault), _settings.AutoBoxesDefault,
+            Math.Min(Settings.DefaultAutoBoxes, _settings.MaxAutoBoxes), v => v >= 1 && v <= _settings.MaxAutoBoxes);
+        CoverLayout initialLayout;
+        if (_autoLayout is { } last) initialLayout = last;
+        else if (Enum.TryParse<CoverLayout>(_settings.AutoBoxesLayout, true, out var a) && Enum.IsDefined(a)) initialLayout = a;
+        else
+        {
+            CrashLog.Error("Settings", $"AutoBoxesLayout = {_settings.AutoBoxesLayout} isn't valid; using Stacked");
+            initialLayout = CoverLayout.Stacked;
+        }
+        if (await Dialogs.PromptAutoBoxCount(this, initialBoxes, initialLayout, _settings.MaxAutoBoxes) is not { } choice) return;
+        _autoBoxCount = choice.Boxes;
+        _autoLayout = choice.Layout;
+        if (_action != action) return;
+
+        int missing = 0, blank = 0, done = 0;
+        EditFramesClsn("auto clsn2", Enumerable.Range(0, frames.Count), (act, k) =>
+        {
+            int i = frames[k];
+            var el = act.Elements[i];
+            string where = $"Action {act.Number}, frame {i + 1} (sprite {el.Group},{el.Index})";
+            if (sprites[k] is not { } sprite) { missing++; CrashLog.Error("Auto Clsn2", $"skipped {where}: sprite missing or empty"); return; }
+            var boxes = SpriteCover.CoverTransformed(sprite, choice.Boxes, choice.Layout,
+                    el.FlipH, el.FlipV, el.ScaleX, el.ScaleY, el.Angle)
+                .Select(r => new ClsnBox(r.X1 + el.OffsetX, r.Y1 + el.OffsetY, r.X2 + el.OffsetX, r.Y2 + el.OffsetY)).ToList();
+            if (boxes.Count == 0) { blank++; CrashLog.Error("Auto Clsn2", $"skipped {where}: no visible pixels"); return; }
+            if (!el.OwnHurtBoxes && act.HurtSegmentAt(i) is { } seg && seg.At == i) seg.Boxes = boxes;
+            else { el.Hurt = boxes; el.OwnHurtBoxes = true; }
+            done++;
+        });
+        var notes = new List<string>();
+        if (missing > 0) notes.Add($"{missing} skipped (sprite missing)");
+        if (blank > 0) notes.Add($"{blank} skipped (no visible pixels)");
+        if (noSprite > 0) notes.Add($"{noSprite} without a sprite (-1) left alone");
+        StatusText.Text = $"Auto Clsn2: replaced Clsn2 on {done} frames" + (notes.Count > 0 ? ", " + string.Join(", ", notes) + "." : ".");
     }
 
     /// <summary>
@@ -1634,48 +1738,19 @@ public partial class MainWindow
     {
         if (BoxInfo is null) return;
 
+        UpdateFrameButtons();
         if (AnimCanvas.SelectedBox < 0 || AnimCanvas.SelectedBox >= AnimCanvas.Boxes.Count)
         {
             BoxInfo.Text = "No Clsn selected";
-            if (MakeDefaultButton is not null) MakeDefaultButton.IsEnabled = false;
             return;
         }
         var b = AnimCanvas.Boxes[AnimCanvas.SelectedBox];
         bool attack = (ClsnKind?)b.Tag == ClsnKind.Attack;
         var kind = attack ? "Clsn1" : "Clsn2";
         BoxInfo.Text = $"{kind}[{b.Index}] = {b.X1}, {b.Y1}, {b.X2}, {b.Y2}  ({b.Right - b.Left} x {b.Bottom - b.Top})";
-
-        if (MakeDefaultButton is not null) MakeDefaultButton.IsEnabled = true;
     }
 
     private void OnToggleBoxes(object? sender, RoutedEventArgs e) => ShowFrame();
-
-    private void ToggleInterpolation(string kind)
-    {
-        if (_action is not { } action || CurrentElement is null) return;
-        int frame = FrameList.SelectedIndex;
-        if (frame < 0 || frame >= action.Elements.Count) return;
-
-        SortedSet<int> set = kind switch
-        {
-            "offset" => action.InterpolateOffset,
-            "scale" => action.InterpolateScale,
-            "angle" => action.InterpolateAngle,
-            "blend" => action.InterpolateBlend,
-            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
-        };
-        bool before = set.Contains(frame);
-        void Apply(bool enabled)
-        {
-            if (enabled) set.Add(frame); else set.Remove(frame);
-            SyncTextFromAction();
-            RebuildFrameTable();
-            ShowFrame();
-        }
-        _undo.Do($"toggle interpolate {kind}", () => Apply(!before), () => Apply(before));
-        MarkAirDirty();
-        StatusText.Text = $"Interpolation {kind} {(before ? "disabled" : "enabled")} on frame {frame + 1}.";
-    }
 
     private void OnBoxContextRequested(int index, Point screenPos)
     {
@@ -2115,6 +2190,7 @@ public partial class MainWindow
             _action = null;
             RebuildActionList();
             if (air.Actions.Count > 0) SelectAction(air.Actions[Math.Min(at, air.Actions.Count - 1)]);
+            else UpdateFrameButtons();
             MarkAirDirty();
         }
         catch (Exception ex)

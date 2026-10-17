@@ -114,24 +114,86 @@ public partial class MainWindow
             return;
         }
         row.Widths = widths;
+        var keep = SelectedFrameRows();
         _suppressEvents = true;
         _frameTableRows[frameRow] = row;
         _suppressEvents = false;
-        RestoreFrameTableSelection();
+        RestoreFrameTableSelection(keep);
     }
 
-    /// <summary>A replaced or rebuilt row loses its selection and focus; puts both back on the current frame.</summary>
-    private void RestoreFrameTableSelection()
+    /// <summary>A replaced or rebuilt row loses its selection and focus; puts both back.
+    /// `keep` is the multi-selection to restore; it's dropped unless it holds the current frame.</summary>
+    private void RestoreFrameTableSelection(IReadOnlyCollection<int>? keep = null)
     {
+        if (!_frameTableActive || FrameTableList.ItemsSource is null) return;
         int frame = FrameList.SelectedIndex;
-        if (frame >= 0 && frame < _frameTableRows.Count && FrameTableList.SelectedIndex != frame)
+        if (frame >= 0 && frame < _frameTableRows.Count)
         {
-            _suppressEvents = true;
-            FrameTableList.SelectedIndex = frame;
-            _suppressEvents = false;
+            IReadOnlyCollection<int> wanted = keep is not null && keep.Contains(frame) ? keep : [frame];
+            if (!SelectedFrameRows().SequenceEqual(wanted.Where(r => r < _frameTableRows.Count).Distinct().Order()))
+                ApplyFrameRowSelection(wanted);
         }
         FocusFrameTableRow();
     }
+
+    // ---- multi-selection ---------------------------------------------------
+    // FrameList.SelectedIndex stays the one current frame; the table's selected rows are the
+    // frames Remove, Duplicate, Move and Copy act on. The current frame is always one of them.
+
+    /// <summary>The table's selected frames, in order.</summary>
+    private List<int> SelectedFrameRows() =>
+        FrameTableList?.SelectedItems is { } items
+            ? items.OfType<FrameTableRow>().Select(r => r.FrameRow).Distinct().Order().ToList()
+            : [];
+
+    /// <summary>Selects exactly these frames in the table without firing selection handlers.</summary>
+    private void ApplyFrameRowSelection(IEnumerable<int> frames)
+    {
+        if (FrameTableList.ItemsSource is null || FrameTableList.SelectedItems is not { } items) return;
+        bool wasSuppressed = _suppressEvents;
+        _suppressEvents = true;
+        try
+        {
+            var wanted = frames.Where(r => r >= 0 && r < _frameTableRows.Count).Distinct().Order().ToList();
+            items.Clear();
+            foreach (int r in wanted) items.Add(_frameTableRows[r]);
+        }
+        finally { _suppressEvents = wasSuppressed; }
+        UpdateFrameButtons();
+    }
+
+    /// <summary>The frames a command acts on: the selection when it holds the current frame, else the current frame.</summary>
+    private List<int> SelectedFrameTargets()
+    {
+        int current = FrameList.SelectedIndex;
+        if (_action is null || current < 0 || current >= _action.Elements.Count) return [];
+        List<int> rows = _frameTableActive ? SelectedFrameRows().Where(r => r < _action.Elements.Count).ToList() : [];
+        return rows.Contains(current) ? rows : [current];
+    }
+
+    /// <summary>Right-click inside the selection keeps it and makes that row current; elsewhere selects only that row.</summary>
+    private void SelectFrameRowForContext(object? source)
+    {
+        if (source is not Visual v || v.FindAncestorOfType<ListBoxItem>(true)?.DataContext is not FrameTableRow row) return;
+        if (!SelectedFrameRows().Contains(row.FrameRow)) ApplyFrameRowSelection([row.FrameRow]);
+        if (FrameList.SelectedIndex != row.FrameRow) FrameList.SelectedIndex = row.FrameRow;
+    }
+
+    private void SelectAllFrames()
+    {
+        if (!_frameTableActive || _action is null || _action.Elements.Count == 0) return;
+        ApplyFrameRowSelection(Enumerable.Range(0, _action.Elements.Count));
+    }
+
+    /// <summary>Row last pressed in the table, so a Ctrl or Shift click makes that row the current frame.</summary>
+    private int _framePressRow = -1;
+
+    private void OnFrameTablePressed(object? sender, PointerPressedEventArgs e) =>
+        _framePressRow = RowAt(e.GetPosition(FrameTableList)) ?? -1;
+
+    // Posted: selection may change on release, after this tunnel handler.
+    private void OnFrameTableReleased(object? sender, PointerReleasedEventArgs e) =>
+        Dispatcher.UIThread.Post(() => _framePressRow = -1);
 
     /// <summary>Focuses the selected row once layout settles, if focus is still with the table: nowhere,
     /// the (now hidden) cell editor, or a row. Focus moved to another control is left alone.</summary>
@@ -142,7 +204,7 @@ public partial class MainWindow
             if (_editorOpen || !FrameTableList.IsEffectivelyVisible) return;
             if (FocusManager?.GetFocusedElement() is Visual now && now != FrameCellEditor
                 && now.FindAncestorOfType<ListBox>(true) != FrameTableList) return;
-            if (FrameTableList.ContainerFromIndex(FrameTableList.SelectedIndex) is Control row) row.Focus();
+            if (FrameTableList.ContainerFromIndex(FrameList.SelectedIndex) is Control row) row.Focus();
         }, DispatcherPriority.Loaded);
     }
 
@@ -150,7 +212,10 @@ public partial class MainWindow
     private void RebuildFrameTable()
     {
         if (!_frameTableActive || FrameTableList is null) return;
-        if (_action is null) { FrameTableList.ItemsSource = null; return; }
+        if (_action is null) { FrameTableList.ItemsSource = null; _frameTableAction = null; return; }
+        // A multi-selection carries over only within the same action.
+        var keep = ReferenceEquals(_frameTableAction, _action) ? SelectedFrameRows() : null;
+        _frameTableAction = _action;
 
         // The loop row sits at the loop point, between the frames — a marker
         // in the sequence rather than a summary at the end.
@@ -169,16 +234,37 @@ public partial class MainWindow
         _suppressEvents = true;
         FrameTableList.ItemsSource = _frameTableRows;
         _suppressEvents = false;
-        RestoreFrameTableSelection();
+        RestoreFrameTableSelection(keep);
     }
 
-    /// <summary>Clicking a row in the table selects that frame everywhere else.</summary>
+    /// <summary>The action the table's rows were last built for.</summary>
+    private AnimationAction? _frameTableAction;
+
+    /// <summary>
+    /// Picks the current frame from the table's selection: the clicked row, else the row keyboard focus
+    /// moved to, else the current frame if still selected, else the first selected.
+    /// </summary>
     private void OnFrameTableSelected(object? sender, SelectionChangedEventArgs e)
     {
         if (_suppressEvents || _fillFrom >= 0 || FrameTableList is null) return;
-        if (FrameTableList.SelectedItem is not FrameTableRow row) return;
-        if (row.FrameRow == FrameList.SelectedIndex) return;
-        FrameList.SelectedIndex = row.FrameRow;
+        UpdateFrameButtons();
+        var selected = SelectedFrameRows();
+        int current = FrameList.SelectedIndex;
+        int pressed = _framePressRow;
+        _framePressRow = -1;
+        if (selected.Count == 0)
+        {
+            // Ctrl+click on the last selected row: keep the current frame selected. Posted, not mid-change.
+            Dispatcher.UIThread.Post(() => { if (SelectedFrameRows().Count == 0) RestoreFrameTableSelection(); });
+            return;
+        }
+        int focused = FocusManager?.GetFocusedElement() is Visual v && v.FindAncestorOfType<ListBoxItem>(true) is { } item
+            && item.DataContext is FrameTableRow focusedRow ? focusedRow.FrameRow : -1;
+        int next = selected.Contains(pressed) ? pressed
+            : selected.Contains(focused) ? focused
+            : selected.Contains(current) ? current
+            : selected[0];
+        if (next != current) FrameList.SelectedIndex = next;
     }
 
     // ---- cell editor: one shared TextBox over the clicked text cell ----
@@ -191,6 +277,7 @@ public partial class MainWindow
     {
         if (sender is not Border cell || cell.DataContext is not FrameTableRow row || cell.Tag is not string tag) return;
         if (e.Source is Control { Classes: var c } && c.Contains("fillhandle")) return; // a fill drag, not a click
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Shift)) return; // selecting rows
         e.Handled = true;
         OpenFrameEditor(cell, row, tag);
     }
@@ -312,6 +399,7 @@ public partial class MainWindow
         {
             if (sender is not Control control || control.DataContext is not FrameTableRow row) return;
             if (e.Source is Control { Classes: var c } && c.Contains("fillhandle")) return; // a fill drag, not a click
+            if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Shift)) return; // selecting rows
             e.Handled = true;
             await OpenBlendDialog(row);
         }
@@ -448,6 +536,12 @@ public partial class MainWindow
     private void PasteFrameClsn()
     {
         if (_clsnClipboard is not { } clip) return;
+        if (SelectedFrameTargets() is { Count: > 1 } targets)
+        {
+            if (EditFramesClsn("paste Clsn", targets, (a, i) => ApplyFrameClsn(a, i, clip.Hurt, clip.Attack)))
+                StatusText.Text = $"Pasted Clsn into {targets.Count} frames.";
+            return;
+        }
         if (SetFrameClsn(clip.Hurt, clip.Attack, "paste Clsn"))
             StatusText.Text = $"Pasted Clsn into frame {FrameList.SelectedIndex + 1}.";
     }
@@ -459,6 +553,19 @@ public partial class MainWindow
         if (_action is not { } action || CurrentElement is not { } el) return false;
         int at = action.Elements.IndexOf(el);
         var before = CaptureActionBoxes(action);
+        ApplyFrameClsn(action, at, hurt, attack);
+        var after = CaptureActionBoxes(action); // RestoreActionBoxes below rebakes the frames inheriting a changed default
+        if (SameActionBoxes(before, after)) return false;
+        _undo.Record(undoName, () => RestoreActionBoxes(action, before), () => RestoreActionBoxes(action, after));
+        RestoreActionBoxes(action, after); // refreshes canvas, table, text
+        MarkAirDirty();
+        return true;
+    }
+
+    /// <summary>SetFrameClsn's change for one frame, without undo or refresh.</summary>
+    private static void ApplyFrameClsn(AnimationAction action, int at, List<ClsnBox>? hurt, List<ClsnBox>? attack)
+    {
+        var el = action.Elements[at];
         if (hurt is not null)
         {
             if (action.HurtSegmentAt(at) is { } seg && seg.At == at) { seg.Boxes = [.. hurt]; el.OwnHurtBoxes = false; }
@@ -469,18 +576,13 @@ public partial class MainWindow
             if (action.AttackSegmentAt(at) is { } seg && seg.At == at) { seg.Boxes = [.. attack]; el.OwnAttackBoxes = false; }
             else { el.Attack = [.. attack]; el.OwnAttackBoxes = true; }
         }
-        var after = CaptureActionBoxes(action); // RestoreActionBoxes below rebakes the frames inheriting a changed default
-        if (SameActionBoxes(before, after)) return false;
-        _undo.Record(undoName, () => RestoreActionBoxes(action, before), () => RestoreActionBoxes(action, after));
-        RestoreActionBoxes(action, after); // refreshes canvas, table, text
-        MarkAirDirty();
-        return true;
     }
 
     // ---- Fill handle (Excel-style: drag a cell's corner up/down to copy it) ----
 
     private int _fillFrom = -1, _fillTo = -1;
     private int _fillSelectedFrame = -1;
+    private List<int> _fillSelection = [];
     private string _fillTag = "";
     private Point _fillLastPos;
     private DispatcherTimer? _fillScrollTimer;
@@ -494,6 +596,7 @@ public partial class MainWindow
         HookFillEvents();
         _fillFrom = _fillTo = row.FrameRow;
         _fillSelectedFrame = FrameList.SelectedIndex;
+        _fillSelection = SelectedFrameRows();
         _fillTag = (string?)handle.Tag ?? "";
         _fillLastPos = e.GetPosition(FrameTableList);
         // Captured on the list, not the handle: a pending cell commit rebuilds the rows mid-drag.
@@ -622,8 +725,8 @@ public partial class MainWindow
         {
             _suppressEvents = true;
             FrameList.SelectedIndex = selectedFrame;
-            FrameTableList.SelectedIndex = selectedFrame;
             _suppressEvents = false;
+            RestoreFrameTableSelection(_fillSelection);
         }
         if (apply && from != to) FillFrames(from, to, _fillTag);
     }

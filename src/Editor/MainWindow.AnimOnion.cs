@@ -147,7 +147,15 @@ public partial class MainWindow
             StatusText.Text = "The onion skin frame has no Clsn.";
             return;
         }
-        if (SetFrameClsn(src.Hurt.Count > 0 ? src.Hurt : null, src.Attack.Count > 0 ? src.Attack : null, "copy Clsn from onion skin"))
+        // Copied first: the onion frame may be one of the selected frames.
+        List<Air.ClsnBox>? hurt = src.Hurt.Count > 0 ? [.. src.Hurt] : null, attack = src.Attack.Count > 0 ? [.. src.Attack] : null;
+        if (SelectedFrameTargets() is { Count: > 1 } targets)
+        {
+            if (EditFramesClsn("copy Clsn from onion skin", targets, (a, i) => ApplyFrameClsn(a, i, hurt, attack)))
+                StatusText.Text = $"Copied Clsn from the onion skin frame into {targets.Count} frames.";
+            return;
+        }
+        if (SetFrameClsn(hurt, attack, "copy Clsn from onion skin"))
             StatusText.Text = $"Copied Clsn from the onion skin frame into frame {FrameList.SelectedIndex + 1}.";
     }
 }

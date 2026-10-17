@@ -64,7 +64,11 @@ public partial class MainWindow
     /// default segments, since an insert/remove shifts which element index each
     /// one governs from (see AnimationAction.ShiftDefaultSegments).
     /// </summary>
-    private void EditFrameList(string name, Func<int> change)
+    private void EditFrameList(string name, Func<int> change) =>
+        EditFrameList(name, () => { int row = change(); return (row, new List<int> { row }); });
+
+    /// <summary>As above; change() also returns the frames to leave selected in the table.</summary>
+    private void EditFrameList(string name, Func<(int Row, List<int> Selected)> change)
     {
         if (_action is null) return;
         var action = _action;
@@ -72,6 +76,7 @@ public partial class MainWindow
         var before = action.Elements.ToList();
         int beforeLoop = action.LoopStart;
         int beforeRow = FrameList.SelectedIndex;
+        var beforeSelected = SelectedFrameTargets();
         var beforeAttackSegs = CloneSegments(action.DefaultAttackSegments);
         var beforeHurtSegs = CloneSegments(action.DefaultHurtSegments);
         var beforeInterp = CloneInterpolation(action);
@@ -79,7 +84,7 @@ public partial class MainWindow
         // change() returns the wanted row itself, rather than setting
         // FrameList.SelectedIndex directly: ItemsSource still holds the old
         // list at this point, so an out-of-old-range index gets rejected.
-        int afterRow = change();
+        var (afterRow, afterSelected) = change();
 
         var after = action.Elements.ToList();
         int afterLoop = action.LoopStart;
@@ -87,7 +92,7 @@ public partial class MainWindow
         var afterHurtSegs = CloneSegments(action.DefaultHurtSegments);
         var afterInterp = CloneInterpolation(action);
 
-        void Apply(List<AnimationElement> state, int loop, int row,
+        void Apply(List<AnimationElement> state, int loop, int row, List<int> selected,
             List<DefaultSegment> attackSegs, List<DefaultSegment> hurtSegs, SortedSet<int>[] interp)
         {
             action.Elements = [.. state];
@@ -106,14 +111,28 @@ public partial class MainWindow
             ShowFrame();
             SyncTextFromAction();
             RebuildFrameTable();
+            if (_action == action) RestoreFrameTableSelection(selected);
         }
 
         _undo.Record(name,
-            () => Apply(before, beforeLoop, beforeRow, beforeAttackSegs, beforeHurtSegs, beforeInterp),
-            () => Apply(after, afterLoop, afterRow, afterAttackSegs, afterHurtSegs, afterInterp));
+            () => Apply(before, beforeLoop, beforeRow, beforeSelected, beforeAttackSegs, beforeHurtSegs, beforeInterp),
+            () => Apply(after, afterLoop, afterRow, afterSelected, afterAttackSegs, afterHurtSegs, afterInterp));
         MarkAirDirty();
-        Apply(after, afterLoop, afterRow, afterAttackSegs, afterHurtSegs, afterInterp);
+        Apply(after, afterLoop, afterRow, afterSelected, afterAttackSegs, afterHurtSegs, afterInterp);
     }
+
+    /// <summary>A deep copy of a frame: fields and boxes.</summary>
+    private static AnimationElement CloneElement(AnimationElement source) => new()
+    {
+        Group = source.Group, Index = source.Index,
+        OffsetX = source.OffsetX, OffsetY = source.OffsetY,
+        Duration = source.Duration,
+        FlipH = source.FlipH, FlipV = source.FlipV,
+        Blend = source.Blend,
+        ScaleX = source.ScaleX, ScaleY = source.ScaleY, Angle = source.Angle,
+        Attack = [.. source.Attack], Hurt = [.. source.Hurt],
+        OwnAttackBoxes = source.OwnAttackBoxes, OwnHurtBoxes = source.OwnHurtBoxes,
+    };
 
     private static SortedSet<int>[] CloneInterpolation(AnimationAction a) =>
         [new(a.InterpolateOffset), new(a.InterpolateScale), new(a.InterpolateAngle), new(a.InterpolateBlend)];
@@ -124,11 +143,47 @@ public partial class MainWindow
     private static List<DefaultSegment> CloneSegments(List<DefaultSegment> segments) =>
         segments.Select(s => new DefaultSegment { At = s.At, Boxes = [.. s.Boxes] }).ToList();
 
+    /// <summary>Where Insert and Insert Sprite Group add frames: after the last selected frame.</summary>
+    private int FrameInsertPoint() => (SelectedFrameTargets() is { Count: > 0 } t ? t[^1] : -1) + 1;
+
+    /// <summary>A frame owns boxes of its own or declares a default.</summary>
+    private static bool HasOwnClsn(AnimationAction action, int at) =>
+        action.Elements[at].OwnAttackBoxes || action.Elements[at].OwnHurtBoxes
+        || action.DefaultAttackSegments.Any(s => s.At == at) || action.DefaultHurtSegments.Any(s => s.At == at);
+
+    /// <summary>Dims each frame and Clsn button that can't act on the current selection.</summary>
+    private void UpdateFrameButtons()
+    {
+        if (FrameInsertButton is null || AnimCanvas is null) return;
+        var action = _action;
+        var targets = SelectedFrameTargets();
+        bool any = action is not null && targets.Count > 0, single = any && targets.Count == 1;
+        int count = action?.Elements.Count ?? 0;
+        List<AnimationElement> elements = any ? targets.Select(i => action!.Elements[i]).ToList() : [];
+
+        FrameInsertButton.IsEnabled = action is not null;
+        InsertSpriteGroupButton.IsEnabled = action is not null && _file is not null;
+        FrameDuplicateButton.IsEnabled = any;
+        FrameRemoveButton.IsEnabled = any && targets.Count < count;
+        FrameUpButton.IsEnabled = any && targets[0] > 0;
+        FrameDownButton.IsEnabled = any && targets[^1] < count - 1;
+        FrameFlagsButton.IsEnabled = any;
+
+        // Box-level buttons work on one frame: the canvas shows only the current one.
+        AddAttackBoxButton.IsEnabled = AddHurtBoxButton.IsEnabled = single;
+        DeleteBoxButton.IsEnabled = MakeDefaultButton.IsEnabled =
+            single && AnimCanvas.SelectedBox >= 0 && AnimCanvas.SelectedBox < AnimCanvas.Boxes.Count;
+        CopyOnionClsnButton.IsEnabled = any && AnimOnionSource() is { } src && (src.Hurt.Count > 0 || src.Attack.Count > 0);
+        AutoHurtBoxesButton.IsEnabled = elements.Any(el => !el.NoSprite);
+        SortBoxesButton.IsEnabled = elements.Any(el => el.OwnAttackBoxes || el.OwnHurtBoxes);
+        DeleteAllBoxesButton.IsEnabled = any && targets.Any(i => HasOwnClsn(action!, i));
+    }
+
     private void OnInsertFrame(object? sender, RoutedEventArgs e)
     {
         if (_action is null) return;
-        int at = FrameList.SelectedIndex + 1;
-        var template = CurrentElement;
+        int at = FrameInsertPoint();
+        var template = at > 0 && at <= _action.Elements.Count ? _action.Elements[at - 1] : null;
 
         EditFrameList("insert frame", () =>
         {
@@ -178,7 +233,7 @@ public partial class MainWindow
                 return;
             }
 
-            int at = FrameList.SelectedIndex + 1;
+            int at = FrameInsertPoint();
             EditFrameList($"insert sprite group {group}", () =>
             {
                 // Attack/Hurt hold a baked copy of the action's current default even
@@ -212,68 +267,126 @@ public partial class MainWindow
         }
     }
 
+    /// <summary>Copies the selected frames as one block after the last of them; the copies become the selection.</summary>
     private void OnDuplicateFrame(object? sender, RoutedEventArgs e)
     {
-        if (_action is null || CurrentElement is not { } source) return;
-        int at = FrameList.SelectedIndex + 1;
+        if (_action is not { } action) return;
+        var targets = SelectedFrameTargets();
+        if (targets.Count == 0) return;
+        int at = targets[^1] + 1;
+        int current = at + targets.IndexOf(FrameList.SelectedIndex);
 
-        EditFrameList("duplicate frame", () =>
+        EditFrameList(targets.Count == 1 ? "duplicate frame" : "duplicate frames", () =>
         {
-            var copy = new AnimationElement
-            {
-                Group = source.Group, Index = source.Index,
-                OffsetX = source.OffsetX, OffsetY = source.OffsetY,
-                Duration = source.Duration,
-                FlipH = source.FlipH, FlipV = source.FlipV,
-                Blend = source.Blend,
-                ScaleX = source.ScaleX, ScaleY = source.ScaleY, Angle = source.Angle,
-                Attack = [.. source.Attack], Hurt = [.. source.Hurt],
-                OwnAttackBoxes = source.OwnAttackBoxes, OwnHurtBoxes = source.OwnHurtBoxes,
-            };
-            // A plain copy/paste of the frame's text block, the lines above it included.
-            _action.Elements.Insert(at, copy);
-            _action.InsertFrameLines(at, 1);
-            _action.CopyFrameLines(at - 1, at);
-            return at;
+            // A plain copy/paste of the frames' text block, the lines above each included.
+            action.Elements.InsertRange(at, targets.Select(i => CloneElement(action.Elements[i])).ToList());
+            action.InsertFrameLines(at, targets.Count);
+            for (int i = 0; i < targets.Count; i++) action.CopyFrameLines(targets[i], at + i);
+            return (current, Enumerable.Range(at, targets.Count).ToList());
         });
     }
 
     private void OnRemoveFrame(object? sender, RoutedEventArgs e)
     {
-        if (_action is null || CurrentElement is null || _action.Elements.Count <= 1) return;
-        int at = FrameList.SelectedIndex;
-
-        EditFrameList("remove frame", () =>
+        if (_action is not { } action) return;
+        var targets = SelectedFrameTargets();
+        if (targets.Count == 0) return;
+        if (targets.Count >= action.Elements.Count)
         {
-            // Its lines go with it (a ClsnDefault it declares, Loopstart, Interpolate), as in the text form.
-            _action.Elements.RemoveAt(at);
-            _action.RemoveFrameLines(at);
-            return Math.Min(at, _action.Elements.Count - 1);
+            if (targets.Count > 1) StatusText.Text = "An action needs at least one frame.";
+            return;
+        }
+
+        EditFrameList(targets.Count == 1 ? "remove frame" : "remove frames", () =>
+        {
+            // Their lines go with them (a ClsnDefault each declares, Loopstart, Interpolate), as in the text form.
+            foreach (int at in targets.OrderDescending())
+            {
+                action.Elements.RemoveAt(at);
+                action.RemoveFrameLines(at);
+            }
+            int row = Math.Min(targets[0], action.Elements.Count - 1);
+            return (row, new List<int> { row });
         });
+        if (targets.Count > 1) StatusText.Text = $"Removed {targets.Count} frames.";
     }
 
     private void OnMoveFrameUp(object? sender, RoutedEventArgs e) => MoveFrame(-1);
     private void OnMoveFrameDown(object? sender, RoutedEventArgs e) => MoveFrame(1);
 
     /// <summary>
-    /// Swaps two adjacent frames, lines above them included (text form). A frame
+    /// Moves the selected frames one row, lines above them included (text form). A frame
     /// without boxes of its own then inherits whatever default is in force at
-    /// its new position, as it would if the text were moved.
+    /// its new position, as it would if the text were moved. At either edge nothing moves.
     /// </summary>
     private void MoveFrame(int delta)
     {
-        if (_action is null) return;
-        var action = _action;
-        int at = FrameList.SelectedIndex;
-        int to = at + delta;
-        if (at < 0 || to < 0 || to >= action.Elements.Count) return;
+        if (_action is not { } action) return;
+        var targets = SelectedFrameTargets();
+        if (targets.Count == 0 || targets[0] + delta < 0 || targets[^1] + delta >= action.Elements.Count) return;
+        int current = FrameList.SelectedIndex + delta;
 
-        EditFrameList("move frame", () =>
+        EditFrameList(targets.Count == 1 ? "move frame" : "move frames", () =>
         {
-            (action.Elements[at], action.Elements[to]) = (action.Elements[to], action.Elements[at]);
-            action.SwapFrameLines(at, to);
-            return to;
+            // Swap from the leading end so each frame steps into a row its neighbor just left.
+            IEnumerable<int> order = delta < 0 ? targets : Enumerable.Reverse(targets);
+            foreach (int at in order)
+            {
+                int to = at + delta;
+                (action.Elements[at], action.Elements[to]) = (action.Elements[to], action.Elements[at]);
+                action.SwapFrameLines(at, to);
+            }
+            return (current, targets.Select(i => i + delta).ToList());
         });
+    }
+
+    // ---- copy and paste (Ctrl+C / Ctrl+V) -----------------------------------
+
+    /// <summary>A copied frame with the lines above it, as in the text form.</summary>
+    private sealed record FrameClip(AnimationElement Element, List<ClsnBox>? AttackDefault, List<ClsnBox>? HurtDefault, bool[] Interpolate, bool LoopStart);
+
+    private List<FrameClip>? _frameClipboard;
+
+    private void CopyFrames()
+    {
+        if (_action is not { } action) return;
+        var targets = SelectedFrameTargets();
+        if (targets.Count == 0) return;
+        _frameClipboard = targets.Select(i => new FrameClip(CloneElement(action.Elements[i]),
+            action.DefaultAttackSegments.Find(s => s.At == i)?.Boxes.ToList(),
+            action.DefaultHurtSegments.Find(s => s.At == i)?.Boxes.ToList(),
+            [action.InterpolateOffset.Contains(i), action.InterpolateScale.Contains(i),
+             action.InterpolateAngle.Contains(i), action.InterpolateBlend.Contains(i)],
+            action.LoopStart > 0 && action.LoopStart == i)).ToList();
+        StatusText.Text = targets.Count == 1 ? $"Copied frame {targets[0] + 1}." : $"Copied {targets.Count} frames.";
+    }
+
+    /// <summary>Inserts the copied frames and their lines after the current one, in any action, as pasted text would.</summary>
+    private void PasteFrames()
+    {
+        if (_action is not { } action || _frameClipboard is not { Count: > 0 } clip) return;
+        int at = Math.Clamp(FrameList.SelectedIndex + 1, 0, action.Elements.Count);
+
+        EditFrameList(clip.Count == 1 ? "paste frame" : "paste frames", () =>
+        {
+            action.Elements.InsertRange(at, clip.Select(c => CloneElement(c.Element)).ToList());
+            action.InsertFrameLines(at, clip.Count);
+            for (int i = 0; i < clip.Count; i++)
+            {
+                int to = at + i;
+                if (clip[i].AttackDefault is { } attack) action.DefaultAttackSegments.Add(new DefaultSegment { At = to, Boxes = [.. attack] });
+                if (clip[i].HurtDefault is { } hurt) action.DefaultHurtSegments.Add(new DefaultSegment { At = to, Boxes = [.. hurt] });
+                if (clip[i].LoopStart) action.LoopStart = to;
+                if (clip[i].Interpolate[0]) action.InterpolateOffset.Add(to);
+                if (clip[i].Interpolate[1]) action.InterpolateScale.Add(to);
+                if (clip[i].Interpolate[2]) action.InterpolateAngle.Add(to);
+                if (clip[i].Interpolate[3]) action.InterpolateBlend.Add(to);
+            }
+            action.DefaultAttackSegments.Sort((a, b) => a.At.CompareTo(b.At));
+            action.DefaultHurtSegments.Sort((a, b) => a.At.CompareTo(b.At));
+            return (at, Enumerable.Range(at, clip.Count).ToList());
+        });
+        StatusText.Text = clip.Count == 1 ? "Pasted 1 frame." : $"Pasted {clip.Count} frames.";
     }
 
     /// <summary>
@@ -309,25 +422,38 @@ public partial class MainWindow
             : $"The action now loops from frame {at + 1} (was frame {before + 1}).";
     }
 
-    /// <summary>Special Flags dialog: Loopstart and the Interpolate lines above the selected frame. OK = one undo.</summary>
+    /// <summary>Special Flags dialog: Loopstart and the Interpolate lines above the selected frames. OK = one undo.
+    /// With several frames, Loopstart is dimmed and a mixed Interpolate flag left mixed changes nothing.</summary>
     private async void OnSpecialFlags(object? sender, RoutedEventArgs e)
     {
         try
         {
             if (_action is not { } action || CurrentElement is null) return;
+            var targets = SelectedFrameTargets();
+            bool multi = targets.Count > 1;
             int at = FrameList.SelectedIndex;
-            var initial = new Dialogs.SpecialFlags(at > 0 && action.LoopStart == at,
-                action.InterpolateOffset.Contains(at), action.InterpolateScale.Contains(at),
-                action.InterpolateAngle.Contains(at), action.InterpolateBlend.Contains(at));
-            if (await Dialogs.PromptSpecialFlags(this, at + 1, initial, loopEnabled: at > 0) is not { } flags) return;
-            if (flags == initial || _action != action || at >= action.Elements.Count) return;
+            bool? All(SortedSet<int> set)
+            {
+                int n = targets.Count(set.Contains);
+                return n == 0 ? false : n == targets.Count ? true : null;
+            }
+            var initial = new Dialogs.SpecialFlags(!multi && at > 0 && action.LoopStart == at,
+                All(action.InterpolateOffset), All(action.InterpolateScale),
+                All(action.InterpolateAngle), All(action.InterpolateBlend));
+            string heading = multi ? $"Flags for {targets.Count} frames:" : $"Flags for frame {at + 1}:";
+            if (await Dialogs.PromptSpecialFlags(this, heading, initial, loopEnabled: !multi && at > 0) is not { } flags) return;
+            if (flags == initial || _action != action || targets.Any(t => t >= action.Elements.Count)) return;
 
             int beforeLoop = action.LoopStart;
             var beforeInterp = CloneInterpolation(action);
             // Unticking Loopstart on the loop frame loops from the start again; elsewhere it leaves the loop alone.
-            int afterLoop = flags.LoopStart ? at : (beforeLoop == at ? 0 : beforeLoop);
+            int afterLoop = multi ? beforeLoop : flags.LoopStart == true ? at : (beforeLoop == at ? 0 : beforeLoop);
             var afterInterp = CloneInterpolation(action);
-            void Set(SortedSet<int> set, bool on) { if (on) set.Add(at); else set.Remove(at); }
+            void Set(SortedSet<int> set, bool? on)
+            {
+                if (on is null) return; // mixed: each frame keeps its own
+                foreach (int t in targets) { if (on.Value) set.Add(t); else set.Remove(t); }
+            }
             Set(afterInterp[0], flags.Offset);
             Set(afterInterp[1], flags.Scale);
             Set(afterInterp[2], flags.Angle);
@@ -348,7 +474,7 @@ public partial class MainWindow
             }
             _undo.Do("special flags", () => Apply(afterLoop, afterInterp), () => Apply(beforeLoop, beforeInterp));
             MarkAirDirty();
-            StatusText.Text = $"Updated special flags on frame {at + 1}.";
+            StatusText.Text = multi ? $"Updated special flags on {targets.Count} frames." : $"Updated special flags on frame {at + 1}.";
         }
         catch (Exception ex)
         {

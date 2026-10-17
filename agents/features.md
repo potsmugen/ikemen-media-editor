@@ -123,6 +123,20 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Duplicate Action** copies Copy Action, interpolation markers, comments,
   collision defaults, loop start, and cloned frames. Frame text edits reparse on
   commit as one undo step, including trailing comments.
+- **Frame multi-selection**: the frame table is multi-select (Ctrl/Shift click, Ctrl+A).
+  `FrameList.SelectedIndex` stays the one current frame (canvas, Clsn, Special Flags,
+  Loop From Here): the clicked row, else the keyboard-focused row. Picking a frame inside
+  the selection (right-click, timeline, Prev/Next) keeps it; any other frame collapses it.
+  Remove, Duplicate, Move Up/Down, Delete and Copy act on the selection; Remove keeps at
+  least one frame, Move stops at either edge, Duplicate inserts the block after the last
+  selected frame. Insert and Insert Sprite Group add after the last selected frame (Insert
+  templates on it). Special Flags sets Interpolate on every selected frame (a mixed flag left
+  mixed changes nothing) and dims Loopstart. Auto Clsn2, Sort Boxes, Delete All Boxes and
+  Copy from Onion Skin (and the menu's Paste Clsn) act on every selected frame as one undo step; Add Clsn1/2, Delete Box
+  and Toggle Default need a single frame. `UpdateFrameButtons` dims every frame and Clsn
+  button that can't act (no action, edges, last frame, no own boxes, no box selected). Ctrl+C / Ctrl+V copy frames and paste them after the current frame in any
+  action with their lines (ClsnDefault, Interpolate, Loopstart), as pasted text would. Row rebuilds, fills and undo keep
+  the selection (`RestoreFrameTableSelection(keep)`).
 - **Frame-table fill handles** copy one field down a dragged row range as one
   undo step; dragging and auto-scroll do not change the selected frame. Sprite
   table fills likewise preserve the prior multi-selection and selection anchor.
@@ -159,7 +173,8 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Playback bar (Timeline)**: a click jumps to the frame's start; a drag past
   `TimelineDragThresholdPixels` pauses and scrubs to the exact tick, showing
   Interpolate values. The playhead stays visible while paused, and picking a frame
-  any other way moves it (and where Play resumes) to that frame's start. Zoom
+  any other way moves it (and where Play resumes) to that frame's start. A click focuses it;
+  while focused, Left/Right step frames like Prev/Next. Zoom
   matches the waveform: the wheel zooms around the cursor, Shift+wheel scrolls,
   and the scrollbar below is always shown, disabled at fit. A new action fits;
   frame edits keep zoom. Same-size tick marks show from `TimelineTickMarkMinPixels`.
