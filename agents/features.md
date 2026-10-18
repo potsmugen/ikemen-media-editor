@@ -731,6 +731,32 @@ summaries; treat anything marked unverified as unknown.
   MoveNativeLibrariesToLib target puts native DLLs in lib/, loaded by
   Program.UseLibFolder. Self-contained Release publishes are trimmed (Editor.csproj);
   add `-p:PublishTrimmed=false` to compare against an untrimmed build. See the trimming note below.
+- **macOS quarantine on lib/**: a browser download tags every extracted file with
+  `com.apple.quarantine`. The builds have only an ad-hoc signature, not a Developer ID
+  or notarization, so macOS refuses to load the quarantined dylibs: `code signature ...
+  not valid for use in process: library load disallowed by system policy` (seen in a
+  user's crash.log for `libAvaloniaNative.dylib`; quarantine as the cause is inferred,
+  not yet confirmed). Otherwise the user may have to approve each dylib in Privacy &
+  Security (unverified). The user approves the exe once. Then `Program.ClearQuarantine` (macOS only, in
+  `UseLibFolder`, before any native load) calls `removexattr` on every file under lib/,
+  same as `xattr -d com.apple.quarantine`. Files that weren't quarantined (ENOATTR) are
+  skipped silently; other errors go to crash.log, and a count of cleared files goes to
+  trace.log.
+  - Why: it extends the trust the user gave the exe to the libraries shipped beside it.
+    It doesn't bypass the exe's own approval.
+  - Limits: only lib/ is cleared; nothing else there is loaded as code. It assumes the
+    package dylibs carry a valid signature of their own (Apple Silicon requires one).
+    Apple could tighten this in a later macOS. The real fix, Developer ID signing plus
+    notarization, needs a paid Apple account; decided against, so builds stay unsigned.
+  - CI check (2026-10-18, one-off workflow, since removed; macOS 26.6.2 Apple Silicon
+    runner, Gatekeeper on): a quarantined lib/ still loaded there, so CI can't reproduce
+    the block. Verified there: ClearQuarantine cleared all 12 lib/ files, and the editor
+    started and ran 20 s with no crash.log.
+  - Signatures (codesign on that build): libSkiaSharp and libHarfBuzzSharp carry
+    Microsoft's Developer ID (team UBF8T346G9). libAvaloniaNative is ad-hoc only, and it
+    is the library in the user's error.
+  - Manual fallback, if the editor still won't start: `xattr -dr com.apple.quarantine
+    <editor folder>`.
 - **Trimming: the JSON half is a `JsonSerializerContext`, the XAML half is a root
   assembly.** `PublishTrimmed=true` reports IL2026 on `ReflectionBindingExtension`
   (every XAML binding) and on `JsonSerializer.Serialize/Deserialize` in

@@ -49,7 +49,8 @@ before a release. Remove items once they're done or checked.
 - Add a high-pass filter for sounds (slope and dialog design undecided).
 - Finish testing on Linux. Smoke test passed in a Linux VM with the single-file
   Release publish (`-r linux-x64`, built from Windows); not tested further.
-- Test on macOS.
+- Test on macOS. First confirm `Program.ClearQuarantine` lets a browser-downloaded build
+  start after Open Anyway on the exe alone (arm64 and x64); check trace.log for the count.
 - Import/export SprMaker 0.97 (.txt sprite list + PCX) formats; design undecided.
 - Import/export SprMaker 2.01 (.def with [Pal]/sprite lines + PCX/PNG) formats;
   design undecided.
