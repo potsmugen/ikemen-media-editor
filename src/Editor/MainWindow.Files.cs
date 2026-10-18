@@ -1735,6 +1735,8 @@ public partial class MainWindow
                     RecoveryStore.DiscardActive();
                 RecoveryStore.MarkCleanShutdown();
                 base.OnClosing(e);
+                // Owned windows close with this one, but a hidden one has no owner; don't re-dock into a closing window.
+                CloseFloatingPanels();
                 return;
             }
 

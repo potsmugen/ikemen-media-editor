@@ -16,15 +16,21 @@ public partial class MainWindow
 
     private void WireListLookahead()
     {
-        AddHandler(KeyDownEvent, (_, e) => _listNavDirection = e.Key switch
+        WireListNavKeys(this);
+        foreach (var list in new ListBox[] { SpriteList, PaletteList, ActionList, FrameTableList, SoundList })
+            list.SelectionChanged += (_, _) => QueueLookahead(list);
+    }
+
+    /// <summary>Tracks the navigation key direction; floating panel windows wire it too.</summary>
+    private void WireListNavKeys(Interactive target)
+    {
+        target.AddHandler(KeyDownEvent, (_, e) => _listNavDirection = e.Key switch
         {
             Key.Up or Key.PageUp or Key.Home => -1,
             Key.Down or Key.PageDown or Key.End => 1,
             _ => 0,
         }, RoutingStrategies.Tunnel, handledEventsToo: true);
-        AddHandler(KeyDownEvent, (_, _) => _listNavDirection = 0, RoutingStrategies.Bubble, handledEventsToo: true);
-        foreach (var list in new ListBox[] { SpriteList, PaletteList, ActionList, FrameTableList, SoundList })
-            list.SelectionChanged += (_, _) => QueueLookahead(list);
+        target.AddHandler(KeyDownEvent, (_, _) => _listNavDirection = 0, RoutingStrategies.Bubble, handledEventsToo: true);
     }
 
     private void QueueLookahead(ListBox list)
@@ -44,7 +50,7 @@ public partial class MainWindow
     private void RevealNextRow(ListBox list, int dir)
     {
         // The focused row is the moving end of a Shift range; without list focus it's the selection.
-        int index = FocusManager?.GetFocusedElement() is Visual v && v.FindAncestorOfType<ListBoxItem>(true) is { } focused
+        int index = TopLevel.GetTopLevel(list)?.FocusManager?.GetFocusedElement() is Visual v && v.FindAncestorOfType<ListBoxItem>(true) is { } focused
             && focused.FindAncestorOfType<ListBox>() == list ? list.IndexFromContainer(focused) : list.SelectedIndex;
         if (index + dir < 0 || index + dir >= list.ItemCount || !list.IsEffectivelyVisible) return;
         if (list.ContainerFromIndex(index) is not Control item) return; // a long jump; ScrollIntoView handled it

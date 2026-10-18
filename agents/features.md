@@ -112,6 +112,23 @@ and constraints that are easy to miss when reading one code path in isolation.
   sized to its content and collapsible (▶). Top to bottom: Paint Mode, Commit/Reset, then
   Tools, Tool Options (hidden when the active tool has none) and Layers sections. It lives inside the canvas column's own grid,
   so SpritesGrid keeps its five columns (saved widths and fitting use 0 and 4).
+- **Floating panels**: every side panel with a collapse arrow has a ⧉ button on the arrow's inner
+  side (hidden while collapsed or floating); the onion skins don't float (they belong to the canvas). It moves the panel body into an owned window
+  (`MainWindow.FloatPanels.cs`, list `FloatPanels`) at the docked size and position; the docked
+  column and its separator column are zeroed, and the widths come back
+  on dock. The window has no system title bar (`SystemDecorations.BorderOnly`): one header for
+  all, `[▲] Title [✕]`, dragged by hand so Windows doesn't snap it, outlined in the Separator
+  color. ▲/▼ rolls it up to just its header, sized to fit the title; ✕ or closing docks it back expanded. Windows hide on
+  other tabs and return on their own. Floating and docking are a reset: floating by hand opens
+  at the docked spot and size, and docking forgets the window. Only panels floating at exit are
+  saved (settings `FloatingPanels`, keyed by body name: position, expanded size, rolled up) and
+  reopen as they were, unactivated, the first time their tab is shown; a saved spot whose header
+  touches no monitor's working area uses the docked spot. Reset Panel Sizes docks the current
+  tab's panels and forgets their entries.
+  `SavePanelSizes` saves docked widths (`DockedWidth`) and the open windows' placements. Unhandled
+  keys go through `OnKeyDown` (`KeyFocus()` reports the floating window's focus) and the list
+  lookahead keys; focus checks on lists use the list's own TopLevel. The busy lock disables
+  floating bodies (`SetFloatingBusy`).
 - **Paint tool panels**: each tool's options sit in their own panel under the tools,
   shown only while that tool is active (`UpdateToolPanels`): Brush for Pencil and Eraser;
   Copy and Paste for Select; Replace's colors plus its own Brush box (synced to the same

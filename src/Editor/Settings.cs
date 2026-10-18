@@ -28,6 +28,17 @@ internal sealed partial class SettingsContext : JsonSerializerContext;
 /// profile. Nothing here is essential, so every failure is swallowed rather
 /// than bothering the user.
 /// </summary>
+/// <summary>Where a floating panel's window was, and whether it was floating at exit.</summary>
+public sealed class FloatPanelPlacement
+{
+    public bool Floating { get; set; }
+    public bool RolledUp { get; set; }
+    public int X { get; set; }
+    public int Y { get; set; }
+    public double Width { get; set; }  // expanded size, even while rolled up
+    public double Height { get; set; }
+}
+
 public sealed class Settings
 {
     public const int DefaultMaxRecentFiles = 10;
@@ -66,6 +77,8 @@ public sealed class Settings
     // Null means "use the XAML default"; set once a splitter has actually
     // been dragged, so a fresh install still gets the designed layout.
     public double? SpritesListWidth { get; set; }
+    // Floating panel windows, keyed by panel body name. Reset Panel Sizes forgets a tab's entries.
+    public Dictionary<string, FloatPanelPlacement> FloatingPanels { get; set; } = new();
     public double? SpritesPaletteWidth { get; set; }
     public double? PalettesListWidth { get; set; }
     public double? AnimActionsWidth { get; set; }

@@ -29,6 +29,7 @@ public partial class MainWindow
         _busy = true;
         MainMenu.IsEnabled = false;
         Tabs.IsEnabled = false;
+        SetFloatingBusy(true);
         return true;
     }
 
@@ -37,6 +38,7 @@ public partial class MainWindow
         if (!_busy) return;
         Tabs.IsEnabled = true;
         MainMenu.IsEnabled = true;
+        SetFloatingBusy(false);
         _busy = false;
     }
 

@@ -199,7 +199,7 @@ public partial class MainWindow
         Dispatcher.UIThread.Post(() =>
         {
             if (_editorOpen || !FrameTableList.IsEffectivelyVisible) return;
-            if (FocusManager?.GetFocusedElement() is Visual now && now != FrameCellEditor
+            if (TopLevel.GetTopLevel(FrameTableList)?.FocusManager?.GetFocusedElement() is Visual now && now != FrameCellEditor
                 && now.FindAncestorOfType<ListBox>(true) != FrameTableList) return;
             if (FrameTableList.ContainerFromIndex(FrameList.SelectedIndex) is Control row) row.Focus();
         }, DispatcherPriority.Loaded);
@@ -256,7 +256,7 @@ public partial class MainWindow
             Dispatcher.UIThread.Post(() => { if (SelectedFrameRows().Count == 0) RestoreFrameTableSelection(); });
             return;
         }
-        int focused = FocusManager?.GetFocusedElement() is Visual v && v.FindAncestorOfType<ListBoxItem>(true) is { } item
+        int focused = TopLevel.GetTopLevel(FrameTableList)?.FocusManager?.GetFocusedElement() is Visual v && v.FindAncestorOfType<ListBoxItem>(true) is { } item
             && item.DataContext is FrameTableRow focusedRow ? focusedRow.FrameRow : -1;
         int next = selected.Contains(pressed) ? pressed
             : selected.Contains(focused) ? focused

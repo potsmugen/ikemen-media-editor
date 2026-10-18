@@ -967,6 +967,7 @@ public partial class MainWindow : Window
     {
         base.OnOpened(e);
         RestorePanelSizes();
+        RestoreFloatingPanels(Tabs?.SelectedIndex ?? 0);
         SyncViewMenu();
         SyncUndoMenu();
         SyncSaveMenu();
@@ -1475,6 +1476,7 @@ public partial class MainWindow : Window
         if (CursorStatusText is null) return;
         // SelectionChanged bubbles: list selections inside a tab land here too and must not re-run tab logic.
         if (!ReferenceEquals(e.Source, Tabs)) return;
+        SyncFloatingVisibility();
 
         try
         {
@@ -1532,6 +1534,7 @@ public partial class MainWindow : Window
             UpdateTabStatusVisibility(tab);
             UpdateCursorStatus();
             FitPanelsForTab(tab);
+            RestoreFloatingPanels(tab);
             switch (Tabs?.SelectedIndex)
             {
                 case 2: ShowFrame(); break;        // sprites may have changed since last look
@@ -1744,6 +1747,7 @@ public partial class MainWindow : Window
         var splitter = new GridLength(separatorWidth);
         var bodies = new List<(Control Body, Button Toggle, Control Label, string Glyph)>();
         Grid grid;
+        ResetFloatingPanels(Tabs?.SelectedIndex ?? 0); // reset means the default layout, docked
 
         switch (Tabs?.SelectedIndex ?? 0)
         {
@@ -1818,6 +1822,7 @@ public partial class MainWindow : Window
             label.IsVisible = true;
             toggle.Content = glyph;
         }
+        SyncFloatButtons();
 
         // A reset should stick, not just look reset until the saved sizes get
         // re-applied on the next launch.
@@ -1855,7 +1860,7 @@ public partial class MainWindow : Window
         {
             if (col >= grid.ColumnDefinitions.Count || !grid.ColumnDefinitions[col].Width.IsAbsolute) continue;
             var panel = grid.Children.FirstOrDefault(c => Grid.GetColumn(c) == col && c is not GridSplitter);
-            if (panel is null) continue;
+            if (panel is null || !panel.IsVisible) continue; // floating
             // Trimmed or wrapped text (e.g. a long action comment) fits any width, so it mustn't widen the panel.
             var squeezed = panel.GetVisualDescendants().OfType<TextBlock>()
                 .Where(t => t.TextTrimming != TextTrimming.None || t.TextWrapping != TextWrapping.NoWrap)
@@ -1887,12 +1892,13 @@ public partial class MainWindow : Window
     /// <summary>Records whatever the panels are currently sized to, so it survives a restart.</summary>
     private void SavePanelSizes()
     {
-        _settings.SpritesListWidth = SpritesGrid.ColumnDefinitions[0].Width.Value;
-        _settings.SpritesPaletteWidth = SpritesGrid.ColumnDefinitions[4].Width.Value;
-        _settings.PalettesListWidth = PalettesGrid.ColumnDefinitions[0].Width.Value;
-        _settings.AnimActionsWidth = AnimationsGrid.ColumnDefinitions[0].Width.Value;
-        _settings.AnimFramePanelWidth = AnimationsGrid.ColumnDefinitions[4].Width.Value;
-        _settings.SoundsListWidth = SoundsGrid.ColumnDefinitions[0].Width.Value;
+        _settings.SpritesListWidth = DockedWidth(SpritesGrid, 0);
+        _settings.SpritesPaletteWidth = DockedWidth(SpritesGrid, 4);
+        _settings.PalettesListWidth = DockedWidth(PalettesGrid, 0);
+        _settings.AnimActionsWidth = DockedWidth(AnimationsGrid, 0);
+        _settings.AnimFramePanelWidth = DockedWidth(AnimationsGrid, 4);
+        _settings.SoundsListWidth = DockedWidth(SoundsGrid, 0);
+        SaveFloatPlacements();
         _settings.SoundsWaveformHeight = SoundRightGrid.RowDefinitions[1].Height.Value;
     }
 
@@ -1929,6 +1935,7 @@ public partial class MainWindow : Window
             splitter.IsEnabled = true;
             toggle.Content = collapsedGlyph;
         }
+        SyncFloatButtons();
     }
 
     /// <summary>Same idea as ToggleSidePanel, but for a horizontal strip above a canvas — collapses/restores a row's height instead of a column's width. Every top panel's natural size is Auto, so unlike ToggleSidePanel there's no per-caller default to pass.</summary>
@@ -1978,6 +1985,7 @@ public partial class MainWindow : Window
         bool show = !PaintPanelBody.IsVisible;
         PaintPanelBody.IsVisible = PaintPanelLabel.IsVisible = show;
         PaintPanelToggle.Content = show ? "\u25B6" : "\u25C0";
+        SyncFloatButtons();
     }
 
     private void OnToggleOnionPanel(object? sender, RoutedEventArgs e) =>
@@ -2035,7 +2043,7 @@ public partial class MainWindow : Window
         }
 
         // Let text and number boxes have their keys.
-        if (FocusManager?.GetFocusedElement() is TextBox or NumericUpDown)
+        if (KeyFocus() is TextBox or NumericUpDown)
         {
             if (e.Key == Key.Escape) SpriteList.Focus();
             base.OnKeyDown(e);
@@ -2110,7 +2118,7 @@ public partial class MainWindow : Window
             }
         }
 
-        if (e.Key == Key.Delete && FocusManager?.GetFocusedElement() is Visual focused)
+        if (e.Key == Key.Delete && KeyFocus() is Visual focused)
         {
             var list = focused.FindAncestorOfType<ListBox>(true);
             if (list == SpriteList) OnDeleteSprite(this, new RoutedEventArgs());
@@ -2144,7 +2152,7 @@ public partial class MainWindow : Window
         // Arrows, Page Up/Down and Home/End belong to the focused list or control; nothing steps a list behind it.
         // With nothing focused they'd wander into the menus, so they hand focus to the tab's list instead.
         if (e.Key is Key.Left or Key.Right or Key.Up or Key.Down or Key.PageUp or Key.PageDown or Key.Home or Key.End
-            && FocusManager?.GetFocusedElement() is null)
+            && KeyFocus() is null)
         {
             FocusTabList();
             e.Handled = true;

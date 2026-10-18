@@ -98,6 +98,12 @@ before a release. Remove items once they're done or checked.
 
 Built, but not tried by the maintainer yet.
 
+### Floating panels
+
+- [ ] Move and resize a floating panel, dock it, float it again: it opens at the docked spot and size.
+- [ ] Restart with a moved, resized panel floating: it reopens there at that size.
+- [ ] Dock a panel, restart: it stays docked.
+
 ### Save Like SprMaker
 
 - Test reloading after saving over the open file.

@@ -223,9 +223,11 @@
                true), so only the header leaked; clipping the panel stops both. -->
           <Border Grid.Column="0" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}" ClipToBounds="True">
             <Grid RowDefinitions="Auto,*">
-              <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+              <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,4">
                 <TextBlock x:Name="SpriteListLabel" Text="Sprite List" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
-                <Button Grid.Column="1" x:Name="SpriteListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
+                <Button Grid.Column="1" x:Name="SpriteListFloat" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#10697;" Width="22" Height="22" Padding="0" Margin="0,0,4,0"
+                        Click="OnFloatPanel" ToolTip.Tip="Float this panel" />
+                <Button Grid.Column="2" x:Name="SpriteListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
                         Click="OnToggleSpriteListPanel" ToolTip.Tip="Collapse this panel" />
               </Grid>
               <Grid Grid.Row="1" x:Name="SpriteListBody">
@@ -457,13 +459,15 @@
               <Border Grid.Row="2" Height="{DynamicResource PanelSeparatorWidth}" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
               <local:SpriteView Grid.Row="3" x:Name="SpriteCanvas" />
             </Grid>
-            <Border Grid.Column="1" Width="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
-            <Border Grid.Column="2" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
+            <Border Grid.Column="1" x:Name="PaintPanelSeparator" Width="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+            <Border Grid.Column="2" x:Name="PaintPanelHost" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
               <Grid RowDefinitions="Auto,*">
-                <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,4">
+                <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*" Margin="0,0,0,4">
                   <Button x:Name="PaintPanelToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9654;" Width="22" Height="22" Padding="0"
                           Click="OnTogglePaintPanel" ToolTip.Tip="Collapse this panel" />
-                  <TextBlock Grid.Column="1" x:Name="PaintPanelLabel" Text="Paint" Foreground="{DynamicResource ThemeMutedText}"
+                  <Button Grid.Column="1" x:Name="PaintPanelFloat" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#10697;" Width="22" Height="22" Padding="0" Margin="4,0,0,0"
+                          Click="OnFloatPanel" ToolTip.Tip="Float this panel" />
+                  <TextBlock Grid.Column="2" x:Name="PaintPanelLabel" Text="Paint" Foreground="{DynamicResource ThemeMutedText}"
                              VerticalAlignment="Center" Margin="6,0,0,0" />
                 </Grid>
                 <ScrollViewer Grid.Row="1" x:Name="PaintPanelBody" Margin="{DynamicResource PanelContentBleed}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
@@ -580,10 +584,12 @@
 
           <Border Grid.Column="4" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
             <Grid RowDefinitions="Auto,*">
-              <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,4">
+              <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*" Margin="0,0,0,4">
                 <Button x:Name="SpritePaletteToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9654;" Width="22" Height="22" Padding="0"
                         Click="OnToggleSpritePalettePanel" ToolTip.Tip="Collapse this panel" />
-                <TextBlock Grid.Column="1" x:Name="SpritePaletteLabel" Text="Sprite Tools" Foreground="{DynamicResource ThemeMutedText}"
+                <Button Grid.Column="1" x:Name="SpritePaletteFloat" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#10697;" Width="22" Height="22" Padding="0" Margin="4,0,0,0"
+                        Click="OnFloatPanel" ToolTip.Tip="Float this panel" />
+                <TextBlock Grid.Column="2" x:Name="SpritePaletteLabel" Text="Sprite Tools" Foreground="{DynamicResource ThemeMutedText}"
                            VerticalAlignment="Center" Margin="6,0,0,0" />
               </Grid>
               <Grid Grid.Row="1" x:Name="SpritePaletteBody">
@@ -679,9 +685,11 @@
 
           <Border Grid.Column="0" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}" ClipToBounds="True">
             <Grid RowDefinitions="Auto,*">
-              <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+              <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,4">
                 <TextBlock x:Name="PaletteListLabel" Text="Palette List" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
-                <Button Grid.Column="1" x:Name="PaletteListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
+                <Button Grid.Column="1" x:Name="PaletteListFloat" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#10697;" Width="22" Height="22" Padding="0" Margin="0,0,4,0"
+                        Click="OnFloatPanel" ToolTip.Tip="Float this panel" />
+                <Button Grid.Column="2" x:Name="PaletteListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
                         Click="OnTogglePaletteListPanel" ToolTip.Tip="Collapse this panel" />
               </Grid>
               <DockPanel Grid.Row="1" x:Name="PaletteListBody">
@@ -993,10 +1001,12 @@
           <!-- Right: just the sprite preview now — the color editor moved beside the swatches. -->
           <Border Grid.Column="4" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
             <Grid RowDefinitions="Auto,*">
-              <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,4">
+              <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*" Margin="0,0,0,4">
                 <Button x:Name="PaletteRightToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9654;" Width="22" Height="22" Padding="0"
                         Click="OnTogglePaletteRightPanel" ToolTip.Tip="Collapse this panel" />
-                <TextBlock Grid.Column="1" x:Name="PaletteRightLabel" Text="Preview" Foreground="{DynamicResource ThemeMutedText}"
+                <Button Grid.Column="1" x:Name="PaletteRightFloat" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#10697;" Width="22" Height="22" Padding="0" Margin="4,0,0,0"
+                        Click="OnFloatPanel" ToolTip.Tip="Float this panel" />
+                <TextBlock Grid.Column="2" x:Name="PaletteRightLabel" Text="Preview" Foreground="{DynamicResource ThemeMutedText}"
                            VerticalAlignment="Center" Margin="6,0,0,0" />
               </Grid>
               <!-- Preview (with its nav bar, so the splitter trades space between
@@ -1062,9 +1072,11 @@
 
           <Border Grid.Column="0" Grid.Row="0" Grid.RowSpan="3" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
             <Grid RowDefinitions="Auto,*">
-              <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+              <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,4">
                 <TextBlock x:Name="ActionListLabel" Text="Action List" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
-                <Button Grid.Column="1" x:Name="ActionListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
+                <Button Grid.Column="1" x:Name="ActionListFloat" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#10697;" Width="22" Height="22" Padding="0" Margin="0,0,4,0"
+                        Click="OnFloatPanel" ToolTip.Tip="Float this panel" />
+                <Button Grid.Column="2" x:Name="ActionListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
                         Click="OnToggleActionListPanel" ToolTip.Tip="Collapse this panel" />
               </Grid>
               <Grid Grid.Row="1" x:Name="ActionListBody">
@@ -1225,10 +1237,12 @@
 
           <Border Grid.Column="4" Grid.Row="0" Grid.RowSpan="3" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
             <Grid RowDefinitions="Auto,*">
-              <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,4">
+              <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*" Margin="0,0,0,4">
                 <Button x:Name="FramePanelToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9654;" Width="22" Height="22" Padding="0"
                         Click="OnToggleFramePanel" ToolTip.Tip="Collapse this panel" />
-                <TextBlock Grid.Column="1" x:Name="FramePanelLabel" Text="Frames" Foreground="{DynamicResource ThemeMutedText}"
+                <Button Grid.Column="1" x:Name="FramePanelFloat" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#10697;" Width="22" Height="22" Padding="0" Margin="4,0,0,0"
+                        Click="OnFloatPanel" ToolTip.Tip="Float this panel" />
+                <TextBlock Grid.Column="2" x:Name="FramePanelLabel" Text="Frames" Foreground="{DynamicResource ThemeMutedText}"
                            VerticalAlignment="Center" Margin="6,0,0,0" />
               </Grid>
               <Grid Grid.Row="1" x:Name="FramePanelBody">
@@ -1620,9 +1634,11 @@
 
           <Border Grid.Column="0" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}" ClipToBounds="True">
             <Grid RowDefinitions="Auto,*">
-              <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+              <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,4">
                 <TextBlock x:Name="SoundListLabel" Text="Sound List" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
-                <Button Grid.Column="1" x:Name="SoundListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
+                <Button Grid.Column="1" x:Name="SoundListFloat" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#10697;" Width="22" Height="22" Padding="0" Margin="0,0,4,0"
+                        Click="OnFloatPanel" ToolTip.Tip="Float this panel" />
+                <Button Grid.Column="2" x:Name="SoundListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
                         Click="OnToggleSoundListPanel" ToolTip.Tip="Collapse this panel" />
               </Grid>
               <DockPanel Grid.Row="1" x:Name="SoundListBody">
