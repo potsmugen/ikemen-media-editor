@@ -213,6 +213,8 @@ public partial class MainWindow : Window
             Settings.DefaultOnionOpacity, v => v is >= 0 and <= 1);
         _animOnionOpacity = Settings.Checked(nameof(s.AnimOnionOpacity), s.AnimOnionOpacity,
             Settings.DefaultOnionOpacity, v => v is >= 0 and <= 1);
+        SpriteView.SelectDragThreshold = Settings.Checked(nameof(s.SelectionDragThresholdPixels), s.SelectionDragThresholdPixels,
+            Settings.DefaultSelectionDragThresholdPixels, v => double.IsFinite(v) && v >= 0);
         var zoom = s.ZoomLevels ?? [];
         if (zoom.Length > 0 && zoom.All(v => double.IsFinite(v) && v > 0))
             SpriteView.ZoomLevels = zoom.Distinct().Order().ToArray();

@@ -45,8 +45,28 @@ internal enum BoxGrip
 /// <summary>The basic pixel tools available in Paint Mode.</summary>
 public enum PaintTool { Pencil, Eraser, Fill, Eyedropper, Replace, Selection }
 
-/// <summary>A rectangular region in sprite-local pixel coordinates.</summary>
-public readonly record struct PixelSelection(int X, int Y, int Width, int Height);
+/// <summary>A pixel region in sprite-local coordinates; Mask (Width×Height, row-major) limits it to a lasso shape.</summary>
+public readonly record struct PixelSelection(int X, int Y, int Width, int Height, bool[]? Mask = null)
+{
+    /// <summary>True when the pixel at (x, y), relative to X and Y, is selected.</summary>
+    public bool Contains(int x, int y) =>
+        x >= 0 && y >= 0 && x < Width && y < Height && (Mask is null || Mask[y * Width + x]);
+
+    /// <summary>Keeps the top-left width×height part, cropping the mask to match.</summary>
+    public PixelSelection Cropped(int width, int height)
+    {
+        if (width == Width && height == Height) return this;
+        bool[]? mask = null;
+        if (Mask is not null)
+        {
+            mask = new bool[width * height];
+            for (int y = 0; y < Math.Min(height, Height); y++)
+                for (int x = 0; x < Math.Min(width, Width); x++)
+                    mask[y * width + x] = Mask[y * Width + x];
+        }
+        return this with { Width = width, Height = height, Mask = mask };
+    }
+}
 
 /// <summary>
 /// Draws one sprite with its axis at a crosshair, an optional translucent
@@ -182,6 +202,22 @@ public class SpriteView : Control
     private PixelSelection _selectionMoveOriginal;
     private Point _selectionMoveStart;
     private PixelSelection? _selection;
+    /// <summary>The lasso path in progress, in sprite pixel units; null when not drawing a lasso.</summary>
+    private List<Point>? _lassoPoints;
+    private bool[]? _outlineMask;
+    private List<(int X1, int Y1, int X2, int Y2)> _outlineRuns = [];
+
+    /// <summary>Press position for telling a Select click (clears) from a drag.</summary>
+    private Point _selectPressPos;
+    private bool _selectDragged;
+    /// <summary>A press off the sprite that clears the selection on release unless it turns into a pan.</summary>
+    private bool _clearSelectionOnClick;
+
+    /// <summary>Pixels the pointer must move before a Select press counts as a drag (settings.json SelectionDragThresholdPixels).</summary>
+    public static double SelectDragThreshold { get; set; } = Settings.DefaultSelectionDragThresholdPixels;
+
+    /// <summary>When set, a Select drag draws a freehand lasso instead of a rectangle.</summary>
+    public bool LassoSelect { get; set; }
     private Point? _hoverPos;
     private Point? _cursorPosition;
 
@@ -192,7 +228,7 @@ public class SpriteView : Control
     public event Action? PaintStrokeFinished;
     public event Action? SelectionChanged;
     public event Action? SelectionMoved;
-    /// <summary>Raised when a drag starts a new selection (not when an existing one is moved).</summary>
+    /// <summary>Raised when a drag starts a new selection or a click clears it (not when an existing one is moved).</summary>
     public event Action? SelectionStarted;
 
     /// <summary>The current rectangular pixel selection, if any.</summary>
@@ -209,9 +245,11 @@ public class SpriteView : Control
         {
             int width = Math.Clamp(selection.Value.Width, 1, _sprite.Width);
             int height = Math.Clamp(selection.Value.Height, 1, _sprite.Height);
-            _selection = new PixelSelection(
-                Math.Clamp(selection.Value.X, 0, _sprite.Width - width),
-                Math.Clamp(selection.Value.Y, 0, _sprite.Height - height), width, height);
+            _selection = selection.Value.Cropped(width, height) with
+            {
+                X = Math.Clamp(selection.Value.X, 0, _sprite.Width - width),
+                Y = Math.Clamp(selection.Value.Y, 0, _sprite.Height - height),
+            };
         }
         SelectionChanged?.Invoke();
         InvalidateVisual();
@@ -872,10 +910,33 @@ public class SpriteView : Control
         if (_selection is { } selection && _sprite is not null && PaintMode && ActiveTool == PaintTool.Selection)
         {
             var sr = SpriteRect();
-            var rect = new Rect(sr.X + selection.X * Zoom, sr.Y + selection.Y * Zoom,
-                selection.Width * Zoom, selection.Height * Zoom);
-            ctx.DrawRectangle(new Pen(Brushes.White, 1, new DashStyle([3, 3], 0)), rect);
-            ctx.DrawRectangle(new Pen(Brushes.Black, 1, new DashStyle([3, 3], 3)), rect);
+            var white = new Pen(Brushes.White, 1, new DashStyle([3, 3], 0));
+            var black = new Pen(Brushes.Black, 1, new DashStyle([3, 3], 3));
+            if (selection.Mask is null)
+            {
+                var rect = new Rect(sr.X + selection.X * Zoom, sr.Y + selection.Y * Zoom,
+                    selection.Width * Zoom, selection.Height * Zoom);
+                ctx.DrawRectangle(white, rect);
+                ctx.DrawRectangle(black, rect);
+            }
+            else
+            {
+                if (!ReferenceEquals(_outlineMask, selection.Mask))
+                {
+                    _outlineRuns = OutlineRuns(selection);
+                    _outlineMask = selection.Mask;
+                }
+                var outline = new StreamGeometry();
+                using (var g = outline.Open())
+                    foreach (var (x1, y1, x2, y2) in _outlineRuns)
+                    {
+                        g.BeginFigure(new Point(sr.X + (selection.X + x1) * Zoom, sr.Y + (selection.Y + y1) * Zoom), false);
+                        g.LineTo(new Point(sr.X + (selection.X + x2) * Zoom, sr.Y + (selection.Y + y2) * Zoom));
+                        g.EndFigure(false);
+                    }
+                ctx.DrawGeometry(null, white, outline);
+                ctx.DrawGeometry(null, black, outline);
+            }
         }
 
         // An armed replace slot means the next click is a color pick, not a stamp, so no brush square.
@@ -1178,11 +1239,14 @@ public class SpriteView : Control
         bool onSprite = SpriteContains(p.Position);
         if (PaintMode && ActiveTool == PaintTool.Selection && onSprite)
         {
-            if (_selection is { } existing && PixelRect(existing).Contains(p.Position))
+            if (_selection is { } existing && PixelRect(existing).Contains(p.Position)
+                && TryPixelAt(p.Position, out int hitX, out int hitY) && existing.Contains(hitX - existing.X, hitY - existing.Y))
             {
                 _movingSelection = true;
                 _selectionMoveOriginal = existing;
                 _selectionMoveStart = p.Position;
+                _selectPressPos = p.Position;
+                _selectDragged = false;
                 Cursor = new Cursor(StandardCursorType.SizeAll);
                 e.Pointer.Capture(this);
                 return;
@@ -1191,7 +1255,10 @@ public class SpriteView : Control
             _selecting = true;
             SelectionStarted?.Invoke();
             _selectionStart = p.Position;
-            UpdateSelection(p.Position);
+            _selectPressPos = p.Position;
+            _selectDragged = false;
+            _selection = null; // nothing is selected until the press becomes a drag
+            if (LassoSelect) StartLasso(p.Position);
             Cursor = new Cursor(StandardCursorType.Cross);
             e.Pointer.Capture(this);
             InvalidateVisual();
@@ -1216,6 +1283,8 @@ public class SpriteView : Control
 
         _draggingSprite = onSprite && (!DragChangesOffset || OffsetDraggingEnabled);
         _panning = !onSprite || (DragChangesOffset && !OffsetDraggingEnabled);
+        _clearSelectionOnClick = _panning && !onSprite && PaintMode && ActiveTool == PaintTool.Selection && _selection is not null;
+        _selectPressPos = p.Position;
         if (_draggingSprite)
         {
             if (DragChangesOffset) OffsetDragStarted?.Invoke();
@@ -1239,6 +1308,11 @@ public class SpriteView : Control
             InvalidateVisual(); // the outline needs to follow the cursor even when not painting
         }
 
+        if ((_movingSelection || _selecting) && !_selectDragged)
+        {
+            if (Point.Distance(e.GetPosition(this), _selectPressPos) <= SelectDragThreshold) return;
+            _selectDragged = true;
+        }
         if (_movingSelection)
         {
             MoveSelection(e.GetPosition(this));
@@ -1246,7 +1320,8 @@ public class SpriteView : Control
         }
         if (_selecting)
         {
-            UpdateSelection(e.GetPosition(this));
+            if (_lassoPoints is not null) AddLassoPoint(e.GetPosition(this));
+            else UpdateSelection(e.GetPosition(this));
             return;
         }
         if (_painting) { ApplyTool(e.GetPosition(this)); return; }
@@ -1258,6 +1333,7 @@ public class SpriteView : Control
 
         if (_panning)
         {
+            if (_clearSelectionOnClick && Point.Distance(p, _selectPressPos) > SelectDragThreshold) _clearSelectionOnClick = false;
             _pan += d;
             _dragFrom = p;
             RefreshCursorPosition();
@@ -1292,7 +1368,8 @@ public class SpriteView : Control
         if (_movingSelection)
         {
             _movingSelection = false;
-            SelectionMoved?.Invoke();
+            if (_selectDragged) SelectionMoved?.Invoke();
+            else ClearSelectionByClick();
             Cursor = Cursor.Default;
             e.Pointer.Capture(null);
             return;
@@ -1300,8 +1377,22 @@ public class SpriteView : Control
         if (_selecting)
         {
             _selecting = false;
-            UpdateSelection(e.GetPosition(this));
-            if (_selection is { Width: > 0, Height: > 0 }) SelectionChanged?.Invoke();
+            if (!_selectDragged)
+            {
+                _lassoPoints = null;
+                ClearSelectionByClick();
+            }
+            else if (_lassoPoints is not null)
+            {
+                AddLassoPoint(e.GetPosition(this));
+                _lassoPoints = null;
+                SelectionChanged?.Invoke(); // also when the lasso enclosed nothing and cleared the selection
+            }
+            else
+            {
+                UpdateSelection(e.GetPosition(this));
+                if (_selection is { Width: > 0, Height: > 0 }) SelectionChanged?.Invoke();
+            }
             Cursor = Cursor.Default;
             e.Pointer.Capture(null);
             return;
@@ -1333,6 +1424,11 @@ public class SpriteView : Control
                 SelectBox(_boxPressIndex);
             _boxPressIndex = -1;
             _grip = BoxGrip.None;
+        }
+        if (_clearSelectionOnClick)
+        {
+            _clearSelectionOnClick = false;
+            ClearSelectionByClick();
         }
         _panning = _draggingSprite = false;
         Cursor = Cursor.Default;
@@ -1424,6 +1520,106 @@ public class SpriteView : Control
         int left = Math.Min(sx, x), top = Math.Min(sy, y);
         _selection = new PixelSelection(left, top, Math.Abs(x - sx) + 1, Math.Abs(y - sy) + 1);
         InvalidateVisual();
+    }
+
+    /// <summary>A click clears the selection and settles a floating paste, like starting a new one.</summary>
+    private void ClearSelectionByClick()
+    {
+        SelectionStarted?.Invoke();
+        _selection = null;
+        SelectionChanged?.Invoke();
+        InvalidateVisual();
+    }
+
+    private void StartLasso(Point point)
+    {
+        _lassoPoints = [];
+        AddLassoPoint(point);
+    }
+
+    /// <summary>Adds a screen point to the lasso, clamped to the sprite, and rebuilds the selection from the closed path.</summary>
+    private void AddLassoPoint(Point point)
+    {
+        if (_lassoPoints is null || _sprite is not { Width: > 0, Height: > 0 } sprite) return;
+        var r = SpriteRect();
+        var local = new Point(Math.Clamp((point.X - r.X) / Zoom, 0, sprite.Width), Math.Clamp((point.Y - r.Y) / Zoom, 0, sprite.Height));
+        if (_lassoPoints.Count > 0 && _lassoPoints[^1] == local) return;
+        _lassoPoints.Add(local);
+        _selection = LassoSelection(_lassoPoints, sprite.Width, sprite.Height);
+        InvalidateVisual();
+    }
+
+    /// <summary>
+    /// Pixels whose centers lie inside the closed path (nonzero winding, so a looped
+    /// outline stays filled), cropped to their bounds; null when none do.
+    /// </summary>
+    private static PixelSelection? LassoSelection(List<Point> points, int width, int height)
+    {
+        if (points.Count < 3) return null;
+        var full = new bool[width * height];
+        int minX = width, minY = height, maxX = -1, maxY = -1;
+        var crossings = new List<(double X, int Dir)>();
+        for (int py = 0; py < height; py++)
+        {
+            double cy = py + 0.5;
+            crossings.Clear();
+            for (int i = 0; i < points.Count; i++)
+            {
+                var a = points[i];
+                var b = points[(i + 1) % points.Count];
+                if ((a.Y <= cy) == (b.Y <= cy)) continue;
+                crossings.Add((a.X + (cy - a.Y) * (b.X - a.X) / (b.Y - a.Y), b.Y > a.Y ? 1 : -1));
+            }
+            if (crossings.Count < 2) continue;
+            crossings.Sort((l, r) => l.X.CompareTo(r.X));
+            int winding = 0;
+            for (int i = 0; i < crossings.Count - 1; i++)
+            {
+                winding += crossings[i].Dir;
+                if (winding == 0) continue;
+                int from = Math.Max(0, (int)Math.Ceiling(crossings[i].X - 0.5));
+                int to = Math.Min(width, (int)Math.Ceiling(crossings[i + 1].X - 0.5));
+                if (from >= to) continue;
+                Array.Fill(full, true, py * width + from, to - from);
+                minX = Math.Min(minX, from);
+                maxX = Math.Max(maxX, to - 1);
+                minY = Math.Min(minY, py);
+                maxY = py;
+            }
+        }
+        if (maxX < 0) return null;
+        int w = maxX - minX + 1, h = maxY - minY + 1;
+        var mask = new bool[w * h];
+        for (int y = 0; y < h; y++)
+            Array.Copy(full, (minY + y) * width + minX, mask, y * w, w);
+        return new PixelSelection(minX, minY, w, h, mask);
+    }
+
+    /// <summary>Edges between selected and unselected pixels, merged into straight runs, relative to the selection's X and Y.</summary>
+    private static List<(int X1, int Y1, int X2, int Y2)> OutlineRuns(PixelSelection s)
+    {
+        var runs = new List<(int X1, int Y1, int X2, int Y2)>();
+        for (int j = 0; j <= s.Height; j++)
+        {
+            int start = -1;
+            for (int x = 0; x <= s.Width; x++)
+            {
+                bool edge = x < s.Width && s.Contains(x, j - 1) != s.Contains(x, j);
+                if (edge && start < 0) start = x;
+                else if (!edge && start >= 0) { runs.Add((start, j, x, j)); start = -1; }
+            }
+        }
+        for (int i = 0; i <= s.Width; i++)
+        {
+            int start = -1;
+            for (int y = 0; y <= s.Height; y++)
+            {
+                bool edge = y < s.Height && s.Contains(i - 1, y) != s.Contains(i, y);
+                if (edge && start < 0) start = y;
+                else if (!edge && start >= 0) { runs.Add((i, start, i, y)); start = -1; }
+            }
+        }
+        return runs;
     }
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)

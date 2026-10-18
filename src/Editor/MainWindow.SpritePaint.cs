@@ -28,7 +28,7 @@ public partial class MainWindow
     private byte[]? _paintStrokeBefore;
     private bool _paintStrokeBeforeDirty;
     private Sprite? _paintStrokeSprite;
-    private (int Width, int Height, byte[] Pixels, int X, int Y)? _pixelClipboard;
+    private (int Width, int Height, byte[] Pixels, int X, int Y, bool[]? Mask)? _pixelClipboard;
     private (Sprite Sprite, byte[] Before, int Width, int Height, int SourceWidth, byte[] Pixels)? _floatingPaste;
 
     /// <summary>The base layer while a top layer exists; null otherwise. Holds the sprite's own pixels, without the top.</summary>
@@ -155,6 +155,14 @@ public partial class MainWindow
         UpdateToolPanels();
     }
 
+    private void OnSelectSelectionShape(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not ToggleButton { Tag: string tag }) return;
+        SpriteCanvas.LassoSelect = tag == "Lasso";
+        RectangleSelectButton.IsChecked = !SpriteCanvas.LassoSelect;
+        LassoSelectButton.IsChecked = SpriteCanvas.LassoSelect;
+    }
+
     /// <summary>Right-click on the Sprites tab canvas: Eyedropper is a one-shot pick here, whatever tool is currently active.</summary>
     private void OnSpriteCanvasContextRequested(int boxIndex, Point pos)
     {
@@ -266,15 +274,15 @@ public partial class MainWindow
     private void OnCopySelection(object? sender, RoutedEventArgs e)
     {
         if (_current?.Indexed is not { } pixels || SpriteCanvas.Selection is not { } selection) return;
-        var copy = new byte[selection.Width * selection.Height]; // off-canvas parts stay transparent
+        var copy = new byte[selection.Width * selection.Height]; // off-canvas and off-lasso parts stay transparent
         for (int y = 0; y < selection.Height; y++)
             for (int x = 0; x < selection.Width; x++)
             {
                 int sx = selection.X + x, sy = selection.Y + y;
-                if (sx >= 0 && sx < _current.Width && sy >= 0 && sy < _current.Height)
+                if (selection.Contains(x, y) && sx >= 0 && sx < _current.Width && sy >= 0 && sy < _current.Height)
                     copy[y * selection.Width + x] = pixels[sy * _current.Width + sx];
             }
-        _pixelClipboard = (selection.Width, selection.Height, copy, selection.X, selection.Y);
+        _pixelClipboard = (selection.Width, selection.Height, copy, selection.X, selection.Y, selection.Mask);
         UpdateSelectionControls();
         StatusText.Text = $"Copied selection {selection.Width}×{selection.Height}.";
     }
@@ -303,7 +311,7 @@ public partial class MainWindow
 
         _floatingPaste = (sprite, beforePaste, width, height, clip.Width, clip.Pixels);
         OnSelectPaintTool(SelectionToolButton, new RoutedEventArgs());
-        SpriteCanvas.SetSelection(new PixelSelection(x, y, width, height));
+        SpriteCanvas.SetSelection(new PixelSelection(x, y, clip.Width, clip.Height, clip.Mask)); // clamped and cropped like width/height
         sprite.PixelsDirty = true;
         SpriteCanvas.Show(sprite, ActivePalette(), _showMask);
         MarkPaintPendingDirty();

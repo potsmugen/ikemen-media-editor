@@ -467,7 +467,7 @@
                           Click="OnTogglePaintPanel" ToolTip.Tip="Collapse this panel" />
                   <Button Grid.Column="1" x:Name="PaintPanelFloat" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#10697;" Width="22" Height="22" Padding="0" Margin="4,0,0,0"
                           Click="OnFloatPanel" ToolTip.Tip="Float this panel" />
-                  <TextBlock Grid.Column="2" x:Name="PaintPanelLabel" Text="Paint" Foreground="{DynamicResource ThemeMutedText}"
+                  <TextBlock Grid.Column="2" x:Name="PaintPanelLabel" Text="Paint Tools" Foreground="{DynamicResource ThemeMutedText}"
                              VerticalAlignment="Center" Margin="6,0,0,0" />
                 </Grid>
                 <ScrollViewer Grid.Row="1" x:Name="PaintPanelBody" Margin="{DynamicResource PanelContentBleed}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
@@ -497,7 +497,7 @@
                                     ToolTip.Tip="Paints only over the Replace colors." />
                       <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
                       <ToggleButton Grid.Column="2" x:Name="SelectionToolButton" Content="Select" Tag="Selection" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                    ToolTip.Tip="Select a rectangle to copy or paste pixels." />
+                                    ToolTip.Tip="Select pixels to copy or paste." />
                     </Grid>
                     <!-- Shown only when the active tool has options (UpdateToolPanels). -->
                     <StackPanel x:Name="ToolOptionsSection" IsVisible="False" Spacing="{DynamicResource UiButtonGap}">
@@ -512,13 +512,22 @@
                         </StackPanel>
                       </Border>
                       <Border x:Name="SelectionPanel" IsVisible="False">
-                        <Grid ColumnDefinitions="*,Auto,*">
-                          <Button Grid.Column="0" x:Name="CopySelectionButton" Content="Copy" Click="OnCopySelection" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                  ToolTip.Tip="Copies the selected pixels." />
-                          <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                          <Button Grid.Column="2" x:Name="PasteSelectionButton" Content="Paste" Click="OnPasteSelection" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                  ToolTip.Tip="Pastes in place, as a floating selection." />
-                        </Grid>
+                        <StackPanel Spacing="{DynamicResource UiButtonGap}">
+                          <Grid ColumnDefinitions="*,Auto,*">
+                            <ToggleButton Grid.Column="0" x:Name="RectangleSelectButton" Content="Rectangle" Tag="Rectangle" Click="OnSelectSelectionShape" IsChecked="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                          ToolTip.Tip="Drag a box to select." />
+                            <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                            <ToggleButton Grid.Column="2" x:Name="LassoSelectButton" Content="Lasso" Tag="Lasso" Click="OnSelectSelectionShape" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                          ToolTip.Tip="Drag a freehand outline; releasing closes it." />
+                          </Grid>
+                          <Grid ColumnDefinitions="*,Auto,*">
+                            <Button Grid.Column="0" x:Name="CopySelectionButton" Content="Copy" Click="OnCopySelection" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                    ToolTip.Tip="Copies the selected pixels." />
+                            <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                            <Button Grid.Column="2" x:Name="PasteSelectionButton" Content="Paste" Click="OnPasteSelection" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                    ToolTip.Tip="Pastes in place, as a floating selection." />
+                          </Grid>
+                        </StackPanel>
                       </Border>
                       <Border x:Name="ColorReplacerPanel" IsVisible="False">
                         <StackPanel Spacing="6">

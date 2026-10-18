@@ -108,7 +108,7 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Sprite Tools swatch on reset**: Reset Panel Sizes fits each side panel to its natural
   width; the swatch grid's natural cell is `SpriteSwatchCellSize` (16, a 256px grid), so
   it starts at 256×256 when the tab is wide and tall enough (`PanelFitMaxPercent`).
-- **Paint panel** is a vertical column right of the Sprites canvas, left of Sprite Tools,
+- **Paint Tools panel** is a vertical column right of the Sprites canvas, left of Sprite Tools,
   sized to its content and collapsible (▶). Top to bottom: Paint Mode, Commit/Reset, then
   Tools, Tool Options (hidden when the active tool has none) and Layers sections. It lives inside the canvas column's own grid,
   so SpritesGrid keeps its five columns (saved widths and fitting use 0 and 4).
@@ -131,7 +131,7 @@ and constraints that are easy to miss when reading one code path in isolation.
   floating bodies (`SetFloatingBusy`).
 - **Paint tool panels**: each tool's options sit in their own panel under the tools,
   shown only while that tool is active (`UpdateToolPanels`): Brush for Pencil and Eraser;
-  Copy and Paste for Select; Replace's colors plus its own Brush box (synced to the same
+  Rectangle/Lasso and Copy/Paste for Select; Replace's colors plus its own Brush box (synced to the same
   size) for Replace. Fill and Eyedropper have none. New tool options follow the same pattern.
 - **Paint selection and paste**: Paste returns the copy to where it was taken, as a
   floating selection, and switches to the Select tool. Dragging it past the sprite's
@@ -140,6 +140,17 @@ and constraints that are easy to miss when reading one code path in isolation.
   tool is active; switching tools or leaving Paint Mode clears it. Painting or starting
   a new selection settles a floating paste. Copy needs a selection, and Paste needs a
   copied block.
+- **Lasso selection**: Select's Rectangle/Lasso toggle (session-only, Rectangle by default)
+  picks the drag shape. A lasso is a freehand drag that closes on release; a pixel is in when
+  its center is inside the path (nonzero winding, so loops stay filled). The path is clamped to
+  the sprite, and a lasso enclosing no pixel center clears the selection. `PixelSelection.Mask`
+  holds the shape over its bounding box; the outline follows pixel edges. Copy leaves
+  pixels outside the mask transparent, and Paste restores the lasso shape. Pressing inside the
+  shape moves it; pressing outside starts a new selection.
+- **Select clicks**: with the Select tool, a click (less movement than settings.json
+  `SelectionDragThresholdPixels`, default 3) clears the selection and settles a floating paste,
+  whether it lands on the sprite, inside the selection, or on the canvas outside the sprite. Only
+  a drag selects (so no 1×1 selection from a click) or moves; a drag off the sprite still pans.
 - **Pending sessions**: Paint Mode and sound edits apply live, one undo on
   Commit (both also have Reset = discard; both enabled only while edits are
   pending); switching away or leaving Paint Mode asks Commit/Discard/Cancel only when there are changes; an empty paint layer or a no-op paint session is dropped silently. Color-slider

@@ -34,6 +34,17 @@ before a release. Remove items once they're done or checked.
   embedded AIR/DEF, external ACT palettes, Keep for later, Discard, and the
   `--test-recovery` hook. Recovery lives separately in ApplicationData; it never
   overwrites sources and retires items after a successful save.
+- Paint Mode: add a Polygonal Lasso to Select. It can reuse the lasso's mask and outline code.
+  - Click corner points; double-click, Enter, or a click near the first point closes it. The snap
+    radius is a settings.json value in screen pixels; a double-click adds no duplicate point.
+  - While drawing, show the clicked edges and a line from the last point to the cursor; after
+    closing, the pixel-edge outline.
+  - Backspace removes the last point. Esc cancels a shape in progress, else clears the selection.
+  - A click on the sprite starts a shape; a click off the sprite still clears the selection.
+  - Points off the sprite are clamped to its edge. Closing with under 3 points, or enclosing no
+    pixel center, clears the selection. Switching tools, sprites or leaving Paint Mode drops it.
+- Paint Mode: add a Magic Wand to Select that matches the exact index (no tolerance for now;
+  contiguous or global undecided). It can reuse Fill's flood fill and the lasso's mask.
 - Add a low-pass filter for sounds (slope and dialog design undecided).
 - Add a high-pass filter for sounds (slope and dialog design undecided).
 - Finish testing on Linux. Smoke test passed in a Linux VM with the single-file
