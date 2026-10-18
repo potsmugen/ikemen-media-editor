@@ -46,6 +46,7 @@ internal static class Program
     {
         string lib = Path.Combine(AppContext.BaseDirectory, "lib");
         if (!Directory.Exists(lib)) return;
+        if (OperatingSystem.IsMacOS()) ClearQuarantine(lib);
 
         AssemblyLoadContext.Default.ResolvingUnmanagedDll += (_, name) =>
         {
@@ -68,6 +69,34 @@ internal static class Program
             catch (Exception ex) { CrashLog.Write("UseLibFolder(ANGLE)", ex); }
         }
     }
+
+    /// <summary>
+    /// macOS refuses to load a browser-downloaded dylib that isn't notarized ("library load
+    /// disallowed by system policy"). The user already approved the exe, so the libraries we
+    /// ship beside it get the same trust. Unverified on a Mac; see agents/features.md.
+    /// </summary>
+    [SupportedOSPlatform("macos")]
+    private static void ClearQuarantine(string lib)
+    {
+        const int ENOATTR = 93; // Not quarantined; nothing to do.
+        int cleared = 0;
+        try
+        {
+            foreach (string file in Directory.EnumerateFiles(lib, "*", SearchOption.AllDirectories))
+            {
+                if (removexattr(file, "com.apple.quarantine", 0) == 0) cleared++;
+                else if (Marshal.GetLastPInvokeError() is int err and not ENOATTR)
+                    CrashLog.Error("ClearQuarantine", $"{file}: errno {err}");
+            }
+            if (cleared > 0) CrashLog.Trace($"ClearQuarantine: cleared {cleared} file(s) in lib/");
+        }
+        catch (Exception ex) { CrashLog.Write("ClearQuarantine", ex); }
+    }
+
+    [SupportedOSPlatform("macos")]
+    [DllImport("/usr/lib/libSystem.B.dylib", SetLastError = true)]
+    private static extern int removexattr([MarshalAs(UnmanagedType.LPUTF8Str)] string path,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string name, int options);
 
     public static AppBuilder BuildAvaloniaApp() =>
         AppBuilder.Configure<App>().UsePlatformDetect().LogToTrace();

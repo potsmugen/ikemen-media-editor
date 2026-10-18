@@ -39,7 +39,12 @@ The editor is portable: there's no installer, and it keeps its settings and logs
 3. Run `ikemen-media-editor` (`ikemen-media-editor.exe` on Windows).
 
 The Windows exe isn't signed yet, so SmartScreen may warn on first launch: choose **More info > Run anyway**.  
-The macOS builds aren't signed by Apple, so macOS will block them at first.
+The macOS builds aren't signed by Apple, so macOS blocks the editor the first time: open **System Settings > Privacy & Security** and choose **Open Anyway**. The editor then unblocks its own libraries in `lib/`.  
+If it still won't start, run this in Terminal with your editor folder's path, then try again:
+
+```sh
+xattr -dr com.apple.quarantine ~/Downloads/ikemen-media-editor-osx-arm64
+```
 
 To update, extract the new version over the old one. To uninstall, delete the folder.
 

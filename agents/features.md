@@ -660,6 +660,30 @@ summaries; treat anything marked unverified as unknown.
   MoveNativeLibrariesToLib target puts native DLLs in lib/, loaded by
   Program.UseLibFolder. Self-contained Release publishes are trimmed (Editor.csproj);
   add `-p:PublishTrimmed=false` to compare against an untrimmed build. See the trimming note below.
+- **macOS quarantine on lib/**: a browser download tags every extracted file with
+  `com.apple.quarantine`. The builds have only an ad-hoc signature, not a Developer ID
+  or notarization, so macOS refuses to load the quarantined dylibs: `code signature ...
+  not valid for use in process: library load disallowed by system policy` (seen in a
+  user's crash.log for `libAvaloniaNative.dylib`; quarantine as the cause is inferred,
+  not yet confirmed). Otherwise the user may have to approve each dylib in Privacy &
+  Security (unverified). The user approves the exe once. Then `Program.ClearQuarantine` (macOS only, in
+  `UseLibFolder`, before any native load) calls `removexattr` on every file under lib/,
+  same as `xattr -d com.apple.quarantine`. Files that weren't quarantined (ENOATTR) are
+  skipped silently; other errors go to crash.log, and a count of cleared files goes to
+  trace.log.
+  - Why: it extends the trust the user gave the exe to the libraries shipped beside it.
+    It doesn't bypass the exe's own approval.
+  - Limits: only lib/ is cleared; nothing else there is loaded as code. It assumes the
+    package dylibs carry a valid signature of their own (Apple Silicon requires one).
+    Apple could tighten this in a later macOS. The real fix is Developer ID signing plus
+    notarization in release.yml (a paid Apple account).
+  - Test: `.github/workflows/macos-quarantine.yml` (Apple Silicon runner, on branch pushes
+    touching Program.cs). It quarantines lib/ but not the exe, checks that a plain dlopen
+    is blocked (control), runs the editor for 20 s, then checks the flags are gone and the
+    library loads. If the control isn't blocked, the runner doesn't enforce the policy
+    and the result means nothing.
+  - Manual fallback, if the editor still won't start: `xattr -dr com.apple.quarantine
+    <editor folder>`.
 - **Trimming: the JSON half is a `JsonSerializerContext`, the XAML half is a root
   assembly.** `PublishTrimmed=true` reports IL2026 on `ReflectionBindingExtension`
   (every XAML binding) and on `JsonSerializer.Serialize/Deserialize` in

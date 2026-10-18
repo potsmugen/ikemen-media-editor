@@ -1,0 +1,93 @@
+# Checks Program.ClearQuarantine on a real Mac: lib/ is quarantined like a browser download,
+# the exe is not (as if approved with Open Anyway). See "macOS quarantine on lib/" in features.md.
+name: macOS quarantine test
+
+on:
+  # Runs on branch pushes that touch the fix; dispatch works once this file is on main.
+  push:
+    branches-ignore: [main]
+    paths: ['src/Editor/Program.cs', '.github/workflows/macos-quarantine.yml']
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: macos-latest # Apple Silicon, like the reported failure.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Publish (same flags as release.yml)
+        run: >
+          dotnet publish src/Editor -c Release -r osx-arm64 --self-contained
+          -p:PublishSingleFile=true -o out
+
+      - name: Environment
+        run: |
+          sw_vers
+          spctl --status || true
+          codesign -dv out/ikemen-media-editor 2>&1 || true
+          for f in out/lib/*.dylib; do echo "== $f"; codesign -dv "$f" 2>&1 || true; done
+
+      # A plain dlopen host, ad-hoc signed with no hardened runtime, like the published exe.
+      - name: Build dlopen probe
+        run: |
+          printf '%s\n' '#include <dlfcn.h>' '#include <stdio.h>' \
+            'int main(int c, char **v) { void *h = dlopen(v[1], RTLD_NOW);' \
+            '  if (!h) { puts(dlerror()); return 1; } puts("loaded"); return 0; }' > probe.c
+          clang probe.c -o probe
+
+      - name: Quarantine lib/ like a browser download
+        run: |
+          q="0083;$(printf %x "$(date +%s)");Safari;$(uuidgen)"
+          find out/lib -type f -exec xattr -w com.apple.quarantine "$q" {} \;
+          xattr -l out/lib/libAvaloniaNative.dylib
+
+      # Control: should fail with "disallowed by system policy". If it loads, this runner
+      # doesn't enforce the policy and the later steps prove nothing.
+      - name: Control (quarantined load)
+        id: control
+        run: |
+          if ./probe out/lib/libAvaloniaNative.dylib; then echo "reproduced=no" >> "$GITHUB_OUTPUT"
+          else echo "reproduced=yes" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Run the editor
+        id: run
+        run: |
+          cd out
+          ./ikemen-media-editor > ../editor-stdout.txt 2>&1 &
+          pid=$!
+          sleep 20
+          if kill -0 "$pid" 2>/dev/null; then echo "alive=yes" >> "$GITHUB_OUTPUT"; kill "$pid"
+          else echo "alive=no" >> "$GITHUB_OUTPUT"; fi
+          cat ../editor-stdout.txt
+
+      - name: After (flags and load)
+        id: after
+        run: |
+          left=$(find out/lib -type f -exec sh -c 'xattr -p com.apple.quarantine "$1" >/dev/null 2>&1 && echo "$1"' _ {} \; | wc -l | tr -d ' ')
+          echo "quarantined_left=$left" >> "$GITHUB_OUTPUT"
+          if ./probe out/lib/libAvaloniaNative.dylib; then echo "loads=yes" >> "$GITHUB_OUTPUT"
+          else echo "loads=no" >> "$GITHUB_OUTPUT"; fi
+          grep -h ClearQuarantine out/logs/*.log || true
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "| Check | Result |"
+            echo "|---|---|"
+            echo "| Control reproduced the block | ${{ steps.control.outputs.reproduced }} |"
+            echo "| Editor still running after 20 s | ${{ steps.run.outputs.alive }} |"
+            echo "| Quarantined files left in lib/ | ${{ steps.after.outputs.quarantined_left }} |"
+            echo "| Library loads afterwards | ${{ steps.after.outputs.loads }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-quarantine-logs
+          path: |
+            out/logs/
+            editor-stdout.txt
+          if-no-files-found: warn
