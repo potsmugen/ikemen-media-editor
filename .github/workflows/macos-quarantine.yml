@@ -22,12 +22,17 @@ jobs:
           dotnet publish src/Editor -c Release -r osx-arm64 --self-contained
           -p:PublishSingleFile=true -o out
 
+      # Runners may ship with Gatekeeper assessments off; the control needs them on.
       - name: Environment
         run: |
-          sw_vers
-          spctl --status || true
-          codesign -dv out/ikemen-media-editor 2>&1 || true
-          for f in out/lib/*.dylib; do echo "== $f"; codesign -dv "$f" 2>&1 || true; done
+          {
+            sw_vers
+            echo "spctl before: $(spctl --status 2>&1)"
+            sudo spctl --master-enable 2>&1 || sudo spctl --global-enable 2>&1 || true
+            echo "spctl after: $(spctl --status 2>&1)"
+            codesign -dv out/ikemen-media-editor 2>&1 || true
+            for f in out/lib/*.dylib; do echo "== $f"; codesign -dv "$f" 2>&1 || true; done
+          } | tee environment.txt
 
       # A plain dlopen host, ad-hoc signed with no hardened runtime, like the published exe.
       - name: Build dlopen probe
@@ -48,7 +53,9 @@ jobs:
       - name: Control (quarantined load)
         id: control
         run: |
-          if ./probe out/lib/libAvaloniaNative.dylib; then echo "reproduced=no" >> "$GITHUB_OUTPUT"
+          rc=0; ./probe out/lib/libAvaloniaNative.dylib > control.txt 2>&1 || rc=$?
+          cat control.txt
+          if [ "$rc" = 0 ]; then echo "reproduced=no" >> "$GITHUB_OUTPUT"
           else echo "reproduced=yes" >> "$GITHUB_OUTPUT"; fi
 
       - name: Run the editor
@@ -77,6 +84,7 @@ jobs:
           {
             echo "| Check | Result |"
             echo "|---|---|"
+            echo "| Gatekeeper | $(spctl --status 2>&1) |"
             echo "| Control reproduced the block | ${{ steps.control.outputs.reproduced }} |"
             echo "| Editor still running after 20 s | ${{ steps.run.outputs.alive }} |"
             echo "| Quarantined files left in lib/ | ${{ steps.after.outputs.quarantined_left }} |"
@@ -90,4 +98,6 @@ jobs:
           path: |
             out/logs/
             editor-stdout.txt
+            environment.txt
+            control.txt
           if-no-files-found: warn
