@@ -583,8 +583,6 @@ public partial class MainWindow
 
     // ---- selection ---------------------------------------------------------
 
-    private int _spriteSelectionAnchor = -1;
-
     private List<Sprite> SelectedSpriteTargets() =>
         SpriteList.SelectedItems is { } selectedItems
             ? selectedItems.OfType<SpriteTableRow>().Select(row => row.Sprite).ToList()

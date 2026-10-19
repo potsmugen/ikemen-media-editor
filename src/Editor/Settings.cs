@@ -21,6 +21,7 @@ namespace Editor;
 [JsonSerializable(typeof(Sff.SprMaker2Options))]
 [JsonSerializable(typeof(RecoveryManifest))]
 [JsonSerializable(typeof(RecoveryStore.ActivePackage))]
+[JsonSerializable(typeof(SessionFile))]
 internal sealed partial class SettingsContext : JsonSerializerContext;
 
 /// <summary>
@@ -265,6 +266,9 @@ public sealed class Settings
     public const double DefaultSelectionDragThresholdPixels = 3;
     /// <summary>How far the mouse must move with the Select tool before a press selects or moves instead of clearing the selection.</summary>
     public double SelectionDragThresholdPixels { get; set; } = DefaultSelectionDragThresholdPixels;
+    public const double DefaultTabDragThresholdPixels = 6;
+    /// <summary>How far a pressed project tab must move before it is dragged to a new position.</summary>
+    public double TabDragThresholdPixels { get; set; } = DefaultTabDragThresholdPixels;
     public const int DefaultPalettePngSwatchSize = 16;
     /// <summary>Export Palette as .png: pixels per swatch in the 16×16 grid.</summary>
     public int PalettePngSwatchSize { get; set; } = DefaultPalettePngSwatchSize;

@@ -366,8 +366,6 @@ public partial class MainWindow
     {
         try
         {
-            if (!await ConfirmDiscardEverything(resolveStandalone: false)) return;
-
             var files = await PickOpen(new FilePickerOpenOptions
             {
                 Title = "Open Character",
@@ -375,7 +373,8 @@ public partial class MainWindow
                 FileTypeFilter = [new FilePickerFileType("Character definitions") { Patterns = ["*.def"] }],
             });
             if (files.Count == 0 || files[0].TryGetLocalPath() is not { } path) return;
-            await OpenCharacterFile(path);
+            if (!await PrepareTabForProject(path)) return;
+            await RunProjectOpen(() => OpenCharacterFile(path));
         }
         catch (Exception ex)
         {
@@ -457,6 +456,8 @@ public partial class MainWindow
 
         var who = def.DisplayName ?? def.Name ?? Path.GetFileNameWithoutExtension(path);
         _characterName = who;
+        _doc.DefPath = path;
+        _doc.DefName = string.IsNullOrWhiteSpace(def.Name) ? null : def.Name.Trim();
         UpdateTitle();
         StatusText.Text = $"{who}: loaded {string.Join(", ", loaded)}"
             + (palettes > 0 ? $", {palettes} .act palettes" : "")
@@ -467,6 +468,26 @@ public partial class MainWindow
         RebuildRecentMenu();
         RestorePendingStandalonePalettes();
         // A .def opens several formats at once, so there's no single relevant tab: stay put.
+    }
+
+    /// <summary>
+    /// Opens a .def as a character, stage, or screenpack/lifebar/storyboard. A character .def has
+    /// [Files] sprite=; a stage .def has [BGdef] spr= instead; OpenOtherDefFile tells the rest apart.
+    /// </summary>
+    private async Task OpenDefFile(string path)
+    {
+        bool isStage = false, isOther = false;
+        try
+        {
+            var peek = Def.DefFile.Open(path);
+            isStage = peek.SpritePath is null && peek.StageSpritePath is not null;
+            isOther = peek.SpritePath is null && peek.StageSpritePath is null
+                && (peek.ScreenpackSpritePath is not null || peek.LifebarSpritePath is not null || peek.StoryboardSpritePath is not null);
+        }
+        catch { /* let OpenCharacterFile below report the real error */ }
+        if (isStage) await OpenStageFile(path);
+        else if (isOther) await OpenOtherDefFile(path);
+        else await OpenCharacterFile(path);
     }
 
     /// <summary>Logs a .def's references found only by ignoring letter case; returns the status-bar note (empty if none).</summary>
@@ -484,8 +505,6 @@ public partial class MainWindow
     {
         try
         {
-            if (!await ConfirmDiscardEverything(resolveStandalone: false)) return;
-
             var files = await PickOpen(new FilePickerOpenOptions
             {
                 Title = "Open Stage",
@@ -493,7 +512,8 @@ public partial class MainWindow
                 FileTypeFilter = [new FilePickerFileType("Stage definitions") { Patterns = ["*.def"] }],
             });
             if (files.Count == 0 || files[0].TryGetLocalPath() is not { } path) return;
-            await OpenStageFile(path);
+            if (!await PrepareTabForProject(path)) return;
+            await RunProjectOpen(() => OpenStageFile(path));
         }
         catch (Exception ex)
         {
@@ -571,6 +591,8 @@ public partial class MainWindow
 
         var who = def.DisplayName ?? def.Name ?? Path.GetFileNameWithoutExtension(path);
         _characterName = who;
+        _doc.DefPath = path;
+        _doc.DefName = string.IsNullOrWhiteSpace(def.Name) ? null : def.Name.Trim();
         UpdateTitle();
         StatusText.Text = $"{who}: loaded {string.Join(", ", loaded)}"
             + (failed.Count > 0 ? $". Missing: {string.Join(", ", failed.Distinct())}" : "")
@@ -586,8 +608,6 @@ public partial class MainWindow
     {
         try
         {
-            if (!await ConfirmDiscardEverything(resolveStandalone: false)) return;
-
             var files = await PickOpen(new FilePickerOpenOptions
             {
                 Title = "Open Other (Screenpack / Lifebar / Storyboard)",
@@ -595,7 +615,8 @@ public partial class MainWindow
                 FileTypeFilter = [new FilePickerFileType("Definitions") { Patterns = ["*.def"] }],
             });
             if (files.Count == 0 || files[0].TryGetLocalPath() is not { } path) return;
-            await OpenOtherDefFile(path);
+            if (!await PrepareTabForProject(path)) return;
+            await RunProjectOpen(() => OpenOtherDefFile(path));
         }
         catch (Exception ex)
         {
@@ -713,6 +734,8 @@ public partial class MainWindow
 
         var who = def.DisplayName ?? def.Name ?? Path.GetFileNameWithoutExtension(path);
         _characterName = who;
+        _doc.DefPath = path;
+        _doc.DefName = string.IsNullOrWhiteSpace(def.Name) ? null : def.Name.Trim();
         UpdateTitle();
         StatusText.Text = $"{who} ({kind}): loaded {string.Join(", ", loaded)}"
             + (failed.Count > 0 ? $". Missing: {string.Join(", ", failed.Distinct())}" : "")
@@ -768,6 +791,8 @@ public partial class MainWindow
         if (SoundCommitButton is not null) SoundCommitButton.IsEnabled = false;
         if (SoundResetButton is not null) SoundResetButton.IsEnabled = false;
         _characterName = null;
+        _doc.DefPath = null;
+        _doc.DefName = null;
         _file = null;
         _path = null;
         _standalonePalettes.Clear();
@@ -789,7 +814,6 @@ public partial class MainWindow
         PalettePreview.ShowOnion(null, null);
         ShowSpriteSwatches(null);
         BigSwatches.Show(null);
-        OnClearScratch(null, new RoutedEventArgs());
 
         _air = null;
         _airPath = null;
@@ -1414,6 +1438,7 @@ public partial class MainWindow
         try
         {
             if (e.Data.GetFiles()?.FirstOrDefault()?.TryGetLocalPath() is not { } p) return;
+            if (IsSessionPath(p)) { if (!_projectOpening) await OpenSessionFile(p); return; }
             bool opensSff = Path.GetExtension(p).Equals(".sff", StringComparison.OrdinalIgnoreCase);
             if (!await ConfirmDiscard(resolveStandalone: !opensSff)) return;
             if (opensSff && !await ConfirmStandalonePalettesForSff()) return;
@@ -1510,36 +1535,21 @@ public partial class MainWindow
                     return;
                 }
 
-                bool isDef = string.Equals(Path.GetExtension(path), ".def", StringComparison.OrdinalIgnoreCase);
-                // A character .def has [Files] sprite=; a stage .def has no
-                // [Files] sprite= but does have [BGdef] spr=. Anything else
-                // (screenpack/lifebar/storyboard) goes to OpenOtherDefFile,
-                // which does this same kind of peeking itself to tell those
-                // three apart. Peeking here is the only way to know which
-                // OpenXFile to route to below.
-                bool isStage = false;
-                bool isOther = false;
-                if (isDef)
+                if (IsSessionPath(path))
                 {
-                    try
-                    {
-                        var peek = Def.DefFile.Open(path);
-                        isStage = peek.SpritePath is null && peek.StageSpritePath is not null;
-                        isOther = peek.SpritePath is null && peek.StageSpritePath is null
-                            && (peek.ScreenpackSpritePath is not null || peek.LifebarSpritePath is not null || peek.StoryboardSpritePath is not null);
-                    }
-                    catch { /* let OpenCharacterFile below report the real error */ }
+                    MainMenu.Close();
+                    if (!_projectOpening) await OpenSessionFile(path);
+                    return;
                 }
-
+                bool isDef = string.Equals(Path.GetExtension(path), ".def", StringComparison.OrdinalIgnoreCase);
                 bool opensSff = isDef || Path.GetExtension(path).Equals(".sff", StringComparison.OrdinalIgnoreCase);
+                MainMenu.Close(); // before any prompt, so the menu doesn't sit over it
                 if (!await (isDef
-                    ? ConfirmDiscardEverything(resolveStandalone: !opensSff)
-                    : ConfirmDiscard(resolveStandalone: !opensSff))) { MainMenu.Close(); return; }
-                if (!isDef && opensSff && !await ConfirmStandalonePalettesForSff()) { MainMenu.Close(); return; }
+                    ? PrepareTabForProject(path)
+                    : ConfirmDiscard(resolveStandalone: !opensSff))) return;
+                if (!isDef && opensSff && !await ConfirmStandalonePalettesForSff()) return;
 
-                if (isStage) await OpenStageFile(path);
-                else if (isOther) await OpenOtherDefFile(path);
-                else if (isDef) await OpenCharacterFile(path);
+                if (isDef) await RunProjectOpen(() => OpenDefFile(path));
                 else await OpenFileInBackground(path);
                 MainMenu.Close();
             };
@@ -1593,8 +1603,6 @@ public partial class MainWindow
         SyncSaveMenu();
     }
 
-    /// <summary>Set when opened via a .def, so the title can show the character's own name rather than its sprite filename. Cleared on Close All.</summary>
-    private string? _characterName;
 
     private void UpdateTitle()
     {
@@ -1608,6 +1616,7 @@ public partial class MainWindow
                 : _sndPath is not null ? Path.GetFileName(_sndPath)
                 : null);
         Title = (anyDirty ? "* " : "") + (name is null ? "Ikemen Media Editor" : $"{name} - Ikemen Media Editor");
+        RebuildProjectTabStrip();
     }
 
     /// <summary>
@@ -1727,8 +1736,7 @@ public partial class MainWindow
             SavePanelSizes();
             _settings.Save();
 
-            if (_forceClose || (_paintBaseline is null && _soundEditBaseline is null && !HasPendingColorAdjust()
-                && !_dirty && !_airDirty && !_sndDirty && !HasDirtyExternalPalettes() && !HasDirtyStandalonePalettes()))
+            if (_forceClose || !_docs.Any(DocumentHasUnsavedWork))
             {
                 _recoveryTimer?.Stop();
                 if (!_preserveRecoveryPackage && !RecoveryTestMode && !HasDirtyExternalPalettes())
@@ -1743,7 +1751,7 @@ public partial class MainWindow
             // The dialog is async, so cancel this attempt and close again once answered.
             e.Cancel = true;
             base.OnClosing(e);
-            if (await ConfirmDiscardEverything())
+            if (await ConfirmDiscardAllTabs())
             {
                 _recoveryTimer?.Stop();
                 DiscardRecoveryForDiscardedWork();

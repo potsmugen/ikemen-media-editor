@@ -15,12 +15,18 @@
         <MenuItem Header="Open _Other" Click="OnOpenOther"
                   ToolTip.Tip="Opens a screenpack, lifebar or storyboard .def with its sprites and sounds." />
         <MenuItem Header="Open _Recent" x:Name="RecentMenu" />
+        <MenuItem Header="Open Sessio_n" Click="OnOpenSession"
+                  ToolTip.Tip="Reopens a saved set of tabs and the files each had open." />
         <Separator />
         <MenuItem Header="Save _All" Click="OnSaveAll" />
+        <MenuItem Header="Save Sess_ion" Click="OnSaveSession"
+                  ToolTip.Tip="Saves which files each tab has open. Edits are not part of a session." />
         <Separator />
         <MenuItem Header="Media _Health Report" Click="OnShowHealthReport"
                   ToolTip.Tip="Checks everything loaded for problems." />
         <Separator />
+        <MenuItem Header="New _Tab" Click="OnNewProjectTab" InputGesture="Ctrl+T" />
+        <MenuItem Header="_Close Tab" Click="OnCloseProjectTab" InputGesture="Ctrl+W" />
         <MenuItem Header="Close _All" Click="OnCloseAll" />
         <Separator />
         <MenuItem Header="E_xit" Click="OnExit" InputGesture="Alt+F4" />
@@ -152,6 +158,72 @@
         </StackPanel>
       </Grid>
     </Border>
+
+    <!-- Project tabs: one per open .def or set of loose files (MainWindow.ProjectTabs.cs). -->
+    <!-- Separators above and below the project tabs; the bottom margin offsets the tab strip's negative top margin. -->
+    <Border DockPanel.Dock="Top" Height="{DynamicResource PanelSeparatorWidth}" Background="{DynamicResource ThemeSeparator}"
+            IsHitTestVisible="False" />
+    <Border x:Name="ProjectTabBar" DockPanel.Dock="Top" Background="{DynamicResource ThemePanelBg}"
+            Padding="4,2,4,2">
+      <Border.Styles>
+        <Style Selector="Border.projectTab">
+          <Setter Property="Padding" Value="8,2,2,2" />
+          <Setter Property="Margin" Value="0,0,2,0" />
+          <Setter Property="CornerRadius" Value="3,3,0,0" />
+          <Setter Property="Background" Value="Transparent" />
+          <!-- Always 2px so selecting doesn't shift the layout; only the current tab's is colored. -->
+          <Setter Property="BorderThickness" Value="0,0,0,2" />
+          <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <!-- Underlined like the Sprites/Palettes/Animations/Sounds tabs, in the same Fluent brush. -->
+        <Style Selector="Border.projectTab.selected">
+          <Setter Property="BorderBrush" Value="{DynamicResource TabItemHeaderSelectedPipeFill}" />
+        </Style>
+        <Style Selector="Border.projectTab:pointerover">
+          <Setter Property="Background" Value="{DynamicResource ThemeListBg}" />
+        </Style>
+        <!-- The current tab isn't highlighted; the others are dimmed. -->
+        <Style Selector="Border.projectTab TextBlock">
+          <Setter Property="Foreground" Value="{DynamicResource ThemeDimText}" />
+        </Style>
+        <Style Selector="Border.projectTab.selected TextBlock">
+          <Setter Property="Foreground" Value="{DynamicResource ThemeText}" />
+        </Style>
+        <!-- Close and + buttons: same size as the panels' float and collapse buttons. Their marks
+             are drawn Paths, since the ✕ and + glyphs don't sit centered in their line. -->
+        <Style Selector="Button.projectTabButton">
+          <Setter Property="Width" Value="22" />
+          <Setter Property="Height" Value="22" />
+          <Setter Property="Padding" Value="0" />
+          <Setter Property="HorizontalContentAlignment" Value="Center" />
+          <Setter Property="VerticalContentAlignment" Value="Center" />
+          <Setter Property="Background" Value="Transparent" />
+          <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.projectTabButton Path">
+          <Setter Property="Width" Value="8" />
+          <Setter Property="Height" Value="8" />
+          <Setter Property="StrokeThickness" Value="1.5" />
+          <Setter Property="Stroke" Value="{DynamicResource ThemeText}" />
+        </Style>
+        <Style Selector="Border.projectTab Button.projectTabButton Path">
+          <Setter Property="Stroke" Value="{DynamicResource ThemeDimText}" />
+        </Style>
+        <Style Selector="Border.projectTab.selected Button.projectTabButton Path">
+          <Setter Property="Stroke" Value="{DynamicResource ThemeText}" />
+        </Style>
+      </Border.Styles>
+      <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+        <StackPanel Orientation="Horizontal">
+          <StackPanel x:Name="ProjectTabStrip" Orientation="Horizontal" />
+          <Button Classes="projectTabButton" Click="OnNewProjectTab" ToolTip.Tip="Open an empty tab">
+            <Path Data="M4,0 L4,8 M0,4 L8,4" />
+          </Button>
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+    <Border DockPanel.Dock="Top" Height="{DynamicResource PanelSeparatorWidth}" Background="{DynamicResource ThemeSeparator}"
+            IsHitTestVisible="False" Margin="0,0,0,4" />
 
     <TabControl x:Name="Tabs" SelectionChanged="OnTabChanged" Margin="0,-4,0,0" Background="{DynamicResource ThemePanelBg}"
                 Theme="{StaticResource SharedTabControlTheme}">

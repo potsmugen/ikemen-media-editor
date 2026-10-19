@@ -29,6 +29,7 @@ public partial class MainWindow
         _busy = true;
         MainMenu.IsEnabled = false;
         Tabs.IsEnabled = false;
+        SyncProjectTabBarEnabled();
         SetFloatingBusy(true);
         return true;
     }
@@ -40,6 +41,7 @@ public partial class MainWindow
         MainMenu.IsEnabled = true;
         SetFloatingBusy(false);
         _busy = false;
+        SyncProjectTabBarEnabled();
     }
 
     /// <summary>A refusal or failure the user must read. Posted, so sync code can call it

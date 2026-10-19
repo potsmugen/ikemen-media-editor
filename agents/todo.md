@@ -6,6 +6,7 @@ before a release. Remove items once they're done or checked.
 ## To do, easiest first
 
 - First time saving a file doesn't need to make a backup of it
+- Commit Adjustments doesn't work on the scratch palette (reported, not yet investigated)
 - Saves that change a file the user didn't edit, like the Global Shared Palette popup;
   decide per case whether to keep the bytes or tell the user (verified on real files):
   - Plain Save of SFFv1 re-encodes every PCX (`SffV1Writer`), dropping PCX header
@@ -105,6 +106,45 @@ before a release. Remove items once they're done or checked.
   6 tooltips (~2.5 ms per row measured); the frame table has 41 bindings per row.
   Build fill handles and tooltips on demand (e.g. one shared fill handle over the
   hovered cell). Time it the same way as the look-ahead fix.
+- Project tabs: several projects (character, stage, screenpack, loose files) open at
+  once in one window, so the shared clipboards (frames, Clsn, pixels) work between them.
+  Stages 1-3 built in basic form (see features.md); not yet checked in the app. Left:
+  - Recovery snapshots only the active tab, so a crash can lose other tabs' unsaved work.
+  - Quitting uses the existing "Discard Them" question per tab, not Save / Don't Save / Cancel.
+  - Onion group/number and animation onion action/frame are per tab but still written to and
+    read from settings.json (new tabs start automatic).
+  - A switch resets each tab's zoom/scroll, filters and frame; selection of sprite, action
+    and palette override is kept.
+  - Sessions and the tab context menu are built (see features.md); not yet checked in the app.
+  - Opening a single file loads it into the current tab. Opening a set of files (a
+    character, stage, screenpack) asks Open in New Tab / Open in Current Tab / Cancel,
+    unless the current tab is empty; Current Tab then shows the usual unsaved-changes
+    prompt. A file already open in another tab simply opens again (no detection).
+  - Tab strip above the Sprites/Palettes/Animations/Sounds tabs. Label: the
+    .def's name= field, else the .def file name, else the file name, else "Untitled"; a repeated label gets " (2)"; "* " when
+    unsaved; tooltip shows the full path. "+" button and Ctrl+T for an empty tab,
+    Ctrl+Tab / Ctrl+Shift+Tab to switch, Ctrl+W or middle-click to close.
+  - Close Tab (Ctrl+W) removes the tab; Close All keeps its name and closes the
+    current tab's files. There is always one tab; closing the last leaves it empty.
+    Quitting prompts per unsaved tab (Save / Don't Save / Cancel), switching to it first.
+  - Per tab: the SFF, AIR and SND with their paths, dirty flags and errors; character
+    name; standalone palettes; undo stack; recovery origins and hashes; current sprite,
+    palette override, action, tick and selection anchor; onion group/number and animation onion action/frame (these move out of settings.json).
+  - Per window: settings, theme, canvas, floating panels, view toggles, clipboards,
+    the scratch palette (no longer cleared by opening files or Close All),
+    last export formats and dialog choices. Frame paste keeps sprite numbers as they are.
+  - Switching tabs shows the existing pending paint / sound edit prompt (Commit /
+    Discard / Cancel) and drops color adjust, like ConfirmDiscardEverything minus the
+    discard prompt. Stop playback and cancel picks, drags and the eyedropper. Then rerun
+    the post-load refresh and restore the tab's selection without marking it dirty
+    or recording undo.
+  - Open Character/Stage/Other release the busy lock between the background SFF and
+    SND reads; hold one lock across the whole open so a tab click can't land mid-load.
+  - Recovery: capture every tab; add a tab ID to RecoverySnapshot so restore rebuilds
+    each tab. Packages without one restore into a single tab.
+  - Stages: (1) Document class plus forwarding properties on MainWindow, no behavior
+    change; (2) switch routine; (3) tab strip, open/close/quit flows, busy lock;
+    (4) recovery; (5) features.md and in-app checks.
 
 ## Not yet checked in the app
 

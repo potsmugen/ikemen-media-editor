@@ -16,8 +16,6 @@ public partial class MainWindow
     internal bool RecoveryTestMode { get; set; }
     private bool _preserveRecoveryPackage;
     private bool _recoveryRestored;
-    private readonly Dictionary<string, string> _recoverySourceHashes = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<(string Kind, string Target), (string? Source, int Group, int Index)> _recoveryOrigins = new();
 
     private void ResolveRecoveredItem(string kind, string? path, int? group = null, int? index = null)
     {

@@ -18,9 +18,6 @@ public partial class MainWindow
     private bool _animOnionClsn = true;
     /// <summary>Read at startup, before AnimCanvas exists; applied once it does.</summary>
     private double _animOnionOpacity = Settings.DefaultOnionOpacity;
-    private int? _animOnionAction;
-    /// <summary>1-based, as shown.</summary>
-    private int? _animOnionFrame;
 
     /// <summary>Pinned frame when both fields are set, else the previous frame (none on frame 1).</summary>
     private Air.AnimationElement? AnimOnionSource()

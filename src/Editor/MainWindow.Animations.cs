@@ -51,26 +51,13 @@ public partial class MainWindow
     private static readonly Color Clsn1DefaultColor = Color.FromRgb(0xe0, 0x90, 0x20);
     private static readonly Color Clsn2DefaultColor = Color.FromRgb(0x00, 0x8a, 0x8a);
 
-    private AirFile? _air;
-    private string? _airPath;
-    private bool _airEmbeddedInDef;
-    /// <summary>Whether missing action names fall back to reserved-action suggestions. True for a
-    /// standalone .air or a character definition, false for stages and other .defs (their embedded
-    /// background actions aren't gameplay states the user would name).</summary>
-    private bool _airShowsSuggestedNames;
-    private byte[]? _airDiskHash;
-    private List<AnimationAction> _airDefSourceActions = [];
-    private AnimationAction? _action;
-    private bool _airDirty;
     private DispatcherTimer? _clock;
-    private int _tick;
     /// <summary>Playback time base: ticks due are counted from real elapsed time, not timer events.</summary>
     private readonly Stopwatch _playWatch = new();
     private long _playedTicks;
     /// <summary>Sprite lookup built on first use while playing, when sprites can't change.</summary>
     private Dictionary<(int, int), Sprite>? _playSprites;
     private SffFile? _playSpritesFile;
-    private string? _airError;
 
     /// <summary>The action's boxes captured before a box drag/nudge.</summary>
     private ActionBoxState? _boxesBeforeDrag;

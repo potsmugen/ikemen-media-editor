@@ -2588,6 +2588,18 @@ public static class Dialogs
         return result.Task;
     }
 
+    /// <summary>Where a .def's files open when the current tab already has files. Null if canceled.</summary>
+    public static Task<bool?> AskOpenInNewTab(Window owner, string fileName) =>
+        Show<bool?>(owner, "Open Project",
+            $"This tab already has files open. Open {fileName} in a new tab, or close them and open it here?",
+            [("Open in New Tab", true), ("Open in Current Tab", false), ("Cancel", null)]);
+
+    /// <summary>Opening a session while tabs are in use: true appends its tabs, false replaces them, null cancels.</summary>
+    public static Task<bool?> AskReplaceOrAppendTabs(Window owner, string fileName) =>
+        Show<bool?>(owner, "Open Session",
+            $"Some tabs already have files open. Replace them with the tabs in {fileName}, or add those after them?",
+            [("Replace", false), ("Append", true), ("Cancel", null)]);
+
     public static Task<SaveChoice> AskToSave(Window owner, string fileName) =>
         Show(owner, "Unsaved Changes",
             $"{fileName} has changes that have not been saved.",

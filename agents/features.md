@@ -13,6 +13,32 @@ and constraints that are easy to miss when reading one code path in isolation.
 
 ### Files and saving
 
+- **Project tabs** (basic, `MainWindow.ProjectTabs.cs`): a strip above the Sprites/Palettes/
+  Animations/Sounds tabs, one tab per `Document`. Label: the .def's name= field, else the .def
+  file name, else the first loaded file's name, else "Untitled"; repeats get " (2)"; "* " when unsaved; tooltip shows
+  the path. Open Character/Stage/Other and Open Recent .defs ask Open in New Tab / Open in
+  Current Tab / Cancel after the file is picked, unless the tab is empty; single files load
+  into the current tab. New Tab (Ctrl+T, "+"; always added at the right end), Close Tab (Ctrl+W, ✕, middle-click; the last
+  tab is emptied, not removed), Ctrl+Tab / Ctrl+Shift+Tab. Drag a tab to reorder
+  (past settings.json `TabDragThresholdPixels`, default 6; the strip holds the pointer
+  capture because reordering rebuilds the tabs). Undo history is per tab, as in most editors.
+  Right-click menu: Rename (Rename Tab prompt; empty or the automatic name clears it; kept
+  when files are reopened into the tab, cleared when the last tab is closed), Close, Close
+  Others, Close Tabs to the Right (each tab gets its own unsaved check; Cancel stops), Open
+  Containing Folder (when the tab has a path). Switching resolves pending paint
+  and sound edits (Cancel stays), drops color adjust, stops playback and picks, then redraws
+  every sub-tab from the stored state (`ShowDocument`); the sub-tab shown stays the same.
+  Quitting shows each unsaved tab and asks the usual discard question. Tab clicks are blocked
+  while busy and across a .def open (`RunProjectOpen`). The scratch palette is shared and
+  no longer cleared by Close All. Clipboards are per window, so they work across tabs.
+- **Sessions** (`MainWindow.Sessions.cs`, `Session.cs`): File > Save Session / Open Session,
+  `.imesession` JSON via `SettingsContext`. Per tab in order: the .def, or the loose SFF, AIR
+  (.air or .def with embedded actions), SND and standalone palette paths; the custom name; and
+  the active tab. Not edits, selection or zoom; saving asks nothing, and tabs with no saved
+  path are skipped (status bar). Opening (menu, Open Recent, or dropping the file) asks
+  Replace / Append when any tab is in use; Replace runs each unsaved tab's check first, like
+  quitting. Missing files are skipped and listed afterwards. Not reopened on startup.
+  `OpenDefFile` routes a .def to the character/stage/other loader (shared with Open Recent).
 - **DEF animation source**: for characters, `[Files] anim=` `.air` is authoritative
   even when the character `.def` also contains embedded actions. Embedded actions
   can be edited and saved back to the same `.def`; existing action sections stay
@@ -499,6 +525,12 @@ summaries; treat anything marked unverified as unknown.
 
 ### Cross-cutting
 
+- Per-file-set state lives in `Document` (`Document.cs`): SFF/AIR/SND with paths,
+  dirty flags and errors, character name, standalone palettes, undo stack, recovery
+  origins and hashes, selection, and onion group/number. `MainWindow` holds the active
+  one in `_doc`; the old `_file`, `_undo`, `_current`, ... names are forwarding
+  properties (`MainWindow.Document.cs`). New per-tab state goes in `Document`, not
+  on `MainWindow`. Groundwork for project tabs (todo.md); one `Document` for now.
 - Undo: call `MarkDirty`/`MarkAirDirty`/`MarkSndDirty` immediately after
   `_undo.Do`/`Record`. The mark tags that entry with its file kind, allowing
   undo back to the save point to clear the changed mark. A mark without an

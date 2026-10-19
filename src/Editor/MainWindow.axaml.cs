@@ -29,22 +29,13 @@ public partial class MainWindow : Window
 
     private readonly Settings _settings = Settings.Load();
 
-    internal SffFile? _file;
-    private string? _path;
-    private readonly List<Palette> _standalonePalettes = [];
-    private readonly Dictionary<Palette, string> _standalonePaletteKinds = new(ReferenceEqualityComparer.Instance);
-    private readonly List<Palette> _standalonePalettesPendingSff = [];
-    private int _standalonePaletteOverride = -1;
-    private Sprite? _current;
     private List<int> _visible = [];      // sprite indices currently in the list
-    private int _paletteOverride = -1;    // -1 means the sprite's own palette
     private Sprite? _palettePreviewSprite;    // null means the preview follows the current sprite
     /// <summary>Tab shown before the current one, and the sprite the Animations tab last showed (SyncSpriteAcrossTabs).</summary>
     private int _lastTab;
     private Sprite? _animSprite;
     private (int X, int Y)? _spriteCursorPosition;
     private (int X, int Y)? _animCursorPosition;
-    private bool _dirty;
     internal bool RecoveryInterrupted { get; set; }
     internal bool _suppressEvents;
     private bool _forceClose;
@@ -59,10 +50,6 @@ public partial class MainWindow : Window
     private bool _fullCrosshair;
     private bool _onionSkin;
     private bool _onionGrayscale;
-    // Null means "automatic" (previous sprite/frame); set means always use this one sprite.
-    private int? _onionGroup;
-    private int? _onionIndex;
-    private readonly UndoStack _undo = new();
     private (int G, int N, int X, int Y)? _axisBeforeDrag;
 
     public MainWindow()
@@ -106,8 +93,7 @@ public partial class MainWindow : Window
         SpriteCanvas.AxisDragFinished += OnAxisDragFinished;
         SpriteCanvas.ZoomChanged += UpdateStatus;
         SpriteCanvas.ZoomChanged += UpdateCursorStatus;
-        _undo.Changed += () => { SyncUndoMenu(); SyncDirtyFromUndo(); };
-        _undo.CaptureView = CaptureUndoView;
+        WireProjectTabs();
         WirePaletteViews();
         WireSpritePaint();
         BuildReplaceSquares(); // after InitializeComponent: the rows it fills are XAML-named
@@ -202,9 +188,14 @@ public partial class MainWindow : Window
     private void ApplyStartupSettings()
     {
         var s = _settings;
-        _undo.Limit = Settings.Checked(nameof(s.UndoLimit), s.UndoLimit, Settings.DefaultUndoLimit, v => v >= 1);
-        _undo.MergeWindow = TimeSpan.FromSeconds(Settings.Checked(nameof(s.UndoMergeSeconds), s.UndoMergeSeconds,
+        int undoLimit = Settings.Checked(nameof(s.UndoLimit), s.UndoLimit, Settings.DefaultUndoLimit, v => v >= 1);
+        var undoMerge = TimeSpan.FromSeconds(Settings.Checked(nameof(s.UndoMergeSeconds), s.UndoMergeSeconds,
             Settings.DefaultUndoMergeSeconds, v => double.IsFinite(v) && v >= 0));
+        foreach (var undo in _docs.Select(d => d.Undo).Append(_undo).Distinct())
+        {
+            undo.Limit = undoLimit;
+            undo.MergeWindow = undoMerge;
+        }
         ColorPickerView.BoxWidth = Settings.Checked(nameof(s.ColorPickerBoxWidth), s.ColorPickerBoxWidth,
             Settings.DefaultColorPickerBoxWidth, v => v is >= 16 and <= 2048);
         ColorPickerView.BoxHeight = Settings.Checked(nameof(s.ColorPickerBoxHeight), s.ColorPickerBoxHeight,
@@ -2193,6 +2184,9 @@ public partial class MainWindow : Window
                     ("Ctrl+Shift+O", "Open Character"),
                     ("Ctrl+S", "Save"),
                     ("Ctrl+Shift+S", "Save As"),
+                    ("Ctrl+T", "New Tab"),
+                    ("Ctrl+W / middle-click", "Close Tab"),
+                    ("Ctrl+Tab / Ctrl+Shift+Tab", "Next / previous tab"),
                 ]),
                 ("Edit",
                 [

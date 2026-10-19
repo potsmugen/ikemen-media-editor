@@ -26,9 +26,6 @@ public partial class MainWindow
     private static readonly FilePickerFileType WavType =
         new("WAV audio") { Patterns = ["*.wav"] };
 
-    private SndFile? _snd;
-    private string? _sndPath;
-    private bool _sndDirty;
     private List<int> _visibleSounds = [];
     private Process? _externalPlayer; // non-Windows fallback, so Stop has something to kill
 
@@ -121,8 +118,6 @@ public partial class MainWindow
             await Failed("OnOpenSnd", ex);
         }
     }
-
-    private string? _sndError;
 
     /// <summary>Reads a .snd on a background thread under the busy lock. Null when it can't be read; LoadSnd then reports the error.</summary>
     private async Task<SndFile?> ReadSndInBackgroundAsync(string path)

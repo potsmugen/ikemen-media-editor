@@ -2522,104 +2522,79 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 FileTypeFilter = [PaletteFilesType],
             });
             if (files.Count == 0) return;
+            await ImportPaletteFiles(files.Select(f => (f.Name, f.TryGetLocalPath())).ToList());
+        }
+        catch (Exception ex)
+        {
+            await Failed("OnImportPaletteFiles", ex);
+        }
+    }
 
-            if (_file is null && !await SettlePendingColorAdjust()) return;
-            var file = _file;
-            var taken = file?.Palettes.Where(p => p.Group == 1).Select(p => p.Index).ToHashSet() ?? [];
-            var added = new List<Palette>();
-            var errors = new List<string>();
-            int selectedExisting = -1;
-            foreach (var f in files)
+    /// <summary>Opens palette files: standalone when no SFF is open, otherwise added to the SFF (undoable). Also used by Open Session.</summary>
+    private async Task ImportPaletteFiles(IReadOnlyList<(string Name, string? Path)> files)
+    {
+        if (_file is null && !await SettlePendingColorAdjust()) return;
+        var file = _file;
+        var taken = file?.Palettes.Where(p => p.Group == 1).Select(p => p.Index).ToHashSet() ?? [];
+        var added = new List<Palette>();
+        var errors = new List<string>();
+        int selectedExisting = -1;
+        foreach (var (name, localPath) in files)
+        {
+            if (localPath is not { } path)
             {
-                if (f.TryGetLocalPath() is not { } path)
+                CrashLog.Error("OnImportPaletteFiles", $"{name}: selected file has no local path");
+                errors.Add($"{name}: selected file has no local path");
+                continue;
+            }
+            try
+            {
+                if (file is null && _standalonePalettes.Any(p => p.SourcePath is not null && PathsEqual(p.SourcePath, path)))
                 {
-                    CrashLog.Error("OnImportPaletteFiles", $"{f.Name}: selected file has no local path");
-                    errors.Add($"{f.Name}: selected file has no local path");
+                    int existing = _standalonePalettes.FindIndex(p => p.SourcePath is not null && PathsEqual(p.SourcePath, path));
+                    selectedExisting = existing;
                     continue;
                 }
-                try
+                var pal = PaletteFileImport.Read(path);
+                pal.SourcePath = path;
+                pal.Source = PaletteSource.External;
+                pal.Group = 1;
+                if (file is not null)
                 {
-                    if (file is null && _standalonePalettes.Any(p => p.SourcePath is not null && PathsEqual(p.SourcePath, path)))
-                    {
-                        int existing = _standalonePalettes.FindIndex(p => p.SourcePath is not null && PathsEqual(p.SourcePath, path));
-                        selectedExisting = existing;
-                        continue;
-                    }
-                    var pal = PaletteFileImport.Read(path);
-                    pal.SourcePath = path;
-                    pal.Source = PaletteSource.External;
-                    pal.Group = 1;
-                    if (file is not null)
-                    {
-                        pal.Index = Enumerable.Range(1, int.MaxValue - 1).First(i => !taken.Contains(i));
-                        taken.Add(pal.Index);
-                    }
-                    else pal.Index = _standalonePalettes.Count + added.Count + 1;
-                    added.Add(pal);
+                    pal.Index = Enumerable.Range(1, int.MaxValue - 1).First(i => !taken.Contains(i));
+                    taken.Add(pal.Index);
                 }
-                catch (Exception ex)
-                {
-                    CrashLog.Write($"OnImportPaletteFiles {path}", ex);
-                    errors.Add($"{Path.GetFileName(path)}: {ex.Message}");
-                }
+                else pal.Index = _standalonePalettes.Count + added.Count + 1;
+                added.Add(pal);
             }
+            catch (Exception ex)
+            {
+                CrashLog.Write($"OnImportPaletteFiles {path}", ex);
+                errors.Add($"{Path.GetFileName(path)}: {ex.Message}");
+            }
+        }
 
-            if (added.Count > 0)
+        if (added.Count > 0)
+        {
+            if (file is null)
             {
-                if (file is null)
+                _standalonePalettes.AddRange(added);
+                _standalonePaletteOverride = _standalonePalettes.Count - 1;
+                foreach (var p in added)
                 {
-                    _standalonePalettes.AddRange(added);
-                    _standalonePaletteOverride = _standalonePalettes.Count - 1;
-                    foreach (var p in added)
-                    {
-                        p.Dirty = false;
-                        _undo.MarkSaved(StandalonePaletteKindFor(p));
-                    }
-                    PaletteFilterBox.Text = "";
-                    RebuildPaletteList();
-                    _editingPalette = added[^1];
-                    _editingView = BigSwatches;
-                    _selectedSwatch = _editingPalette.Colors.Length > 0 ? 0 : -1;
-                    ColorEditor.IsEnabled = true;
-                    ASlider.IsEnabled = CanEditPaletteAlpha(_editingPalette);
-                    if (_selectedSwatch >= 0)
-                    {
-                        var color = _editingPalette.Colors[_selectedSwatch];
-                        _suppressEvents = true;
-                        RSlider.Value = color.R; GSlider.Value = color.G; BSlider.Value = color.B; ASlider.Value = color.A;
-                        _suppressEvents = false;
-                    }
-                    ResetColorAdjustBase();
-                    RefreshPaletteTab();
-                    UpdateTitle();
+                    p.Dirty = false;
+                    _undo.MarkSaved(StandalonePaletteKindFor(p));
                 }
-                else
-                {
-                    Edit(added.Count == 1 ? "import palette file" : $"import {added.Count} palette files",
-                        () => { file.Palettes.AddRange(added); SelectPalette(added[^1]); },
-                        () => { foreach (var p in added) file.Palettes.Remove(p); _paletteOverride = -1; });
-                }
-                StatusText.Text = added.Count == 1 ? $"Opened {Path.GetFileName(added[0].SourcePath)}"
-                    : $"Opened {added.Count} palette files";
-            }
-            else if (file is null && selectedExisting >= 0)
-            {
-                var palette = _standalonePalettes[selectedExisting];
-                _standalonePaletteOverride = selectedExisting;
                 PaletteFilterBox.Text = "";
                 RebuildPaletteList();
-                _suppressEvents = true;
-                if (PaletteList.ItemsSource is IEnumerable<PaletteRow> rows)
-                    PaletteList.SelectedIndex = rows.ToList().FindIndex(row => ReferenceEquals(row.Palette, palette));
-                _suppressEvents = false;
-                _editingPalette = palette;
+                _editingPalette = added[^1];
                 _editingView = BigSwatches;
-                _selectedSwatch = palette.Colors.Length > 0 ? 0 : -1;
+                _selectedSwatch = _editingPalette.Colors.Length > 0 ? 0 : -1;
                 ColorEditor.IsEnabled = true;
-                ASlider.IsEnabled = CanEditPaletteAlpha(palette);
+                ASlider.IsEnabled = CanEditPaletteAlpha(_editingPalette);
                 if (_selectedSwatch >= 0)
                 {
-                    var color = palette.Colors[_selectedSwatch];
+                    var color = _editingPalette.Colors[_selectedSwatch];
                     _suppressEvents = true;
                     RSlider.Value = color.R; GSlider.Value = color.G; BSlider.Value = color.B; ASlider.Value = color.A;
                     _suppressEvents = false;
@@ -2628,13 +2603,43 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 RefreshPaletteTab();
                 UpdateTitle();
             }
-            if (errors.Count > 0)
-                await Dialogs.ShowMessage(this, "Some Palette Files Could Not Be Read", string.Join("\n", errors));
+            else
+            {
+                Edit(added.Count == 1 ? "import palette file" : $"import {added.Count} palette files",
+                    () => { file.Palettes.AddRange(added); SelectPalette(added[^1]); },
+                    () => { foreach (var p in added) file.Palettes.Remove(p); _paletteOverride = -1; });
+            }
+            StatusText.Text = added.Count == 1 ? $"Opened {Path.GetFileName(added[0].SourcePath)}"
+                : $"Opened {added.Count} palette files";
         }
-        catch (Exception ex)
+        else if (file is null && selectedExisting >= 0)
         {
-            await Failed("OnImportPaletteFiles", ex);
+            var palette = _standalonePalettes[selectedExisting];
+            _standalonePaletteOverride = selectedExisting;
+            PaletteFilterBox.Text = "";
+            RebuildPaletteList();
+            _suppressEvents = true;
+            if (PaletteList.ItemsSource is IEnumerable<PaletteRow> rows)
+                PaletteList.SelectedIndex = rows.ToList().FindIndex(row => ReferenceEquals(row.Palette, palette));
+            _suppressEvents = false;
+            _editingPalette = palette;
+            _editingView = BigSwatches;
+            _selectedSwatch = palette.Colors.Length > 0 ? 0 : -1;
+            ColorEditor.IsEnabled = true;
+            ASlider.IsEnabled = CanEditPaletteAlpha(palette);
+            if (_selectedSwatch >= 0)
+            {
+                var color = palette.Colors[_selectedSwatch];
+                _suppressEvents = true;
+                RSlider.Value = color.R; GSlider.Value = color.G; BSlider.Value = color.B; ASlider.Value = color.A;
+                _suppressEvents = false;
+            }
+            ResetColorAdjustBase();
+            RefreshPaletteTab();
+            UpdateTitle();
         }
+        if (errors.Count > 0)
+            await Dialogs.ShowMessage(this, "Some Palette Files Could Not Be Read", string.Join("\n", errors));
     }
 
     /// <summary>
