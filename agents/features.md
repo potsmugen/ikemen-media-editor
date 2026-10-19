@@ -550,6 +550,8 @@ summaries; treat anything marked unverified as unknown.
 
 ### Cross-cutting
 
+- Tooltips show on disabled controls too (`ToolTip.ShowOnDisabled`, set in App.axaml for
+  buttons, menu items, check/radio boxes, dropdowns, number boxes, sliders and text boxes).
 - Per-file-set state lives in `Document` (`Document.cs`): SFF/AIR/SND with paths,
   dirty flags and errors, character name, standalone palettes, undo stack, recovery
   origins and hashes, selection, and onion group/number. `MainWindow` holds the active

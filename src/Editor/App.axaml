@@ -26,6 +26,10 @@
       <!-- Title bar and taskbar icon for every window, dialogs included. -->
       <Setter Property="Icon" Value="/Assets/app.ico" />
     </Style>
+    <!-- Tooltips also show on disabled controls, so a grayed-out button still says what it does. -->
+    <Style Selector="Button, ToggleButton, RepeatButton, MenuItem, CheckBox, RadioButton, ComboBox, NumericUpDown, Slider, TextBox">
+      <Setter Property="ToolTip.ShowOnDisabled" Value="True" />
+    </Style>
     <!-- Every button's label sits centered in its box, however wide the button is stretched. -->
     <Style Selector="Button, ToggleButton, RepeatButton">
       <Setter Property="HorizontalContentAlignment" Value="Center" />
