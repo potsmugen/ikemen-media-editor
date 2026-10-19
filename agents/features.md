@@ -297,6 +297,11 @@ and constraints that are easy to miss when reading one code path in isolation.
 
 ### Sprites and palettes
 
+- **Scratch palette color adjustments**: Commit Adjustments works on scratch like any palette
+  (it keeps the preview) but records no undo entry; `SyncAdjustCommitButton` uses
+  `HasAdjustedColors`, which counts scratch. `HasPendingColorAdjust` still leaves scratch out, so
+  it never triggers the uncommitted-adjustment prompts, close checks or recovery. On scratch,
+  `OnColorAdjustChanged` only redraws differently; it still syncs the RGBA sliders and Commit.
 - **Sprite rotation**: quarter turns and mirrors only rearrange pixels, so they
   are lossless and keep axes on whole pixels. Free-angle rotation resamples and
   rounds fractional axis coordinates. Indexed sprites cannot use bilinear

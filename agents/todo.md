@@ -6,7 +6,6 @@ before a release. Remove items once they're done or checked.
 ## To do, easiest first
 
 - First time saving a file doesn't need to make a backup of it
-- Commit Adjustments doesn't work on the scratch palette (reported, not yet investigated)
 - Saves that change a file the user didn't edit, like the Global Shared Palette popup;
   decide per case whether to keep the bytes or tell the user (verified on real files):
   - Plain Save of SFFv1 re-encodes every PCX (`SffV1Writer`), dropping PCX header

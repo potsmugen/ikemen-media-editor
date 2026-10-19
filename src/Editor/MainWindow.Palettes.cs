@@ -310,7 +310,8 @@ public partial class MainWindow
     private void CommitPendingColorAdjust()
     {
         if (_adjustSession is not { Count: > 0 } session || _editingPalette is not { } pal) { SyncAdjustCommitButton(); return; }
-        if (ReferenceEquals(pal, _scratchPalette)) { SyncAdjustCommitButton(); return; } // scratch is never undoable — already applied live
+        // Scratch is never undoable: its colors are already applied, and the caller's ResetColorAdjustBase keeps them.
+        if (ReferenceEquals(pal, _scratchPalette)) { SyncAdjustCommitButton(); return; }
         bool changed = session.Any(kv => kv.Key < pal.Colors.Length && !pal.Colors[kv.Key].Equals(kv.Value));
         if (!changed) { SyncAdjustCommitButton(); return; }
 
@@ -343,9 +344,14 @@ public partial class MainWindow
         SyncAdjustCommitButton(); // colors are back at baseline, so this always disables it — belt-and-braces, callers don't all re-sync afterward themselves
     }
 
-    /// <summary>True when the live colors differ from where the session started — which is every operation as well as every slider. Drives whether the Commit button is enabled.</summary>
+    /// <summary>True when the live colors differ from where the session started — which is every operation as well as every slider. Leaves out the scratch palette, which is never saved, so it never triggers an uncommitted-adjustment prompt.</summary>
     private bool HasPendingColorAdjust() =>
-        _adjustSession is { Count: > 0 } session && _editingPalette is { } pal && !ReferenceEquals(pal, _scratchPalette)
+        _adjustSession is { Count: > 0 } && _editingPalette is { } pal && !ReferenceEquals(pal, _scratchPalette)
+        && HasAdjustedColors();
+
+    /// <summary>Any palette's preview differs from where its session started, scratch included.</summary>
+    private bool HasAdjustedColors() =>
+        _adjustSession is { Count: > 0 } session && _editingPalette is { } pal
         && session.Any(kv => kv.Key < pal.Colors.Length && !pal.Colors[kv.Key].Equals(kv.Value));
 
     private bool HasDirtyStandalonePalettes() => _standalonePalettes.Any(p => p.Dirty);
@@ -451,9 +457,10 @@ public partial class MainWindow
         ASlider.IsEnabled = false;
     }
 
+    /// <summary>Scratch counts here: Commit keeps its preview (with no undo entry), while clicking elsewhere still discards it.</summary>
     private void SyncAdjustCommitButton()
     {
-        if (AdjustCommitButton is not null) AdjustCommitButton.IsEnabled = HasPendingColorAdjust();
+        if (AdjustCommitButton is not null) AdjustCommitButton.IsEnabled = HasAdjustedColors();
     }
 
     /// <summary>Saturation of one color as 0-100, in the same model AdjustColor uses.</summary>
@@ -490,9 +497,10 @@ public partial class MainWindow
             pal.Colors[i] = AdjustColor(baseColor, lighten, hue, saturation, rAdd, gAdd, bAdd, perceptual);
         }
 
-        if (ReferenceEquals(pal, _scratchPalette)) { _editingView?.InvalidateVisual(); return; }
-
-        RefreshPaletteViews(pal);
+        // Scratch only redraws its own grid, but goes on like any palette: the RGBA sliders follow
+        // and Commit is re-synced (an early return here kept Commit off for these sliders).
+        if (ReferenceEquals(pal, _scratchPalette)) _editingView?.InvalidateVisual();
+        else RefreshPaletteViews(pal);
         if (_selectedSwatch >= 0 && based.ContainsKey(_selectedSwatch) && _selectedSwatch < pal.Colors.Length)
         {
             _suppressEvents = true;
