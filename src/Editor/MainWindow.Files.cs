@@ -1438,7 +1438,7 @@ public partial class MainWindow
         try
         {
             if (e.Data.GetFiles()?.FirstOrDefault()?.TryGetLocalPath() is not { } p) return;
-            if (IsSessionPath(p)) { if (!_projectOpening) await OpenSessionFile(p); return; }
+            if (IsSessionPath(p)) { if (!_projectOpening) await LoadSessionFile(p); return; }
             bool opensSff = Path.GetExtension(p).Equals(".sff", StringComparison.OrdinalIgnoreCase);
             if (!await ConfirmDiscard(resolveStandalone: !opensSff)) return;
             if (opensSff && !await ConfirmStandalonePalettesForSff()) return;
@@ -1538,7 +1538,7 @@ public partial class MainWindow
                 if (IsSessionPath(path))
                 {
                     MainMenu.Close();
-                    if (!_projectOpening) await OpenSessionFile(path);
+                    if (!_projectOpening) await LoadSessionFile(path);
                     return;
                 }
                 bool isDef = string.Equals(Path.GetExtension(path), ".def", StringComparison.OrdinalIgnoreCase);

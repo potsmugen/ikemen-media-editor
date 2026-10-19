@@ -282,6 +282,9 @@ public partial class MainWindow : Window
         r["PanelSeparatorWidth"] = separatorTrackWidth;
         r["PanelSeparatorTrack"] = new GridLength(separatorTrackWidth);
         r["PanelSeparatorBottomThickness"] = new Thickness(0, 0, 0, separatorTrackWidth);
+        r["PanelSeparatorTabThickness"] = new Thickness(separatorTrackWidth, separatorTrackWidth, separatorTrackWidth, 0); // folder-style tab outline
+        r["PanelTabMargin"] = new Thickness(0, 0, 2, separatorTrackWidth); // sub-tab headers: gap, and the baseline shows below
+        r["PanelTabSelectedMargin"] = new Thickness(0, 0, 2, 0); // the selected one covers the baseline
         if (ActionList is not null) RebuildActionList(); // its Number column width follows the font size
         if (FrameTableList is not null) RebuildFrameTable(); // so do the frame table's columns
         if (SpriteList is not null) RebuildSpriteTable(); // and every other table's
@@ -443,7 +446,7 @@ public partial class MainWindow : Window
             /// Covers the states the app can actually reach; a control that gained a new
             /// state later shows Fluent's color for that one state only.
             /// </summary>
-            private static void ApplyControlColors(IResourceDictionary res, IBrush panel, IBrush field, IBrush hover, IBrush text, IBrush muted, IBrush dim, IBrush accent, IBrush activeButton, IBrush activeText)
+            private static void ApplyControlColors(IResourceDictionary res, IBrush panel, IBrush list, IBrush field, IBrush hover, IBrush text, IBrush muted, IBrush dim, IBrush accent, IBrush activeButton, IBrush activeText)
             {
                 // Button (and ToggleButton, whose theme is based on it).
                 res["ButtonBackground"] = field;
@@ -518,19 +521,20 @@ public partial class MainWindow : Window
                 res["TextControlBackgroundDisabled"] = field;
                 res["TextControlBorderBrushDisabled"] = dim;
 
-                // Tab headers. The strip's own background comes from MainWindow.axaml.
-                res["TabItemHeaderBackgroundUnselected"] = panel;
+                // Tab headers, folder-style: unselected on the list color, the selected one on the
+                // panel color so it joins its content. The outline is set on TabItem in MainWindow.axaml.
+                res["TabItemHeaderBackgroundUnselected"] = list;
                 res["TabItemHeaderBackgroundSelected"] = panel;
                 res["TabItemHeaderForegroundUnselected"] = muted;
                 res["TabItemHeaderForegroundSelected"] = text;
                 res["TabItemHeaderBackgroundUnselectedPointerOver"] = field;
-                res["TabItemHeaderBackgroundSelectedPointerOver"] = field;
+                res["TabItemHeaderBackgroundSelectedPointerOver"] = panel;
                 res["TabItemHeaderForegroundUnselectedPointerOver"] = text;
                 res["TabItemHeaderForegroundSelectedPointerOver"] = text;
                 res["TabItemHeaderBackgroundUnselectedPressed"] = field;
-                res["TabItemHeaderBackgroundSelectedPressed"] = field;
+                res["TabItemHeaderBackgroundSelectedPressed"] = panel;
                 res["TabItemHeaderForegroundDisabled"] = dim;
-                res["TabItemHeaderSelectedPipeFill"] = text; // the underline on the selected tab
+                res["TabItemHeaderSelectedPipeFill"] = Brushes.Transparent; // no underline: folder-style tabs
 
                 res["SliderTrackValueFill"] = accent;
                 res["SliderTrackValueFillPointerOver"] = accent;
@@ -701,7 +705,7 @@ public partial class MainWindow : Window
                 res["ComboBoxDropDownBackground"] = panelBrush;
                 res["ComboBoxDropDownBorderBrush"] = dimBrush;
 
-                ApplyControlColors(res, panelBrush, fieldBrush, hoverBrush, textBrush, mutedBrush, dimBrush, accentBrush, activeButtonBrush, new SolidColorBrush(Color.Parse(theme.ActiveText)));
+                ApplyControlColors(res, panelBrush, listBrush, fieldBrush, hoverBrush, textBrush, mutedBrush, dimBrush, accentBrush, activeButtonBrush, new SolidColorBrush(Color.Parse(theme.ActiveText)));
 
         if (variantChanged) Application.Current!.RequestedThemeVariant = theme.Variant;
 

@@ -522,6 +522,20 @@ public class SpriteView : Control
         InvalidateVisual();
     }
 
+    /// <summary>Zoom step and pan, so a project tab can keep its own view.</summary>
+    public (int ZoomIndex, Point Pan) View
+    {
+        get => (_zoomIdx, _pan);
+        set
+        {
+            _zoomIdx = Math.Clamp(value.ZoomIndex, 0, ZoomLevels.Length - 1); // the zoom levels may have changed in settings
+            _pan = value.Pan;
+            RefreshCursorPosition();
+            ZoomChanged?.Invoke();
+            InvalidateVisual();
+        }
+    }
+
     public void ResetView()
     {
         _pan = default;

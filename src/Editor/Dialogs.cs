@@ -2594,9 +2594,9 @@ public static class Dialogs
             $"This tab already has files open. Open {fileName} in a new tab, or close them and open it here?",
             [("Open in New Tab", true), ("Open in Current Tab", false), ("Cancel", null)]);
 
-    /// <summary>Opening a session while tabs are in use: true appends its tabs, false replaces them, null cancels.</summary>
+    /// <summary>Loading a session while tabs are in use: true appends its tabs, false replaces them, null cancels.</summary>
     public static Task<bool?> AskReplaceOrAppendTabs(Window owner, string fileName) =>
-        Show<bool?>(owner, "Open Session",
+        Show<bool?>(owner, "Load Session",
             $"Some tabs already have files open. Replace them with the tabs in {fileName}, or add those after them?",
             [("Replace", false), ("Append", true), ("Cancel", null)]);
 
@@ -3567,8 +3567,7 @@ public static class Dialogs
 
         TabItem Tab(string header, Control content)
         {
-            var t = new TabItem { Header = header, Content = content };
-            t.Bind(TabItem.FontSizeProperty, t.GetResourceObservable("UiFont16"));
+            var t = new TabItem { Header = header, Content = content }; // look comes from App.axaml
             return t;
         }
 

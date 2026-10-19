@@ -78,9 +78,57 @@
         </Setter.Value>
       </Setter>
     </Style>
+    <!-- Folder-style tab headers for every TabControl (main window, Preferences). Body-size text and a
+         desktop height (WinUI/VS Code tabs are ~32px; Fluent's 48px is sized for touch). Backgrounds and
+         the transparent underline come from TabItemHeader* (ApplyControlColors): Fluent's template
+         bindings outrank styles aimed at its parts. The outline is passed through by the template.
+         Unselected headers stop short of the strip's baseline; the selected one covers it. -->
+    <Style Selector="TabItem">
+      <Setter Property="FontSize" Value="{DynamicResource UiFont14}" />
+      <Setter Property="MinHeight" Value="32" />
+      <Setter Property="Margin" Value="{DynamicResource PanelTabMargin}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ThemeSeparator}" />
+      <Setter Property="BorderThickness" Value="{DynamicResource PanelSeparatorTabThickness}" />
+      <Setter Property="CornerRadius" Value="4,4,0,0" />
+    </Style>
+    <Style Selector="TabItem:selected">
+      <Setter Property="Margin" Value="{DynamicResource PanelTabSelectedMargin}" />
+    </Style>
   </Application.Styles>
 
   <Application.Resources>
+    <!-- Every TabControl: header strip with a baseline under it (drawn first, so the selected folder-style
+         tab covers it), then the content. Replaces Fluent's TabControl theme; top placement only. -->
+    <ControlTheme x:Key="{x:Type TabControl}" TargetType="TabControl">
+      <Setter Property="Margin" Value="0" />
+      <Setter Property="Padding" Value="{DynamicResource TabItemMargin}" />
+      <Setter Property="Background" Value="{DynamicResource TabControlBackground}" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="{TemplateBinding CornerRadius}"
+                  Background="{TemplateBinding Background}"
+                  HorizontalAlignment="{TemplateBinding HorizontalAlignment}"
+                  VerticalAlignment="{TemplateBinding VerticalAlignment}">
+            <Grid RowDefinitions="Auto,*">
+              <!-- Baseline under the headers, drawn first so the selected (folder-style) tab covers it. -->
+              <Border Height="{DynamicResource PanelSeparatorWidth}" VerticalAlignment="Bottom"
+                      Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+              <ItemsPresenter Name="PART_ItemsPresenter" Margin="4,4,4,0"
+                              ItemsPanel="{TemplateBinding ItemsPanel}" />
+              <ContentPresenter Grid.Row="1" Name="PART_SelectedContentHost"
+                                Margin="{TemplateBinding Padding}"
+                                HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                Content="{TemplateBinding SelectedContent}"
+                                ContentTemplate="{TemplateBinding SelectedContentTemplate}" />
+            </Grid>
+          </Border>
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
+
     <!-- No Theme* keys are declared here, and none may be. ApplyTheme fills a
          ResourceDictionary and attaches it to Application.Resources.MergedDictionaries,
          swapping the whole thing on each change: writing ~100 keys straight into

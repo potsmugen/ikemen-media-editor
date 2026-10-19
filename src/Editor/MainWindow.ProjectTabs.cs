@@ -202,6 +202,7 @@ public partial class MainWindow
         CancelPaletteLinkPick(restoreSelection: false);
         DisarmEyedropper();
         DisarmPreviewEyedropper();
+        _doc.SpriteView = SpriteCanvas.View;
     }
 
     /// <summary>Redraws every sub-tab from the active Document, keeping its selection, dirty state and undo.
@@ -239,7 +240,8 @@ public partial class MainWindow
             if (PaletteBox.ItemCount > 0) PaletteBox.SelectedIndex = Math.Clamp(keepOverride + 1, 0, PaletteBox.ItemCount - 1);
             ApplyFilter(); // keeps _current selected
         }
-        SpriteCanvas.ResetView();
+        if (_doc.SpriteView is { } view) SpriteCanvas.View = view;
+        else SpriteCanvas.ResetView();
 
         // Animations
         _action = null;

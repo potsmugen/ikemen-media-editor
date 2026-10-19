@@ -2530,7 +2530,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         }
     }
 
-    /// <summary>Opens palette files: standalone when no SFF is open, otherwise added to the SFF (undoable). Also used by Open Session.</summary>
+    /// <summary>Opens palette files: standalone when no SFF is open, otherwise added to the SFF (undoable). Also used by Load Session.</summary>
     private async Task ImportPaletteFiles(IReadOnlyList<(string Name, string? Path)> files)
     {
         if (_file is null && !await SettlePendingColorAdjust()) return;

@@ -25,17 +25,26 @@ and constraints that are easy to miss when reading one code path in isolation.
   Right-click menu: Rename (Rename Tab prompt; empty or the automatic name clears it; kept
   when files are reopened into the tab, cleared when the last tab is closed), Close, Close
   Others, Close Tabs to the Right (each tab gets its own unsaved check; Cancel stops), Open
-  Containing Folder (when the tab has a path). Switching resolves pending paint
+  Containing Folder (when the tab has a path).
+  Both tab strips (project tabs and Sprites/Palettes/Animations/Sounds) are folder-style:
+  outlined top and sides, inactive on ThemeListBg, the current one on ThemePanelBg covering
+  the baseline under the strip. Sub-tab colors come from the `TabItemHeader*` resources in
+  `ApplyControlColors` (pipe transparent), not styles on template parts: Fluent's template
+  bindings outrank those (verified: such styles had no effect). The outline is set on TabItem
+  (`PanelSeparatorTabThickness`, `PanelTabMargin`). Both live in App.axaml (a `TabControl`
+  ControlTheme with the baseline, and `TabItem` styles), so every TabControl gets them. A project tab's
+  close button shows only on hover. Switching resolves pending paint
   and sound edits (Cancel stays), drops color adjust, stops playback and picks, then redraws
-  every sub-tab from the stored state (`ShowDocument`); the sub-tab shown stays the same.
+  every sub-tab from the stored state (`ShowDocument`); the sub-tab shown stays the same, and
+  the Sprites canvas gets back the tab's zoom and pan (`SpriteView.View`).
   Quitting shows each unsaved tab and asks the usual discard question. Tab clicks are blocked
   while busy and across a .def open (`RunProjectOpen`). The scratch palette is shared and
   no longer cleared by Close All. Clipboards are per window, so they work across tabs.
-- **Sessions** (`MainWindow.Sessions.cs`, `Session.cs`): File > Save Session / Open Session,
+- **Sessions** (`MainWindow.Sessions.cs`, `Session.cs`): File > Load Session / Save Session (own group),
   `.imesession` JSON via `SettingsContext`. Per tab in order: the .def, or the loose SFF, AIR
   (.air or .def with embedded actions), SND and standalone palette paths; the custom name; and
   the active tab. Not edits, selection or zoom; saving asks nothing, and tabs with no saved
-  path are skipped (status bar). Opening (menu, Open Recent, or dropping the file) asks
+  path are skipped (status bar). Loading (menu, Open Recent, or dropping the file) asks
   Replace / Append when any tab is in use; Replace runs each unsaved tab's check first, like
   quitting. Missing files are skipped and listed afterwards. Not reopened on startup.
   `OpenDefFile` routes a .def to the character/stage/other loader (shared with Open Recent).

@@ -4,7 +4,7 @@ using Avalonia.Platform.Storage;
 
 namespace Editor;
 
-/// <summary>Save Session / Open Session: which files each project tab has open (Session.cs).</summary>
+/// <summary>Save Session / Load Session: which files each project tab has open (Session.cs).</summary>
 public partial class MainWindow
 {
     private static readonly FilePickerFileType SessionType =
@@ -69,31 +69,31 @@ public partial class MainWindow
         }
     }
 
-    private async void OnOpenSession(object? sender, RoutedEventArgs e)
+    private async void OnLoadSession(object? sender, RoutedEventArgs e)
     {
         try
         {
             if (_projectOpening) return;
             var files = await PickOpen(new FilePickerOpenOptions
             {
-                Title = "Open Session",
+                Title = "Load Session",
                 AllowMultiple = false,
                 FileTypeFilter = [SessionType],
             });
             if (files.Count == 0 || files[0].TryGetLocalPath() is not { } path) return;
-            await OpenSessionFile(path);
+            await LoadSessionFile(path);
         }
         catch (Exception ex)
         {
-            await Failed("OnOpenSession", ex);
+            await Failed("OnLoadSession", ex);
         }
     }
 
     /// <summary>
-    /// Opens a session's tabs. When any tab is in use, asks Replace or Append; Replace first runs
+    /// Loads a session's tabs. When any tab is in use, asks Replace or Append; Replace first runs
     /// each unsaved tab's check, like quitting. Missing files are skipped and listed afterwards.
     /// </summary>
-    private async Task OpenSessionFile(string path)
+    private async Task LoadSessionFile(string path)
     {
         SessionFile? session;
         try
@@ -102,7 +102,7 @@ public partial class MainWindow
         }
         catch (Exception ex)
         {
-            CrashLog.Write("OpenSessionFile", ex);
+            CrashLog.Write("LoadSessionFile", ex);
             await Dialogs.ShowMessage(this, "Could Not Read the Session", ex.Message);
             return;
         }
@@ -131,7 +131,7 @@ public partial class MainWindow
             {
                 var tab = session.Tabs[i];
                 if (!IsEmptyDocument(_doc) && !await AddProjectTab()) break;
-                await OpenSessionTab(tab, missing);
+                await LoadSessionTab(tab, missing);
                 _doc.CustomName = string.IsNullOrWhiteSpace(tab.Name) ? null : tab.Name;
                 if (i == session.ActiveTab) active = _doc;
             }
@@ -139,11 +139,11 @@ public partial class MainWindow
         if (active is not null) await SwitchToDocument(active);
         RebuildProjectTabStrip();
 
-        CrashLog.Trace($"[session] opened {path}: {session.Tabs.Count} tabs, {missing.Count} missing files");
+        CrashLog.Trace($"[session] loaded {path}: {session.Tabs.Count} tabs, {missing.Count} missing files");
         _settings.AddRecent(path);
         _settings.Save();
         RebuildRecentMenu();
-        StatusText.Text = $"Opened session {Path.GetFileName(path)}"
+        StatusText.Text = $"Loaded session {Path.GetFileName(path)}"
             + (missing.Count > 0 ? $". {missing.Count} missing file{(missing.Count == 1 ? "" : "s")}" : "");
         if (missing.Count > 0)
             await Dialogs.ShowMessage(this, "Some Session Files Are Missing",
@@ -151,7 +151,7 @@ public partial class MainWindow
     }
 
     /// <summary>Loads one session tab's files into the current (empty) tab.</summary>
-    private async Task OpenSessionTab(SessionTab tab, List<string> missing)
+    private async Task LoadSessionTab(SessionTab tab, List<string> missing)
     {
         bool Exists(string? p)
         {

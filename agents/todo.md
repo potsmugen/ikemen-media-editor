@@ -113,8 +113,8 @@ before a release. Remove items once they're done or checked.
   - Quitting uses the existing "Discard Them" question per tab, not Save / Don't Save / Cancel.
   - Onion group/number and animation onion action/frame are per tab but still written to and
     read from settings.json (new tabs start automatic).
-  - A switch resets each tab's zoom/scroll, filters and frame; selection of sprite, action
-    and palette override is kept.
+  - A switch resets the Animations canvas view, filters and frame; the Sprites canvas zoom/pan,
+    sprite, action and palette override are kept per tab.
   - Sessions and the tab context menu are built (see features.md); not yet checked in the app.
   - Opening a single file loads it into the current tab. Opening a set of files (a
     character, stage, screenpack) asks Open in New Tab / Open in Current Tab / Cancel,
