@@ -36,8 +36,12 @@ and constraints that are easy to miss when reading one code path in isolation.
   close button shows only on hover. Switching resolves pending paint
   and sound edits (Cancel stays), drops color adjust, stops playback and picks, then redraws
   every sub-tab from the stored state (`ShowDocument`); the sub-tab shown stays the same, and
-  the Sprites canvas gets back the tab's zoom and pan (`SpriteView.View`).
-  Quitting shows each unsaved tab and asks the usual discard question. Tab clicks are blocked
+  the Sprites and Animations canvases get back the tab's zoom and pan (`SpriteView.View`).
+  Closing a tab, or quitting (each unsaved tab in turn, shown first), asks Save / Discard / Cancel
+  (`ConfirmCloseTab`); Save runs the tab's Save All (`SaveAllInTab`) and stops if anything is
+  left unsaved, e.g. a temp palette. Close All keeps the discard question.
+  Onion skin pins (Sprites Pin sprite, Animations pinned frame) are per tab and not saved;
+  every tab starts automatic. Show, opacity, grayscale and Clsn stay shared and saved. Tab clicks are blocked
   while busy and across a .def open (`RunProjectOpen`). The scratch palette is shared and
   no longer cleared by Close All. Clipboards are per window, so they work across tabs.
 - **Recovery with tabs**: each snapshot carries its tab (`Document.Id`), order, .def and Rename

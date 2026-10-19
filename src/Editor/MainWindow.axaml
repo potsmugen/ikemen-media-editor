@@ -159,6 +159,9 @@
         </StackPanel>
       </Grid>
     </Border>
+    <!-- Line between the panels and the status bar, like the ones under the menu and tabs. -->
+    <Border DockPanel.Dock="Bottom" Height="{DynamicResource PanelSeparatorWidth}" Background="{DynamicResource ThemeSeparator}"
+            IsHitTestVisible="False" IsVisible="{Binding #StatusBar.IsVisible}" />
 
     <!-- Project tabs: one per open .def or set of loose files (MainWindow.ProjectTabs.cs).
          Drawn as folder tabs: the current one shares the panel color and covers the baseline

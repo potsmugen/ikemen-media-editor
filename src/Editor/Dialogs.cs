@@ -2603,6 +2603,13 @@ public static class Dialogs
             $"Some tabs already have files open. Replace them with the tabs in {fileName}, or add those after them?",
             [("Replace", false), ("Append", true), ("Cancel", null)]);
 
+    /// <summary>Closing a project tab, or quitting, with unsaved work in it.</summary>
+    public static Task<SaveChoice> AskToSaveTab(Window owner, string tabName, string what) =>
+        Show(owner, "Unsaved Changes",
+            $"{tabName} has unsaved changes to the {what}.",
+            [("Save", SaveChoice.Save), ("Discard", SaveChoice.Discard), ("Cancel", SaveChoice.Cancel)],
+            SaveChoice.Cancel);
+
     public static Task<SaveChoice> AskToSave(Window owner, string fileName) =>
         Show(owner, "Unsaved Changes",
             $"{fileName} has changes that have not been saved.",

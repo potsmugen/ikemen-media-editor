@@ -854,58 +854,64 @@ public partial class MainWindow
     {
         try
         {
-            if (HasPendingColorAdjust())
-            {
-                var pending = await Dialogs.AskAboutPendingColorAdjust(this);
-                if (pending == PendingAdjustChoice.Cancel) return;
-                if (pending == PendingAdjustChoice.Commit) CommitPendingColorAdjust();
-                else DiscardPendingColorAdjust();
-            }
-            var saved = new List<string>();
-            if (_dirty && _file is not null && (_path is null || !File.Exists(_path))) await AskVersionAndSaveAs();
-            else if (_dirty && _file is not null && await SaveSprites()) saved.Add("sprites");
-            var linted = LintedActions();
-            var encoding = EncodingChangeNote(done: true);
-            bool airSaved = false;
-            if (_airDirty)
-            {
-                await SaveAir(askPath: _airPath is null || !File.Exists(_airPath));
-                airSaved = !_airDirty;
-            }
-            if (airSaved) saved.Add("animations");
-            if (_sndDirty)
-            {
-                await SaveSnd(askPath: _sndPath is null || !File.Exists(_sndPath));
-                if (!_sndDirty) saved.Add("sounds");
-            }
-            // Temp palettes are saved or exported deliberately, never by Save All.
-            int temps = (_file?.Palettes ?? _standalonePalettes).Count(p => p.Dirty && IsTempPalette(p));
-            foreach (var palette in _file?.Palettes.Where(p => p.Source == PaletteSource.External && p.Dirty && !IsTempPalette(p)).ToList() ?? [])
-            {
-                if (palette.SourcePath is null || !File.Exists(palette.SourcePath))
-                {
-                    await Dialogs.ShowMessage(this, "Palette Not Saved", $"Palette {PaletteLabel(palette)} has no available source file. Use Save As from the Palettes tab.");
-                    continue;
-                }
-                if (!await SavePaletteDocument(palette)) continue;
-                saved.Add($"palette {PaletteLabel(palette)}");
-            }
-            foreach (var palette in _standalonePalettes.Where(p => p.Dirty && !IsTempPalette(p)).ToList())
-            {
-                await SaveStandalonePalette(palette, askPath: palette.SourcePath is null || !File.Exists(palette.SourcePath));
-                if (!palette.Dirty) saved.Add(Path.GetFileName(palette.SourcePath) ?? "palette");
-            }
-
-            string tempNote = temps == 0 ? ""
-                : $" {temps} temp palette{(temps == 1 ? "" : "s")} not saved; save or export {(temps == 1 ? "it" : "them")} to keep {(temps == 1 ? "it" : "them")}.";
-            StatusText.Text = (saved.Count == 0 ? "Nothing to save." : $"Saved {string.Join(", ", saved)}.") + tempNote;
-            SyncSaveMenu();
-            if (airSaved) await ReportClsnRewrite(linted, encoding);
+            await SaveAllInTab();
         }
         catch (Exception ex)
         {
             await Failed("OnSaveAll", ex);
         }
+    }
+
+    /// <summary>Saves every unsaved file of the current tab (Save All, and Save when closing a tab or quitting).</summary>
+    private async Task SaveAllInTab()
+    {
+        if (HasPendingColorAdjust())
+        {
+            var pending = await Dialogs.AskAboutPendingColorAdjust(this);
+            if (pending == PendingAdjustChoice.Cancel) return;
+            if (pending == PendingAdjustChoice.Commit) CommitPendingColorAdjust();
+            else DiscardPendingColorAdjust();
+        }
+        var saved = new List<string>();
+        if (_dirty && _file is not null && (_path is null || !File.Exists(_path))) await AskVersionAndSaveAs();
+        else if (_dirty && _file is not null && await SaveSprites()) saved.Add("sprites");
+        var linted = LintedActions();
+        var encoding = EncodingChangeNote(done: true);
+        bool airSaved = false;
+        if (_airDirty)
+        {
+            await SaveAir(askPath: _airPath is null || !File.Exists(_airPath));
+            airSaved = !_airDirty;
+        }
+        if (airSaved) saved.Add("animations");
+        if (_sndDirty)
+        {
+            await SaveSnd(askPath: _sndPath is null || !File.Exists(_sndPath));
+            if (!_sndDirty) saved.Add("sounds");
+        }
+        // Temp palettes are saved or exported deliberately, never by Save All.
+        int temps = (_file?.Palettes ?? _standalonePalettes).Count(p => p.Dirty && IsTempPalette(p));
+        foreach (var palette in _file?.Palettes.Where(p => p.Source == PaletteSource.External && p.Dirty && !IsTempPalette(p)).ToList() ?? [])
+        {
+            if (palette.SourcePath is null || !File.Exists(palette.SourcePath))
+            {
+                await Dialogs.ShowMessage(this, "Palette Not Saved", $"Palette {PaletteLabel(palette)} has no available source file. Use Save As from the Palettes tab.");
+                continue;
+            }
+            if (!await SavePaletteDocument(palette)) continue;
+            saved.Add($"palette {PaletteLabel(palette)}");
+        }
+        foreach (var palette in _standalonePalettes.Where(p => p.Dirty && !IsTempPalette(p)).ToList())
+        {
+            await SaveStandalonePalette(palette, askPath: palette.SourcePath is null || !File.Exists(palette.SourcePath));
+            if (!palette.Dirty) saved.Add(Path.GetFileName(palette.SourcePath) ?? "palette");
+        }
+
+        string tempNote = temps == 0 ? ""
+            : $" {temps} temp palette{(temps == 1 ? "" : "s")} not saved; save or export {(temps == 1 ? "it" : "them")} to keep {(temps == 1 ? "it" : "them")}.";
+        StatusText.Text = (saved.Count == 0 ? "Nothing to save." : $"Saved {string.Join(", ", saved)}.") + tempNote;
+        SyncSaveMenu();
+        if (airSaved) await ReportClsnRewrite(linted, encoding);
     }
 
     /// <summary>Grays out the saves that would do nothing.</summary>

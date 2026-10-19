@@ -203,6 +203,7 @@ public partial class MainWindow
         DisarmEyedropper();
         DisarmPreviewEyedropper();
         _doc.SpriteView = SpriteCanvas.View;
+        _doc.AnimView = AnimCanvas.View;
     }
 
     /// <summary>Redraws every sub-tab from the active Document, keeping its selection, dirty state and undo.
@@ -267,6 +268,8 @@ public partial class MainWindow
                 ActionList.SelectedIndex = row >= 0 ? row : 0;
             }
         }
+        if (_doc.AnimView is { } animView) AnimCanvas.View = animView;
+        else AnimCanvas.ResetView();
         UpdateFrameButtons();
         UpdateAirInfo();
 
@@ -297,7 +300,7 @@ public partial class MainWindow
     {
         if (_busy || _projectOpening) return;
         if (!await SwitchToDocument(doc)) return;
-        if (!await ConfirmDiscardEverything()) return;
+        if (!await ConfirmCloseTab()) return;
         ResetAllState();
         CrashLog.Trace($"[tabs] closed tab {_docs.IndexOf(doc) + 1} of {_docs.Count}");
         if (_docs.Count == 1)
@@ -388,6 +391,35 @@ public partial class MainWindow
         RebuildProjectTabStrip();
     }
 
+    /// <summary>
+    /// Closing the current tab or quitting: pending paint and sound edits get their own prompt, then
+    /// unsaved files get Save / Discard / Cancel. Save runs Save All for the tab and goes on only if
+    /// nothing is left unsaved (a canceled Save As, or a temp palette, which Save All never saves).
+    /// </summary>
+    private async Task<bool> ConfirmCloseTab()
+    {
+        if (!await ResolvePendingPaintBeforeSwitch()) return false;
+        if (!await ResolvePendingSoundEditsBeforeSwitch()) return false;
+        DiscardPendingColorAdjust(); // no dialog, as elsewhere: Commit is the only way to keep a slider preview
+        if (!DocumentHasUnsavedWork(_doc)) return true;
+        var what = new List<string>();
+        if (_dirty) what.Add("sprites");
+        if (_airDirty) what.Add("animations");
+        if (_sndDirty) what.Add("sounds");
+        if (HasDirtyExternalPalettes()) what.Add("external palettes");
+        if (HasDirtyStandalonePalettes()) what.Add("standalone palettes");
+        switch (await Dialogs.AskToSaveTab(this, _doc.CustomName ?? AutomaticName(_doc), string.Join(", ", what)))
+        {
+            case SaveChoice.Save:
+                await SaveAllInTab();
+                return !DocumentHasUnsavedWork(_doc);
+            case SaveChoice.Discard:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     /// <summary>Quitting: each tab with unsaved work is shown and asked about in turn. False if any was canceled.</summary>
     private async Task<bool> ConfirmDiscardAllTabs()
     {
@@ -395,7 +427,7 @@ public partial class MainWindow
         {
             if (!DocumentHasUnsavedWork(doc)) continue;
             if (!await SwitchToDocument(doc)) return false;
-            if (!await ConfirmDiscardEverything()) return false;
+            if (!await ConfirmCloseTab()) return false;
         }
         return true;
     }

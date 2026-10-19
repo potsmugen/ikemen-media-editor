@@ -15,7 +15,6 @@ public partial class MainWindow
     private DateTimeOffset? _recoveryDueAt;
     internal bool RecoveryTestMode { get; set; }
     private bool _preserveRecoveryPackage;
-    private bool _recoveryRestored;
 
     private void ResolveRecoveredItem(string kind, string? path, int? group = null, int? index = null)
     {
@@ -269,7 +268,6 @@ public partial class MainWindow
             // An unresolved package stays until it is recovered and saved, or discarded.
             _preserveRecoveryPackage = true;
             if (action != RecoveryChoice.Recover) return false;
-            _recoveryRestored = true;
             await RestoreRecovery(manifest);
             return true;
         }

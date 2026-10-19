@@ -93,17 +93,12 @@ public partial class MainWindow
         if (_suppressEvents) return;
         _animOnionAction = AnimOnionActionBox.Value is { } a ? (int)a : null;
         _animOnionFrame = AnimOnionFrameBox.Value is { } f ? (int)f : null;
-        _settings.AnimOnionAction = _animOnionAction;
-        _settings.AnimOnionFrame = _animOnionFrame;
-        _settings.Save();
         ShowFrame();
     }
 
     private void OnAnimOnionUseAuto(object? sender, RoutedEventArgs e)
     {
         _animOnionAction = _animOnionFrame = null;
-        _settings.AnimOnionAction = _settings.AnimOnionFrame = null;
-        _settings.Save();
         SyncViewMenu();
         ShowFrame();
     }
@@ -120,9 +115,6 @@ public partial class MainWindow
         if (_action is null || CurrentElement is null) return;
         _animOnionAction = _action.Number;
         _animOnionFrame = FrameList.SelectedIndex + 1;
-        _settings.AnimOnionAction = _animOnionAction;
-        _settings.AnimOnionFrame = _animOnionFrame;
-        _settings.Save();
         if (!_animOnion) OnToggleAnimOnion(null, new RoutedEventArgs()); // also syncs and redraws
         else { SyncViewMenu(); ShowFrame(); }
         StatusText.Text = $"Onion skin pinned to action {_animOnionAction}, frame {_animOnionFrame}.";

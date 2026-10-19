@@ -36,8 +36,8 @@ internal sealed class Document
     // Null means "automatic" (previous sprite/frame); set means always use this one sprite.
     public int? OnionGroup;
     public int? OnionIndex;
-    /// <summary>Sprites canvas zoom and pan when this tab was last left; null starts at 100%.</summary>
-    public (int ZoomIndex, Avalonia.Point Pan)? SpriteView;
+    /// <summary>Sprites and Animations canvas zoom and pan when this tab was last left; null starts at 100%.</summary>
+    public (int ZoomIndex, Avalonia.Point Pan)? SpriteView, AnimView;
 
     // ---- animations ---------------------------------------------------------
     public AirFile? Air;

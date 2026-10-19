@@ -131,13 +131,9 @@ public partial class MainWindow : Window
         _fullCrosshair = _settings.FullCrosshair;
         _onionSkin = _settings.OnionSkin;
         _onionGrayscale = _settings.OnionGrayscale;
-        _onionGroup = _settings.OnionGroup;
-        _onionIndex = _settings.OnionIndex;
         _animOnion = _settings.AnimOnionSkin;
         _animOnionGrayscale = _settings.AnimOnionGrayscale;
         _animOnionClsn = _settings.AnimOnionClsn;
-        _animOnionAction = _settings.AnimOnionAction;
-        _animOnionFrame = _settings.AnimOnionFrame;
         foreach (var c in AllCanvases())
         {
             c.FullCrosshair = _fullCrosshair;
@@ -1199,9 +1195,6 @@ public partial class MainWindow : Window
         if (_suppressEvents) return;
         _onionGroup = OnionGroupBox.Value is { } g ? (int)g : null;
         _onionIndex = OnionIndexBox.Value is { } i ? (int)i : null;
-        _settings.OnionGroup = _onionGroup;
-        _settings.OnionIndex = _onionIndex;
-        _settings.Save();
         RefreshSprite();
         ShowFrame();
     }
@@ -1210,9 +1203,6 @@ public partial class MainWindow : Window
     {
         _onionGroup = null;
         _onionIndex = null;
-        _settings.OnionGroup = null;
-        _settings.OnionIndex = null;
-        _settings.Save();
         SyncOnionControls();
         RefreshSprite();
         ShowFrame();

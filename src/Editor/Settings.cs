@@ -63,17 +63,11 @@ public sealed class Settings
     public bool OnionSkin { get; set; }
     public bool ShowStatusBar { get; set; } = true;
     public bool OnionGrayscale { get; set; } = true;
-    // Null means "automatic" — the previous sprite/frame. Set means always
-    // use this one sprite as the onion skin reference regardless of selection.
-    public int? OnionGroup { get; set; }
-    public int? OnionIndex { get; set; }
+    // The pinned onion sprite/frame is per project tab and not saved (Document.OnionGroup etc.).
     // Animation Onion Skin (Animations tab): the pinned or previous frame's sprite and Clsn.
     public bool AnimOnionSkin { get; set; }
     public bool AnimOnionGrayscale { get; set; } = true;
     public bool AnimOnionClsn { get; set; } = true;
-    // Pin: null = previous frame; set = this action's frame (1-based).
-    public int? AnimOnionAction { get; set; }
-    public int? AnimOnionFrame { get; set; }
 
     // Null means "use the XAML default"; set once a splitter has actually
     // been dragged, so a fresh install still gets the designed layout.

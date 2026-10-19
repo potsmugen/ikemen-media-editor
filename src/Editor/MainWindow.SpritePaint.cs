@@ -188,9 +188,6 @@ public partial class MainWindow
         if (_current is null) return;
         _onionGroup = _current.Group;
         _onionIndex = _current.Index;
-        _settings.OnionGroup = _onionGroup;
-        _settings.OnionIndex = _onionIndex;
-        _settings.Save();
         if (!_onionSkin) OnToggleOnion(null, new RoutedEventArgs());
         else { SyncOnionControls(); RefreshSprite(); ShowFrame(); }
         StatusText.Text = $"Onion skin pinned to sprite {_onionGroup},{_onionIndex}.";

@@ -111,11 +111,9 @@ before a release. Remove items once they're done or checked.
   Stages 1-3 built in basic form (see features.md); not yet checked in the app. Left:
   - Recovery covers every tab (built, untested): check a crash with two dirty tabs, restore
     order and labels, two tabs with new unsaved SFFs, and closing one restored tab.
-  - Quitting uses the existing "Discard Them" question per tab, not Save / Don't Save / Cancel.
-  - Onion group/number and animation onion action/frame are per tab but still written to and
-    read from settings.json (new tabs start automatic).
-  - A switch resets the Animations canvas view, filters and frame; the Sprites canvas zoom/pan,
-    sprite, action and palette override are kept per tab.
+  - Close Tab and quitting ask Save / Discard / Cancel per tab (built, untested).
+  - A switch resets filters and the frame; canvas zoom/pan, sprite, action and palette
+    override are kept per tab.
   - Sessions and the tab context menu are built (see features.md); not yet checked in the app.
   - Opening a single file loads it into the current tab. Opening a set of files (a
     character, stage, screenpack) asks Open in New Tab / Open in Current Tab / Cancel,
@@ -130,7 +128,7 @@ before a release. Remove items once they're done or checked.
     Quitting prompts per unsaved tab (Save / Don't Save / Cancel), switching to it first.
   - Per tab: the SFF, AIR and SND with their paths, dirty flags and errors; character
     name; standalone palettes; undo stack; recovery origins and hashes; current sprite,
-    palette override, action, tick and selection anchor; onion group/number and animation onion action/frame (these move out of settings.json).
+    palette override, action, tick and selection anchor; pinned onion sprite and animation onion frame (not saved; the other onion options are shared and saved).
   - Per window: settings, theme, canvas, floating panels, view toggles, clipboards,
     the scratch palette (no longer cleared by opening files or Close All),
     last export formats and dialog choices. Frame paste keeps sprite numbers as they are.
