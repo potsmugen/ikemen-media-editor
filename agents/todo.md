@@ -109,7 +109,8 @@ before a release. Remove items once they're done or checked.
 - Project tabs: several projects (character, stage, screenpack, loose files) open at
   once in one window, so the shared clipboards (frames, Clsn, pixels) work between them.
   Stages 1-3 built in basic form (see features.md); not yet checked in the app. Left:
-  - Recovery snapshots only the active tab, so a crash can lose other tabs' unsaved work.
+  - Recovery covers every tab (built, untested): check a crash with two dirty tabs, restore
+    order and labels, two tabs with new unsaved SFFs, and closing one restored tab.
   - Quitting uses the existing "Discard Them" question per tab, not Save / Don't Save / Cancel.
   - Onion group/number and animation onion action/frame are per tab but still written to and
     read from settings.json (new tabs start automatic).

@@ -40,6 +40,13 @@ and constraints that are easy to miss when reading one code path in isolation.
   Quitting shows each unsaved tab and asks the usual discard question. Tab clicks are blocked
   while busy and across a .def open (`RunProjectOpen`). The scratch palette is shared and
   no longer cleared by Close All. Clipboards are per window, so they work across tabs.
+- **Recovery with tabs**: each snapshot carries its tab (`Document.Id`), order, .def and Rename
+  name. Capture walks every tab with unsaved work (pointing `_doc` at each; pending paint, sound
+  edits and color adjust only count for the active tab). Restore rebuilds one tab per group in
+  order, labeled as before; untabbed (older) snapshots restore into one tab. New unsaved files
+  are keyed by tab. Discarding a tab's work or closing it drops only that tab's snapshots
+  (`RecoveryStore.ResolveTab`) and schedules a fresh capture of the rest. The recovery prompt
+  prefixes each line with its tab when there are several.
 - **Sessions** (`MainWindow.Sessions.cs`, `Session.cs`): File > Load Session / Save Session (own group),
   `.imesession` JSON via `SettingsContext`. Per tab in order: the .def, or the loose SFF, AIR
   (.air or .def with embedded actions), SND and standalone palette paths; the custom name; and

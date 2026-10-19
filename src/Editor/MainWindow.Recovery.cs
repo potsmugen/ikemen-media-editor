@@ -21,8 +21,8 @@ public partial class MainWindow
     {
         if (path is not null && _recoveryOrigins.Remove((kind, path), out var original))
             RecoveryStore.Resolve(kind, original.Source, group ?? (original.Group == 0 ? null : original.Group),
-                index ?? (original.Index == 0 ? null : original.Index));
-        else RecoveryStore.Resolve(kind, path, group, index);
+                index ?? (original.Index == 0 ? null : original.Index), _doc.Id);
+        else RecoveryStore.Resolve(kind, path, group, index, _doc.Id);
     }
 
     private void StartRecoveryTimer()
@@ -40,7 +40,9 @@ public partial class MainWindow
         _recoveryTimer.Start();
     }
 
-    private bool HasUnsavedWork() => _dirty || _airDirty || _sndDirty || HasDirtyExternalPalettes();
+    /// <summary>Unsaved work in any project tab.</summary>
+    private bool HasUnsavedWork() => _docs.Any(d => d.Dirty || d.AirDirty || d.SndDirty
+        || d.File?.Palettes.Any(p => p.Source == PaletteSource.External && p.Dirty) == true);
 
     private async Task RecoveryTick()
     {
@@ -104,7 +106,8 @@ public partial class MainWindow
                 string fileName = $"{kind}-{Guid.NewGuid():N}{ext}";
                 string? hash = sourceBytes is null ? null : Convert.ToHexString(SHA256.HashData(sourceBytes));
                 snapshots.Add((new(kind, title, origin, hash, fileName, embedded, group, index, dirty,
-                    contextPath, contextHash, sessionVersion), data));
+                    contextPath, contextHash, sessionVersion,
+                    Tab: _doc.Id, TabOrder: _docs.IndexOf(_doc), TabDef: _doc.DefPath, TabName: _doc.CustomName), data));
             }
             catch (Exception ex)
             {
@@ -113,71 +116,92 @@ public partial class MainWindow
             }
         }
 
-        // SFFv1 can't hold true-color sprites; such a session is snapshotted as v2 and set back to v1 on recovery.
-        bool sffAsV2 = _file is not null && SffVersions.IsV1(_file.Version) && !SffWriter.FitsV1(_file);
-        string? sessionVersion = sffAsV2 ? _file!.Version.ToString() : null;
-        byte[] SffSnapshot()
+        // Every tab with unsaved work. _doc is pointed at each in turn so the fields below read that
+        // tab; nothing here touches the UI, and it is put back before anything else runs. Pending
+        // paint, sound edits and color adjust belong to the active tab only.
+        var activeDoc = _doc;
+        try
         {
-            var file = _file!;
-            var version = file.Version;
-            string temp = Path.Combine(tempRoot, Guid.NewGuid().ToString("N") + ".sff");
-            try
+            foreach (var tab in _docs)
             {
-                if (sffAsV2) file.Version = SffVersions.V2_1; // the v2 writer rekeys palettes only for a v1 file
-                file.Save(temp, file.Version, clamp: false);
-                return File.ReadAllBytes(temp);
+                if (!DocumentHasUnsavedWork(tab)) continue;
+                _doc = tab;
+                CaptureTab(ReferenceEquals(tab, activeDoc));
             }
-            finally
-            {
-                file.Version = version;
-                if (File.Exists(temp)) File.Delete(temp);
-            }
+        }
+        finally
+        {
+            _doc = activeDoc;
         }
 
-        if (_dirty && _file is not null && _paintBaseline is null)
-            Add("sff", _path is null ? "New sprite file" : Path.GetFileName(_path), _path, false, _ => SffSnapshot(),
-                sessionVersion: sessionVersion);
-        if (_airDirty && _air is { } air && (!_airEmbeddedInDef || _airPath is not null))
+        void CaptureTab(bool isActive)
         {
-            bool embedded = _airEmbeddedInDef;
-            var sourceActions = _airDefSourceActions;
-            Add("air", _airPath is null ? "New animation file" : Path.GetFileName(_airPath), _airPath, embedded, sourceBytes =>
+            // SFFv1 can't hold true-color sprites; such a session is snapshotted as v2 and set back to v1 on recovery.
+            bool sffAsV2 = _file is not null && SffVersions.IsV1(_file.Version) && !SffWriter.FitsV1(_file);
+            string? sessionVersion = sffAsV2 ? _file!.Version.ToString() : null;
+            byte[] SffSnapshot()
             {
-                if (embedded)
+                var file = _file!;
+                var version = file.Version;
+                string temp = Path.Combine(tempRoot, Guid.NewGuid().ToString("N") + ".sff");
+                try
                 {
-                    if (sourceBytes is null) throw new FileNotFoundException("The definition source is missing.", _airPath);
-                    return EmbeddedAirDocument.ReplaceActions(sourceBytes, air, sourceActions, out _);
+                    if (sffAsV2) file.Version = SffVersions.V2_1; // the v2 writer rekeys palettes only for a v1 file
+                    file.Save(temp, file.Version, clamp: false);
+                    return File.ReadAllBytes(temp);
                 }
-                return AirFile.Encode(AirWriter.Write(air), air.TextEncoding);
-            });
-        }
-        if (_sndDirty && _snd is { } snd && _soundEditBaseline is null)
-            Add("snd", _sndPath is null ? "New sound file" : Path.GetFileName(_sndPath), _sndPath, false, _ =>
+                finally
+                {
+                    file.Version = version;
+                    if (File.Exists(temp)) File.Delete(temp);
+                }
+            }
+
+            if (_dirty && _file is not null && (!isActive || _paintBaseline is null))
+                Add("sff", _path is null ? "New sprite file" : Path.GetFileName(_path), _path, false, _ => SffSnapshot(),
+                    sessionVersion: sessionVersion);
+            if (_airDirty && _air is { } air && (!_airEmbeddedInDef || _airPath is not null))
             {
-                string temp = Path.Combine(tempRoot, Guid.NewGuid().ToString("N") + ".snd");
-                try { snd.Save(temp); return File.ReadAllBytes(temp); }
-                finally { if (File.Exists(temp)) File.Delete(temp); }
-            });
-        if (_file is not null)
-        {
-            var dirtyExternal = _file.Palettes.Where(p => p.Source == PaletteSource.External && p.Dirty
-                && !(HasPendingColorAdjust() && ReferenceEquals(p, _editingPalette))).ToList();
-            if (dirtyExternal.Count > 0 && !_dirty)
-                Add("sff", _path is null ? "Sprite file for recovered palettes" : Path.GetFileName(_path),
-                    _path, false, _ => SffSnapshot(), dirty: false, sessionVersion: sessionVersion);
-            foreach (var pal in dirtyExternal)
-            {
-                Add("act", pal.SourcePath is null ? $"New external palette {pal.Group},{pal.Index}" : Path.GetFileName(pal.SourcePath),
-                    pal.SourcePath, false, _ =>
+                bool embedded = _airEmbeddedInDef;
+                var sourceActions = _airDefSourceActions;
+                Add("air", _airPath is null ? "New animation file" : Path.GetFileName(_airPath), _airPath, embedded, sourceBytes =>
+                {
+                    if (embedded)
                     {
-                        var bytes = new byte[pal.Colors.Length * 4];
-                        for (int i = 0; i < pal.Colors.Length; i++)
+                        if (sourceBytes is null) throw new FileNotFoundException("The definition source is missing.", _airPath);
+                        return EmbeddedAirDocument.ReplaceActions(sourceBytes, air, sourceActions, out _);
+                    }
+                    return AirFile.Encode(AirWriter.Write(air), air.TextEncoding);
+                });
+            }
+            if (_sndDirty && _snd is { } snd && (!isActive || _soundEditBaseline is null))
+                Add("snd", _sndPath is null ? "New sound file" : Path.GetFileName(_sndPath), _sndPath, false, _ =>
+                {
+                    string temp = Path.Combine(tempRoot, Guid.NewGuid().ToString("N") + ".snd");
+                    try { snd.Save(temp); return File.ReadAllBytes(temp); }
+                    finally { if (File.Exists(temp)) File.Delete(temp); }
+                });
+            if (_file is not null)
+            {
+                var dirtyExternal = _file.Palettes.Where(p => p.Source == PaletteSource.External && p.Dirty
+                    && !(isActive && HasPendingColorAdjust() && ReferenceEquals(p, _editingPalette))).ToList();
+                if (dirtyExternal.Count > 0 && !_dirty)
+                    Add("sff", _path is null ? "Sprite file for recovered palettes" : Path.GetFileName(_path),
+                        _path, false, _ => SffSnapshot(), dirty: false, sessionVersion: sessionVersion);
+                foreach (var pal in dirtyExternal)
+                {
+                    Add("act", pal.SourcePath is null ? $"New external palette {pal.Group},{pal.Index}" : Path.GetFileName(pal.SourcePath),
+                        pal.SourcePath, false, _ =>
                         {
-                            var c = pal.Colors[i];
-                            bytes[i * 4] = c.R; bytes[i * 4 + 1] = c.G; bytes[i * 4 + 2] = c.B; bytes[i * 4 + 3] = c.A;
-                        }
-                        return bytes;
-                    }, pal.Group, pal.Index, OriginalSource("sff", _path), RecoveryStore.HashFile(OriginalSource("sff", _path)));
+                            var bytes = new byte[pal.Colors.Length * 4];
+                            for (int i = 0; i < pal.Colors.Length; i++)
+                            {
+                                var c = pal.Colors[i];
+                                bytes[i * 4] = c.R; bytes[i * 4 + 1] = c.G; bytes[i * 4 + 2] = c.B; bytes[i * 4 + 3] = c.A;
+                            }
+                            return bytes;
+                        }, pal.Group, pal.Index, OriginalSource("sff", _path), RecoveryStore.HashFile(OriginalSource("sff", _path)));
+                }
             }
         }
 
@@ -203,10 +227,18 @@ public partial class MainWindow
             "Unsaved changes may not be recoverable after a crash:\n" + string.Join("\n", reasons));
     }
 
-    /// <summary>Discarding restored work also discards its recovery package. A package the user never recovered is left alone.</summary>
-    internal void DiscardRecoveryForDiscardedWork()
+    /// <summary>
+    /// Discarding a tab's work drops that tab's snapshots only; other tabs' snapshots, and a package
+    /// the user kept for later, are left alone. Other unsaved work is then captured again soon.
+    /// </summary>
+    internal void DiscardRecoveryForDiscardedWork() => DiscardRecoveryForTab(_doc);
+
+    private void DiscardRecoveryForTab(Document doc)
     {
-        if (_recoveryRestored && !RecoveryTestMode) RecoveryStore.DiscardActive();
+        if (RecoveryTestMode) return;
+        try { RecoveryStore.ResolveTab(doc.Id); }
+        catch (Exception ex) { CrashLog.Write("DiscardRecoveryForTab", ex); }
+        if (HasUnsavedWork()) _recoveryDueAt = DateTimeOffset.UtcNow; // the dropped tab may have held another file's snapshot
     }
 
     private async Task<bool> ConfirmRecoveredSourceWrite(string? path)
@@ -238,7 +270,7 @@ public partial class MainWindow
             _preserveRecoveryPackage = true;
             if (action != RecoveryChoice.Recover) return false;
             _recoveryRestored = true;
-            RestoreRecovery(manifest);
+            await RestoreRecovery(manifest);
             return true;
         }
         catch (Exception ex)
@@ -248,9 +280,39 @@ public partial class MainWindow
         }
     }
 
-    private void RestoreRecovery(RecoveryManifest manifest)
+    /// <summary>Snapshots from before tabs have no tab; they restore together into one.</summary>
+    private const string UntabbedRecovery = "untabbed";
+
+    /// <summary>One project tab per recovered tab, in their old order, labeled as before.</summary>
+    private async Task RestoreRecovery(RecoveryManifest manifest)
     {
-        foreach (var item in manifest.Items)
+        var tabs = manifest.Items.GroupBy(i => i.Tab ?? UntabbedRecovery).OrderBy(g => g.Min(i => i.TabOrder)).ToList();
+        foreach (var tab in tabs)
+        {
+            if (!IsEmptyDocument(_doc) && !await AddProjectTab()) break;
+            _doc.Id = tab.Key; // so saving or discarding resolves these snapshots
+            var first = tab.First();
+            _doc.CustomName = first.TabName;
+            if (first.TabDef is { } def && File.Exists(def))
+            {
+                _doc.DefPath = def;
+                try
+                {
+                    var parsed = Def.DefFile.Open(def);
+                    _doc.DefName = string.IsNullOrWhiteSpace(parsed.Name) ? null : parsed.Name.Trim();
+                    _characterName = parsed.DisplayName ?? parsed.Name ?? Path.GetFileNameWithoutExtension(def);
+                }
+                catch (Exception ex) { CrashLog.Write("RestoreRecovery.Def", ex); }
+            }
+            RestoreRecoveryTab(tab.ToList());
+        }
+        RebuildProjectTabStrip();
+        StatusText.Text = "Recovered unsaved files. Save them to keep the recovered changes.";
+    }
+
+    private void RestoreRecoveryTab(List<RecoverySnapshot> items)
+    {
+        foreach (var item in items)
         {
             string snapshot = RecoveryStore.SnapshotPath(item);
             bool same = RecoveryStore.SourceMatches(item);
@@ -309,7 +371,7 @@ public partial class MainWindow
                 case "act":
                     if (_file is null && item.ContextPath is not null)
                     {
-                        var contextSff = manifest.Items.FirstOrDefault(x => x.Kind == "sff"
+                        var contextSff = items.FirstOrDefault(x => x.Kind == "sff"
                             && string.Equals(x.SourcePath, item.ContextPath, StringComparison.OrdinalIgnoreCase));
                         if (contextSff is not null)
                         {
@@ -333,7 +395,6 @@ public partial class MainWindow
         UpdateAirInfo();
         UpdateSndInfo();
         SyncSaveMenu();
-        StatusText.Text = "Recovered unsaved files. Save them to keep the recovered changes.";
     }
 
     /// <summary>Opens an SFF snapshot, putting back the session's version when it was stored as v2.</summary>

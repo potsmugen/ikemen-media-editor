@@ -1754,7 +1754,7 @@ public partial class MainWindow
             if (await ConfirmDiscardAllTabs())
             {
                 _recoveryTimer?.Stop();
-                DiscardRecoveryForDiscardedWork();
+                foreach (var doc in _docs) DiscardRecoveryForTab(doc); // every tab's work was just discarded
                 RecoveryStore.MarkCleanShutdown();
                 _forceClose = true;
                 Close();

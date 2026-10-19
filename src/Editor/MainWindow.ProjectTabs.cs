@@ -381,6 +381,7 @@ public partial class MainWindow
     private void DropAllProjectTabs()
     {
         LeaveDocument();
+        foreach (var d in _docs.Where(d => !ReferenceEquals(d, _doc))) DiscardRecoveryForTab(d);
         _docs.RemoveAll(d => !ReferenceEquals(d, _doc));
         ResetAllState();
         _doc.CustomName = null;

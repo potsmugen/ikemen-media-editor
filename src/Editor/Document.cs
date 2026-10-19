@@ -10,6 +10,8 @@ namespace Editor;
 /// </summary>
 internal sealed class Document
 {
+    /// <summary>Stable across reorders; tags this tab's recovery snapshots.</summary>
+    public string Id = Guid.NewGuid().ToString("N");
     /// <summary>The .def this tab was opened from, if any; names the tab.</summary>
     public string? DefPath;
     /// <summary>The .def's name= field; names the tab ahead of the .def file name.</summary>

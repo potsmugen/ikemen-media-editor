@@ -237,8 +237,11 @@ public static class Dialogs
 
     internal static Task<RecoveryChoice> PromptRecovery(Window owner, RecoveryManifest manifest)
     {
-        string lines = string.Join(Environment.NewLine, manifest.Items.Select(item =>
-            $"{item.Kind.ToUpperInvariant()}: {item.Title}"
+        // With several tabs, each line says which tab it restores into.
+        bool tabs = manifest.Items.Select(i => i.Tab).Distinct().Count() > 1;
+        string lines = string.Join(Environment.NewLine, manifest.Items.OrderBy(i => i.TabOrder).Select(item =>
+            (tabs ? $"[{item.TabName ?? (item.TabDef is { } def ? Path.GetFileName(def) : $"Tab {item.TabOrder + 1}")}] " : "")
+            + $"{item.Kind.ToUpperInvariant()}: {item.Title}"
             + (item.SourcePath is null ? " (new file)" : $" — {item.SourcePath}")
             + (RecoveryStore.SourceMatches(item) ? "" : " (source changed or missing; recovers separately)")));
         var result = new TaskCompletionSource<RecoveryChoice>(TaskCreationOptions.RunContinuationsAsynchronously);

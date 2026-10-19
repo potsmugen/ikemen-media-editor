@@ -3,9 +3,13 @@ using System.Text.Json;
 
 namespace Editor;
 
+/// <param name="Tab">The project tab it came from (Document.Id); null in packages from before tabs.</param>
+/// <param name="TabOrder">That tab's position, so restore rebuilds the tabs in order.</param>
+/// <param name="TabDef">The tab's .def, and <paramref name="TabName"/> its Rename name, so the restored tab is labeled as before.</param>
 internal sealed record RecoverySnapshot(string Kind, string Title, string? SourcePath, string? SourceHash,
     string FileName, bool Embedded, int Group = 0, int Index = 0, bool Dirty = true,
-    string? ContextPath = null, string? ContextHash = null, string? SessionVersion = null);
+    string? ContextPath = null, string? ContextHash = null, string? SessionVersion = null,
+    string? Tab = null, int TabOrder = 0, string? TabDef = null, string? TabName = null);
 
 internal sealed record RecoveryManifest(int Version, DateTimeOffset CapturedAt, List<RecoverySnapshot> Items);
 
@@ -219,7 +223,8 @@ internal static class RecoveryStore
 
     private static string Key(RecoverySnapshot item)
     {
-        string path = item.SourcePath is null ? "(new)" : Path.GetFullPath(item.SourcePath);
+        // Unsaved new files are told apart by tab, so two tabs' new SFFs don't replace each other.
+        string path = item.SourcePath is null ? $"(new:{item.Tab})" : Path.GetFullPath(item.SourcePath);
         if (OperatingSystem.IsWindows()) path = path.ToUpperInvariant();
         return $"{item.Kind}|{path}|{item.Group}|{item.Index}";
     }
@@ -246,15 +251,24 @@ internal static class RecoveryStore
     public static string? HashFile(string? path) => path is not null && File.Exists(path)
         ? Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) : null;
 
-    public static void Resolve(string kind, string? sourcePath, int? group = null, int? index = null)
+    /// <param name="tab">For a new file (no source path), only that tab's snapshot is resolved.</param>
+    public static void Resolve(string kind, string? sourcePath, int? group = null, int? index = null, string? tab = null) =>
+        Remove(item => item.Kind == kind
+            && (sourcePath is null
+                ? item.SourcePath is null && (group is null || item.Group == group) && (index is null || item.Index == index)
+                    && (tab is null || item.Tab is null || item.Tab == tab)
+                : string.Equals(item.SourcePath, sourcePath, OperatingSystem.IsWindows()
+                    ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)),
+            $"{kind}: {sourcePath}");
+
+    /// <summary>Drops every snapshot of one project tab, e.g. when its work is discarded or the tab closed.</summary>
+    public static void ResolveTab(string tab) => Remove(item => item.Tab == tab, $"tab {tab}");
+
+    private static void Remove(Func<RecoverySnapshot, bool> drop, string what)
     {
         var manifest = ReadActive();
         if (manifest is null) return;
-        var remaining = manifest.Items.Where(item => item.Kind != kind
-            || !(sourcePath is null
-                ? item.SourcePath is null && (group is null || item.Group == group) && (index is null || item.Index == index)
-                : string.Equals(item.SourcePath, sourcePath, OperatingSystem.IsWindows()
-                    ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))).ToList();
+        var remaining = manifest.Items.Where(item => !drop(item)).ToList();
         if (remaining.Count == manifest.Items.Count) return;
         if (remaining.Count == 0) { DiscardActive(); return; }
 
@@ -278,7 +292,7 @@ internal static class RecoveryStore
             }
             finally { if (File.Exists(pointerTemp)) File.Delete(pointerTemp); }
             Directory.Delete(packageDirectory, recursive: true);
-            CrashLog.Trace($"[recovery] resolved {kind}: {sourcePath}");
+            CrashLog.Trace($"[recovery] resolved {what}");
         }
         catch
         {
