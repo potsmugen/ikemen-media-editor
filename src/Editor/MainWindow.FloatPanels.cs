@@ -257,8 +257,8 @@ public partial class MainWindow
             ToolTip.SetTip(b, tip);
             return b;
         }
-        var rollUp = HeaderButton("▲", "Collapse this panel");
-        var close = HeaderButton("✕", "Dock this panel");
+        var rollUp = HeaderButton("▲", "Collapse panel");
+        var close = HeaderButton("✕", "Dock panel");
         Grid.SetColumn(close, 2);
         var label = new TextBlock { Text = p.Title, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 6, 0) };
         label.Bind(TextBlock.ForegroundProperty, label.GetResourceObservable("ThemeMutedText"));

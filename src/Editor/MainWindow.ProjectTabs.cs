@@ -88,7 +88,7 @@ public partial class MainWindow
                 Classes = { "projectTabButton" },
                 Content = new Avalonia.Controls.Shapes.Path { Data = Avalonia.Media.Geometry.Parse("M0,0 L8,8 M8,0 L0,8") },
             };
-            ToolTip.SetTip(close, "Close this tab");
+            ToolTip.SetTip(close, "Close tab");
             close.Click += async (_, e) =>
             {
                 e.Handled = true;

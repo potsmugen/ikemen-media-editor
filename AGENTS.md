@@ -34,6 +34,13 @@ and keep them current. Open, unchecked work is in `agents/todo.md`.
   matters. Don't repeat the label or explain units, ranges, format quirks,
   undo, or selection caveats. Explain all dropdown options or none; usually
   none. Put shared behavior on the shared control.
+  Icon-only buttons (✕, +, float, collapse) get a short command with no period, as
+  their missing label ("Close tab", "Float panel"). Labeled buttons get a "Does X."
+  sentence. Interaction hints on cells and grids stay imperative ("Double-click to …").
+  Tooltips also show on disabled controls (App.axaml), so a grayed-out control still
+  explains itself. When the reason it's disabled isn't obvious (not just "nothing is
+  open"), say why, e.g. by switching the tip while disabled ("Available for
+  true-color sprites only.").
 - Dialog and popup titles use Title Case ("Global Shared Palette"), and so do panel
   headers and section headings ("Sprite Tools", "Tool Options"). Field labels stay
   sentence case ("Preview with", "Pin sprite").

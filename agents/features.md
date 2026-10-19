@@ -297,7 +297,7 @@ and constraints that are easy to miss when reading one code path in isolation.
 
 ### Sprites and palettes
 
-- **Scratch palette color adjustments**: Commit Adjustments works on scratch like any palette
+- **Scratch palette color adjustments**: the color Commit button works on scratch like any palette
   (it keeps the preview) but records no undo entry; `SyncAdjustCommitButton` uses
   `HasAdjustedColors`, which counts scratch. `HasPendingColorAdjust` still leaves scratch out, so
   it never triggers the uncommitted-adjustment prompts, close checks or recovery. On scratch,

@@ -6,6 +6,7 @@ before a release. Remove items once they're done or checked.
 ## To do, easiest first
 
 - First time saving a file doesn't need to make a backup of it
+- Duplicating animation should add the new one under the duplicated one
 - Saves that change a file the user didn't edit, like the Global Shared Palette popup;
   decide per case whether to keep the bytes or tell the user (verified on real files):
   - Plain Save of SFFv1 re-encodes every PCX (`SffV1Writer`), dropping PCX header
@@ -108,8 +109,6 @@ before a release. Remove items once they're done or checked.
 - Project tabs: several projects (character, stage, screenpack, loose files) open at
   once in one window, so the shared clipboards (frames, Clsn, pixels) work between them.
   Stages 1-3 built in basic form (see features.md); not yet checked in the app. Left:
-  - Recovery covers every tab (built, untested): check a crash with two dirty tabs, restore
-    order and labels, two tabs with new unsaved SFFs, and closing one restored tab.
   - Close Tab and quitting ask Save / Discard / Cancel per tab (built, untested).
   - A switch resets filters and the frame; canvas zoom/pan, sprite, action and palette
     override are kept per tab.
@@ -138,8 +137,6 @@ before a release. Remove items once they're done or checked.
     or recording undo.
   - Open Character/Stage/Other release the busy lock between the background SFF and
     SND reads; hold one lock across the whole open so a tab click can't land mid-load.
-  - Recovery: capture every tab; add a tab ID to RecoverySnapshot so restore rebuilds
-    each tab. Packages without one restore into a single tab.
   - Stages: (1) Document class plus forwarding properties on MainWindow, no behavior
     change; (2) switch routine; (3) tab strip, open/close/quit flows, busy lock;
     (4) recovery; (5) features.md and in-app checks.

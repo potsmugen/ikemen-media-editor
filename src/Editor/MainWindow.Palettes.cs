@@ -457,10 +457,13 @@ public partial class MainWindow
         ASlider.IsEnabled = false;
     }
 
-    /// <summary>Scratch counts here: Commit keeps its preview (with no undo entry), while clicking elsewhere still discards it.</summary>
+    /// <summary>Commit and Reset are enabled only while the colors differ from where the changes started.
+    /// Scratch counts here: Commit keeps its preview (with no undo entry), while clicking elsewhere still discards it.</summary>
     private void SyncAdjustCommitButton()
     {
-        if (AdjustCommitButton is not null) AdjustCommitButton.IsEnabled = HasAdjustedColors();
+        bool changed = HasAdjustedColors();
+        if (AdjustCommitButton is not null) AdjustCommitButton.IsEnabled = changed;
+        if (AdjustResetButton is not null) AdjustResetButton.IsEnabled = changed;
     }
 
     /// <summary>Saturation of one color as 0-100, in the same model AdjustColor uses.</summary>
@@ -475,7 +478,7 @@ public partial class MainWindow
         return max == 0 ? 0 : (max - min) / max * 100;
     }
 
-    /// <summary>Live preview as a slider moves — writes straight into the palette but records no undo of its own; Commit Adjustments (or moving on) is what makes it permanent.</summary>
+    /// <summary>Live preview as a slider moves — writes straight into the palette but records no undo of its own; Commit (or moving on) is what makes it permanent.</summary>
     private void OnColorAdjustChanged(object? sender, RangeBaseValueChangedEventArgs e)
     {
         if (_suppressEvents || _adjustBase is not { Count: > 0 } based || _editingPalette is not { } pal) return;

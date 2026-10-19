@@ -105,7 +105,7 @@
         <MenuItem Header="Save .air _As" Click="OnSaveAirAs" />
         <Separator />
         <MenuItem Header="_Sort Actions Ascending" Click="OnSortActionsAscending"
-                  ToolTip.Tip="Reorders every action by number, ascending" />
+                  ToolTip.Tip="Orders every action by number." />
         <MenuItem Header="_Apply Suggested Names to All Actions" Click="OnApplyAllSuggestedNames"
                   ToolTip.Tip="Adds the standard action name as the comment where there is none." />
         <MenuItem Header="Auto _Clsn2 For All" Click="OnAutoHurtBoxesForAll"
@@ -122,14 +122,14 @@
         <MenuItem Header="_Save .snd" x:Name="SaveSoundsItem" Click="OnSaveSnd" />
         <MenuItem Header="Save .snd _As" Click="OnSaveSndAs" />
         <MenuItem Header="_Sort Ascending" Click="OnSortSoundsAscending"
-                  ToolTip.Tip="Reorders sounds by group, then number, ascending" />
+                  ToolTip.Tip="Orders sounds by group, then number." />
         <Separator />
         <MenuItem Header="Export _All With Manifest" Click="OnExportAllSounds"
                   ToolTip.Tip="Exports every sound as .wav, with a manifest." />
         <MenuItem Header="_Import All From Manifest" Click="OnImportAllSounds"
                   ToolTip.Tip="Imports from an Export All manifest. Asks before overwriting." />
         <MenuItem Header="_Downsample All" Click="OnDownsampleAll"
-                  ToolTip.Tip="Lowers every sound above the chosen rate. One undo step." />
+                  ToolTip.Tip="Lowers every sound above the chosen rate." />
       </MenuItem>
 
       <MenuItem Header="_Settings">
@@ -236,7 +236,7 @@
         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="4,4,4,0">
           <StackPanel Orientation="Horizontal" Spacing="2">
             <StackPanel x:Name="ProjectTabStrip" Orientation="Horizontal" Spacing="2" />
-            <Button Classes="projectTabButton" Click="OnNewProjectTab" ToolTip.Tip="Open an empty tab">
+            <Button Classes="projectTabButton" Click="OnNewProjectTab" ToolTip.Tip="New tab">
               <Path Data="M4,0 L4,8 M0,4 L8,4" />
             </Button>
           </StackPanel>
@@ -281,9 +281,9 @@
               <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,4">
                 <TextBlock x:Name="SpriteListLabel" Text="Sprite List" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                 <Button Grid.Column="1" x:Name="SpriteListFloat" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#10697;" Width="22" Height="22" Padding="0" Margin="0,0,4,0"
-                        Click="OnFloatPanel" ToolTip.Tip="Float this panel" />
+                        Click="OnFloatPanel" ToolTip.Tip="Float panel" />
                 <Button Grid.Column="2" x:Name="SpriteListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
-                        Click="OnToggleSpriteListPanel" ToolTip.Tip="Collapse this panel" />
+                        Click="OnToggleSpriteListPanel" ToolTip.Tip="Collapse panel" />
               </Grid>
               <Grid Grid.Row="1" x:Name="SpriteListBody">
                 <Grid.RowDefinitions>
@@ -473,7 +473,7 @@
               <Border Grid.Row="0" x:Name="OnionPanelHeader" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentHeaderPadding}">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
                   <Button x:Name="OnionPanelToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9650;" Width="22" Height="18" Padding="0" FontSize="9"
-                          Click="OnToggleOnionPanel" ToolTip.Tip="Collapse this panel" />
+                          Click="OnToggleOnionPanel" ToolTip.Tip="Collapse panel" />
                   <TextBlock Text="Sprite Onion Skin" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                 </StackPanel>
               </Border>
@@ -519,9 +519,9 @@
               <Grid RowDefinitions="Auto,*">
                 <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*" Margin="0,0,0,4">
                   <Button x:Name="PaintPanelToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9654;" Width="22" Height="22" Padding="0"
-                          Click="OnTogglePaintPanel" ToolTip.Tip="Collapse this panel" />
+                          Click="OnTogglePaintPanel" ToolTip.Tip="Collapse panel" />
                   <Button Grid.Column="1" x:Name="PaintPanelFloat" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#10697;" Width="22" Height="22" Padding="0" Margin="4,0,0,0"
-                          Click="OnFloatPanel" ToolTip.Tip="Float this panel" />
+                          Click="OnFloatPanel" ToolTip.Tip="Float panel" />
                   <TextBlock Grid.Column="2" x:Name="PaintPanelLabel" Text="Paint Tools" Foreground="{DynamicResource ThemeMutedText}"
                              VerticalAlignment="Center" Margin="6,0,0,0" />
                 </Grid>
@@ -530,7 +530,7 @@
                     <ToggleButton x:Name="PaintModeToggle" Content="Paint Mode" Click="OnTogglePaintMode" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
                     <Grid ColumnDefinitions="*,Auto,*">
                       <Button Grid.Column="0" x:Name="PaintCommitButton" Content="Commit" Click="OnCommitPaint" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                              ToolTip.Tip="Keeps the paint strokes as one undoable edit." />
+                              ToolTip.Tip="Keeps the paint strokes." />
                       <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
                       <Button Grid.Column="2" x:Name="PaintResetButton" Content="Reset" Click="OnResetPaint" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                               ToolTip.Tip="Drops the pending paint changes." />
@@ -552,7 +552,7 @@
                                     ToolTip.Tip="Paints only over the Replace colors." />
                       <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
                       <ToggleButton Grid.Column="2" x:Name="SelectionToolButton" Content="Select" Tag="Selection" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                    ToolTip.Tip="Select pixels to copy or paste." />
+                                    ToolTip.Tip="Selects pixels to copy or paste." />
                     </Grid>
                     <!-- Shown only when the active tool has options (UpdateToolPanels). -->
                     <StackPanel x:Name="ToolOptionsSection" IsVisible="False" Spacing="{DynamicResource UiButtonGap}">
@@ -570,10 +570,10 @@
                         <StackPanel Spacing="{DynamicResource UiButtonGap}">
                           <Grid ColumnDefinitions="*,Auto,*">
                             <ToggleButton Grid.Column="0" x:Name="RectangleSelectButton" Content="Rectangle" Tag="Rectangle" Click="OnSelectSelectionShape" IsChecked="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                          ToolTip.Tip="Drag a box to select." />
+                                          ToolTip.Tip="Selects a rectangle." />
                             <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
                             <ToggleButton Grid.Column="2" x:Name="LassoSelectButton" Content="Lasso" Tag="Lasso" Click="OnSelectSelectionShape" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                          ToolTip.Tip="Drag a freehand outline; releasing closes it." />
+                                          ToolTip.Tip="Selects a freehand outline; releasing closes it." />
                           </Grid>
                           <Grid ColumnDefinitions="*,Auto,*">
                             <Button Grid.Column="0" x:Name="CopySelectionButton" Content="Copy" Click="OnCopySelection" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
@@ -650,9 +650,9 @@
             <Grid RowDefinitions="Auto,*">
               <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*" Margin="0,0,0,4">
                 <Button x:Name="SpritePaletteToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9654;" Width="22" Height="22" Padding="0"
-                        Click="OnToggleSpritePalettePanel" ToolTip.Tip="Collapse this panel" />
+                        Click="OnToggleSpritePalettePanel" ToolTip.Tip="Collapse panel" />
                 <Button Grid.Column="1" x:Name="SpritePaletteFloat" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#10697;" Width="22" Height="22" Padding="0" Margin="4,0,0,0"
-                        Click="OnFloatPanel" ToolTip.Tip="Float this panel" />
+                        Click="OnFloatPanel" ToolTip.Tip="Float panel" />
                 <TextBlock Grid.Column="2" x:Name="SpritePaletteLabel" Text="Sprite Tools" Foreground="{DynamicResource ThemeMutedText}"
                            VerticalAlignment="Center" Margin="6,0,0,0" />
               </Grid>
@@ -752,9 +752,9 @@
               <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,4">
                 <TextBlock x:Name="PaletteListLabel" Text="Palette List" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                 <Button Grid.Column="1" x:Name="PaletteListFloat" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#10697;" Width="22" Height="22" Padding="0" Margin="0,0,4,0"
-                        Click="OnFloatPanel" ToolTip.Tip="Float this panel" />
+                        Click="OnFloatPanel" ToolTip.Tip="Float panel" />
                 <Button Grid.Column="2" x:Name="PaletteListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
-                        Click="OnTogglePaletteListPanel" ToolTip.Tip="Collapse this panel" />
+                        Click="OnTogglePaletteListPanel" ToolTip.Tip="Collapse panel" />
               </Grid>
               <DockPanel Grid.Row="1" x:Name="PaletteListBody">
               <StackPanel DockPanel.Dock="Bottom" Spacing="{DynamicResource UiButtonGap}" Margin="0,8,0,0">
@@ -1047,11 +1047,11 @@
                     <TextBlock Grid.Row="5" Grid.Column="2" Text="{Binding Value, ElementName=LightenSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
                   </Grid>
                   <Grid ColumnDefinitions="*,Auto,*">
-                    <Button Grid.Column="0" x:Name="AdjustCommitButton" Content="Commit Adjustments" Click="OnCommitColorAdjust" HorizontalAlignment="Stretch"
-                            ToolTip.Tip="Saves every color change in this panel as one undoable edit." IsEnabled="False" />
+                    <Button Grid.Column="0" x:Name="AdjustCommitButton" Content="Commit" Click="OnCommitColorAdjust" HorizontalAlignment="Stretch"
+                            ToolTip.Tip="Keeps every color change in this panel." IsEnabled="False" />
                     <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                    <Button Grid.Column="2" Content="Reset" Click="OnResetColorAdjust" HorizontalAlignment="Stretch"
-                            ToolTip.Tip="Drops every uncommitted color change and resets the sliders." />
+                    <Button Grid.Column="2" x:Name="AdjustResetButton" Content="Reset" Click="OnResetColorAdjust" IsEnabled="False" HorizontalAlignment="Stretch"
+                            ToolTip.Tip="Puts the colors back to how they were before these changes." />
                   </Grid>
                 </StackPanel>
               </Border>
@@ -1067,9 +1067,9 @@
             <Grid RowDefinitions="Auto,*">
               <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*" Margin="0,0,0,4">
                 <Button x:Name="PaletteRightToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9654;" Width="22" Height="22" Padding="0"
-                        Click="OnTogglePaletteRightPanel" ToolTip.Tip="Collapse this panel" />
+                        Click="OnTogglePaletteRightPanel" ToolTip.Tip="Collapse panel" />
                 <Button Grid.Column="1" x:Name="PaletteRightFloat" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#10697;" Width="22" Height="22" Padding="0" Margin="4,0,0,0"
-                        Click="OnFloatPanel" ToolTip.Tip="Float this panel" />
+                        Click="OnFloatPanel" ToolTip.Tip="Float panel" />
                 <TextBlock Grid.Column="2" x:Name="PaletteRightLabel" Text="Preview" Foreground="{DynamicResource ThemeMutedText}"
                            VerticalAlignment="Center" Margin="6,0,0,0" />
               </Grid>
@@ -1086,12 +1086,12 @@
                 <DockPanel Grid.Row="0">
                 <Grid DockPanel.Dock="Bottom" ColumnDefinitions="Auto,*,Auto,70" Margin="0,4,0,0">
                   <Button Grid.Column="0" Content="&lt;" Width="24" Padding="0" Click="OnPalettePreviewPrev"
-                          ToolTip.Tip="Preview the previous sprite with this palette" />
+                          ToolTip.Tip="Previous sprite" />
                   <Slider Grid.Column="1" x:Name="PalettePreviewNav" Minimum="0" Maximum="0" Value="0" Margin="4,0"
                           ValueChanged="OnPalettePreviewNavChanged"
                           ToolTip.Tip="Preview another sprite with this palette." />
                   <Button Grid.Column="2" Content="&gt;" Width="24" Padding="0" Click="OnPalettePreviewNext"
-                          ToolTip.Tip="Preview the next sprite with this palette" />
+                          ToolTip.Tip="Next sprite" />
                   <TextBlock Grid.Column="3" x:Name="PalettePreviewLabel" Foreground="{DynamicResource ThemeMutedText}"
                              FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" />
                 </Grid>
@@ -1105,7 +1105,7 @@
                     <Button Grid.Column="1" Content="Open" Click="OnOpenScratchImage" Padding="{DynamicResource UiCompactButtonPadding}"
                             Margin="{DynamicResource UiGapRight}" />
                     <Button Grid.Column="2" x:Name="CloseReferenceButton" Content="&#x2715;" Click="OnCloseScratchImage" Padding="{DynamicResource UiCompactButtonPadding}"
-                            IsEnabled="False" ToolTip.Tip="Close the reference image" />
+                            IsEnabled="False" ToolTip.Tip="Close reference image" />
                   </Grid>
                   <Border x:Name="ReferenceImageBody" IsVisible="False" Background="{DynamicResource ThemePanelBg}" Padding="2">
                     <local:ScratchImageView x:Name="ScratchImage" ColorPicked="OnScratchImageColorPicked"
@@ -1139,9 +1139,9 @@
               <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,4">
                 <TextBlock x:Name="ActionListLabel" Text="Action List" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                 <Button Grid.Column="1" x:Name="ActionListFloat" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#10697;" Width="22" Height="22" Padding="0" Margin="0,0,4,0"
-                        Click="OnFloatPanel" ToolTip.Tip="Float this panel" />
+                        Click="OnFloatPanel" ToolTip.Tip="Float panel" />
                 <Button Grid.Column="2" x:Name="ActionListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
-                        Click="OnToggleActionListPanel" ToolTip.Tip="Collapse this panel" />
+                        Click="OnToggleActionListPanel" ToolTip.Tip="Collapse panel" />
               </Grid>
               <Grid Grid.Row="1" x:Name="ActionListBody">
                 <!-- The list takes all the height; the buttons only what they need. -->
@@ -1231,7 +1231,7 @@
             <Border Grid.Row="0" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentHeaderPadding}">
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
                 <Button x:Name="AnimOnionPanelToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9650;" Width="22" Height="18" Padding="0" FontSize="9"
-                        Click="OnToggleAnimOnionPanel" ToolTip.Tip="Collapse this panel" />
+                        Click="OnToggleAnimOnionPanel" ToolTip.Tip="Collapse panel" />
                 <TextBlock Text="Animation Onion Skin" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
               </StackPanel>
             </Border>
@@ -1303,9 +1303,9 @@
             <Grid RowDefinitions="Auto,*">
               <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*" Margin="0,0,0,4">
                 <Button x:Name="FramePanelToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9654;" Width="22" Height="22" Padding="0"
-                        Click="OnToggleFramePanel" ToolTip.Tip="Collapse this panel" />
+                        Click="OnToggleFramePanel" ToolTip.Tip="Collapse panel" />
                 <Button Grid.Column="1" x:Name="FramePanelFloat" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#10697;" Width="22" Height="22" Padding="0" Margin="4,0,0,0"
-                        Click="OnFloatPanel" ToolTip.Tip="Float this panel" />
+                        Click="OnFloatPanel" ToolTip.Tip="Float panel" />
                 <TextBlock Grid.Column="2" x:Name="FramePanelLabel" Text="Frames" Foreground="{DynamicResource ThemeMutedText}"
                            VerticalAlignment="Center" Margin="6,0,0,0" />
               </Grid>
@@ -1701,9 +1701,9 @@
               <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,4">
                 <TextBlock x:Name="SoundListLabel" Text="Sound List" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                 <Button Grid.Column="1" x:Name="SoundListFloat" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#10697;" Width="22" Height="22" Padding="0" Margin="0,0,4,0"
-                        Click="OnFloatPanel" ToolTip.Tip="Float this panel" />
+                        Click="OnFloatPanel" ToolTip.Tip="Float panel" />
                 <Button Grid.Column="2" x:Name="SoundListToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9664;" Width="22" Height="22" Padding="0"
-                        Click="OnToggleSoundListPanel" ToolTip.Tip="Collapse this panel" />
+                        Click="OnToggleSoundListPanel" ToolTip.Tip="Collapse panel" />
               </Grid>
               <DockPanel Grid.Row="1" x:Name="SoundListBody">
               <!-- The .snd's summary line lives in the status bar now, next to
@@ -1899,9 +1899,9 @@
                       <TextBlock Text="Format" Foreground="{DynamicResource ThemeMutedText}" />
                       <WrapPanel>
                         <Button Content="Resample" Click="OnResample" Margin="{DynamicResource UiGapRightBottom}"
-                                ToolTip.Tip="Changes the sample rate. Lower is smaller." />
+                                ToolTip.Tip="Changes the sample rate. A lower rate makes a smaller file but loses high frequencies." />
                         <Button Content="Change Bit Depth" Click="OnChangeBitDepth" Margin="{DynamicResource UiGapRightBottom}"
-                                ToolTip.Tip="Changes to 8, 16 or 24-bit. Lower is smaller." />
+                                ToolTip.Tip="Changes to 8, 16 or 24-bit. A lower depth makes a smaller file but adds noise." />
                         <Button Content="Convert to Mono" x:Name="ConvertToMonoButton" Click="OnConvertToMono" Margin="{DynamicResource UiGapRightBottom}"
                                 ToolTip.Tip="Mixes all channels into one." />
                       </WrapPanel>
@@ -1912,7 +1912,7 @@
                 <!-- After every edit button: commit or drop what they did. -->
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
                   <Button x:Name="SoundCommitButton" Content="Commit Changes" Click="OnCommitSoundEdits" IsEnabled="False"
-                          ToolTip.Tip="Keeps the pending edits as one undoable edit." />
+                          ToolTip.Tip="Keeps the pending edits." />
                   <Button x:Name="SoundResetButton" Content="Reset" Click="OnResetSoundEdits" IsEnabled="False"
                           ToolTip.Tip="Drops the pending edits." />
                 </StackPanel>

@@ -3403,7 +3403,7 @@ public static class Dialogs
 
         var switchTab = new CheckBox { Content = "Switch to the relevant tab when opening a file", IsChecked = initial.SwitchTabOnOpen };
         var syncSprite = new CheckBox { Content = "Same sprite on the Sprites, Animations and Palettes tabs", IsChecked = initial.SyncSprite };
-        ToolTip.SetTip(syncSprite, "Keeps the sprite in sync when switching tabs.");
+        ToolTip.SetTip(syncSprite, "Leaving Animations or Palettes selects the sprite shown there.");
         var theme = new ComboBox
         {
             ItemsSource = themeNames.Select(n => n == Themes.Fallback.Name ? n + " (default)" : n).ToList(),
@@ -3518,7 +3518,7 @@ public static class Dialogs
         Button ResetButton(Action fill)
         {
             var b = new Button { Content = "Reset to Defaults", Margin = new Avalonia.Thickness(0, 10, 0, 0) };
-            ToolTip.SetTip(b, "Puts this tab back to its defaults. Cancel still undoes it.");
+            ToolTip.SetTip(b, "Puts this tab back to its defaults.");
             b.Click += (_, _) => ResetTab(fill);
             return b;
         }
@@ -3717,7 +3717,7 @@ public static class Dialogs
         var flatR = new RadioButton { GroupName = "BgStyle", Content = "Flat", IsChecked = init.Style == BackgroundStyle.Flat };
         var checkerR = new RadioButton { GroupName = "BgStyle", Content = "Checkerboard", IsChecked = init.Style == BackgroundStyle.Checkerboard };
         var imageR = new RadioButton { GroupName = "BgStyle", Content = "Image", IsChecked = init.Style == BackgroundStyle.Image };
-        ToolTip.SetTip(imageR, "Shows Flat when there is no image.");
+        ToolTip.SetTip(imageR, "Falls back to Flat until an image is chosen.");
         BackgroundStyle SelectedStyle() =>
             imageR.IsChecked == true ? BackgroundStyle.Image
             : checkerR.IsChecked == true ? BackgroundStyle.Checkerboard
@@ -3733,7 +3733,7 @@ public static class Dialogs
         bool checkerTouched = init.CheckerColor is not null;
         var checkerSize = number(Math.Clamp(init.CheckerSize, Settings.CheckerSizeMin, Settings.CheckerSizeMax),
             Settings.CheckerSizeMin, 1, "0", Settings.CheckerSizeMax);
-        ToolTip.SetTip(checkerSize, "In screen pixels; the checkerboard keeps this size as the canvas zooms.");
+        ToolTip.SetTip(checkerSize, "Stays the same size on screen as the canvas zooms.");
 
         string? bgPath = init.BackgroundPath;
         // Browse opens in the shipped patterns folder the first time; afterward it follows the
