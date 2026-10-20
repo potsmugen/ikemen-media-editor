@@ -331,10 +331,13 @@ public partial class MainWindow
     private void DiscardPendingColorAdjust()
     {
         if (_adjustSession is not { Count: > 0 } session || _editingPalette is not { } pal) return;
-        foreach (var (i, c) in session) if (i < pal.Colors.Length) pal.Colors[i] = c;
-
-        if (ReferenceEquals(pal, _scratchPalette)) _editingView?.InvalidateVisual();
-        else RefreshPaletteViews(pal);
+        // Nothing changed: skip the refresh, which marks external palettes dirty.
+        if (HasAdjustedColors())
+        {
+            foreach (var (i, c) in session) if (i < pal.Colors.Length) pal.Colors[i] = c;
+            if (ReferenceEquals(pal, _scratchPalette)) _editingView?.InvalidateVisual();
+            else RefreshPaletteViews(pal);
+        }
 
         if (_selectedSwatch >= 0 && session.TryGetValue(_selectedSwatch, out var sc))
         {
