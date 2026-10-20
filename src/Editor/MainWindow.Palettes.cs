@@ -937,6 +937,44 @@ public partial class MainWindow
 
     private void OnScratchColorsDropped(int at, Rgba[] colors) => DropColors(_scratchPalette, ScratchSwatches, at, colors);
 
+    /// <summary>Copies each selected color to the same index in the other grid's palette. Undoable like a drop; scratch isn't.</summary>
+    private async Task CopyColorsToSameIndex(Palette source, List<int> indices, Palette target, PaletteView targetView)
+    {
+        try
+        {
+            bool targetEditing = ReferenceEquals(target, _editingPalette);
+            // A pending adjust on the target would otherwise Reset over the copied colors.
+            if (targetEditing && !await SettlePendingColorAdjust()) return;
+
+            var after = indices.ToDictionary(i => i, i => source.Colors[i]);
+            if (ReferenceEquals(target, _scratchPalette))
+            {
+                foreach (var (i, c) in after) target.Colors[i] = c;
+                targetView.InvalidateVisual();
+                if (targetEditing) RebaseAfterColorOp();
+            }
+            else
+            {
+                var before = indices.ToDictionary(i => i, i => target.Colors[i]);
+                void Apply(Dictionary<int, Rgba> block)
+                {
+                    foreach (var (i, c) in block) target.Colors[i] = c;
+                    RefreshPaletteViews(target);
+                }
+                _undo.Record("copy colors", () => Apply(before), () => Apply(after));
+                Apply(after);
+                if (_standalonePalettes.Contains(target)) MarkStandalonePaletteDirty(target);
+                else MarkDirty();
+                if (targetEditing) ResetColorAdjustBase();
+            }
+            StatusText.Text = $"Copied {indices.Count} color(s) to the same positions.";
+        }
+        catch (Exception ex)
+        {
+            await Failed(nameof(CopyColorsToSameIndex), ex);
+        }
+    }
+
     private void OnClearScratch(object? sender, RoutedEventArgs e)
     {
         for (int i = 0; i < _scratchPalette.Colors.Length; i++) _scratchPalette.Colors[i] = new Rgba(0, 0, 0, 0);

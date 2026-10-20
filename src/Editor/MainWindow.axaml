@@ -1000,15 +1000,6 @@
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                                 ToolTip.Tip="Copies the next color you click on a swatch, the reference image, or the sprite preview into the selected swatch." />
                   <Separator />
-                  <TextBlock Text="Color operations" Foreground="{DynamicResource ThemeMutedText}" />
-                  <Grid ColumnDefinitions="*,Auto,*">
-                    <Button Grid.Column="0" Content="Invert" Click="OnInvertColor" HorizontalAlignment="Stretch"
-                            ToolTip.Tip="Inverts the selected colors." />
-                    <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                    <Button Grid.Column="2" Content="Grayscale" Click="OnGrayscaleColor" HorizontalAlignment="Stretch"
-                            ToolTip.Tip="Turns the selected colors gray." />
-                  </Grid>
-                  <Separator />
                   <TextBlock Text="Adjustments" Foreground="{DynamicResource ThemeMutedText}" />
                   <Grid ColumnDefinitions="20,*,30" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="R" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
@@ -1065,6 +1056,15 @@
                       </Slider.Resources>
                     </Slider>
                     <TextBlock Grid.Row="5" Grid.Column="2" Text="{Binding Value, ElementName=LightenSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                  </Grid>
+                  <Separator />
+                  <TextBlock Text="Color operations" Foreground="{DynamicResource ThemeMutedText}" />
+                  <Grid ColumnDefinitions="*,Auto,*">
+                    <Button Grid.Column="0" Content="Invert" Click="OnInvertColor" HorizontalAlignment="Stretch"
+                            ToolTip.Tip="Inverts the selected colors." />
+                    <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                    <Button Grid.Column="2" Content="Grayscale" Click="OnGrayscaleColor" HorizontalAlignment="Stretch"
+                            ToolTip.Tip="Turns the selected colors gray." />
                   </Grid>
                 </StackPanel>
               </Border>

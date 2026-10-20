@@ -304,6 +304,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   sliders' ValueChanged and theme changes; alpha shows as a PaletteView-style bottom strip.
 - **Selecting a color from the sprite preview** is only in its right-click menu (Select Color Here);
   the old Select from Preview button duplicated it and was removed. The preview's tooltip hints at it.
+- **Copy to Scratch/Current Palette** (swatch right-click, Current palette <-> Scratch palette) keeps each selected color's
+  index, unlike drag-and-drop, which packs them from the drop slot. Disabled, with the reason as its tooltip,
+  when an index is past the target's end. One undo step like a drop (scratch: none); a pending adjust on the
+  target is settled first (Commit/Discard/Cancel). Target selection is left alone.
 - **Canvas tooltips** (`SpriteView`): a real move closes the tip and a `ToolTip.ShowDelay` timer reopens
   it once the cursor rests. Avalonia opens a tip once per hover, so close-on-move alone hid it for good.
 - **Scratch palette color adjustments**: the color Commit button works on scratch like any palette

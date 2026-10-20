@@ -952,13 +952,32 @@ public partial class MainWindow : Window
                 OnSwatchClicked(pal, view, idx);
             }
         }
-        ShowContextMenu(view,
-            ("Select All", () => SelectAllSwatches(view)),
-            ("Invert Selection", () => InvertSwatchSelection(view)),
-            MenuSeparator,
-            ("Create Gradient", () => OnCreateGradient(null, new RoutedEventArgs())),
-            ("Sort Colors", () => OnSortColors()),
-            ("Swap Colors", () => OnSwapColors()));
+        // Same-index copy to the other grid: Current palette <-> Scratch palette.
+        bool toScratch = !ReferenceEquals(view, ScratchSwatches);
+        var target = toScratch ? _scratchPalette : ActivePalette();
+        List<int> picked = pal is null ? [] : view.Selection.Where(i => i < pal.Colors.Length).ToList();
+        string? blocked = pal is null || target is null ? "No palette is open."
+            : picked.Count == 0 ? "Select colors first."
+            : picked.Any(i => i >= target.Colors.Length) ? "Some selected colors are past the end of the other palette."
+            : null;
+        var copy = MenuAction(toScratch ? "Copy to Scratch Palette" : "Copy to Current Palette",
+            () => _ = CopyColorsToSameIndex(pal!, picked, target!, toScratch ? ScratchSwatches : BigSwatches), blocked is null);
+        if (blocked is not null) ToolTip.SetTip(copy, blocked);
+
+        OpenContextMenu(view, new ContextMenu
+        {
+            ItemsSource = new List<Control>
+            {
+                MenuAction("Select All", () => SelectAllSwatches(view)),
+                MenuAction("Invert Selection", () => InvertSwatchSelection(view)),
+                new Separator(),
+                copy,
+                new Separator(),
+                MenuAction("Create Gradient", () => OnCreateGradient(null, new RoutedEventArgs())),
+                MenuAction("Sort Colors", () => OnSortColors()),
+                MenuAction("Swap Colors", () => OnSwapColors()),
+            },
+        });
     }
 
     protected override void OnOpened(EventArgs e)
