@@ -201,8 +201,6 @@ public class ScratchImageView : Control
             _panFrom = p;
             InvalidateVisual();
         }
-
-        if (ToolTip.GetIsOpen(this)) ToolTip.SetIsOpen(this, false);
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)

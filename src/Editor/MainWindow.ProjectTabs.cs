@@ -201,7 +201,6 @@ public partial class MainWindow
         CancelPick(restoreSelection: false);
         CancelPaletteLinkPick(restoreSelection: false);
         DisarmEyedropper();
-        DisarmPreviewEyedropper();
         _doc.SpriteView = SpriteCanvas.View;
         _doc.AnimView = AnimCanvas.View;
     }

@@ -297,6 +297,15 @@ and constraints that are easy to miss when reading one code path in isolation.
 
 ### Sprites and palettes
 
+- **Before/After squares** top the color panel, with Commit/Reset right under them (they act on
+  every pending change in the panel, not just Adjustments). Before is the session start
+  (`_adjustSession`, what Reset restores); After is the live color of the selected swatch.
+  `UpdateColorCompare` runs from `SyncAdjustCommitButton`, `RefreshPaletteViews`, the RGBA
+  sliders' ValueChanged and theme changes; alpha shows as a PaletteView-style bottom strip.
+- **Selecting a color from the sprite preview** is only in its right-click menu (Select Color Here);
+  the old Select from Preview button duplicated it and was removed. The preview's tooltip hints at it.
+- **Canvas tooltips** (`SpriteView`): a real move closes the tip and a `ToolTip.ShowDelay` timer reopens
+  it once the cursor rests. Avalonia opens a tip once per hover, so close-on-move alone hid it for good.
 - **Scratch palette color adjustments**: the color Commit button works on scratch like any palette
   (it keeps the preview) but records no undo entry; `SyncAdjustCommitButton` uses
   `HasAdjustedColors`, which counts scratch. `HasPendingColorAdjust` still leaves scratch out, so

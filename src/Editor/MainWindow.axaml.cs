@@ -98,6 +98,10 @@ public partial class MainWindow : Window
         WireSpritePaint();
         BuildReplaceSquares(); // after InitializeComponent: the rows it fills are XAML-named
         RefreshReplaceSquares();
+        // Sliders mirror the selected swatch, so they cover every write that bypasses SyncAdjustCommitButton.
+        foreach (var slider in new[] { RSlider, GSlider, BSlider, ASlider })
+            slider.ValueChanged += (_, _) => UpdateColorCompare();
+        ColorEditor.PropertyChanged += (_, e) => { if (e.Property == IsEnabledProperty) UpdateColorCompare(); };
         WireFrameText();
         AnimCanvas.BoxEditStarted += OnBoxEditStarted;
         AnimCanvas.CursorPositionChanged += (x, y) => UpdateCursorStatus(2, x, y);
@@ -752,6 +756,7 @@ public partial class MainWindow : Window
         if (Waveform is not null) { Waveform.Background = canvasBg; Waveform.InvalidateVisual(); }
         if (TimelineView is not null) { TimelineView.Track = canvasBg; TimelineView.InvalidateVisual(); }
         if (_replaceSquares.Length > 0) RefreshReplaceSquares(); // empty squares are painted from theme brushes
+        UpdateColorCompare();
 
     }
 

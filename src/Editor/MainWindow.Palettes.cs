@@ -39,6 +39,7 @@ public partial class MainWindow
         RebuildPaletteList();
         Swatches.InvalidateVisual();
         BigSwatches.InvalidateVisual();
+        UpdateColorCompare();
         if (ReferenceEquals(pal, ActivePalette()))
         {
             SpriteCanvas.Show(_current, pal, _showMask);
@@ -464,6 +465,36 @@ public partial class MainWindow
         bool changed = HasAdjustedColors();
         if (AdjustCommitButton is not null) AdjustCommitButton.IsEnabled = changed;
         if (AdjustResetButton is not null) AdjustResetButton.IsEnabled = changed;
+        UpdateColorCompare();
+    }
+
+    /// <summary>Fills Before (session start, what Reset restores) and After (live color) for the selected swatch.</summary>
+    private void UpdateColorCompare()
+    {
+        if (ColorBeforeSquare is null || ColorAfterSquare is null) return;
+        if (ColorEditor.IsEnabled && _editingPalette is { } pal && _selectedSwatch >= 0 && _selectedSwatch < pal.Colors.Length)
+        {
+            var after = pal.Colors[_selectedSwatch];
+            var before = _adjustSession is { } session && session.TryGetValue(_selectedSwatch, out var b) ? b : after;
+            FillCompareSquare(ColorBeforeSquare, ColorBeforeAlpha, before);
+            FillCompareSquare(ColorAfterSquare, ColorAfterAlpha, after);
+        }
+        else
+        {
+            foreach (var (square, alpha) in new[] { (ColorBeforeSquare, ColorBeforeAlpha), (ColorAfterSquare, ColorAfterAlpha) })
+            {
+                square.Background = ThemeResource("ThemeFieldBg");
+                alpha.IsVisible = false;
+            }
+        }
+    }
+
+    /// <summary>RGB fill plus the alpha strip, drawn like a PaletteView cell.</summary>
+    private static void FillCompareSquare(Border square, Border alpha, Rgba c)
+    {
+        square.Background = new SolidColorBrush(Color.FromRgb(c.R, c.G, c.B));
+        alpha.Background = new SolidColorBrush(Color.FromRgb(c.A, c.A, c.A));
+        alpha.IsVisible = true;
     }
 
     /// <summary>Saturation of one color as 0-100, in the same model AdjustColor uses.</summary>
@@ -634,16 +665,10 @@ public partial class MainWindow
     /// so it can't be left armed and silently swallow a later click.
     /// </summary>
     private bool _eyedropperArmed;
-    private bool _previewEyedropperArmed;
 
     private void OnToggleEyedropper(object? sender, RoutedEventArgs e)
     {
         _eyedropperArmed = EyedropperButton.IsChecked == true;
-        if (_eyedropperArmed)
-        {
-            _previewEyedropperArmed = false;
-            PreviewEyedropperButton.IsChecked = false;
-        }
         // PaletteView rewrites its own selection inside the click, before EntryClicked is
         // raised, so a pick that must leave the selection alone has to stop the click from
         // making one in the first place — there is nothing the owner could put back after.
@@ -655,26 +680,6 @@ public partial class MainWindow
         if (PalettePreview is not null) PalettePreview.ArmedForExternalPick = _eyedropperArmed;
         StatusText.Text = _eyedropperArmed
             ? "Copy Color: click a swatch, the reference image, or the sprite preview."
-            : "";
-    }
-
-    private void OnTogglePreviewEyedropper(object? sender, RoutedEventArgs e)
-    {
-        _previewEyedropperArmed = PreviewEyedropperButton.IsChecked == true;
-        if (_previewEyedropperArmed)
-        {
-            _eyedropperArmed = false;
-            EyedropperButton.IsChecked = false;
-            if (BigSwatches is not null) BigSwatches.ClickSelects = true;
-            if (ScratchSwatches is not null) ScratchSwatches.ClickSelects = true;
-            if (PalettePreview is not null) PalettePreview.ArmedForExternalPick = true;
-        }
-        else if (!_eyedropperArmed && PalettePreview is not null)
-        {
-            PalettePreview.ArmedForExternalPick = false;
-        }
-        StatusText.Text = _previewEyedropperArmed
-            ? "Select from Preview: click or right-click a palette color in the sprite preview."
             : "";
     }
 
@@ -690,15 +695,6 @@ public partial class MainWindow
         if (BigSwatches is not null) BigSwatches.ClickSelects = true;
         if (ScratchSwatches is not null) ScratchSwatches.ClickSelects = true;
         if (PalettePreview is not null) PalettePreview.ArmedForExternalPick = false;
-        StatusText.Text = "";
-    }
-
-    private void DisarmPreviewEyedropper()
-    {
-        if (!_previewEyedropperArmed) return;
-        _previewEyedropperArmed = false;
-        if (PreviewEyedropperButton is not null) PreviewEyedropperButton.IsChecked = false;
-        if (!_eyedropperArmed && PalettePreview is not null) PalettePreview.ArmedForExternalPick = false;
         StatusText.Text = "";
     }
 
@@ -870,7 +866,6 @@ public partial class MainWindow
             }
             BigSwatches.SelectOnly(i);
             OnSwatchClicked(ActivePalette(), BigSwatches, i);
-            if (_previewEyedropperArmed) DisarmPreviewEyedropper();
         };
 
         // A true-color preview has no palette index to select, so the pick arrives as a color

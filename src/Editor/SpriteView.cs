@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Threading;
 using Sff;
 
 namespace Editor;
@@ -399,6 +400,8 @@ public class SpriteView : Control
     {
         Focusable = true;
         ClipToBounds = true;
+        // Covers Avalonia's own first open as well as RestartTipTimer's.
+        ToolTip.AddToolTipOpeningHandler(this, (_, e) => { if (!TipAllowedHere()) e.Cancel = true; });
         RenderOptions.SetBitmapInterpolationMode(this, BitmapInterpolationMode.None);
     }
 
@@ -1309,9 +1312,43 @@ public class SpriteView : Control
         InvalidateVisual();
     }
 
+    private Point? _lastMovePos;
+    private DispatcherTimer? _tipTimer;
+
+    /// <summary>Reopens the tip once the cursor rests; Avalonia only opens it once per hover.</summary>
+    private void RestartTipTimer()
+    {
+        if (_tipTimer is null)
+        {
+            _tipTimer = new DispatcherTimer();
+            _tipTimer.Tick += OnTipTimer;
+        }
+        _tipTimer.Stop();
+        _tipTimer.Interval = TimeSpan.FromMilliseconds(ToolTip.GetShowDelay(this));
+        _tipTimer.Start();
+    }
+
+    /// <summary>The tip is a pick hint, so only over an indexed sprite's pixels, where a pick selects a color.</summary>
+    private bool TipAllowedHere() =>
+        _sprite?.Indexed is not null && _lastMovePos is { } p && TryPixelAt(p, out _, out _);
+
+    private void OnTipTimer(object? sender, EventArgs e)
+    {
+        _tipTimer?.Stop();
+        if (IsPointerOver && !_panning && !_draggingSprite && !_painting) ToolTip.SetIsOpen(this, true);
+    }
+
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
+        // Hints are for a resting cursor: a move hides the tip, and it returns after a pause.
+        var movedTo = e.GetPosition(this);
+        if (ToolTip.GetTip(this) is not null && movedTo != _lastMovePos)
+        {
+            if (ToolTip.GetIsOpen(this)) ToolTip.SetIsOpen(this, false);
+            RestartTipTimer();
+        }
+        _lastMovePos = movedTo;
 
         _cursorPosition = e.GetPosition(this);
         RefreshCursorPosition();
@@ -1663,6 +1700,8 @@ public class SpriteView : Control
     protected override void OnPointerExited(PointerEventArgs e)
     {
         base.OnPointerExited(e);
+        _tipTimer?.Stop();
+        _lastMovePos = null;
         _cursorPosition = null;
         CursorPositionCleared?.Invoke();
         if (_hoverPos is null) return;
