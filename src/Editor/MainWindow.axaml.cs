@@ -1600,10 +1600,19 @@ public partial class MainWindow : Window
 
     // ---- view and navigation ----------------------------------------------
 
-    private void OnZoomIn(object? sender, RoutedEventArgs e) => SpriteCanvas.StepZoom(1);
-    private void OnZoomOut(object? sender, RoutedEventArgs e) => SpriteCanvas.StepZoom(-1);
-    private void OnResetView(object? sender, RoutedEventArgs e) => SpriteCanvas.ResetView();
-    private void OnZoomFit(object? sender, RoutedEventArgs e) => SpriteCanvas.ZoomToFit();
+    /// <summary>The open tab's canvas for zoom commands; null on tabs without one.</summary>
+    private SpriteView? ActiveCanvas => Tabs?.SelectedIndex switch
+    {
+        0 => SpriteCanvas,
+        1 => PalettePreview,
+        2 => AnimCanvas,
+        _ => null,
+    };
+
+    private void OnZoomIn(object? sender, RoutedEventArgs e) => ActiveCanvas?.StepZoom(1);
+    private void OnZoomOut(object? sender, RoutedEventArgs e) => ActiveCanvas?.StepZoom(-1);
+    private void OnResetView(object? sender, RoutedEventArgs e) => ActiveCanvas?.ResetView();
+    private void OnZoomFit(object? sender, RoutedEventArgs e) => ActiveCanvas?.ZoomToFit();
 
     /// <summary>Focuses the open tab's main list (its selected row when shown), so arrows work without a click.</summary>
     private void FocusTabList()
@@ -2148,8 +2157,8 @@ public partial class MainWindow : Window
 
         switch (e.Key)
         {
-            case Key.Add or Key.OemPlus: SpriteCanvas.StepZoom(1); break;
-            case Key.Subtract or Key.OemMinus: SpriteCanvas.StepZoom(-1); break;
+            case Key.Add or Key.OemPlus: ActiveCanvas?.StepZoom(1); break;
+            case Key.Subtract or Key.OemMinus: ActiveCanvas?.StepZoom(-1); break;
             default: base.OnKeyDown(e); return;
         }
         e.Handled = true;
