@@ -1829,6 +1829,24 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         return $"{PaletteKey(file, palette)} palette ({palette.Colors.Length} colors)";
     }
 
+    /// <summary>Dropdown label: "1,1", "S3: sprite 6001,6" (first sprite carrying it), "F1: kfm01.act", "T1: temp",
+    /// each with its color count.</summary>
+    private static string PaletteDropdownName(SffFile file, Palette palette,
+        IReadOnlyDictionary<Palette, int>? externalOrdinals = null, IReadOnlyDictionary<Palette, Sprite>? carriers = null)
+    {
+        string colors = $" ({palette.Colors.Length} colors)";
+        if (palette.Source == PaletteSource.External)
+        {
+            externalOrdinals ??= ExternalPaletteOrdinals(file);
+            string what = IsTempPalette(palette) ? "temp" : Path.GetFileName(palette.SourcePath) ?? "temp";
+            return (externalOrdinals.TryGetValue(palette, out int n) ? $"{ExternalGroup(palette)}{n}: " : "") + what + colors;
+        }
+        string key = PaletteKey(file, palette);
+        if (!key.StartsWith('S')) return key + colors;
+        carriers ??= V1PaletteCarriers(file);
+        return key + (carriers.TryGetValue(palette, out var sprite) ? $": sprite {sprite.Group},{sprite.Index}" : ": unused") + colors;
+    }
+
     private static int SpriteOrdinal(SffFile file, Sprite sprite, IReadOnlyDictionary<Sprite, int>? ordinals = null) =>
         ordinals is not null && ordinals.TryGetValue(sprite, out int ordinal)
             ? ordinal
@@ -1935,7 +1953,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         var carriers = V1PaletteCarriers(_file);
         var externalOrdinals = ExternalPaletteOrdinals(_file);
         var spriteOrdinals = _file.Sprites.Select((sprite, i) => (sprite, ordinal: i + 1)).ToDictionary(x => x.sprite, x => x.ordinal);
-        var labels = _file.Palettes.Select((p, i) => $"{i + 1}: {PaletteDisplayName(_file, p, externalOrdinals)}").ToList();
+        var labels = _file.Palettes.Select((p, i) => $"{i + 1}: {PaletteDropdownName(_file, p, externalOrdinals, carriers)}").ToList();
 
         // Preserves whatever suppression the caller already had, rather than
         // hardcoding it back to false — a caller that's suppressed (e.g.

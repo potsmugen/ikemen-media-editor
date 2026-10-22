@@ -181,7 +181,7 @@ public partial class MainWindow
                     StatusText.Text = "No embedded SFFv2 palettes are available. Create or duplicate one in the Palettes tab first.";
                     return;
                 }
-                var choices = paletteEntries.Select(palette => PaletteDisplayName(file, palette)).ToArray();
+                var choices = paletteEntries.Select(palette => PaletteDropdownName(file, palette)).ToArray();
                 int currentPalette = Array.FindIndex(paletteEntries, palette => ReferenceEquals(palette, row.Sprite.Palette));
                 int? selected = await Dialogs.PromptSffV2PaletteChoice(this, choices, currentPalette);
                 if (selected is not { } paletteIndex || !ReferenceEquals(_file, file)) return;
