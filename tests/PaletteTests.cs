@@ -325,6 +325,114 @@ public class PaletteTests
         finally { File.Delete(tmp); }
     }
 
+    // ---- v1 links and the same-palette flag -------------------------------
+
+    /// <summary>A gray sprite, a purple one, then a link to the gray one's pixels; the
+    /// link's palette is set by the caller (as in sprites_org.sff's 6001 dust).</summary>
+    private static (SffFile F, Sprite Link, Palette Gray, Palette Purple) MakeV1LinkAfterOtherPalette()
+    {
+        var gray = new Palette { Group = 1, Index = 1, Colors = [new(0, 0, 0, 0), C(10)] };
+        var purple = new Palette { Group = 1, Index = 2, Colors = [new(0, 0, 0, 0), C(20)] };
+        var f = new SffFile { Version = SffVersions.V1, Palettes = [gray, purple] };
+        Sprite Make(int i, Palette p) => new()
+        {
+            Group = 6001, Index = i, Width = 1, Height = 1, Indexed = [1], PixelsDirty = true, Palette = p,
+        };
+        var (a, b, link) = (Make(0, gray), Make(6, purple), Make(7, purple));
+        f.Sprites.AddRange([a, b, link]);
+        f.Share(link, a);
+        return (f, link, gray, purple);
+    }
+
+    /// <summary>Byte 18 (same palette) of the k-th v1 subheader.</summary>
+    private static byte V1SamePaletteFlag(byte[] bytes, int k)
+    {
+        int off = BitConverter.ToInt32(bytes, 24);
+        for (int i = 0; i < k; i++) off = BitConverter.ToInt32(bytes, off);
+        return bytes[off + 18];
+    }
+
+    [Fact]
+    public void AV1LinkFlaggedSamePaletteUsesThePreviousPalette()
+    {
+        var (f, link, _, purple) = MakeV1LinkAfterOtherPalette();
+        Assert.Same(purple, link.Palette);
+
+        var tmp = Path.Combine(Path.GetTempPath(), $"v1link-{Guid.NewGuid():N}.sff");
+        try
+        {
+            f.Save(tmp, SffVersions.V1);
+            Assert.Equal(1, V1SamePaletteFlag(File.ReadAllBytes(tmp), 2));
+
+            var r = SffFile.Open(tmp);
+            Assert.Same(r.Sprites[0], r.Sprites[2].SharesWith);
+            Assert.Same(r.Sprites[1].Palette, r.Sprites[2].Palette); // purple, not the target's gray
+        }
+        finally { File.Delete(tmp); }
+    }
+
+    [Fact]
+    public void AV1LinkKeepsItsPreviousPaletteThroughAV2Save()
+    {
+        var (f, _, _, _) = MakeV1LinkAfterOtherPalette();
+        var v1 = Path.Combine(Path.GetTempPath(), $"v1link-{Guid.NewGuid():N}.sff");
+        var v2 = Path.Combine(Path.GetTempPath(), $"v2link-{Guid.NewGuid():N}.sff");
+        try
+        {
+            f.Save(v1, SffVersions.V1);
+            SffFile.Open(v1).Save(v2, SffVersions.V2);
+
+            var r = SffFile.Open(v2);
+            Assert.Same(r.Sprites[0], r.Sprites[2].SharesWith);
+            Assert.Equal(r.Sprites[1].Palette!.Colors[1], r.Sprites[2].Palette!.Colors[1]);
+            Assert.NotEqual(r.Sprites[0].Palette!.Colors[1], r.Sprites[2].Palette!.Colors[1]);
+        }
+        finally { File.Delete(v1); File.Delete(v2); }
+    }
+
+    [Fact]
+    public void AV1LinkMatchingItsTargetKeepsTheUnflaggedBytes()
+    {
+        var (f, link, gray, _) = MakeV1LinkAfterOtherPalette();
+        link.Palette = gray;
+
+        var tmp = Path.Combine(Path.GetTempPath(), $"v1link-{Guid.NewGuid():N}.sff");
+        try
+        {
+            f.Save(tmp, SffVersions.V1);
+            Assert.Equal(0, V1SamePaletteFlag(File.ReadAllBytes(tmp), 2));
+            var r = SffFile.Open(tmp);
+            Assert.Same(r.Sprites[0].Palette, r.Sprites[2].Palette);
+        }
+        finally { File.Delete(tmp); }
+    }
+
+    [Fact]
+    public void SaveLikeSprMaker097KeepsItsLinkFlag()
+    {
+        // The SprMaker 0.97 writer must not pick up the plain-save link rule.
+        var (f, _, _, _) = MakeV1LinkAfterOtherPalette();
+        var tmp = Path.Combine(Path.GetTempPath(), $"v1sm-{Guid.NewGuid():N}.sff");
+        try
+        {
+            SprMakerSave.Save(f, tmp, new SprMakerOptions());
+            Assert.Equal(0, V1SamePaletteFlag(File.ReadAllBytes(tmp), 2));
+        }
+        finally { File.Delete(tmp); }
+    }
+
+    [Fact]
+    public void AV1LinkWithAThirdPaletteIsListedAsLost()
+    {
+        var (f, link, _, _) = MakeV1LinkAfterOtherPalette();
+        Assert.Empty(SffWriter.V1LinksLosingPalette(f));
+
+        var green = new Palette { Group = 1, Index = 3, Colors = [new(0, 0, 0, 0), C(30)] };
+        f.Palettes.Add(green);
+        link.Palette = green;
+        Assert.Equal(new[] { "6001,7" }, SffWriter.V1LinksLosingPalette(f));
+    }
+
     // ---- v2 ---------------------------------------------------------------
 
     [Fact]

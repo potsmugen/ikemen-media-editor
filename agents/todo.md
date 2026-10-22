@@ -69,7 +69,9 @@ before a release. Remove items once they're done or checked.
   compatibility version, then fix confirmed differences.
 - Verify linked SFFv1 palette semantics against a compatible reader; the
   disassembly confirms the flag written, not whether the loader uses that
-  palette or the link target's (our reader uses the target's).
+  palette or the link target's. Decided: a flagged link uses the previous palette like
+  any flagged sprite (see features.md, Official tools); Ikemen GO's v1 loader uses the
+  target's, so such files look different there until converted to v2.
 - Compare our PCX encoder with SprMaker 0.97's PCX re-encoding.
 - Check SprMaker 2.01's built-in default options in the disassembly (its txt2def
   template has autocrop and palette dedupe on; the dialog uses the no-switch

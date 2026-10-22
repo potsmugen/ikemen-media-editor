@@ -1244,6 +1244,11 @@ public partial class MainWindow
         int dropped = _file.Palettes.Count(p => p.Source == PaletteSource.Embedded && !used.Contains(p));
         if (dropped > 0)
             notes.Add($"{dropped} palette{(dropped == 1 ? "" : "s")} no sprite uses will be dropped: SFFv1 stores palettes only inside sprites.");
+        var lost = SffWriter.V1LinksLosingPalette(_file);
+        if (lost.Count > 0)
+            notes.Add($"{lost.Count} linked sprite{(lost.Count == 1 ? "" : "s")} will show the linked sprite's palette instead of "
+                + $"{(lost.Count == 1 ? "its" : "their")} own: an SFFv1 link can only use that one or the previous sprite's ("
+                + string.Join(", ", lost.Take(5)) + (lost.Count > 5 ? ", …" : "") + ").");
         notes.Add("Palette group/index keys, links and alpha are not stored in SFFv1.");
         return notes;
     }
@@ -1515,7 +1520,8 @@ public partial class MainWindow
         var items = new List<MenuItem>();
         foreach (var path in _settings.RecentFiles)
         {
-            var item = new MenuItem { Header = path, Tag = path };
+            // "__" shows a literal underscore; a single one would be taken as the access key.
+            var item = new MenuItem { Header = path.Replace("_", "__"), Tag = path };
             item.Click += async (_, _) =>
             {
                 if (!File.Exists(path))

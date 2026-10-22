@@ -19,9 +19,12 @@ public static class SffWriter
     /// axis values that don't fit are clamped to the field's range instead of wrapped.</summary>
     public static void Save(SffFile f, string path, SffVersion version, bool clamp = false)
     {
-        if (version.Hi == 1) { SffV1Writer.Save(f, path, clamp); return; }
+        if (version.Hi == 1) { SffV1Writer.Save(f, path, clamp, linkPalettes: true); return; }
         Save(f, path, version.Lo2 >= 1 || version.Lo1 > 0, clamp);
     }
+
+    /// <summary>Linked sprites a v1 save gives their target's palette instead of their own; see SffV1Writer.</summary>
+    public static List<string> V1LinksLosingPalette(SffFile f, int max = int.MaxValue) => SffV1Writer.LinksLosingPalette(f, max);
 
     /// <summary>Whether SFFv1 can hold every sprite (all 8-bit and decoded).</summary>
     public static bool FitsV1(SffFile f) => SffV1Writer.Unsupported(f, 1).Count == 0;

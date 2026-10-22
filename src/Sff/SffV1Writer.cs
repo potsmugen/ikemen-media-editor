@@ -12,7 +12,9 @@ internal static class SffV1Writer
     private const int HeaderSize = 512;
     private const int SubHeaderSize = 32;
 
-    public static void Save(SffFile f, string path, bool clamp = false, bool linkDuplicatePalettes = false, bool usePreviousPalette = false, List<SprMakerEvent>? events = null)
+    /// <param name="linkPalettes">Plain saves: a link whose palette is the previous sprite's (not its
+    /// target's) gets the same-palette flag. Off for Save Like SprMaker 0.97, which keeps the tool's bytes.</param>
+    public static void Save(SffFile f, string path, bool clamp = false, bool linkDuplicatePalettes = false, bool usePreviousPalette = false, List<SprMakerEvent>? events = null, bool linkPalettes = false)
     {
         var unsupported = Unsupported(f, 5);
         if (unsupported.Count > 0)
@@ -37,7 +39,8 @@ internal static class SffV1Writer
             var s = f.Sprites[i];
             if (s.SharesWith is not null)
             {
-                samePalettes[i] = usePreviousPalette && previousPalette is not null;
+                samePalettes[i] = previousPalette is not null
+                    && (usePreviousPalette || (linkPalettes && LinkUsesPrevious(s, previousPalette)));
                 payloads[i] = [];
                 continue;
             }
@@ -101,6 +104,31 @@ internal static class SffV1Writer
             body.Position = 0;
             body.CopyTo(file);
         });
+    }
+
+    /// <summary>A link reads its target's palette unless flagged; flag it only when its palette is the
+    /// previous one and not the target's, so links that match their target keep the old bytes.</summary>
+    private static bool LinkUsesPrevious(Sprite link, Palette previous) =>
+        link.Palette is { } own && !SameColors(own, link.SharesWith!.Palette) && SameColors(own, previous);
+
+    private static bool SameColors(Palette a, Palette? b) =>
+        b is not null && (ReferenceEquals(a, b) || PcxWriter.SameRgbPalette(a.Colors, b.Colors));
+
+    /// <summary>Up to <paramref name="max"/> linked sprites whose palette a plain v1 save can't keep (neither
+    /// the target's nor the previous sprite's); they reload with the target's. As "group,index".</summary>
+    public static List<string> LinksLosingPalette(SffFile f, int max)
+    {
+        var lost = new List<string>();
+        Palette? previous = null;
+        foreach (var s in f.Sprites)
+        {
+            if (s.SharesWith is null) { previous = s.Palette ?? new Palette { Colors = [] }; continue; }
+            if (s.Palette is not { } own || SameColors(own, s.SharesWith.Palette)) continue;
+            if (previous is not null && SameColors(own, previous)) continue;
+            lost.Add($"{s.Group},{s.Index}");
+            if (lost.Count >= max) break;
+        }
+        return lost;
     }
 
     /// <summary>Up to <paramref name="max"/> sprites SFFv1 cannot hold (true color or undecoded), as "group,index".</summary>

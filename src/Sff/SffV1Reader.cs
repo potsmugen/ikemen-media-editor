@@ -50,6 +50,8 @@ internal static class SffV1Reader
 
             f.Sprites.Add(s);
             linkTo.Add(length == 0 ? previousCopy : -1);
+            // The same-palette flag means the same on a link as on any sprite; unflagged, ResolveLinks gives the target's.
+            if (length == 0 && samePalette) s.Palette = ChoosePalette(f, null, samePalette: true, shared);
 
             if (length > 0)
             {

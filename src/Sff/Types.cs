@@ -394,8 +394,8 @@ public sealed class SffFile
     /// <summary>
     /// Groups sprites that could be one linked sprite: same size and identical
     /// pixel bytes (indexed with indexed, true color with true color). In v1 a
-    /// link takes its target's palette on load, so the palette colors must
-    /// match too — SprMaker 0.97 -f's rule (whole PCX, palette included, byte for
+    /// link takes its target's palette on load unless flagged to use the previous
+    /// one, so the palette colors must match too — SprMaker 0.97 -f's rule (whole PCX, palette included, byte for
     /// byte). In v2 a link keeps its own palette, so it is ignored. Undecodable
     /// or empty sprites are left out. Each set lists its members in file order;
     /// only sets with something to change are returned.

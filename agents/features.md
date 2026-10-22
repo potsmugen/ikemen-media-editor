@@ -961,7 +961,14 @@ The editor's writers follow these tools where applicable.
   axis shifted by the target's crop, and leaves the same-palette flag as selected
   by palette mode (type 1 clear; type 2 set on later records). Whether a linked
   sprite uses the preceding palette or its link target's palette remains
-  unverified against the engine; our reader uses the target's.
+  unverified against the engine (Ikemen GO's loadSff copies the target's). Decided: the
+  flag means the same on a link as on any sprite (previous palette, or the first in a
+  shared file); an unflagged link uses its target's. Other tools flag links in individual
+  files, e.g. `working/sprites_org.sff` 6001,7-17 (purple/green dust linked to the gray
+  frames); in `kfm-v1.sff` and `kfm - old.sff` the rule changes no link's colors.
+  Plain v1 saves flag a link whose palette is the previous one and not its target's;
+  Save Like SprMaker 0.97 keeps the tool's flag rule above. A v1 save can't keep a link
+  palette that is neither (it reloads as the target's); the v2-to-v1 warning lists them.
 - SprMaker 2.01 (SFFv2, disassembled) links to the first earlier sprite with the
   same file name, or with -f / sprite.detectduplicates the same file size and
   MD5 of the whole source PCX/PNG. The link node copies the target's node
