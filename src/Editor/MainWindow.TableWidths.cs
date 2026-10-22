@@ -25,12 +25,13 @@ public partial class MainWindow
         var widths = new double[cells.Count == 0 ? 0 : cells.Max(b => Grid.GetColumn(b)) + 1];
         foreach (var b in cells)
             if (b.Child is TextBlock t) widths[Grid.GetColumn(b)] = Measure(t.Text ?? "", FontWeight.Bold);
+        var charWidths = new Dictionary<char, double>();
+        double Estimate(string s) => s.Sum(ch => charWidths.TryGetValue(ch, out var w) ? w : (charWidths[ch] = Measure(ch.ToString(), FontWeight.Normal)));
         for (int c = 0; c < widths.Length; c++)
         {
-            // Only the longest strings get measured: thousands of rows would be slow to lay out one by one.
+            // Rank by summed glyph widths, then lay out only the widest few: thousands of rows would be slow one by one.
             var texts = rows.Select(r => c < r.Length ? r[c] : "").Append(floors is not null && c < floors.Length ? floors[c] : "");
-            int longest = texts.Max(s => s.Length);
-            foreach (var s in texts.Where(s => s.Length >= longest - 1).Distinct().Take(50))
+            foreach (var s in texts.Distinct().OrderByDescending(Estimate).Take(20))
                 widths[c] = Math.Max(widths[c], Measure(s, FontWeight.Normal));
             widths[c] = Math.Ceiling(widths[c]) + 8 + 1; // padding 4+4, right border 1
         }
