@@ -773,6 +773,7 @@ public partial class MainWindow
         CancelPaletteLinkPick(restoreSelection: false);
         _paintBaseline = null;
         _paintBaselineSprite = null;
+        ClearPaintHistory();
         PaintCommitButton.IsEnabled = PaintResetButton.IsEnabled = false;
         _soundEditBaseline = null;
         _soundEditSound = null;
@@ -1593,7 +1594,7 @@ public partial class MainWindow
     /// <summary>After undo/redo: a file back at its save point is unchanged again; pending edits keep it changed.</summary>
     private void SyncDirtyFromUndo()
     {
-        _dirty = _file is not null && (_undo.Differs(SffKind) || _paintBaseline is not null);
+        _dirty = _file is not null && (_undo.Differs(SffKind) || (_paintBaseline is not null && PaintSessionHasChanges()));
         _airDirty = _air is not null && _undo.Differs(AirKind);
         _sndDirty = _snd is not null && (_undo.Differs(SndKind) || _soundEditBaseline is not null);
         foreach (var palette in _standalonePalettes)

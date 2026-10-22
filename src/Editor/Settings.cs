@@ -275,6 +275,10 @@ public sealed class Settings
     /// <summary>Scroll bars shrink to a thin line when the pointer leaves (Avalonia's auto-hide).
     /// Read at startup; false keeps them full width.</summary>
     public const bool DefaultScrollBarsAutoHide = true;
+
+    /// <summary>Paint Mode's own undo steps kept per pending session; the oldest drop off.</summary>
+    public const int DefaultPaintUndoLimit = 100;
+    public int PaintUndoLimit { get; set; } = DefaultPaintUndoLimit;
     public bool ScrollBarsAutoHide { get; set; } = DefaultScrollBarsAutoHide;
     public const int DefaultNearestColorAlphaThreshold = Sff.ImageImport.DefaultTransparentAlphaThreshold;
     /// <summary>Alpha below which an imported pixel is treated as transparent (index 0).</summary>

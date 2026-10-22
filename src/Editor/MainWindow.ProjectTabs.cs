@@ -54,7 +54,7 @@ public partial class MainWindow
         d.File is null && d.Air is null && d.Snd is null && d.StandalonePalettes.Count == 0;
 
     private bool DocumentHasUnsavedWork(Document d) => ReferenceEquals(d, _doc)
-        ? _paintBaseline is not null || _soundEditBaseline is not null || HasPendingColorAdjust()
+        ? (_paintBaseline is not null && PaintSessionHasChanges()) || _soundEditBaseline is not null || HasPendingColorAdjust()
             || _dirty || _airDirty || _sndDirty || HasDirtyExternalPalettes() || HasDirtyStandalonePalettes()
         : d.Dirty || d.AirDirty || d.SndDirty || d.StandalonePalettes.Any(p => p.Dirty)
             || d.File?.Palettes.Any(p => p.Source == PaletteSource.External && p.Dirty) == true;

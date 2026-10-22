@@ -240,6 +240,8 @@ public class SpriteView : Control
     public event Action? PaintStrokeFinished;
     public event Action? SelectionChanged;
     public event Action? SelectionMoved;
+    /// <summary>A selection drag ended (SelectionMoved also fires on every move during it).</summary>
+    public event Action? SelectionMoveFinished;
     /// <summary>Raised when a drag starts a new selection or a click clears it (not when an existing one is moved).</summary>
     public event Action? SelectionStarted;
 
@@ -1460,7 +1462,7 @@ public class SpriteView : Control
         if (_movingSelection)
         {
             _movingSelection = false;
-            if (_selectDragged) SelectionMoved?.Invoke();
+            if (_selectDragged) { SelectionMoved?.Invoke(); SelectionMoveFinished?.Invoke(); }
             else ClearSelectionByClick();
             Cursor = Cursor.Default;
             e.Pointer.Capture(null);

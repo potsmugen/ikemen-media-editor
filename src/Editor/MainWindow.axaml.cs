@@ -1062,26 +1062,8 @@ public partial class MainWindow : Window
 
     private void OnUndo(object? sender, RoutedEventArgs e)
     {
-        // Paint Mode edits are live but pending. Undo the most recent stroke
-        // (or floating paste move) without discarding earlier strokes in the
-        // same pending session; Commit still turns the remaining session into
-        // one normal undo entry.
-        if (_paintStrokeBefore is { } stroke && _paintStrokeSprite is { } strokeSprite
-            && ReferenceEquals(strokeSprite, _current) && strokeSprite.Indexed is not null)
-        {
-            strokeSprite.Indexed = (byte[])stroke.Clone();
-            strokeSprite.PixelsDirty = _paintStrokeBeforeDirty;
-            _paintStrokeBefore = null;
-            _paintStrokeSprite = null;
-            _floatingPaste = null;
-            SpriteCanvas.SetSelection(null);
-            SpriteCanvas.Show(strokeSprite, ActivePalette(), _showMask);
-            PaintCommitButton.IsEnabled = PaintResetButton.IsEnabled = _paintBaseline is not null;
-            SyncDirtyFromUndo();
-            ResetPlaybackCaches();
-            StatusText.Text = "Undid last paint stroke.";
-            return;
-        }
+        // A pending paint session has its own history; the main one takes over once it's back at the start.
+        if (TryPaintUndo()) return;
         if (!_undo.CanUndo) return;
         var name = _undo.UndoName;
         CrashLog.Trace($"[undo] begin: {name}");
@@ -1100,6 +1082,7 @@ public partial class MainWindow : Window
 
     private void OnRedo(object? sender, RoutedEventArgs e)
     {
+        if (TryPaintRedo()) return;
         if (!_undo.CanRedo) return;
         var name = _undo.RedoName;
         CrashLog.Trace($"[redo] begin: {name}");
@@ -1171,13 +1154,15 @@ public partial class MainWindow : Window
     {
         if (UndoItem is { } u)
         {
-            u.IsEnabled = _undo.CanUndo;
-            u.Header = _undo.CanUndo ? $"_Undo {_undo.UndoName}" : "_Undo";
+            var paint = PaintUndoMenu();
+            u.IsEnabled = paint?.Enabled ?? _undo.CanUndo;
+            u.Header = paint?.Header ?? (_undo.CanUndo ? $"_Undo {_undo.UndoName}" : "_Undo");
         }
         if (RedoItem is { } r)
         {
-            r.IsEnabled = _undo.CanRedo;
-            r.Header = _undo.CanRedo ? $"_Redo {_undo.RedoName}" : "_Redo";
+            var paint = PaintRedoMenu();
+            r.IsEnabled = paint?.Enabled ?? _undo.CanRedo;
+            r.Header = paint?.Header ?? (_undo.CanRedo ? $"_Redo {_undo.RedoName}" : "_Redo");
         }
     }
 

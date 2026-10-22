@@ -11,8 +11,8 @@ namespace Editor;
 /// own pixel data. Deliberately basic — anything beyond single-pixel tools is
 /// out of scope (PNG import already covers more involved editing).
 ///
-/// Strokes apply live (so painting itself is instant) but stay pending — no
-/// undo entry — until Commit, or until switching away asks what to do with
+/// Strokes apply live (so painting itself is instant) but stay pending — no main
+/// undo entry, only a step in the paint history (MainWindow.PaintHistory.cs) — until Commit, or until switching away asks what to do with
 /// them. Commit itself never happens on its own; the dialog's own Commit
 /// choice just calls the same thing pressing the button would.
 ///
@@ -25,9 +25,6 @@ public partial class MainWindow
     private byte[]? _paintBaseline;
     private bool _paintBaselineDirty;
     private Sprite? _paintBaselineSprite;
-    private byte[]? _paintStrokeBefore;
-    private bool _paintStrokeBeforeDirty;
-    private Sprite? _paintStrokeSprite;
     private (int Width, int Height, byte[] Pixels, int X, int Y, bool[]? Mask)? _pixelClipboard;
     private (Sprite Sprite, byte[] Before, int Width, int Height, int SourceWidth, byte[] Pixels)? _floatingPaste;
 
@@ -50,6 +47,7 @@ public partial class MainWindow
         SpriteCanvas.SelectionChanged += OnSelectionChanged;
         SpriteCanvas.SelectionStarted += SettleFloatingPaste;
         SpriteCanvas.SelectionMoved += OnSelectionMoved;
+        SpriteCanvas.SelectionMoveFinished += () => PaintStep("move selection");
         SpriteCanvas.ColorPicked += OnPaintColorPicked;
     }
 
@@ -209,28 +207,28 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// Captures the pixel state at the start of a pending session. A sprite
-    /// that borrows its pixels never gets here (PaintStrokeAllowed / paste
-    /// refuse it).
+    /// Starts the paint history (and the session's baseline) before a stroke or paste. A sprite
+    /// that borrows its pixels never gets here (PaintStrokeAllowed / paste refuse it).
     /// </summary>
     private void OnPaintStrokeStarted()
     {
         SettleFloatingPaste(); // a stroke makes the pasted pixels part of the session
-        if (_current is not { Indexed: { } pixels } sprite) return;
-
-        _paintStrokeBefore = (byte[])pixels.Clone();
-        _paintStrokeBeforeDirty = sprite.PixelsDirty;
-        _paintStrokeSprite = sprite;
+        if (_current?.Indexed is null) return;
+        EnsurePaintHistory();
         CapturePaintBaseline();
     }
 
     private void OnPaintStrokeFinished()
     {
-        if (_paintStrokeBefore is not null && _paintStrokeSprite?.Indexed is { } after
-            && _paintStrokeBefore.AsSpan().SequenceEqual(after))
-            _paintStrokeBefore = null; // a no-op click should not become an undo
-        MarkPaintPendingDirty();
-        PaintCommitButton.IsEnabled = PaintResetButton.IsEnabled = _paintBaseline is not null;
+        if (PaintSessionHasChanges()) MarkPaintPendingDirty();
+        PaintStep(SpriteCanvas.ActiveTool switch
+        {
+            PaintTool.Eraser => "eraser stroke",
+            PaintTool.Fill => "fill",
+            PaintTool.Replace => "replace stroke",
+            _ => "pencil stroke",
+        });
+        SyncPaintButtons();
     }
 
     private void MarkPaintPendingDirty()
@@ -313,15 +311,18 @@ public partial class MainWindow
         sprite.PixelsDirty = true;
         SpriteCanvas.Show(sprite, ActivePalette(), _showMask);
         MarkPaintPendingDirty();
-        PaintCommitButton.IsEnabled = PaintResetButton.IsEnabled = _paintBaseline is not null;
+        PaintStep("paste");
+        SyncPaintButtons();
         StatusText.Text = $"Pasted floating selection {width}×{height}. Drag it, then commit.";
     }
 
     private void OnCommitPaint(object? sender, RoutedEventArgs e) => CommitPendingPaint();
 
+    /// <summary>Discards the pending session and its paint history, like Discard and the Sounds tab's Reset. No undo.</summary>
     private void OnResetPaint(object? sender, RoutedEventArgs e)
     {
         if (_paintBaseline is null) return;
+        SpriteCanvas.SetSelection(null);
         DropPendingPaint();
         StatusText.Text = "Reset pending paint changes.";
     }
@@ -332,11 +333,10 @@ public partial class MainWindow
         if (_paintBaseline is not { } before || _paintBaselineSprite is not { } sprite) return;
         _paintBaseline = null;
         _paintBaselineSprite = null;
-        _paintStrokeBefore = null;
-        _paintStrokeSprite = null;
         _floatingPaste = null;
         ClearPaintLayers(); // the sprite already shows the flattened result
-        PaintCommitButton.IsEnabled = PaintResetButton.IsEnabled = false;
+        ClearPaintHistory();
+        SyncPaintButtons();
 
         if (sprite.Indexed is not { } after || before.AsSpan().SequenceEqual(after))
         {
@@ -364,11 +364,10 @@ public partial class MainWindow
         sprite.PixelsDirty = _paintBaselineDirty;
         _paintBaseline = null;
         _paintBaselineSprite = null;
-        _paintStrokeBefore = null;
-        _paintStrokeSprite = null;
         _floatingPaste = null;
         ClearPaintLayers();
-        PaintCommitButton.IsEnabled = PaintResetButton.IsEnabled = false;
+        ClearPaintHistory();
+        SyncPaintButtons();
         if (ReferenceEquals(sprite, _current)) SpriteCanvas.Show(_current, ActivePalette(), _showMask);
         SyncDirtyFromUndo();
     }
@@ -470,6 +469,7 @@ public partial class MainWindow
         if (_current is not { Indexed: { } pixels } sprite || _paintTopLayer is not null) return;
         if (RefuseBorrowerEdit(sprite, "add a layer to")) return;
 
+        EnsurePaintHistory();
         CapturePaintBaseline();
         _paintBaseLayer = (byte[])pixels.Clone();
         _paintTopLayer = new byte[pixels.Length];
@@ -477,6 +477,7 @@ public partial class MainWindow
         _paintBottomVisible = true;
         _paintOnTop = true;
         AfterPaintLayersChanged();
+        PaintStep("add layer");
         StatusText.Text = "Added a top layer. Commit merges it into the sprite.";
     }
 
@@ -484,6 +485,7 @@ public partial class MainWindow
     private void OnDeletePaintLayer(object? sender, RoutedEventArgs e)
     {
         if (_current is not { Indexed: { } pixels } || _paintBaseLayer is not { } baseLayer || _paintTopLayer is null) return;
+        EnsurePaintHistory();
         SettleFloatingPaste();
         baseLayer.CopyTo(pixels, 0);
         _paintBaseLayer = null;
@@ -492,6 +494,7 @@ public partial class MainWindow
         _paintTopVisible = true;
         _paintBottomVisible = true;
         AfterPaintLayersChanged();
+        PaintStep("delete layer");
         StatusText.Text = "Deleted the top layer.";
     }
 
@@ -509,8 +512,11 @@ public partial class MainWindow
     /// <summary>The sprite already shows the merged result, so merging only drops the layers and keeps the session pending.</summary>
     private void MergePaintLayers()
     {
+        EnsurePaintHistory();
         SettleFloatingPaste();
         ClearPaintLayers();
+        PaintStep("merge layers");
+        SyncPaintButtons();
     }
 
     /// <summary>Bottom/Top toggles: which layer the paint tools draw on.</summary>
@@ -526,17 +532,21 @@ public partial class MainWindow
     private void OnBottomLayerVisibleChanged(object? sender, RoutedEventArgs e)
     {
         if (_paintBaseLayer is null || _paintTopLayer is null) return;
+        EnsurePaintHistory();
         SettleFloatingPaste();
         _paintBottomVisible = BottomLayerVisibleBox.IsChecked == true;
         AfterPaintLayersChanged();
+        PaintStep(_paintBottomVisible ? "show bottom layer" : "hide bottom layer");
     }
 
     private void OnTopLayerVisibleChanged(object? sender, RoutedEventArgs e)
     {
         if (_paintTopLayer is null) return;
+        EnsurePaintHistory();
         SettleFloatingPaste();
         _paintTopVisible = TopLayerVisibleBox.IsChecked == true;
         AfterPaintLayersChanged();
+        PaintStep(_paintTopVisible ? "show top layer" : "hide top layer");
     }
 
     /// <summary>Flattens the layers into the sprite's pixels: the visible bottom, then every visible non-transparent top pixel over it.</summary>
@@ -564,7 +574,7 @@ public partial class MainWindow
         RecomposePaintLayers();
         SpriteCanvas.PaintTarget = ActivePaintLayerPixels();
         if (_current is { } sprite) SpriteCanvas.Show(sprite, ActivePalette(), _showMask);
-        PaintCommitButton.IsEnabled = PaintResetButton.IsEnabled = _paintBaseline is not null;
+        SyncPaintButtons();
         SyncPaintLayerControls();
     }
 

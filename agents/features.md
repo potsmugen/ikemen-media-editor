@@ -210,9 +210,17 @@ and constraints that are easy to miss when reading one code path in isolation.
   `SelectionDragThresholdPixels`, default 3) clears the selection and settles a floating paste,
   whether it lands on the sprite, inside the selection, or on the canvas outside the sprite. Only
   a drag selects (so no 1×1 selection from a click) or moves; a drag off the sprite still pans.
+- **Paint history**: a pending paint session has its own undo/redo (`MainWindow.PaintHistory.cs`):
+  one step per stroke or fill, paste, selection drag, layer add/delete/merge, layer show/hide,
+  and Reset (undoable, the session stays open). Edit > Undo/Redo name the step. Commit and
+  Reset grey out once undo reaches the start; Ctrl+Z then closes the empty session and
+  continues in the main history (dropping paint redo). If older steps were dropped
+  (settings.json `PaintUndoLimit`, default 100) and changes remain, Undo stops with a status
+  note. Commit records the session as one main step and clears the paint history, as do
+  Discard and leaving the sprite.
 - **Pending sessions**: Paint Mode and sound edits apply live, one undo on
-  Commit (both also have Reset = discard; both enabled only while edits are
-  pending); switching away or leaving Paint Mode asks Commit/Discard/Cancel only when there are changes; an empty paint layer or a no-op paint session is dropped silently. Color-slider
+  Commit (both also have Reset: paint's is undoable, see Paint history; sound's discards;
+  both enabled only while edits are pending); switching away or leaving Paint Mode asks Commit/Discard/Cancel only when there are changes; an empty paint layer or a no-op paint session is dropped silently. Color-slider
   adjustments survive only via the Commit button — leaving them discards
   silently, without a dialog.
 
