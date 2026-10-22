@@ -271,6 +271,11 @@ public sealed class Settings
     public const bool DefaultPalettePerceptualHue = true;
     /// <summary>True keeps perceived lightness (OKLCH) as hue moves; false uses HSV, where brightness shifts with hue.</summary>
     public bool PalettePerceptualHue { get; set; } = DefaultPalettePerceptualHue;
+
+    /// <summary>Scroll bars shrink to a thin line when the pointer leaves (Avalonia's auto-hide).
+    /// Read at startup; false keeps them full width.</summary>
+    public const bool DefaultScrollBarsAutoHide = true;
+    public bool ScrollBarsAutoHide { get; set; } = DefaultScrollBarsAutoHide;
     public const int DefaultNearestColorAlphaThreshold = Sff.ImageImport.DefaultTransparentAlphaThreshold;
     /// <summary>Alpha below which an imported pixel is treated as transparent (index 0).</summary>
     public int NearestColorAlphaThreshold { get; set; } = DefaultNearestColorAlphaThreshold;

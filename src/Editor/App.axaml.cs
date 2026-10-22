@@ -2,8 +2,10 @@ using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Styling;
 using Avalonia.Threading;
 
 namespace Editor;
@@ -22,6 +24,18 @@ public partial class App : Application
     /// first, so the framework's own auto-show displays *it*, then swap in
     /// the real window afterwards.
     /// </summary>
+    /// <summary>Turns off scroll bar auto-hide app-wide. ListBox, TextBox and TreeView templates pass their own
+    /// ScrollViewer.AllowAutoHide down (a template binding outranks a ScrollViewer style), so they're set too.</summary>
+    private void KeepScrollBarsExpanded()
+    {
+        foreach (var type in new[] { typeof(ScrollViewer), typeof(ListBox), typeof(TextBox), typeof(TreeView) })
+        {
+            var style = new Style(x => x.OfType(type));
+            style.Setters.Add(new Setter(ScrollViewer.AllowAutoHideProperty, false));
+            Styles.Add(style);
+        }
+    }
+
     public override async void OnFrameworkInitializationCompleted()
     {
         try
@@ -43,6 +57,7 @@ public partial class App : Application
                     Settings.DefaultSheetMinimumSizePixels, v => v is >= 0 and <= 4096);
                 int minimum = Settings.Checked(nameof(Settings.SplashMilliseconds), startup.SplashMilliseconds,
                     Settings.DefaultSplashMilliseconds, v => v >= 0);
+                if (!startup.ScrollBarsAutoHide) KeepScrollBarsExpanded();
 
                 // Let the splash paint before building the main window blocks the UI thread.
                 await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);

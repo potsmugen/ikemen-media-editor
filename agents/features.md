@@ -144,6 +144,10 @@ and constraints that are easy to miss when reading one code path in isolation.
 
 ### Editor behavior
 
+- **Scroll bars** use Avalonia's auto-hide by default: thin until hovered for 0.5 s, thin
+  again 2 s after the pointer leaves. settings.json `ScrollBarsAutoHide: false` (read at
+  startup) keeps them full width. `App.KeepScrollBarsExpanded` styles ScrollViewer,
+  ListBox, TextBox and TreeView, since those templates pass their own value down.
 - **Debug mode and saving**: with Debug off, saving clamps group/number to
   0-65535 and axes to signed 16-bit range, with a warning. Debug on preserves
   the prior wrapping behavior.
