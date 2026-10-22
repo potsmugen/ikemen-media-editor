@@ -75,9 +75,7 @@ public partial class MainWindow
                 case ".imesession": await LoadSessionFile(path); break;
                 case ".snd": await OpenSndFromPath(path); break;
                 case ".air": await OpenAirPath(path); break;
-                case ".def":
-                    if (await PrepareTabForProject(path)) await RunProjectOpen(() => OpenDefFile(path));
-                    break;
+                case ".def": await OpenDefWithTabPrompt(path); break;
                 case ".act" or ".pal" or ".rgba": await ImportPaletteFiles([(Path.GetFileName(path), path)]); break;
                 default: OpenFile(path); break;
             }
@@ -383,36 +381,32 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// Opens every file a character's .def points at. This workflow reads the
-    /// definition only to find those files; embedded animation edits use the
+    /// Opens a character, stage, screenpack, lifebar or storyboard .def with every file it
+    /// points at; the kind is detected (see DetectDefKind). Embedded animation edits use the
     /// Animations tab's definition-source workflow.
     /// </summary>
-    private async void OnOpenCharacter(object? sender, RoutedEventArgs e)
+    private async void OnOpenDef(object? sender, RoutedEventArgs e)
     {
         try
         {
             var files = await PickOpen(new FilePickerOpenOptions
             {
-                Title = "Open Character",
+                Title = "Open .def",
                 AllowMultiple = false,
-                FileTypeFilter = [new FilePickerFileType("Character definitions") { Patterns = ["*.def"] }],
+                FileTypeFilter = [new FilePickerFileType("Definitions") { Patterns = ["*.def"] }],
             });
             if (files.Count == 0 || files[0].TryGetLocalPath() is not { } path) return;
-            if (!await PrepareTabForProject(path)) return;
-            await RunProjectOpen(() => OpenCharacterFile(path));
+            await OpenDefWithTabPrompt(path);
         }
         catch (Exception ex)
         {
-            await Failed("OnOpenCharacter", ex);
+            await Failed("OnOpenDef", ex);
         }
     }
 
     /// <summary>
-    /// Loads every file a character's .def points at. Pulled out of
-    /// OnOpenCharacter so Open Recent can reopen a .def the same way instead
-    /// of routing it through the sprite-only OpenFile (which silently failed
-    /// to parse a .def as an .sff — the actual "Open Recent doesn't work"
-    /// bug for characters).
+    /// Loads every file a character's .def points at. Reached through OpenDefAs,
+    /// never the sprite-only OpenFile (which can't parse a .def).
     /// </summary>
     private async Task OpenCharacterFile(string path)
     {
@@ -425,13 +419,6 @@ public partial class MainWindow
         {
             CrashLog.Write("OpenCharacterFile", ex);
             await Dialogs.ShowMessage(this, "Could Not Read the Character Definition", ex.Message);
-            return;
-        }
-
-        if (def.SpritePath is null && def.StageSpritePath is not null)
-        {
-            await Dialogs.ShowMessage(this, "Could Not Read the Character Definition",
-                "This looks like a stage .def (a [BGdef] spr= line, not [Files] sprite=) — try Open Stage instead.");
             return;
         }
 
@@ -495,24 +482,58 @@ public partial class MainWindow
         // A .def opens several formats at once, so there's no single relevant tab: stay put.
     }
 
+    private enum DefKind { Character, Stage, Other }
+
     /// <summary>
-    /// Opens a .def as a character, stage, or screenpack/lifebar/storyboard. A character .def has
-    /// [Files] sprite=; a stage .def has [BGdef] spr= instead; OpenOtherDefFile tells the rest apart.
+    /// Tells a .def's kind by its sprite line: [Files] sprite= (character), [BGdef] spr= (stage),
+    /// else [Files] spr=/sff= or [SceneDef] spr= (screenpack/lifebar/storyboard, see
+    /// OpenOtherDefFile). Null, after a popup, when it can't be read or matches none.
     /// </summary>
-    private async Task OpenDefFile(string path)
+    private async Task<DefKind?> DetectDefKind(string path)
     {
-        bool isStage = false, isOther = false;
+        Def.DefFile def;
         try
         {
-            var peek = Def.DefFile.Open(path);
-            isStage = peek.SpritePath is null && peek.StageSpritePath is not null;
-            isOther = peek.SpritePath is null && peek.StageSpritePath is null
-                && (peek.ScreenpackSpritePath is not null || peek.LifebarSpritePath is not null || peek.StoryboardSpritePath is not null);
+            def = Def.DefFile.Open(path);
         }
-        catch { /* let OpenCharacterFile below report the real error */ }
-        if (isStage) await OpenStageFile(path);
-        else if (isOther) await OpenOtherDefFile(path);
-        else await OpenCharacterFile(path);
+        catch (Exception ex)
+        {
+            CrashLog.Write("DetectDefKind", ex);
+            await Dialogs.ShowMessage(this, "Could Not Read the Definition", ex.Message);
+            return null;
+        }
+        if (def.SpritePath is not null) return DefKind.Character;
+        if (def.StageSpritePath is not null) return DefKind.Stage;
+        if (def.ScreenpackSpritePath is not null || def.LifebarSpritePath is not null || def.StoryboardSpritePath is not null)
+            return DefKind.Other;
+
+        CrashLog.Error("DetectDefKind", $"no character, stage, screenpack, lifebar or storyboard sprite line: {path}");
+        await Dialogs.ShowMessage(this, "Could Not Open the Definition",
+            $"{Path.GetFileName(path)} isn't a character, stage, screenpack, lifebar or storyboard .def: "
+            + "it has none of their sprite lines ([Files] sprite=, spr= or sff=, [BGdef] spr=, [SceneDef] spr=).");
+        return null;
+    }
+
+    private Task OpenDefAs(string path, DefKind kind) => kind switch
+    {
+        DefKind.Stage => OpenStageFile(path),
+        DefKind.Other => OpenOtherDefFile(path),
+        _ => OpenCharacterFile(path),
+    };
+
+    /// <summary>Detects and opens a .def into the current tab with no tab prompt (Load Session).</summary>
+    private async Task OpenDefFile(string path)
+    {
+        if (await DetectDefKind(path) is { } kind) await OpenDefAs(path, kind);
+    }
+
+    /// <summary>Open .def, Open Recent and "Open with": detects the kind first, so an unreadable or
+    /// unknown .def leaves the tab untouched, then asks New Tab / Current Tab as usual.</summary>
+    private async Task OpenDefWithTabPrompt(string path)
+    {
+        if (await DetectDefKind(path) is not { } kind) return;
+        if (!await PrepareTabForProject(path)) return;
+        await RunProjectOpen(() => OpenDefAs(path, kind));
     }
 
     /// <summary>Logs a .def's references found only by ignoring letter case; returns the status-bar note (empty if none).</summary>
@@ -524,26 +545,6 @@ public partial class MainWindow
             CrashLog.Error("Def", $"{p} not found, and several files match it ignoring letter case; treated as missing");
         int n = def.CaseMatches.Count;
         return n == 0 ? "" : $". {n} path{(n == 1 ? "" : "s")} matched by ignoring letter case";
-    }
-
-    private async void OnOpenStage(object? sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var files = await PickOpen(new FilePickerOpenOptions
-            {
-                Title = "Open Stage",
-                AllowMultiple = false,
-                FileTypeFilter = [new FilePickerFileType("Stage definitions") { Patterns = ["*.def"] }],
-            });
-            if (files.Count == 0 || files[0].TryGetLocalPath() is not { } path) return;
-            if (!await PrepareTabForProject(path)) return;
-            await RunProjectOpen(() => OpenStageFile(path));
-        }
-        catch (Exception ex)
-        {
-            await Failed("OnOpenStage", ex);
-        }
     }
 
     /// <summary>
@@ -582,9 +583,7 @@ public partial class MainWindow
         if (def.StageSpritePath is null)
         {
             await Dialogs.ShowMessage(this, "Could Not Read the Stage Definition",
-                def.SpritePath is not null
-                    ? "This looks like a character .def (a [Files] sprite= line, not [BGdef] spr=) — try Open Character instead."
-                    : "No [BGdef] spr= line found — this doesn't look like a stage .def.");
+                "No [BGdef] spr= line found — this doesn't look like a stage .def.");
             return;
         }
 
@@ -629,35 +628,12 @@ public partial class MainWindow
         // A .def opens several formats at once, so there's no single relevant tab: stay put.
     }
 
-    private async void OnOpenOther(object? sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var files = await PickOpen(new FilePickerOpenOptions
-            {
-                Title = "Open Other (Screenpack / Lifebar / Storyboard)",
-                AllowMultiple = false,
-                FileTypeFilter = [new FilePickerFileType("Definitions") { Patterns = ["*.def"] }],
-            });
-            if (files.Count == 0 || files[0].TryGetLocalPath() is not { } path) return;
-            if (!await PrepareTabForProject(path)) return;
-            await RunProjectOpen(() => OpenOtherDefFile(path));
-        }
-        catch (Exception ex)
-        {
-            await Failed("OnOpenOther", ex);
-        }
-    }
-
     /// <summary>
     /// Loads whichever of screenpack/lifebar/storyboard the .def turns out
-    /// to be, detected the same way Open Recent tells the def formats apart:
-    /// SpritePath (character) and StageSpritePath (stage) ruled out first,
-    /// then ScreenpackSpritePath, then LifebarSpritePath, then
-    /// StoryboardSpritePath. One shared method rather than three
-    /// near-identical ones (they only differed in which DefFile field to
-    /// read and whether a sound file exists) — see AGENTS.md for why the
-    /// menu is "Open Other" rather than three separate entries.
+    /// to be (DetectDefKind has ruled out character and stage): ScreenpackSpritePath,
+    /// then LifebarSpritePath, then StoryboardSpritePath. One shared method rather
+    /// than three near-identical ones (they only differed in which DefFile field to
+    /// read and whether a sound file exists).
     ///
     /// Loads the sprite (+ sound, for screenpack/lifebar) plus any
     /// [Begin Action] blocks the .def embeds, same shape as OpenStageFile.
@@ -682,19 +658,6 @@ public partial class MainWindow
         {
             CrashLog.Write("OpenOtherDefFile", ex);
             await Dialogs.ShowMessage(this, "Could Not Read the Definition", ex.Message);
-            return;
-        }
-
-        if (def.SpritePath is not null)
-        {
-            await Dialogs.ShowMessage(this, "Could Not Read the Definition",
-                "This looks like a character .def (a [Files] sprite= line) — try Open Character instead.");
-            return;
-        }
-        if (def.StageSpritePath is not null)
-        {
-            await Dialogs.ShowMessage(this, "Could Not Read the Definition",
-                "This looks like a stage .def (a [BGdef] spr= line) — try Open Stage instead.");
             return;
         }
 
@@ -1573,16 +1536,16 @@ public partial class MainWindow
                     if (!_projectOpening) await LoadSessionFile(path);
                     return;
                 }
-                bool isDef = string.Equals(Path.GetExtension(path), ".def", StringComparison.OrdinalIgnoreCase);
-                bool opensSff = isDef || Path.GetExtension(path).Equals(".sff", StringComparison.OrdinalIgnoreCase);
                 MainMenu.Close(); // before any prompt, so the menu doesn't sit over it
-                if (!await (isDef
-                    ? PrepareTabForProject(path)
-                    : ConfirmDiscard(resolveStandalone: !opensSff))) return;
-                if (!isDef && opensSff && !await ConfirmStandalonePalettesForSff()) return;
-
-                if (isDef) await RunProjectOpen(() => OpenDefFile(path));
-                else await OpenFileInBackground(path);
+                if (Path.GetExtension(path).Equals(".def", StringComparison.OrdinalIgnoreCase))
+                {
+                    await OpenDefWithTabPrompt(path);
+                    return;
+                }
+                bool opensSff = Path.GetExtension(path).Equals(".sff", StringComparison.OrdinalIgnoreCase);
+                if (!await ConfirmDiscard(resolveStandalone: !opensSff)) return;
+                if (opensSff && !await ConfirmStandalonePalettesForSff()) return;
+                await OpenFileInBackground(path);
                 MainMenu.Close();
             };
             items.Add(item);

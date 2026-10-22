@@ -2097,7 +2097,7 @@ public partial class MainWindow : Window
         }
         if (e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.O)
         {
-            OnOpenCharacter(this, new RoutedEventArgs());
+            OnOpenDef(this, new RoutedEventArgs());
             e.Handled = true;
             return;
         }
@@ -2207,8 +2207,8 @@ public partial class MainWindow : Window
             [
                 ("File",
                 [
-                    ("Ctrl+O", "Open"),
-                    ("Ctrl+Shift+O", "Open Character"),
+                    ("Ctrl+O", "Open .sff"),
+                    ("Ctrl+Shift+O", "Open .def"),
                     ("Ctrl+S", "Save"),
                     ("Ctrl+Shift+S", "Save As"),
                     ("Ctrl+T", "New Tab"),

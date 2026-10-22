@@ -10,10 +10,8 @@
 
     <Menu x:Name="MainMenu" DockPanel.Dock="Top" Background="{DynamicResource ThemePanelBg}">
       <MenuItem Header="_File">
-        <MenuItem Header="_Open Character" Click="OnOpenCharacter" InputGesture="Ctrl+Shift+O" />
-        <MenuItem Header="Open _Stage" Click="OnOpenStage" />
-        <MenuItem Header="Open _Other" Click="OnOpenOther"
-                  ToolTip.Tip="Opens a screenpack, lifebar or storyboard .def with its sprites and sounds." />
+        <MenuItem Header="_Open .def" Click="OnOpenDef" InputGesture="Ctrl+Shift+O"
+                  ToolTip.Tip="Opens a character, stage, screenpack, lifebar or storyboard .def with the files it points to." />
         <MenuItem Header="Open _Recent" x:Name="RecentMenu" />
         <Separator />
         <MenuItem Header="Save _All" Click="OnSaveAll" />
@@ -60,7 +58,7 @@
       <MenuItem Header="_Sprites">
         <MenuItem Header="_New Sprite File" Click="OnNewSff"
                   ToolTip.Tip="Starts a blank sprite file in place of the open one." />
-        <MenuItem Header="_Open" Click="OnOpen" InputGesture="Ctrl+O" />
+        <MenuItem Header="_Open .sff" Click="OnOpen" InputGesture="Ctrl+O" />
         <!-- Ctrl+S is global and tab-aware (saves whichever tab is active) rather
              than tied to this one item; see OnKeyDown/SaveCurrentTab in the
              code-behind, and Help > Keyboard Shortcuts. -->

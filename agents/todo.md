@@ -138,7 +138,7 @@ before a release. Remove items once they're done or checked.
     discard prompt. Stop playback and cancel picks, drags and the eyedropper. Then rerun
     the post-load refresh and restore the tab's selection without marking it dirty
     or recording undo.
-  - Open Character/Stage/Other release the busy lock between the background SFF and
+  - Open .def releases the busy lock between the background SFF and
     SND reads; hold one lock across the whole open so a tab click can't land mid-load.
   - Stages: (1) Document class plus forwarding properties on MainWindow, no behavior
     change; (2) switch routine; (3) tab strip, open/close/quit flows, busy lock;
@@ -163,7 +163,11 @@ Built, but not tried by the maintainer yet.
 - Windows "Open with" (launch argument) routes by extension like the menus; before, every
   file was parsed as SFF. Double-click each with the editor as handler: .sff (sprites only),
   .snd (Sounds tab), .air (Animations tab), .def (character/stage/other, all its files),
-  .act/.pal/.rgba (standalone palette), .imesession. Also drop a .snd on the window: it
+  .act/.pal/.rgba (standalone palette), .imesession.
+- File > Open .def (Ctrl+Shift+O) replaced Open Character/Stage/Other: open a character,
+  a stage and a screenpack through it and through Open Recent; a SprMaker input .def
+  (working/rawtest) shows "Could Not Open the Definition" with no tab prompt and the
+  tab unchanged. Help > Keyboard Shortcuts lists "Open .def". Also drop a .snd on the window: it
   opens in the Sounds tab and the open SFF stays.
 - Make report windows have selectable text
 - Release build: double-clicking the exe opens no console window; Debug still shows one.

@@ -16,7 +16,7 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Project tabs** (basic, `MainWindow.ProjectTabs.cs`): a strip above the Sprites/Palettes/
   Animations/Sounds tabs, one tab per `Document`. Label: the .def's name= field, else the .def
   file name, else the first loaded file's name, else "Untitled"; repeats get " (2)"; "* " when unsaved; tooltip shows
-  the path. Open Character/Stage/Other and Open Recent .defs ask Open in New Tab / Open in
+  the path. Open .def, Open Recent and "Open with" .defs ask Open in New Tab / Open in
   Current Tab / Cancel after the file is picked, unless the tab is empty; single files load
   into the current tab. New Tab (Ctrl+T, "+"; always added at the right end), Close Tab (Ctrl+W, ✕, middle-click; the last
   tab is emptied, not removed), Ctrl+Tab / Ctrl+Shift+Tab. Drag a tab to reorder
@@ -58,7 +58,7 @@ and constraints that are easy to miss when reading one code path in isolation.
   path are skipped (status bar). Loading (menu, Open Recent, or dropping the file) asks
   Replace / Append when any tab is in use; Replace runs each unsaved tab's check first, like
   quitting. Missing files are skipped and listed afterwards. Not reopened on startup.
-  `OpenDefFile` routes a .def to the character/stage/other loader (shared with Open Recent).
+  `OpenDefFile` routes a .def to the character/stage/other loader without a tab prompt.
 - **DEF animation source**: for characters, `[Files] anim=` `.air` is authoritative
   even when the character `.def` also contains embedded actions. Embedded actions
   can be edited and saved back to the same `.def`; existing action sections stay
@@ -73,9 +73,15 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Open Recent**: Delete removes the hovered (or arrow-highlighted) entry from
   the list and keeps the menu open. The file on disk is untouched; no confirmation.
   Clicking an entry whose file is gone removes it and shows a "File not found" popup.
-- **Open Character**: after the definition parses and is confirmed to be a
-  character rather than a stage, all prior open files are cleared before loading
-  its references. Missing or unreadable references therefore cannot leave an
+- **Open .def** (File menu, Ctrl+Shift+O): one entry for every .def kind; it replaced
+  Open Character, Open Stage and Open Other, since Open Recent and "Open with" detected the
+  kind anyway. `DetectDefKind` reads the sprite line: [Files] sprite= (character), [BGdef]
+  spr= (stage), [Files] spr=/sff= or [SceneDef] spr= (screenpack/lifebar/storyboard). A .def
+  matching none (e.g. a SprMaker 2.01 input .def) or unreadable gets a popup before the tab
+  prompt, so the tab is untouched. `OpenDefWithTabPrompt` is shared by the menu, Open Recent
+  and the launch file.
+- **Opening a character**: after the definition parses, all prior open files are cleared
+  before loading its references. Missing or unreadable references therefore cannot leave an
   unrelated previous asset active.
 - **Saving**: Before overwriting, saves retain `BackupCount` prior versions
   (`.bak`, `.bak.1`…; settings.json, default
