@@ -1045,7 +1045,7 @@ public partial class MainWindow : Window
         // below used to fire OnSpriteSelected and re-decode the sprite on the
         // way past. The one RefreshSprite at the end covers all of it.
         _suppressEvents = true;
-        ApplyFilter();
+        ApplyFilter(keepScroll: true);
         RestoreSpriteSelection(selectedSprites);
         // Only re-select when the current sprite isn't selected already: the rows now survive an
         // edit, so re-selecting unconditionally would collapse a multi-selection to one row (and

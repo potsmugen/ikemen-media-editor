@@ -40,7 +40,9 @@ public partial class MainWindow
 
     /// <summary>Filters by group, or by group and number when a comma is typed. Returns true when
     /// the table's rows were replaced, false when they were refreshed where they were.</summary>
-    private bool ApplyFilter()
+    /// <param name="keepScroll">After an edit: put the scroll position back when the rows are replaced
+    /// (a fresh ItemsSource drops it), so adding a row doesn't move the list.</param>
+    private bool ApplyFilter(bool keepScroll = false)
     {
         if (_file is null) return false;
 
@@ -62,10 +64,19 @@ public partial class MainWindow
         // the right row — was the actual bug, not which row ended up selected).
         // A direct filter-box edit isn't suppressed to begin with, so it still
         // fires normally and refreshes the view for the new top row.
+        var scroller = keepScroll ? SpriteList.FindDescendantOfType<ScrollViewer>() : null;
+        var offset = scroller?.Offset;
         bool wasSuppressed = _suppressEvents;
         _suppressEvents = true;
         bool replaced = RebuildSpriteTable();
         _suppressEvents = wasSuppressed;
+        if (replaced && scroller is not null && offset is { } before)
+        {
+            SpriteList.UpdateLayout();
+            double max = Math.Max(0, scroller.Extent.Height - scroller.Viewport.Height);
+            scroller.Offset = new Vector(before.X, Math.Clamp(before.Y, 0, max));
+            SpriteList.UpdateLayout();
+        }
 
         if (_visible.Count > 0)
         {
@@ -504,9 +515,12 @@ public partial class MainWindow
     }
 
     /// <summary>Scrolls the sprite table so the row sits in the middle of the visible area,
-    /// clamped to the ends of the list.</summary>
+    /// clamped to the ends of the list. A row already fully in view stays where it is.</summary>
     private void CenterSpriteRow(int row)
     {
+        if (SpriteList.FindDescendantOfType<ScrollViewer>() is { } view && SpriteList.ContainerFromIndex(row) is Control shown
+            && shown.TranslatePoint(new Point(0, 0), view) is { } at && at.Y >= 0 && at.Y + shown.Bounds.Height <= view.Viewport.Height)
+            return;
         // Bring the row into view first so its container is realized, then center it.
         SpriteList.ScrollIntoView(row);
         SpriteList.UpdateLayout();
@@ -1476,6 +1490,8 @@ public partial class MainWindow
         try
         {
             if (_file is not { } file || _current is not { } source) return;
+            var selected = SelectedSpriteTargets();
+            if (selected.Count > 1) { await DuplicateSprites(file, selected); return; }
             if (!source.HasPixels)
             {
                 StatusText.Text = $"Nothing to duplicate \u2014 sprite {source.Group},{source.Index} has no pixels.";
@@ -1490,18 +1506,7 @@ public partial class MainWindow
                 return;
             }
 
-            var copy = new Sprite
-            {
-                Group = group, Index = index,
-                Width = source.Width, Height = source.Height,
-                AxisX = source.AxisX, AxisY = source.AxisY,
-                Palette = source.Palette,
-                Indexed = source.Indexed?.ToArray(),
-                Direct = source.Direct?.ToArray(),
-                SrcFormat = source.SrcFormat,
-                SrcDepth = source.SrcDepth,
-            };
-
+            var copy = DuplicateOf(source, index);
             int at = file.PositionOf(source) + 1;
             Edit("duplicate sprite",
                 () => { file.Insert(at, copy); _current = copy; },
@@ -1513,6 +1518,74 @@ public partial class MainWindow
         {
             await Failed("OnDuplicateSprite", ex);
         }
+    }
+
+    /// <summary>An unlinked copy of the sprite's pixels, axis and palette under a new number.</summary>
+    private static Sprite DuplicateOf(Sprite source, int index) => new()
+    {
+        Group = source.Group, Index = index,
+        Width = source.Width, Height = source.Height,
+        AxisX = source.AxisX, AxisY = source.AxisY,
+        Palette = source.Palette,
+        Indexed = source.Indexed?.ToArray(),
+        Direct = source.Direct?.ToArray(),
+        SrcFormat = source.SrcFormat,
+        SrcDepth = source.SrcDepth,
+    };
+
+    /// <summary>
+    /// Several sprites: per group, the copies go in one block right after that group's last
+    /// selected sprite, in file order, numbered from the group's next free index. One undo
+    /// step; the copies end up selected. Sprites without pixels are skipped and named.
+    /// </summary>
+    private async Task DuplicateSprites(SffFile file, List<Sprite> selected)
+    {
+        var sources = selected.Where(s => s.HasPixels).OrderBy(file.PositionOf).ToList();
+        var skipped = selected.Where(s => !s.HasPixels).Select(s => $"{s.Group},{s.Index}").ToList();
+        if (sources.Count == 0) { StatusText.Text = "Nothing to duplicate: the selected sprites have no pixels."; return; }
+
+        // (insert after this original, copies) per group, laid out against the file as it is now.
+        var blocks = new List<(Sprite After, List<Sprite> Copies)>();
+        foreach (var group in sources.GroupBy(s => s.Group))
+        {
+            var used = file.Sprites.Where(s => s.Group == group.Key).Select(s => s.Index).ToHashSet();
+            var copies = new List<Sprite>();
+            int next = 0;
+            foreach (var source in group)
+            {
+                while (used.Contains(next)) next++;
+                if (next > 65535)
+                {
+                    await Dialogs.ShowMessage(this, "Duplicate Sprites", $"Group {group.Key} has no free number left for every copy.");
+                    return;
+                }
+                used.Add(next);
+                copies.Add(DuplicateOf(source, next));
+            }
+            blocks.Add((group.Last(), copies));
+        }
+
+        var all = blocks.SelectMany(b => b.Copies).ToList();
+        var before = _current;
+        Edit(all.Count == 1 ? "duplicate sprite" : $"duplicate {all.Count} sprites",
+            () =>
+            {
+                // Each block goes in after its group's last original; positions are looked up as they stand.
+                foreach (var (after, copies) in blocks)
+                {
+                    int at = file.PositionOf(after) + 1;
+                    for (int i = 0; i < copies.Count; i++) file.Insert(at + i, copies[i]);
+                }
+                _current = all[0];
+            },
+            () => { foreach (var copy in all) file.Remove(copy); _current = before; });
+        MarkDirty();
+
+        var rows = all.Select(c => _visible.IndexOf(file.PositionOf(c))).Where(r => r >= 0).ToList();
+        ApplySpriteRowSelection(rows, suppressEvents: true);
+        CrashLog.Trace($"[sprites] duplicated {all.Count} sprites");
+        StatusText.Text = $"Duplicated {all.Count} sprite{(all.Count == 1 ? "" : "s")}."
+            + (skipped.Count > 0 ? $" Skipped (no pixels): {string.Join(", ", skipped.Take(5))}{(skipped.Count > 5 ? ", …" : "")}." : "");
     }
 
     /// <summary>Imports one or more images as new sprites just after the selected one.</summary>

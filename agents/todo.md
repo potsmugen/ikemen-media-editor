@@ -5,6 +5,8 @@ before a release. Remove items once they're done or checked.
 
 ## To do, easiest first
 
+- Make what a duplicate leaves selected (originals or copies) consistent across tabs. Sprites
+  select the copies; check actions, frames, palettes and sounds and pick one rule.
 - Customizable hotkeys. Shortcuts are hardcoded in OnKeyDown (MainWindow.axaml.cs); menu
   InputGesture text and Help > Keyboard Shortcuts are separate hand-kept copies. Move to an
   action-to-key table in settings that all three read, plus a rebinding UI (design undecided).
