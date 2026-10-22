@@ -127,7 +127,7 @@ public sealed record SimilarSpriteChoices(SimilarityChoice Level, bool RequireSa
 /// catches, and the percentage the scan runs at (see Settings.SimilarExactPercent).</summary>
 public sealed record SimilarityChoice(string Label, string Detail, int Percent);
 
-public static class Dialogs
+public static partial class Dialogs
 {
     /// <summary>
     /// Looks up a themed brush by resource key. Dialogs are short-lived (built,
@@ -151,10 +151,11 @@ public static class Dialogs
     /// columns line up whatever the font size or window width — something space-padded
     /// text in a proportional font cannot do.
     /// </summary>
-    public static Task ShowShortcuts(Window owner, string title,
+    /// <returns>True when Customize was pressed (the caller opens Preferences > Shortcuts).</returns>
+    public static Task<bool> ShowShortcuts(Window owner, string title,
         IReadOnlyList<(string Section, (string Chord, string Text)[] Items)> sections)
     {
-        var result = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var result = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var mono = new FontFamily("Consolas,Menlo,monospace");
         var grid = new Grid
@@ -212,7 +213,10 @@ public static class Dialogs
             ShowInTaskbar = false,
         };
 
-        ok.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
+        var customize = new Button { Content = "Customize", MinWidth = 90 };
+        ToolTip.SetTip(customize, "Opens Preferences on the Shortcuts tab.");
+        ok.Click += (_, _) => { result.TrySetResult(false); dialog.Close(); };
+        customize.Click += (_, _) => { result.TrySetResult(true); dialog.Close(); };
         dialog.Content = new StackPanel
         {
             Margin = new Avalonia.Thickness(20),
@@ -224,11 +228,12 @@ public static class Dialogs
                 {
                     Orientation = Orientation.Horizontal,
                     HorizontalAlignment = HorizontalAlignment.Right,
-                    Children = { ok },
+                    Spacing = 8,
+                    Children = { customize, ok },
                 },
             },
         };
-        dialog.Closed += (_, _) => result.TrySetResult(null);
+        dialog.Closed += (_, _) => result.TrySetResult(false);
         dialog.Opened += (_, _) => ok.Focus();
 
         dialog.ShowDialog(owner);
@@ -3397,7 +3402,8 @@ public static class Dialogs
     public static Task<PreferencesValues?> PromptPreferences(Window owner, PreferencesValues initial, PreferencesValues defaults,
         IReadOnlyList<string> themeNames,
         double minScale, double maxScale, CanvasLimits limits, Func<Window, string, string?, Task<string?>> pickImage,
-        Func<Color> themeCanvasColor, Action<PreferencesValues> preview)
+        Func<Color> themeCanvasColor, Action<PreferencesValues> preview,
+        Dictionary<string, Chord?> shortcuts, IReadOnlyDictionary<Avalonia.Input.Key, string> menuKeys, string? startTab = null)
     {
         var result = new TaskCompletionSource<PreferencesValues?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -3600,6 +3606,8 @@ public static class Dialogs
             page.Width = pageWidth;
             page.Height = pageHeight;
         }
+        // Left out of the measuring above: it takes the other pages' size and scrolls, however many commands there are.
+        var shortcutsPage = ShortcutsPage(dialog, shortcuts, menuKeys, pageWidth, pageHeight);
         var preferenceTabs = new TabControl
         {
             MinWidth = pageWidth,
@@ -3609,8 +3617,11 @@ public static class Dialogs
                 Tab("Appearance", appearance),
                 Tab("Background", backgroundPage),
                 Tab("Crosshair", crosshairPage),
+                Tab("Shortcuts", shortcutsPage),
             },
         };
+        if (startTab is not null)
+            preferenceTabs.SelectedItem = preferenceTabs.Items.OfType<TabItem>().FirstOrDefault(t => Equals(t.Header, startTab));
 
         dialog.Content = new StackPanel
         {

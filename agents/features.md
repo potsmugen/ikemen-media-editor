@@ -211,16 +211,15 @@ and constraints that are easy to miss when reading one code path in isolation.
   whether it lands on the sprite, inside the selection, or on the canvas outside the sprite. Only
   a drag selects (so no 1×1 selection from a click) or moves; a drag off the sprite still pans.
 - **Paint history**: a pending paint session has its own undo/redo (`MainWindow.PaintHistory.cs`):
-  one step per stroke or fill, paste, selection drag, layer add/delete/merge, layer show/hide,
-  and Reset (undoable, the session stays open). Edit > Undo/Redo name the step. Commit and
+  one step per stroke or fill, paste, selection drag, layer add/delete/merge and layer show/hide.
+  Edit > Undo/Redo name the step. Commit and
   Reset grey out once undo reaches the start; Ctrl+Z then closes the empty session and
   continues in the main history (dropping paint redo). If older steps were dropped
   (settings.json `PaintUndoLimit`, default 100) and changes remain, Undo stops with a status
-  note. Commit records the session as one main step and clears the paint history, as do
-  Discard and leaving the sprite.
+  note. Commit records the session as one main step and clears the paint history; Reset and
+  Discard drop the session and its history with no undo, like the Sounds tab's Reset.
 - **Pending sessions**: Paint Mode and sound edits apply live, one undo on
-  Commit (both also have Reset: paint's is undoable, see Paint history; sound's discards;
-  both enabled only while edits are pending); switching away or leaving Paint Mode asks Commit/Discard/Cancel only when there are changes; an empty paint layer or a no-op paint session is dropped silently. Color-slider
+  Commit (both also have Reset = discard, no undo; both enabled only while edits are pending); switching away or leaving Paint Mode asks Commit/Discard/Cancel only when there are changes; an empty paint layer or a no-op paint session is dropped silently. Color-slider
   adjustments survive only via the Commit button — leaving them discards
   silently, without a dialog.
 
@@ -551,6 +550,23 @@ and constraints that are easy to miss when reading one code path in isolation.
 
 ### Reports and configuration
 
+- **Keyboard shortcuts**: one table, `Shortcuts.cs` (id, section, label, scope, default,
+  works-in-text-boxes), drives `OnKeyDown`, the project-tab tunnel handler (Tabs section), menu
+  gesture text (`ApplyMenuGestures`) and Help > Keyboard Shortcuts (plus fixed navigation rows).
+  settings.json `Shortcuts` holds only changed bindings ("" = none); bad entries fall back and are
+  logged. Scopes: Everywhere, Animations tab; the more specific wins. Built-in navigation (list
+  arrows, Page/Home/End, Delete, Escape, Enter/Tab in tables, Shift-drag, Ctrl/Shift-click) isn't
+  in the table. Open, Save and Save As act on the current tab (`OpenCurrentTab`, `SaveCurrentTab`,
+  `SaveAsCurrentTab`); Ctrl+O shows on each tab's Open menu item. Zoom in/out default to Ctrl+Plus/Minus (with
+  Ctrl+0 actual size, the usual convention); numpad +/- count as main +/-, which also match
+  with Shift added. Preferences > Shortcuts
+  (`Dialogs.ShortcutsPage`) is a table (Where, Command, Shortcut) ordered by Where, then table
+  order; no filter or section column. It's left out of the page measuring so the window
+  keeps its size; double-click a Shortcut cell or press Enter/F2 on the selected row to capture
+  (Escape cancels, modifiers alone wait; leaving the table or the window cancels too). Conflicts in
+  overlapping scopes ask to move the key; keys built-in navigation uses, and Alt+letter keys that
+  open a menu (`MenuAccessKeys`), ask first; Alt+F4 is refused. One binding per command. Each tab's
+  Open and Save menu items show Ctrl+O and Ctrl+S.
 - **Media Health Report** excludes external palettes from SFF palette counts
   and comparisons. Group 1 palettes are excluded from the unused count because
   a character can select them in-game without an SFF sprite referencing them.

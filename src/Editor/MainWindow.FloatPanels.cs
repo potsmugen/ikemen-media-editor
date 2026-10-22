@@ -131,6 +131,8 @@ public partial class MainWindow
             if (saved?.RolledUp == true) p.SetRolledUp?.Invoke(true);
         }
         window.KeyDown += (_, e) => { if (!e.Handled) ForwardFloatingKey(window, e); };
+        // Tab shortcuts (Ctrl+Tab and the like) need the tunnel, as on the main window, or focus navigation takes them.
+        window.AddHandler(KeyDownEvent, OnProjectTabKeyDown, RoutingStrategies.Tunnel);
         WireListNavKeys(window);
         window.Closed += (_, _) => { if (ReferenceEquals(p.Window, window) && !_mainClosing) Dock(p, closeWindow: false); };
         p.Window = window;

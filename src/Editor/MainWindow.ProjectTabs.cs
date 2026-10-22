@@ -479,19 +479,17 @@ public partial class MainWindow
         try
         {
             if (_busy || _projectOpening) return;
-            bool ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
-            bool shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
-            bool alt = e.KeyModifiers.HasFlag(KeyModifiers.Alt);
-            if (!ctrl || alt) return;
-            if (e.Key == Key.Tab)
+            // Tunnel: sees Ctrl+Tab before focus navigation does. Bindings come from Shortcuts.cs.
+            if (MatchShortcut(e) is not { Section: Shortcuts.TabsSection } command) return;
+            e.Handled = true;
+            CrashLog.Trace($"[shortcut] {command.Id}");
+            switch (command.Id)
             {
-                e.Handled = true;
-                if (_docs.Count < 2) return;
-                int at = _docs.IndexOf(_doc) + (shift ? -1 : 1);
-                await SwitchToDocument(_docs[(at + _docs.Count) % _docs.Count]);
+                case "NextTab": await StepProjectTab(1); break;
+                case "PreviousTab": await StepProjectTab(-1); break;
+                case "NewTab": await AddProjectTab(); break;
+                case "CloseTab": await CloseProjectTab(_doc); break;
             }
-            else if (e.Key == Key.T && !shift) { e.Handled = true; await AddProjectTab(); }
-            else if (e.Key == Key.W && !shift) { e.Handled = true; await CloseProjectTab(_doc); }
         }
         catch (Exception ex)
         {

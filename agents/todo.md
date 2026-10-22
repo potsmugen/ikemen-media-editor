@@ -7,11 +7,14 @@ before a release. Remove items once they're done or checked.
 
 - Make what a duplicate leaves selected (originals or copies) consistent across tabs. Sprites
   select the copies; check actions, frames, palettes and sounds and pick one rule.
-- Customizable hotkeys. Shortcuts are hardcoded in OnKeyDown (MainWindow.axaml.cs); menu
-  InputGesture text and Help > Keyboard Shortcuts are separate hand-kept copies. Move to an
-  action-to-key table in settings that all three read, plus a rebinding UI (design undecided).
+- Customizable shortcuts: built, not compiled yet. See features.md "Keyboard shortcuts". Left:
+  - Build and fix compile errors (Shortcuts.cs, MainWindow.Shortcuts.cs, Dialogs.Shortcuts.cs).
+  - Column widths measure at the largest of the dialog, window and tab font sizes (style-set sizes
+    aren't applied yet when the page is built); check "Animations tab" fits at large font scales.
+  - Later: more commands (shift sprite axis with arrows on the focused canvas, paint tools, Commit).
+- Audit for Sprites-only assumptions left from when SFF was the only format (Ctrl+O, Ctrl+F and
+  Escape-in-a-text-box were three, fixed with the shortcuts).
 - First time saving a file doesn't need to make a backup of it
-- Duplicating animation should add the new one under the duplicated one
 - Saves that change a file the user didn't edit, like the Global Shared Palette popup;
   decide per case whether to keep the bytes or tell the user (verified on real files):
   - Plain Save of SFFv1 re-encodes every PCX (`SffV1Writer`), dropping PCX header
@@ -151,6 +154,19 @@ before a release. Remove items once they're done or checked.
 ## Not yet checked in the app
 
 Built, but not tried by the maintainer yet.
+
+- Shortcuts: every default still works (Ctrl+S/Shift+S/F in a text box too, Ctrl+Tab/T/W, frame
+  Ctrl+C/V only on Animations, zoom with Ctrl+Plus/Minus (main and numpad, also
+  Ctrl+=) while plain +/- no longer zoom; Ctrl+O opens the current tab's file: .sff,
+  palette import, .air/.def, .snd). Preferences > Shortcuts: same window size as before; columns
+  Where, Command, Shortcut, ordered by Where (Everywhere first); double-click a Shortcut cell, press keys (Tab and
+  Ctrl+Tab are captured, Escape cancels, Shift alone waits); a used key asks to move it; Left
+  warns about list navigation; right-click Reset/Remove; changed rows bold with the default in
+  the tooltip; Reset to Defaults; Cancel discards; OK updates menus and Help, and settings.json
+  Shortcuts holds only changed ones. Help > Keyboard Shortcuts > Customize opens that tab.
+  Enter/F2 on a row captures; clicking elsewhere cancels a capture; Alt+F4 is refused, Alt+F
+  warns about the File menu. Ctrl+F focuses each tab's own filter; Escape in a text box returns
+  to that tab's list; Ctrl+Tab/T/W work with a floating panel focused.
 
 ### Floating panels
 

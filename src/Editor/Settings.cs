@@ -74,6 +74,9 @@ public sealed class Settings
     public double? SpritesListWidth { get; set; }
     // Floating panel windows, keyed by panel body name. Reset Panel Sizes forgets a tab's entries.
     public Dictionary<string, FloatPanelPlacement> FloatingPanels { get; set; } = new();
+    /// <summary>Changed keyboard shortcuts only, command id to text like "Ctrl+Shift+Z"; "" removes
+    /// the shortcut. See Shortcuts.cs; Preferences > Shortcuts writes it.</summary>
+    public Dictionary<string, string> Shortcuts { get; set; } = new();
     public double? SpritesPaletteWidth { get; set; }
     public double? PalettesListWidth { get; set; }
     public double? AnimActionsWidth { get; set; }

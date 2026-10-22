@@ -10,7 +10,7 @@
 
     <Menu x:Name="MainMenu" DockPanel.Dock="Top" Background="{DynamicResource ThemePanelBg}">
       <MenuItem Header="_File">
-        <MenuItem Header="_Open .def" Click="OnOpenDef" InputGesture="Ctrl+Shift+O"
+        <MenuItem Header="_Open .def" x:Name="OpenDefItem" Click="OnOpenDef"
                   ToolTip.Tip="Opens a character, stage, screenpack, lifebar or storyboard .def with the files it points to." />
         <MenuItem Header="Open _Recent" x:Name="RecentMenu" />
         <Separator />
@@ -24,30 +24,30 @@
         <MenuItem Header="Media _Health Report" Click="OnShowHealthReport"
                   ToolTip.Tip="Checks everything loaded for problems." />
         <Separator />
-        <MenuItem Header="New _Tab" Click="OnNewProjectTab" InputGesture="Ctrl+T" />
-        <MenuItem Header="_Close Tab" Click="OnCloseProjectTab" InputGesture="Ctrl+W" />
+        <MenuItem Header="New _Tab" x:Name="NewTabItem" Click="OnNewProjectTab" />
+        <MenuItem Header="_Close Tab" x:Name="CloseTabItem" Click="OnCloseProjectTab" />
         <MenuItem Header="Close _All" Click="OnCloseAll" />
         <Separator />
         <MenuItem Header="E_xit" Click="OnExit" InputGesture="Alt+F4" />
       </MenuItem>
 
       <MenuItem Header="_Edit">
-        <MenuItem Header="_Undo" x:Name="UndoItem" Click="OnUndo" InputGesture="Ctrl+Z" />
-        <MenuItem Header="_Redo" x:Name="RedoItem" Click="OnRedo" InputGesture="Ctrl+Y" />
+        <MenuItem Header="_Undo" x:Name="UndoItem" Click="OnUndo" />
+        <MenuItem Header="_Redo" x:Name="RedoItem" Click="OnRedo" />
       </MenuItem>
 
       <MenuItem Header="{x:Static local:Strings.ViewMenu}">
-        <MenuItem Header="{x:Static local:Strings.ViewZoomIn}" Click="OnZoomIn" />
-        <MenuItem Header="{x:Static local:Strings.ViewZoomOut}" Click="OnZoomOut" />
-        <MenuItem Header="{x:Static local:Strings.ViewActualSize}" Click="OnResetView" InputGesture="Ctrl+D0" />
-        <MenuItem Header="{x:Static local:Strings.ViewZoomToFit}" Click="OnZoomFit" InputGesture="Ctrl+D9" />
+        <MenuItem Header="{x:Static local:Strings.ViewZoomIn}" x:Name="ZoomInItem" Click="OnZoomIn" />
+        <MenuItem Header="{x:Static local:Strings.ViewZoomOut}" x:Name="ZoomOutItem" Click="OnZoomOut" />
+        <MenuItem Header="{x:Static local:Strings.ViewActualSize}" x:Name="ActualSizeItem" Click="OnResetView" />
+        <MenuItem Header="{x:Static local:Strings.ViewZoomToFit}" x:Name="ZoomFitItem" Click="OnZoomFit" />
         <Separator />
         <MenuItem Header="{x:Static local:Strings.ViewShowMask}" x:Name="MaskItem" Click="OnToggleMask"
-                  ToggleType="CheckBox" InputGesture="Ctrl+M" />
+                  ToggleType="CheckBox" />
         <MenuItem Header="{x:Static local:Strings.ViewSpriteBounds}" x:Name="BoundsItem" Click="OnToggleBounds"
-                  ToggleType="CheckBox" InputGesture="Ctrl+B" />
+                  ToggleType="CheckBox" />
         <MenuItem Header="{x:Static local:Strings.ViewAxisGuides}" x:Name="GuidesItem" Click="OnToggleGuides"
-                  ToggleType="CheckBox" InputGesture="Ctrl+G" />
+                  ToggleType="CheckBox" />
         <Separator />
         <MenuItem Header="{x:Static local:Strings.ViewResetPanelSizes}" Click="OnResetPanelSizes" />
         <Separator />
@@ -58,12 +58,11 @@
       <MenuItem Header="_Sprites">
         <MenuItem Header="_New Sprite File" Click="OnNewSff"
                   ToolTip.Tip="Starts a blank sprite file in place of the open one." />
-        <MenuItem Header="_Open .sff" Click="OnOpen" InputGesture="Ctrl+O" />
-        <!-- Ctrl+S is global and tab-aware (saves whichever tab is active) rather
-             than tied to this one item; see OnKeyDown/SaveCurrentTab in the
-             code-behind, and Help > Keyboard Shortcuts. -->
+        <MenuItem Header="_Open .sff" x:Name="OpenSffItem" Click="OnOpen" />
+        <!-- Open/Save shortcuts follow the active tab (Shortcuts.cs, OpenCurrentTab, SaveCurrentTab);
+             each tab's Open and Save item shows them. Menu gesture text comes from ApplyMenuGestures. -->
         <MenuItem Header="_Save" x:Name="SaveSpritesItem" Click="OnSave" />
-        <MenuItem Header="Save _As" Click="OnSaveAs" InputGesture="Ctrl+Shift+S" />
+        <MenuItem Header="Save _As" x:Name="SaveAsSpritesItem" Click="OnSaveAs" />
         <MenuItem Header="Save Like Spr_Maker" Click="OnSaveLikeSprMaker"
                   ToolTip.Tip="Saves a copy built the way SprMaker 0.97 or 2.01 would." />
         <Separator />
@@ -81,7 +80,7 @@
       </MenuItem>
 
       <MenuItem Header="Pa_lettes" SubmenuOpened="OnPalettesMenuOpened">
-        <MenuItem Header="_Import" Click="OnImportPaletteFiles" />
+        <MenuItem Header="_Import" x:Name="ImportPaletteItem" Click="OnImportPaletteFiles" />
         <MenuItem Header="_Create From Images" Click="OnCreatePaletteFromImages"
                   ToolTip.Tip="Builds one palette from the colors of PNG or PCX images, most used first. Over 255 colors are reduced." />
         <MenuItem x:Name="CombinePalettesMenuItem" Header="Com_bine Into New" Click="OnCombinePalettes"
@@ -98,7 +97,7 @@
       <MenuItem Header="_Animations">
         <MenuItem Header="_New Animation File" Click="OnNewAir"
                   ToolTip.Tip="Starts a blank animation file in place of the open one." />
-        <MenuItem Header="_Open .air or .def" Click="OnOpenAir" />
+        <MenuItem Header="_Open .air or .def" x:Name="OpenAirItem" Click="OnOpenAir" />
         <MenuItem Header="_Save .air" x:Name="SaveAnimationsItem" Click="OnSaveAir" />
         <MenuItem Header="Save .air _As" Click="OnSaveAirAs" />
         <Separator />
@@ -116,7 +115,7 @@
       <MenuItem Header="S_ounds">
         <MenuItem Header="_New Sound File" Click="OnNewSnd"
                   ToolTip.Tip="Starts a blank sound file in place of the open one." />
-        <MenuItem Header="_Open .snd" Click="OnOpenSnd" />
+        <MenuItem Header="_Open .snd" x:Name="OpenSndItem" Click="OnOpenSnd" />
         <MenuItem Header="_Save .snd" x:Name="SaveSoundsItem" Click="OnSaveSnd" />
         <MenuItem Header="Save .snd _As" Click="OnSaveSndAs" />
         <MenuItem Header="_Sort Ascending" Click="OnSortSoundsAscending"
