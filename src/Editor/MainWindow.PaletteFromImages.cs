@@ -75,7 +75,8 @@ public partial class MainWindow
     /// Adds a temp palette (no file yet). With an SFF it joins the list as one undo step and
     /// becomes an SFF palette only when applied to sprites; without one it is a standalone palette.
     /// </summary>
-    private void AddTempPalette(Palette pal, string undoName)
+    /// <param name="after">Duplicate puts the copy right under its source; null appends.</param>
+    private void AddTempPalette(Palette pal, string undoName, Palette? after = null)
     {
         pal.Source = PaletteSource.External;
         pal.SourcePath = null;
@@ -85,22 +86,24 @@ public partial class MainWindow
         {
             var taken = file.Palettes.Where(p => p.Group == 1).Select(p => p.Index).ToHashSet();
             pal.Index = Enumerable.Range(1, int.MaxValue - 1).First(i => !taken.Contains(i));
+            int at = after is not null && file.Palettes.IndexOf(after) is var i and >= 0 ? i + 1 : file.Palettes.Count;
             Edit(undoName,
-                () => { file.Palettes.Add(pal); SelectPalette(pal); },
+                () => { file.Palettes.Insert(Math.Min(at, file.Palettes.Count), pal); SelectPalette(pal); },
                 () => { file.Palettes.Remove(pal); _paletteOverride = -1; });
         }
         else
         {
             pal.Index = _standalonePalettes.Count + 1;
-            AddStandalonePalette(pal);
+            AddStandalonePalette(pal, after);
         }
     }
 
     /// <summary>Adds a standalone palette and selects it for editing.</summary>
-    private void AddStandalonePalette(Palette palette)
+    private void AddStandalonePalette(Palette palette, Palette? after = null)
     {
-        _standalonePalettes.Add(palette);
-        _standalonePaletteOverride = _standalonePalettes.Count - 1;
+        int at = after is not null && _standalonePalettes.IndexOf(after) is var i and >= 0 ? i + 1 : _standalonePalettes.Count;
+        _standalonePalettes.Insert(at, palette);
+        _standalonePaletteOverride = at;
         PaletteFilterBox.Text = "";
         RebuildPaletteList();
         _editingPalette = palette;

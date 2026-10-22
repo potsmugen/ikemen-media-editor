@@ -1314,7 +1314,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             if (ActivePalette() is not { } source) return;
             // Every copy is a temp palette; it joins the SFF only when applied to sprites.
             if (_file is null && !await SettlePendingColorAdjust()) return;
-            AddTempPalette(new Palette { Colors = (Rgba[])source.Colors.Clone() }, "duplicate palette");
+            AddTempPalette(new Palette { Colors = (Rgba[])source.Colors.Clone() }, "duplicate palette", after: source);
             StatusText.Text = "Duplicated as a temp palette.";
         }
         catch (Exception ex)

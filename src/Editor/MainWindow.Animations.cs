@@ -2249,10 +2249,11 @@ public partial class MainWindow
             });
 
         var air = _air;
+        int at = air.Actions.IndexOf(_action) + 1; // right under the original
         _undo.Record("duplicate action",
             () => { air.Actions.Remove(copy); RebuildActionList(); },
-            () => { air.Actions.Add(copy); RebuildActionList(); SelectAction(copy); });
-        air.Actions.Add(copy);
+            () => { air.Actions.Insert(Math.Min(at, air.Actions.Count), copy); RebuildActionList(); SelectAction(copy); });
+        air.Actions.Insert(at, copy);
         RebuildActionList();
         SelectAction(copy);
         MarkAirDirty();
