@@ -28,6 +28,8 @@ public partial class MainWindow
     private int?[] _replaceSlotIndex = [];
     private Button[] _replaceSquares = [];
     private int? _armedReplaceSlot;
+    /// <summary>New colors several pairs share; a Shift-stroke leaves them alone.</summary>
+    private List<byte> _inverseSkipped = [];
 
     /// <summary>
     /// Fills both rows with one square per side. The squares are built here rather
@@ -107,6 +109,24 @@ public partial class MainWindow
         RefreshReplaceSquares();
     }
 
+    /// <summary>Swaps Old and New in every pair.</summary>
+    private void OnSwapReplaceSquares(object? sender, RoutedEventArgs e)
+    {
+        for (int pair = 0; pair < _replacePairCount; pair++)
+            (_replaceSlotIndex[pair], _replaceSlotIndex[_replacePairCount + pair]) =
+                (_replaceSlotIndex[_replacePairCount + pair], _replaceSlotIndex[pair]);
+        _armedReplaceSlot = null;
+        SpriteCanvas.ArmedForExternalPick = false;
+        RefreshReplaceSquares();
+    }
+
+    private void OnInverseReplaceStarted()
+    {
+        if (_inverseSkipped.Count == 0) return;
+        string list = string.Join(", ", _inverseSkipped.Select(i => i.ToString(CultureInfo.InvariantCulture)));
+        StatusText.Text = $"Skipped {list}: more than one pair turns into {(_inverseSkipped.Count == 1 ? "it" : "each")}.";
+    }
+
     private static IBrush ThemeResource(string key) =>
         Application.Current?.Resources.TryGetResource(key, null, out var v) == true && v is IBrush b ? b : Brushes.Gray;
 
@@ -142,14 +162,23 @@ public partial class MainWindow
         UpdateReplaceMap();
     }
 
-    /// <summary>Feeds SpriteView.ReplaceMap for the brush-based Replace tool.</summary>
+    /// <summary>Feeds SpriteView.ReplaceMap and, for Shift-strokes, InverseReplaceMap (New → Old,
+    /// leaving out a New that several pairs share, since it can't tell which Old it came from).</summary>
     private void UpdateReplaceMap()
     {
         var map = new Dictionary<byte, byte>();
+        var inverse = new Dictionary<byte, byte>();
+        var shared = new SortedSet<byte>();
         for (int col = 0; col < _replacePairCount; col++)
             if (_replaceSlotIndex[col] is int to
                 && _replaceSlotIndex[_replacePairCount + col] is int from && from != to)
+            {
                 map[(byte)from] = (byte)to;
+                if (!inverse.TryAdd((byte)to, (byte)from) && inverse[(byte)to] != from) shared.Add((byte)to);
+            }
+        foreach (var b in shared) inverse.Remove(b);
+        _inverseSkipped = [.. shared];
         SpriteCanvas.ReplaceMap = map.Count > 0 ? map : null;
+        SpriteCanvas.InverseReplaceMap = inverse.Count > 0 ? inverse : null;
     }
 }

@@ -184,6 +184,17 @@ public class SpriteView : Control
     /// </summary>
     public IReadOnlyDictionary<byte, byte>? ReplaceMap { get; set; }
 
+    /// <summary>New → Old, for Shift-strokes with Replace. Leaves out a New that several pairs share.</summary>
+    public IReadOnlyDictionary<byte, byte>? InverseReplaceMap { get; set; }
+
+    /// <summary>Shift is held over the canvas: the next Replace stroke runs New → Old.</summary>
+    private bool _inverseHeld;
+    /// <summary>The current Replace stroke runs New → Old (fixed at the press).</summary>
+    private bool _inverseStroke;
+
+    /// <summary>Raised when a Shift-stroke with Replace starts.</summary>
+    public event Action? InverseReplaceStarted;
+
     /// <summary>
     /// Pixels the paint tools write to when a top layer is active; null paints the
     /// sprite's own pixels. The eyedropper always reads the sprite's flattened pixels.
@@ -965,8 +976,32 @@ public class SpriteView : Control
             int half = BrushSize / 2;
             var rect = new Rect(sr.X + (hx - half) * z, sr.Y + (hy - half) * z, BrushSize * z, BrushSize * z);
             ctx.DrawRectangle(BrushOutlineBase, rect);
-            ctx.DrawRectangle(BrushOutlineDash, rect);
+            bool inverse = ActiveTool == PaintTool.Replace && (_painting ? _inverseStroke : _inverseHeld);
+            ctx.DrawRectangle(inverse ? InverseOutlineDash() : BrushOutlineDash, rect);
         }
+    }
+
+    /// <summary>The brush outline's dashes in the theme accent while Replace runs New → Old.</summary>
+    private IPen InverseOutlineDash() =>
+        new Pen(this.TryFindResource("ThemeAccent", out var v) && v is IBrush b ? b : Brushes.White, 1, new DashStyle([2, 2], 0));
+
+    private void SetInverseHeld(bool held)
+    {
+        if (_inverseHeld == held) return;
+        _inverseHeld = held;
+        if (PaintMode && ActiveTool == PaintTool.Replace) InvalidateVisual();
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (e.Key is Key.LeftShift or Key.RightShift) SetInverseHeld(true);
+        base.OnKeyDown(e);
+    }
+
+    protected override void OnKeyUp(KeyEventArgs e)
+    {
+        if (e.Key is Key.LeftShift or Key.RightShift) SetInverseHeld(false);
+        base.OnKeyUp(e);
     }
 
     private static void DrawIndexLabel(DrawingContext ctx, Rect r, int index, Color color)
@@ -1090,7 +1125,8 @@ public class SpriteView : Control
             PaintTool.Pencil => PaintBrush(idx, x, y, _ => target),
             PaintTool.Eraser => PaintBrush(idx, x, y, _ => Sprite.TransparentIndex),
             PaintTool.Fill => FloodFill(idx, x, y, target),
-            PaintTool.Replace => PaintBrush(idx, x, y, v => ReplaceMap is { } m && m.TryGetValue(v, out byte to) ? to : v),
+            PaintTool.Replace => PaintBrush(idx, x, y,
+                v => (_inverseStroke ? InverseReplaceMap : ReplaceMap) is { } m && m.TryGetValue(v, out byte to) ? to : v),
             _ => false,
         };
         if (!changed) return;
@@ -1205,7 +1241,9 @@ public class SpriteView : Control
         (int Index, BoxGrip Grip) hit = Boxes.Count > 0 ? HitTest(p.Position) : (-1, BoxGrip.None);
         _boxPressIndex = hit.Index;
         _boxDragMoved = false;
-        bool extendSelection = (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Shift)) != 0;
+        // Shift with Replace paints New → Old instead (see ApplyTool).
+        bool replacing = PaintMode && ActiveTool == PaintTool.Replace;
+        bool extendSelection = (e.KeyModifiers & (replacing ? KeyModifiers.Control : KeyModifiers.Control | KeyModifiers.Shift)) != 0;
         if (extendSelection)
         {
             if (hit.Index >= 0)
@@ -1290,7 +1328,9 @@ public class SpriteView : Control
             _pickingStroke = ActiveTool == PaintTool.Eyedropper;
             if (!_pickingStroke && PaintStrokeAllowed?.Invoke() == false) { _pickingStroke = false; return; }
             _painting = true;
+            _inverseStroke = ActiveTool == PaintTool.Replace && (e.KeyModifiers & KeyModifiers.Shift) != 0;
             if (!_pickingStroke) PaintStrokeStarted?.Invoke();
+            if (_inverseStroke) InverseReplaceStarted?.Invoke();
             ApplyTool(p.Position);
             Cursor = new Cursor(StandardCursorType.Cross);
             e.Pointer.Capture(this);
@@ -1355,6 +1395,7 @@ public class SpriteView : Control
 
         if (PaintMode && ActiveTool is PaintTool.Pencil or PaintTool.Eraser or PaintTool.Replace)
         {
+            _inverseHeld = (e.KeyModifiers & KeyModifiers.Shift) != 0;
             _hoverPos = e.GetPosition(this);
             InvalidateVisual(); // the outline needs to follow the cursor even when not painting
         }

@@ -43,6 +43,7 @@ public partial class MainWindow
     private void WireSpritePaint()
     {
         SpriteCanvas.PaintStrokeStarted += OnPaintStrokeStarted;
+        SpriteCanvas.InverseReplaceStarted += OnInverseReplaceStarted;
         SpriteCanvas.PaintStrokeAllowed = () => _current is null || (!RefuseBorrowerEdit(_current, "paint on") && ActiveLayerCanPaint());
         SpriteCanvas.PaintStrokeFinished += OnPaintStrokeFinished;
         SpriteCanvas.PixelsPainted += RecomposePaintLayers;

@@ -599,7 +599,11 @@
                             </UniformGrid>
                             <UniformGrid x:Name="ReplacePairsGrid" Columns="2" />
                           </StackPanel>
-                          <Button Content="Clear" Click="OnClearReplaceSquares" HorizontalAlignment="Center" />
+                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}" HorizontalAlignment="Center">
+                            <Button Content="Swap" Click="OnSwapReplaceSquares"
+                                    ToolTip.Tip="Swaps Old and New in every pair. Shift-drag paints New to Old without swapping." />
+                            <Button Content="Clear" Click="OnClearReplaceSquares" />
+                          </StackPanel>
                           <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}" HorizontalAlignment="Center">
                             <TextBlock Text="Brush" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                             <NumericUpDown x:Name="ReplaceBrushSizeBox" Width="70" Minimum="1" Maximum="32" Increment="1" FormatString="0"

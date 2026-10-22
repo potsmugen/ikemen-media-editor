@@ -189,6 +189,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   shown only while that tool is active (`UpdateToolPanels`): Brush for Pencil and Eraser;
   Rectangle/Lasso and Copy/Paste for Select; Replace's colors plus its own Brush box (synced to the same
   size) for Replace. Fill and Eyedropper have none. New tool options follow the same pattern.
+- **Replace inverse**: Shift-drag with Replace paints New → Old (fixed at the press; the brush
+  outline's dashes turn ThemeAccent while Shift is held). A New that several pairs share is
+  left alone and named in the status bar. Swap flips Old and New in every pair.
 - **Paint selection and paste**: Paste returns the copy to where it was taken, as a
   floating selection, and switches to the Select tool. Dragging it past the sprite's
   edge clips the off-canvas part, which returns if dragged back until Commit. Transparent
