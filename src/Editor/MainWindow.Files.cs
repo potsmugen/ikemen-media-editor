@@ -63,6 +63,31 @@ public partial class MainWindow
                 + "Saving it in the editor will convert it to the standard \u201cuse previous palette\u201d format.");
     }
 
+    /// <summary>Opens the file passed on the command line (Windows "Open with"), routed by
+    /// extension the same way the matching menu command opens it.</summary>
+    internal async Task OpenLaunchFile(string path)
+    {
+        try
+        {
+            CrashLog.Trace($"[launch] opening {path}");
+            switch (Path.GetExtension(path).ToLowerInvariant())
+            {
+                case ".imesession": await LoadSessionFile(path); break;
+                case ".snd": await OpenSndFromPath(path); break;
+                case ".air": await OpenAirPath(path); break;
+                case ".def":
+                    if (await PrepareTabForProject(path)) await RunProjectOpen(() => OpenDefFile(path));
+                    break;
+                case ".act" or ".pal" or ".rgba": await ImportPaletteFiles([(Path.GetFileName(path), path)]); break;
+                default: OpenFile(path); break;
+            }
+        }
+        catch (Exception ex)
+        {
+            await Failed("OpenLaunchFile", ex);
+        }
+    }
+
     /// <summary>Reads an SFF on a background thread under the busy lock. Null when it can't be read; OpenFile then reports the error.</summary>
     private async Task<SffFile?> ReadSffInBackgroundAsync(string path)
     {
@@ -1445,6 +1470,7 @@ public partial class MainWindow
         {
             if (e.Data.GetFiles()?.FirstOrDefault()?.TryGetLocalPath() is not { } p) return;
             if (IsSessionPath(p)) { if (!_projectOpening) await LoadSessionFile(p); return; }
+            if (IsSndPath(p)) { await OpenSndFromPath(p); return; }
             bool opensSff = Path.GetExtension(p).Equals(".sff", StringComparison.OrdinalIgnoreCase);
             if (!await ConfirmDiscard(resolveStandalone: !opensSff)) return;
             if (opensSff && !await ConfirmStandalonePalettesForSff()) return;

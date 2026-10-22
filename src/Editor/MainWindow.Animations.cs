@@ -120,20 +120,7 @@ public partial class MainWindow
                 return;
             }
 
-            CrashLog.Trace($"OnOpenAir: LoadAir starting for {path}");
-            if (!LoadAnimationSource(path))
-            {
-                CrashLog.Trace("OnOpenAir: LoadAir failed");
-                await Dialogs.ShowMessage(this, "Could Not Read the Animation File", _airError ?? "unknown problem");
-                return;
-            }
-            CrashLog.Trace("OnOpenAir: LoadAir finished ok");
-
-            StatusText.Text = _file is null
-                ? "Animations loaded. Open the character's sprites too, so the frames have something to show."
-                : $"Loaded {_air!.Actions.Count} actions from {Path.GetFileName(path)}";
-            SwitchToTab(2);
-            CrashLog.Trace("OnOpenAir: done");
+            await OpenAirPath(path);
         }
         catch (Exception ex)
         {
@@ -142,6 +129,25 @@ public partial class MainWindow
             CrashLog.Write("OnOpenAir", ex);
             await Dialogs.ShowMessage(this, "Something Went Wrong Opening the Animation File", ex.Message);
         }
+    }
+
+    /// <summary>Loads the animations, reports a failure, and shows the Animations tab.</summary>
+    private async Task OpenAirPath(string path)
+    {
+        CrashLog.Trace($"OnOpenAir: LoadAir starting for {path}");
+        if (!LoadAnimationSource(path))
+        {
+            CrashLog.Trace("OnOpenAir: LoadAir failed");
+            await Dialogs.ShowMessage(this, "Could Not Read the Animation File", _airError ?? "unknown problem");
+            return;
+        }
+        CrashLog.Trace("OnOpenAir: LoadAir finished ok");
+
+        StatusText.Text = _file is null
+            ? "Animations loaded. Open the character's sprites too, so the frames have something to show."
+            : $"Loaded {_air!.Actions.Count} actions from {Path.GetFileName(path)}";
+        SwitchToTab(2);
+        CrashLog.Trace("OnOpenAir: done");
     }
 
     /// <summary>Loads a standalone .air or a definition containing embedded [Begin Action] blocks.</summary>

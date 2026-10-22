@@ -83,10 +83,7 @@ public partial class MainWindow
     {
         try
         {
-            if (!await ResolvePendingSoundEditsBeforeSwitch()) return;
-            if (_sndDirty && !await Dialogs.Confirm(this, "Unsaved Sound Changes",
-                    "The sound file has unsaved changes.", "Discard Them"))
-                return;
+            if (!await ConfirmReplaceSnd()) return;
 
             var files = await PickOpen(new FilePickerOpenOptions
             {
@@ -95,28 +92,59 @@ public partial class MainWindow
                 FileTypeFilter = [SndType],
             });
             if (files.Count == 0 || files[0].TryGetLocalPath() is not { } path) return;
-            SndFile? preloaded = null;
-            try
-            {
-                preloaded = await RunFileWorkAsync($"Opening {Path.GetFileName(path)}…", () => SndFile.Open(path));
-            }
-            catch (Exception ex)
-            {
-                CrashLog.Write("LoadSnd", ex);
-                _sndError = ex.Message;
-            }
-            if (preloaded is null || !LoadSnd(path, preloaded))
-            {
-                StatusText.Text = $"Could not open {Path.GetFileName(path)}.";
-                await Dialogs.ShowMessage(this, "Could Not Read the Sound File", _sndError ?? "unknown problem");
-                return;
-            }
-            SwitchToTab(3);
+            await OpenSndPath(path);
         }
         catch (Exception ex)
         {
             await Failed("OnOpenSnd", ex);
         }
+    }
+
+    internal static bool IsSndPath(string path) =>
+        Path.GetExtension(path).Equals(".snd", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Resolves pending sound edits and unsaved sound changes. False when the user cancels.</summary>
+    private async Task<bool> ConfirmReplaceSnd()
+    {
+        if (!await ResolvePendingSoundEditsBeforeSwitch()) return false;
+        return !_sndDirty || await Dialogs.Confirm(this, "Unsaved Sound Changes",
+            "The sound file has unsaved changes.", "Discard Them");
+    }
+
+    /// <summary>Opens a .snd from a path (launch argument or dropped file), asking about unsaved sounds first.</summary>
+    internal async Task OpenSndFromPath(string path)
+    {
+        try
+        {
+            if (!await ConfirmReplaceSnd()) return;
+            await OpenSndPath(path);
+        }
+        catch (Exception ex)
+        {
+            await Failed("OpenSndFromPath", ex);
+        }
+    }
+
+    /// <summary>Reads the .snd in the background, loads it and shows the Sounds tab.</summary>
+    private async Task OpenSndPath(string path)
+    {
+        SndFile? preloaded = null;
+        try
+        {
+            preloaded = await RunFileWorkAsync($"Opening {Path.GetFileName(path)}…", () => SndFile.Open(path));
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("LoadSnd", ex);
+            _sndError = ex.Message;
+        }
+        if (preloaded is null || !LoadSnd(path, preloaded))
+        {
+            StatusText.Text = $"Could not open {Path.GetFileName(path)}.";
+            await Dialogs.ShowMessage(this, "Could Not Read the Sound File", _sndError ?? "unknown problem");
+            return;
+        }
+        SwitchToTab(3);
     }
 
     /// <summary>Reads a .snd on a background thread under the busy lock. Null when it can't be read; LoadSnd then reports the error.</summary>

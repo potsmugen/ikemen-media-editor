@@ -5,6 +5,9 @@ before a release. Remove items once they're done or checked.
 
 ## To do, easiest first
 
+- Customizable hotkeys. Shortcuts are hardcoded in OnKeyDown (MainWindow.axaml.cs); menu
+  InputGesture text and Help > Keyboard Shortcuts are separate hand-kept copies. Move to an
+  action-to-key table in settings that all three read, plus a rebinding UI (design undecided).
 - First time saving a file doesn't need to make a backup of it
 - Duplicating animation should add the new one under the duplicated one
 - Saves that change a file the user didn't edit, like the Global Shared Palette popup;
@@ -157,6 +160,11 @@ Built, but not tried by the maintainer yet.
 
 ### Files and app
 
+- Windows "Open with" (launch argument) routes by extension like the menus; before, every
+  file was parsed as SFF. Double-click each with the editor as handler: .sff (sprites only),
+  .snd (Sounds tab), .air (Animations tab), .def (character/stage/other, all its files),
+  .act/.pal/.rgba (standalone palette), .imesession. Also drop a .snd on the window: it
+  opens in the Sounds tab and the open SFF stays.
 - Make report windows have selectable text
 - Release build: double-clicking the exe opens no console window; Debug still shows one.
 - Close during a large SFF save: the "Still working" popup appears and the save completes.
