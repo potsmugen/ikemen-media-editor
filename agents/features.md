@@ -103,7 +103,7 @@ and constraints that are easy to miss when reading one code path in isolation.
   `Version` switched to 2.0.1.0 for the write, so palettes keep their keys; the
   item's `SessionVersion` puts v1 back on recovery. Any snapshot failure shows one
   popup per session.
-  `--test-recovery` forces a snapshot and leaves the run marker for the next launch.
+  `--test-recovery` forces a snapshot, then snapshots every 15 s, and leaves the run marker for the next launch.
   Saving an `.air` warns if its on-disk bytes changed since load; confirming
   overwrites them with the current Media animation.
 - **Saving v1 as v2+**: every v1 → v2+ Save As (and Save Like SprMaker 2.01)

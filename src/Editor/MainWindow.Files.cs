@@ -55,7 +55,6 @@ public partial class MainWindow
         int failed = _file.Sprites.Count(s => s.DecodeError is not null);
         var summary = $"SFF {_file.Version}: {_file.Sprites.Count} sprites, {_file.Palettes.Count} palettes";
         if (failed > 0) summary += $", {failed} failed to decode";
-        if (_file.Version.Hi == 1) summary += ". Saving converts to SFFv2.";
         StatusText.Text = summary;
         if (_file.V1SharedPalette)
             ShowPopup("Global Shared Palette",

@@ -61,7 +61,6 @@ public partial class MainWindow
     internal void CaptureRecoveryForTest()
     {
         CaptureRecovery();
-        _recoveryTimer?.Stop();
         RecoveryTestMode = true;
     }
 

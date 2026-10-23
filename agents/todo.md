@@ -6,17 +6,10 @@ before a release. Remove items once they're done or checked.
 ## To do, easiest first
 
 - Found in Linux sandbox testing (2026-10-23), verified unless noted:
-  - Delete Sprites Only still deletes the palettes: `deletePalettes = palettesToDelete.Count > 0`
-    (MainWindow.Sprites.cs:1840) overwrites the user's choice. Seen on kfm-v2.sff deleting 9001,0
-    (trace: "delete sprites and palettes").
-  - Loading an SFFv1 says "Saving converts to SFFv2." (MainWindow.Files.cs:58), but plain Save
-    keeps v1 (features.md "Saving"); Donald.sff saved as 1.0.1.0.
   - Report windows (Dialogs.ShowReport) use TextBlock, so text can't be selected; and the
     "Consolas,Menlo,monospace" font renders proportional on Linux.
   - Shortcut capture: clicking another row or blank dialog space doesn't cancel it, so the next
     key is taken (F2 got assigned). Switching Preferences tabs does cancel.
-  - Sprite list "N of M shown" in the status bar goes stale: still "8 of 315 shown" after Clear;
-    "3 of 282 shown" with filter 9000,1 showing one row.
   - Palettes tab after picking a sprite on Sprites: the list highlights the old palette (9000,1)
     while the grid shows the sprite's palette (1,1).
   - Sprite list scrolls half a row after Sort or Duplicate (row 1 half hidden).
@@ -26,18 +19,8 @@ before a release. Remove items once they're done or checked.
     cut off in Sprite Tools.
   - Questions: Sort Selected Ascending with everything selected puts 9000 last while Sort Ascending
     puts it first. Sorting or deleting a sprite marks Palettes* dirty too (v1 Donald, v2 kfm).
-  - Opening a .snd leaves "Opening kfm.snd…" in the status bar: OpenSndPath
-    (MainWindow.Sounds.cs ~128) never sets a status on success.
-  - New Sound File: the right status reads ": 0 sounds, 00:00 total" (no file name), and the
-    edit buttons stay enabled with no sound selected.
   - Saving a standalone .air turns CRLF into LF and rewrites untouched boxes: action 20's
     "Clsn2[0] = -10,0, 10,-80" became "-10, -80, 10, 0". No warning (Preserve data as read).
-  - Recovery dialog "Unsaved work from 12:52" shows when the run was taken over, not when the
-    snapshot was captured (12:36 in the trace).
-  - `--test-recovery`: CaptureRecoveryForTest stops the timer after its startup snapshot, so the
-    15 s test interval in StartRecoveryTimer never runs.
-  - Switching back to a project tab resets the selected sound to the first one (11,0 -> 0,0),
-    and the left status says "No file loaded" on a tab with only a .snd.
   - Questions: after Recover, the command-line file is skipped silently (by design per
     App.axaml.cs, but nothing tells the user). A recovered changed-source file opens from
     data/recovery/recovered/ under a GUID name, so plain Save writes into the app folder.
@@ -47,9 +30,6 @@ before a release. Remove items once they're done or checked.
     (SndReader.cs ~114-124).
   - Open/New for sounds and animations only offers "Discard Them" / Cancel (MainWindow.Sounds.cs
     62, 111; MainWindow.Animations.cs 81, 103); sprites offer Save / Discard / Cancel (AskToSave).
-  - Play on Linux without paplay/aplay shows the raw .NET exception ("An error occurred trying
-    to start process 'aplay' with working directory ..."). Say no player was found instead; the
-    hint says "Export .wav" but the button is "Export".
   - Sound list narrows in a tab that also has an SFF (New Sound File there): the Rate column is
     cut off ("8kH", "22.1k").
   - At 200% font and button scale (window 1580x960) fixed-width buttons and fields clip:
@@ -191,7 +171,7 @@ before a release. Remove items once they're done or checked.
     Quitting prompts per unsaved tab (Save / Don't Save / Cancel), switching to it first.
   - Per tab: the SFF, AIR and SND with their paths, dirty flags and errors; character
     name; standalone palettes; undo stack; recovery origins and hashes; current sprite,
-    palette override, action, tick and selection anchor; pinned onion sprite and animation onion frame (not saved; the other onion options are shared and saved).
+    palette override, action, tick, sound and selection anchor; pinned onion sprite and animation onion frame (not saved; the other onion options are shared and saved).
   - Per window: settings, theme, canvas, floating panels, view toggles, clipboards,
     the scratch palette (no longer cleared by opening files or Close All),
     last export formats and dialog choices. Frame paste keeps sprite numbers as they are.
@@ -215,6 +195,18 @@ before a release. Remove items once they're done or checked.
 
 Built, but not tried by the maintainer yet.
 
+
+### Sandbox fixes (2026-10-23)
+
+- [ ] Delete Sprites Only on kfm-v2.sff (9001,0) keeps the palette; undo says "delete sprite".
+- [ ] Loading an SFFv1 no longer says "Saving converts to SFFv2."
+- [ ] Opening a .snd shows "Loaded N sounds from kfm.snd"; New Sound File's corner reads "Unsaved sounds: 0 sounds, 00:00 total".
+- [ ] Linux without paplay/aplay: Play says "No sound player found (paplay or aplay)." and points to Export.
+- [ ] Sprite filter: typing 9000,1 or pressing Clear updates "N of M shown" (or drops it).
+- [ ] Recovery dialog after a crash shows the snapshot's time, not the next launch's.
+- [ ] `--test-recovery` keeps snapshotting every 15 s while there is unsaved work.
+- [ ] With no sound selected (startup, New Sound File, empty filter) only Import and Stop are enabled.
+- [ ] Switching project tabs keeps each tab's selected sound; on a non-Sprites sub-tab the left status is empty.
 
 ### Floating panels
 

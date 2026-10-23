@@ -101,8 +101,8 @@ public partial class MainWindow
             _current = null;
             SpriteCanvas.Show(null, null, false);
             RefreshAssignPaletteButton();
-            UpdateStatus();
         }
+        UpdateStatus(); // the selection event may not fire (suppressed, or same sprite kept)
         return replaced;
     }
 
@@ -1834,10 +1834,12 @@ public partial class MainWindow
             }
 
             if (deletePalettes)
+            {
                 palettesToDelete = palettesToDelete.Where(palette => file.Palettes.Contains(palette)
                     && !file.Sprites.Any(sprite => !selectedSet.Contains(sprite) && ReferenceEquals(sprite.Palette, palette)))
                     .ToList();
-            deletePalettes = palettesToDelete.Count > 0;
+                deletePalettes = palettesToDelete.Count > 0;
+            }
 
             var linkers = deletePalettes
                 ? file.Palettes.Where(palette => palettesToDelete.Any(target => ReferenceEquals(palette.LinksTo, target))).ToList()

@@ -1733,14 +1733,14 @@
                   <Button Grid.Column="0" Content="Import" HorizontalAlignment="Stretch" Click="OnAddSound"
                           ToolTip.Tip="Adds a sound from a .wav." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" Content="Export" HorizontalAlignment="Stretch" Click="OnExportSound"
+                  <Button Grid.Column="2" x:Name="SoundExportButton" Content="Export" HorizontalAlignment="Stretch" Click="OnExportSound"
                           ToolTip.Tip="Saves the selected sound as a .wav." />
                 </Grid>
                 <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*" Margin="{DynamicResource UiGapTop}">
                   <Button Grid.Column="0" x:Name="SoundReplaceButton" Content="Replace" HorizontalAlignment="Stretch" Click="OnReplaceSound"
                           ToolTip.Tip="Replaces the sound with a .wav." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeleteSound" />
+                  <Button Grid.Column="2" x:Name="SoundDeleteButton" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeleteSound" />
                 </Grid>
               </Grid>
               <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,6">
@@ -1868,7 +1868,7 @@
             <ScrollViewer Grid.Row="3">
               <StackPanel Margin="24,8,24,24" Spacing="12" MaxWidth="640" HorizontalAlignment="Left">
                 <Border Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}" CornerRadius="3">
-                  <StackPanel Spacing="10">
+                  <StackPanel x:Name="SoundEditButtons" Spacing="10">
                     <StackPanel Spacing="4">
                       <TextBlock Text="Level" Foreground="{DynamicResource ThemeMutedText}" />
                       <WrapPanel>

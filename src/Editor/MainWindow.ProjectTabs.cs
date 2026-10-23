@@ -203,6 +203,7 @@ public partial class MainWindow
         DisarmEyedropper();
         _doc.SpriteView = SpriteCanvas.View;
         _doc.AnimView = AnimCanvas.View;
+        _doc.Sound = CurrentSound;
     }
 
     /// <summary>Redraws every sub-tab from the active Document, keeping its selection, dirty state and undo.
@@ -277,6 +278,14 @@ public partial class MainWindow
         _visibleSounds = [];
         if (_snd is not null) ApplySoundFilter();
         else SndStatusText.Text = "";
+        if (_snd is not null && _doc.Sound is { } keepSound && _snd.Sounds.IndexOf(keepSound) is var at and >= 0
+            && _visibleSounds.IndexOf(at) is var soundRow and >= 0)
+        {
+            _suppressEvents = true;
+            SoundList.SelectedIndex = soundRow;
+            _suppressEvents = false;
+            SoundList.ScrollIntoView(soundRow);
+        }
         ShowSound();
         UpdateSndInfo();
 
@@ -287,7 +296,9 @@ public partial class MainWindow
         if (Tabs?.SelectedIndex == 1) RefreshPaletteTab();
 
         UpdateSffInfo();
-        UpdateStatus();
+        // The left status describes the sprite; other sub-tabs only use it for messages.
+        if ((Tabs?.SelectedIndex ?? 0) == 0) UpdateStatus();
+        else StatusText.Text = "";
         UpdateTitle();
         SyncSaveMenu();
         SyncUndoMenu();

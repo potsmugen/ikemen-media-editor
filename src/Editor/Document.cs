@@ -62,6 +62,8 @@ internal sealed class Document
     public string? SndPath;
     public bool SndDirty;
     public string? SndError;
+    /// <summary>The selected sound, kept while another tab is shown.</summary>
+    public SoundEntry? Sound;
 
     // ---- history and recovery -----------------------------------------------
     public readonly UndoStack Undo = new();

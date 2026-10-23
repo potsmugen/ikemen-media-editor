@@ -144,6 +144,7 @@ public partial class MainWindow
             await Dialogs.ShowMessage(this, "Could Not Read the Sound File", _sndError ?? "unknown problem");
             return;
         }
+        StatusText.Text = $"Loaded {_snd!.Sounds.Count} sounds from {Path.GetFileName(path)}";
         SwitchToTab(3);
     }
 
@@ -271,7 +272,7 @@ public partial class MainWindow
         var total = TimeSpan.FromSeconds(_snd.Sounds.Sum(s => s.Duration.TotalSeconds));
 
         SndStatusText.Text = (_sndDirty ? "* " : "")
-            + $"{Path.GetFileName(_sndPath)}: {_snd.Sounds.Count} sounds, {total:mm\\:ss} total"
+            + $"{(_sndPath is null ? "Unsaved sounds" : Path.GetFileName(_sndPath))}: {_snd.Sounds.Count} sounds, {total:mm\\:ss} total"
             + (bad > 0 ? $", {bad} unreadable" : "")
             + (duplicates > 0 ? $", {duplicates} duplicate keys" : "");
         UpdateTitle();
@@ -554,6 +555,7 @@ public partial class MainWindow
 
     private void ShowSound()
     {
+        UpdateSoundButtonStates();
         if (CurrentSound is not { } s)
         {
             if (ConvertToMonoButton is not null) ConvertToMonoButton.IsEnabled = false;
@@ -603,15 +605,20 @@ public partial class MainWindow
     {
         // When multiple sounds are selected, disable buttons that only work on a single sound.
         bool multi = HasMultipleSounds;
+        // With no sound selected, only Import (and Stop, for a sound still playing) has anything to act on.
+        bool none = CurrentSound is null;
 
         // Playback buttons only work on a single sound
-        if (SoundPlayButton is not null) SoundPlayButton.IsEnabled = !multi;
-        if (SoundLoopButton is not null) SoundLoopButton.IsEnabled = !multi;
+        if (SoundPlayButton is not null) SoundPlayButton.IsEnabled = !multi && !none;
+        if (SoundLoopButton is not null) SoundLoopButton.IsEnabled = !multi && !none;
         if (SoundStopButton is not null) SoundStopButton.IsEnabled = !multi;
 
         // Trim to Selection needs a specific waveform selection; Replace takes one .wav for one sound
         if (SoundTrimToSelectionButton is not null) SoundTrimToSelectionButton.IsEnabled = !multi;
-        if (SoundReplaceButton is not null) SoundReplaceButton.IsEnabled = !multi;
+        if (SoundReplaceButton is not null) SoundReplaceButton.IsEnabled = !multi && !none;
+        if (SoundExportButton is not null) SoundExportButton.IsEnabled = !none;
+        if (SoundDeleteButton is not null) SoundDeleteButton.IsEnabled = !none;
+        if (SoundEditButtons is not null) SoundEditButtons.IsEnabled = !none;
     }
 
     // ---- playing and moving sounds around ---------------------------------
@@ -651,7 +658,7 @@ public partial class MainWindow
             {
                 CrashLog.Write("PlayCurrent", ex);
                 await Dialogs.ShowMessage(this, "Could Not Play the Sound",
-                    $"{ex.Message}\n\nYou can still use Export .wav and play it with any player.");
+                    $"{ex.Message}\n\nYou can still use Export and play it with any player.");
             }
         }
         catch (Exception ex)
@@ -686,7 +693,15 @@ public partial class MainWindow
             if (player == "paplay")
             {
                 CrashLog.Write("PlayBytes.paplay", ex);
-                _externalPlayer = Process.Start(new ProcessStartInfo("aplay", $"\"{temp}\"") { UseShellExecute = false });
+                try
+                {
+                    _externalPlayer = Process.Start(new ProcessStartInfo("aplay", $"\"{temp}\"") { UseShellExecute = false });
+                }
+                catch (System.ComponentModel.Win32Exception missing)
+                {
+                    // Win32Exception here means the executable wasn't found
+                    throw new InvalidOperationException("No sound player found (paplay or aplay).", missing);
+                }
             }
             else throw;
         }

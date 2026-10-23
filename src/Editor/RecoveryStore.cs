@@ -89,9 +89,9 @@ internal static class RecoveryStore
         {
             // Two runs may hold the same file; the newer snapshot wins.
             var newest = found.GroupBy(x => Key(x.Item))
-                .Select(g => g.MaxBy(x => x.At))
-                .Select(x => (x.Item, x.Data)).ToList();
-            if (newest.Count > 0) Publish(newest);
+                .Select(g => g.MaxBy(x => x.At)).ToList();
+            // Keep when the work was captured, not when this run took it over.
+            if (newest.Count > 0) Publish(newest.Select(x => (x.Item, x.Data)).ToList(), newest.Max(x => x.At));
             published = true;
         }
         finally
@@ -171,7 +171,7 @@ internal static class RecoveryStore
         return Path.Combine(Root, active.DirectoryName, item.FileName);
     }
 
-    public static void Publish(IReadOnlyList<(RecoverySnapshot Item, byte[] Data)> snapshots)
+    public static void Publish(IReadOnlyList<(RecoverySnapshot Item, byte[] Data)> snapshots, DateTimeOffset? capturedAt = null)
     {
         if (snapshots.Count == 0) return;
         Directory.CreateDirectory(Root);
@@ -194,7 +194,7 @@ internal static class RecoveryStore
         {
             foreach (var (item, data) in merged)
                 File.WriteAllBytes(Path.Combine(staging, item.FileName), data);
-            var manifest = new RecoveryManifest(ManifestVersion, DateTimeOffset.UtcNow,
+            var manifest = new RecoveryManifest(ManifestVersion, capturedAt ?? DateTimeOffset.UtcNow,
                 merged.Select(s => s.Item).ToList());
             File.WriteAllText(Path.Combine(staging, "manifest.json"),
                 JsonSerializer.Serialize(manifest, SettingsContext.Default.RecoveryManifest));
@@ -281,7 +281,7 @@ internal static class RecoveryStore
         try
         {
             foreach (var item in remaining) File.Copy(Path.Combine(packageDirectory, item.FileName), Path.Combine(staging, item.FileName));
-            var next = manifest with { CapturedAt = DateTimeOffset.UtcNow, Items = remaining };
+            var next = manifest with { Items = remaining }; // dropping items doesn't make the rest newer
             File.WriteAllText(Path.Combine(staging, "manifest.json"), JsonSerializer.Serialize(next, SettingsContext.Default.RecoveryManifest));
             Directory.Move(staging, complete);
             string pointerTemp = ActivePath + ".tmp-" + Guid.NewGuid().ToString("N");

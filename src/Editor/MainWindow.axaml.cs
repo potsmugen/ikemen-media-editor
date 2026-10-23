@@ -62,6 +62,7 @@ public partial class MainWindow : Window
         // so do not hand-write a replacement that only loads the markup.
         InitializeComponent();
         LoadShortcuts();
+        UpdateSoundButtonStates(); // nothing open yet
         UpdateTabStatusVisibility(Tabs.SelectedIndex);
 
         SpriteCanvas.AxisChanged += OnAxisDragged;
