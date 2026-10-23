@@ -308,6 +308,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   the tail. Replacing or clearing rows (measured): ~80–180 ms of layout per edit, and after a
   rebuild following edits every scroll step re-created all visible rows (~50 ms each). Don't
   go back to replacing row objects.
+- **Frame table cell editor**: one shared TextBox placed over the clicked text cell
+  (`OpenFrameEditor`). Enter confirms and returns to the row, Tab/Shift+Tab move across, Escape cancels.
 - **List keyboard look-ahead** (`MainWindow.ListLookahead.cs`): after an arrow,
   Page, Home or End step in the sprite, palette, action, frame-table or sound list,
   the next row in the direction of travel is scrolled fully into view, so the

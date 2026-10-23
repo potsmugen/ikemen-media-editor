@@ -323,23 +323,22 @@ public partial class MainWindow
         if (e.Key is not (Key.Enter or Key.Tab) || _editorRow is not { } row) return;
         e.Handled = true;
         string tag = (string?)FrameCellEditor.Tag ?? "";
-        // Spreadsheet keys: Enter moves down, Tab right, Shift+Tab left.
-        var (dRow, dField) = e.Key == Key.Enter ? (1, 0) : (0, e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? -1 : 1);
+        // Enter just confirms; Tab moves right, Shift+Tab left.
         CommitFrameEditor();
-        EditNextFrameCell(row.FrameRow, tag, dRow, dField);
-        FocusFrameTableRow(); // at the table's edge no next cell opens; does nothing if one did
+        if (e.Key == Key.Tab) EditNextFrameCell(row.FrameRow, tag, e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? -1 : 1);
+        FocusFrameTableRow(); // does nothing if a next cell opened
     }
 
     /// <summary>The text cells, in the order Tab walks them. Blend and H/V aren't typed into, so Tab skips them.</summary>
     private static readonly string[] EditableFrameFields = ["Group", "Index", "OffsetX", "OffsetY", "Duration", "ScaleX", "ScaleY", "Angle"];
     private bool _navigating;
 
-    /// <summary>Opens the editor on the cell `dRow` rows down and `dField` fields across, wrapping at a row's ends. Stays put at the table's edges.</summary>
-    private void EditNextFrameCell(int frameRow, string tag, int dRow, int dField)
+    /// <summary>Opens the editor on the cell `dField` fields across, wrapping at a row's ends. Stays put at the table's edges.</summary>
+    private void EditNextFrameCell(int frameRow, string tag, int dField)
     {
         if (_action is null) return;
         int field = Array.IndexOf(EditableFrameFields, tag) + dField;
-        int r = frameRow + dRow;
+        int r = frameRow;
         if (field >= EditableFrameFields.Length) { field = 0; r++; }
         else if (field < 0) { field = EditableFrameFields.Length - 1; r--; }
         if (r < 0 || r >= _action.Elements.Count) return;
@@ -665,15 +664,18 @@ public partial class MainWindow
 
     /// <summary>
     /// On scroll, hides the fill handle and commits an open edit, since both cells would have moved.
+    /// Size-only changes (offset unchanged) don't commit.
     /// Scrolling done by our own navigation is skipped (see _navigating).
     /// </summary>
     private void HookFillHandleHide()
     {
         if (_fillHandleHooked) return;
         _fillHandleHooked = true;
-        FrameTableList.AddHandler(ScrollViewer.ScrollChangedEvent, (_, _) =>
+        FrameTableList.AddHandler(ScrollViewer.ScrollChangedEvent, (_, e) =>
         {
             HideFillHandle();
+            // Only a real scroll moves the cells; an editor over a right-clipped cell widens the extent and viewport, offset unchanged.
+            if (e.OffsetDelta == default) return;
             if (!_navigating) Dispatcher.UIThread.Post(() => CommitFrameEditor()); // posted: the commit rebuilds the table
         }, handledEventsToo: true);
     }
