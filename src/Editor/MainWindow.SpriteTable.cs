@@ -240,8 +240,8 @@ public partial class MainWindow
             if (val < minimum || val > maximum)
             {
                 StatusText.Text = isX || field == "Y"
-                    ? _settings.DebugMode ? "Axis offsets must be whole numbers." : "Axis offsets must be whole numbers from -32768 to 32767."
-                    : _settings.DebugMode ? "Group and Number must be whole numbers of 0 or more." : "Group and Number must be whole numbers from 0 to 65535.";
+                    ? _settings.General.DebugMode ? "Axis offsets must be whole numbers." : "Axis offsets must be whole numbers from -32768 to 32767."
+                    : _settings.General.DebugMode ? "Group and Number must be whole numbers of 0 or more." : "Group and Number must be whole numbers from 0 to 65535.";
                 return;
             }
             CommitSpriteField(row.VisibleRow,
@@ -346,7 +346,7 @@ public partial class MainWindow
             _spriteFillTo = Math.Clamp(_spriteFillTo + (above ? -1 : 1), 0, rows.Count - 1);
             SpriteList.ScrollIntoView(_spriteFillTo);
             _spriteFillScrollTimer ??= new DispatcherTimer(TimeSpan.FromMilliseconds(Settings.Checked(
-                nameof(Settings.FillScrollMilliseconds), _settings.FillScrollMilliseconds,
+                nameof(Settings.SpritesSection.FillScrollMilliseconds), _settings.Sprites.FillScrollMilliseconds,
                 Settings.DefaultFillScrollMilliseconds, value => value is >= 10 and <= 1000)),
                 DispatcherPriority.Input, (_, _) =>
                 {

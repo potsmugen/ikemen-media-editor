@@ -50,14 +50,14 @@ public partial class App : Application
                 var startup = Settings.Load();
                 bool recoveryInterrupted = RecoveryStore.BeginRun(desktop.Args?.Contains("--test-recovery", StringComparer.Ordinal) == true);
                 Sff.ImageImport.TransparentAlphaThreshold = Settings.Checked(
-                    nameof(Settings.NearestColorAlphaThreshold), startup.NearestColorAlphaThreshold,
+                    nameof(Settings.SpritesSection.NearestColorAlphaThreshold), startup.Sprites.NearestColorAlphaThreshold,
                     Settings.DefaultNearestColorAlphaThreshold, v => v is >= 0 and <= 255);
                 Sff.SheetImport.MinimumSize = Settings.Checked(
-                    nameof(Settings.SheetMinimumSizePixels), startup.SheetMinimumSizePixels,
+                    nameof(Settings.SpritesSection.SheetMinimumSizePixels), startup.Sprites.SheetMinimumSizePixels,
                     Settings.DefaultSheetMinimumSizePixels, v => v is >= 0 and <= 4096);
-                int minimum = Settings.Checked(nameof(Settings.SplashMilliseconds), startup.SplashMilliseconds,
+                int minimum = Settings.Checked(nameof(Settings.GeneralSection.SplashMilliseconds), startup.General.SplashMilliseconds,
                     Settings.DefaultSplashMilliseconds, v => v >= 0);
-                if (!startup.ScrollBarsAutoHide) KeepScrollBarsExpanded();
+                if (!startup.General.ScrollBarsAutoHide) KeepScrollBarsExpanded();
 
                 // Let the splash paint before building the main window blocks the UI thread.
                 await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);

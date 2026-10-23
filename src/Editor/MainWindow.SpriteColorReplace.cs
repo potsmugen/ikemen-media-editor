@@ -39,7 +39,7 @@ public partial class MainWindow
     /// </summary>
     private void BuildReplaceSquares()
     {
-        _replacePairCount = Settings.Checked(nameof(Settings.ColorReplacePairs), _settings.ColorReplacePairs,
+        _replacePairCount = Settings.Checked(nameof(Settings.SpritesSection.ColorReplacePairs), _settings.Sprites.ColorReplacePairs,
             Settings.DefaultColorReplacePairs, v => v is >= 1 and <= 64);
         _replaceSlotIndex = new int?[_replacePairCount * 2];
         _replaceSquares = new Button[_replaceSlotIndex.Length];

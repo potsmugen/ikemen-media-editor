@@ -236,7 +236,7 @@ public partial class MainWindow
         try
         {
             var snd = _snd;
-            int backupCount = _settings.BackupCount;
+            int backupCount = _settings.Files.BackupCount;
             await RunFileWriteAsync($"Saving {Path.GetFileName(path)}…", () =>
             {
                 Backups.Make(path, backupCount);
@@ -720,7 +720,7 @@ public partial class MainWindow
         StopPlayhead();
         if (Waveform is null || frames <= 0 || s.SampleRate <= 0) return;
         _playing = (s, start, frames, loop);
-        _playheadLatencySeconds = Settings.Checked(nameof(Settings.PlaybackLatencyMilliseconds), _settings.PlaybackLatencyMilliseconds,
+        _playheadLatencySeconds = Settings.Checked(nameof(Settings.SoundsSection.PlaybackLatencyMilliseconds), _settings.Sounds.PlaybackLatencyMilliseconds,
             Settings.DefaultPlaybackLatencyMilliseconds, v => double.IsFinite(v) && v >= 0 && v <= 2000) / 1000;
         _playheadWatch.Restart();
         _playheadClock = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(15) };
@@ -1209,7 +1209,7 @@ public partial class MainWindow
         if (CurrentSound is not { } s) return;
         if (s.Problem is not null) { StatusText.Text = "Can't trim: this sound's header couldn't be read."; return; }
 
-        if (SndEdit.TrimSilence(s, _settings.SilenceThreshold) is not { } trimmed)
+        if (SndEdit.TrimSilence(s, _settings.Sounds.SilenceThreshold) is not { } trimmed)
         {
             StatusText.Text = "Nothing to trim — already tight, or entirely silent.";
             return;
@@ -1233,9 +1233,9 @@ public partial class MainWindow
                 return;
             }
 
-            double maxMs = Settings.Checked(nameof(Settings.InsertSilenceMaxMilliseconds), _settings.InsertSilenceMaxMilliseconds,
+            double maxMs = Settings.Checked(nameof(Settings.SoundsSection.InsertSilenceMaxMilliseconds), _settings.Sounds.InsertSilenceMaxMilliseconds,
                 Settings.DefaultInsertSilenceMaxMilliseconds, v => double.IsFinite(v) && v > 0);
-            double defaultMs = Settings.Checked(nameof(Settings.InsertSilenceMilliseconds), _settings.InsertSilenceMilliseconds,
+            double defaultMs = Settings.Checked(nameof(Settings.SoundsSection.InsertSilenceMilliseconds), _settings.Sounds.InsertSilenceMilliseconds,
                 Settings.DefaultInsertSilenceMilliseconds, v => double.IsFinite(v) && v > 0 && v <= maxMs);
             string[] places = ["Leading (before the start)", "Trailing (after the end)", "Leading and trailing"];
             var where = new ComboBox { ItemsSource = places, SelectedIndex = 1, HorizontalAlignment = HorizontalAlignment.Stretch };
@@ -1322,7 +1322,7 @@ public partial class MainWindow
     {
         if (_snd is null || _busy || !await ResolvePendingSoundEditsBeforeSwitch()) return;
         var file = _snd;
-        double defaultAmount = Settings.Checked(nameof(Settings.LoudnessDefaultAmount), _settings.LoudnessDefaultAmount,
+        double defaultAmount = Settings.Checked(nameof(Settings.SoundsSection.LoudnessDefaultAmount), _settings.Sounds.LoudnessDefaultAmount,
             SndEdit.DefaultLoudnessAmount, v => v >= SndEdit.MinLoudnessAmount && v <= SndEdit.MaxLoudnessAmount);
         string? text = await Dialogs.PromptText(this, "Increase Loudness",
             $"Amount ({SndEdit.MinLoudnessAmount:0}-{SndEdit.MaxLoudnessAmount:0}; higher lifts quiet parts more, each sound's peak stays unchanged):",
@@ -1437,7 +1437,7 @@ public partial class MainWindow
 
         var sel = SelectionOn(s);
         int crossfade = SelectionCrossfadeFrames(s);
-        double defaultAmount = Settings.Checked(nameof(Settings.LoudnessDefaultAmount), _settings.LoudnessDefaultAmount,
+        double defaultAmount = Settings.Checked(nameof(Settings.SoundsSection.LoudnessDefaultAmount), _settings.Sounds.LoudnessDefaultAmount,
             SndEdit.DefaultLoudnessAmount, v => v >= SndEdit.MinLoudnessAmount && v <= SndEdit.MaxLoudnessAmount);
         if (await PromptSoundEdit(s, "Increase Loudness",
                 "Amount (1-100; higher lifts quiet parts more, the peak never changes):",
@@ -1552,7 +1552,7 @@ public partial class MainWindow
             if (!await ResolvePendingSoundEditsBeforeSwitch()) return;
             if (await Dialogs.PromptText(this, "Downsample All",
                     "Lower every sound above this rate to it (Hz; common: 44100, 22050, 11025):",
-                    Settings.Checked(nameof(Settings.DownsampleAllRate), _settings.DownsampleAllRate, Settings.DefaultDownsampleAllRate,
+                    Settings.Checked(nameof(Settings.SoundsSection.DownsampleAllRate), _settings.Sounds.DownsampleAllRate, Settings.DefaultDownsampleAllRate,
                         v => v >= SndEdit.MinSampleRate && v <= SndEdit.MaxSampleRate).ToString(CultureInfo.InvariantCulture)) is not { } text) return;
             text = text.Trim();
             if (text.EndsWith("hz", StringComparison.OrdinalIgnoreCase)) text = text[..^2].Trim();
@@ -1628,7 +1628,7 @@ public partial class MainWindow
         if (CurrentSound is not { } s) return;
         if (s.Problem is not null) { StatusText.Text = "Can't adjust volume: this sound's header couldn't be read."; return; }
 
-        double maxPercent = Settings.Checked(nameof(Settings.VolumeMaxPercent), _settings.VolumeMaxPercent,
+        double maxPercent = Settings.Checked(nameof(Settings.SoundsSection.VolumeMaxPercent), _settings.Sounds.VolumeMaxPercent,
             Settings.DefaultVolumeMaxPercent, v => double.IsFinite(v) && v > 0);
         var sel = SelectionOn(s);
         int crossfade = SelectionCrossfadeFrames(s);
@@ -1676,7 +1676,7 @@ public partial class MainWindow
     /// <summary>PitchMaxSemitones from settings.json; anything not positive and finite falls back to the default (logged).</summary>
     private double PitchLimit()
     {
-        double max = _settings.PitchMaxSemitones;
+        double max = _settings.Sounds.PitchMaxSemitones;
         if (double.IsFinite(max) && max > 0) return max;
         CrashLog.Error("Settings", $"PitchMaxSemitones {max} isn't a positive number; using {Settings.DefaultPitchMaxSemitones}");
         return Settings.DefaultPitchMaxSemitones;
@@ -1685,7 +1685,7 @@ public partial class MainWindow
     /// <summary>RateMinPercent/RateMaxPercent from settings.json; unless 0 &lt; min &lt; max (finite), both fall back to the defaults (logged).</summary>
     private (double Min, double Max) RateLimits()
     {
-        double min = _settings.RateMinPercent, max = _settings.RateMaxPercent;
+        double min = _settings.Sounds.RateMinPercent, max = _settings.Sounds.RateMaxPercent;
         if (double.IsFinite(min) && double.IsFinite(max) && min > 0 && max > min) return (min, max);
         CrashLog.Error("Settings", $"RateMinPercent {min} / RateMaxPercent {max} need 0 < min < max; " +
             $"using {Settings.DefaultRateMinPercent} / {Settings.DefaultRateMaxPercent}");
@@ -1856,7 +1856,7 @@ public partial class MainWindow
 
     /// <summary>Edge crossfade for edits on a selection (settings.json SelectionCrossfadeMilliseconds), in frames of s.</summary>
     private int SelectionCrossfadeFrames(SoundEntry s) =>
-        (int)Math.Round(Settings.Checked(nameof(Settings.SelectionCrossfadeMilliseconds), _settings.SelectionCrossfadeMilliseconds,
+        (int)Math.Round(Settings.Checked(nameof(Settings.SoundsSection.SelectionCrossfadeMilliseconds), _settings.Sounds.SelectionCrossfadeMilliseconds,
             Settings.DefaultSelectionCrossfadeMilliseconds, v => double.IsFinite(v) && v >= 0) / 1000 * s.SampleRate);
 
     /// <summary>Runs a format-keeping edit on sel when given (edges crossfaded), else on the whole sound. Touches no UI, so previews can run it in the background.</summary>
@@ -1992,7 +1992,7 @@ public partial class MainWindow
         string label = sel is { } shown
             ? $"Fades {(fadeIn ? "in" : "out")} across the selection ({(shown.End - shown.Start) * 1000.0 / s.SampleRate:0} ms). Curve:"
             : $"{(fadeIn ? "Fade-in" : "Fade-out")} length in ms (the sound is {totalMs:0} ms):";
-        double defaultMs = Settings.Checked(nameof(Settings.FadeMilliseconds), _settings.FadeMilliseconds,
+        double defaultMs = Settings.Checked(nameof(Settings.SoundsSection.FadeMilliseconds), _settings.Sounds.FadeMilliseconds,
             Settings.DefaultFadeMilliseconds, v => double.IsFinite(v) && v > 0);
 
         if (await PromptSoundEdit(s, title, label,
@@ -2049,18 +2049,18 @@ public partial class MainWindow
         int frameBytes = Math.Max(s.BitsPerSample, 8) / 8 * s.Channels;
 
         const double maxDecay = 100; // 100% = every echo as loud as the original; the repeat cap still ends the tail
-        int maxRepeats = Settings.Checked(nameof(Settings.EchoMaxRepeats), _settings.EchoMaxRepeats,
+        int maxRepeats = Settings.Checked(nameof(Settings.SoundsSection.EchoMaxRepeats), _settings.Sounds.EchoMaxRepeats,
             Settings.DefaultEchoMaxRepeats, v => v >= 1);
         // Auto stops where Trim Silence would call it silence, measured from the echoed part's peak.
-        double silence = Settings.Checked(nameof(Settings.SilenceThreshold), _settings.SilenceThreshold,
+        double silence = Settings.Checked(nameof(Settings.SoundsSection.SilenceThreshold), _settings.Sounds.SilenceThreshold,
             SndEdit.DefaultSilenceThreshold, v => double.IsFinite(v) && v > 0 && v < 1);
         double peak = SndEdit.Peak(s, start, end) ?? 1;
-        double defaultDelay = Settings.Checked(nameof(Settings.EchoDelayMilliseconds), _settings.EchoDelayMilliseconds,
+        double defaultDelay = Settings.Checked(nameof(Settings.SoundsSection.EchoDelayMilliseconds), _settings.Sounds.EchoDelayMilliseconds,
             Settings.DefaultEchoDelayMilliseconds, v => double.IsFinite(v) && v > 0);
-        double defaultDecay = Settings.Checked(nameof(Settings.EchoDecayPercent), _settings.EchoDecayPercent,
+        double defaultDecay = Settings.Checked(nameof(Settings.SoundsSection.EchoDecayPercent), _settings.Sounds.EchoDecayPercent,
             Settings.DefaultEchoDecayPercent, v => v > 0 && v <= maxDecay);
 
-        double decayStep = Settings.Checked(nameof(Settings.EchoDecayStep), _settings.EchoDecayStep,
+        double decayStep = Settings.Checked(nameof(Settings.SoundsSection.EchoDecayStep), _settings.Sounds.EchoDecayStep,
             Settings.DefaultEchoDecayStep, v => v is >= 1 and <= 100);
         var decayBox = new NumericUpDown { Minimum = 1, Maximum = (decimal)maxDecay, Increment = (decimal)decayStep, Value = (decimal)defaultDecay, FormatString = "0", Width = 110 };
         var auto = new CheckBox { Content = "Auto", IsChecked = true };

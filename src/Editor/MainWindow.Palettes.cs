@@ -525,7 +525,7 @@ public partial class MainWindow
         // wherever the rest of the selection happened to sit.
         double saturationDelta = SaturationSlider.Value;
         double rAdd = RAddSlider.Value, gAdd = GAddSlider.Value, bAdd = BAddSlider.Value;
-        bool perceptual = _settings.PalettePerceptualHue;
+        bool perceptual = _settings.Palettes.PalettePerceptualHue;
 
         foreach (var (i, baseColor) in based)
         {
@@ -2045,7 +2045,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             }
             if (val < 0 || val > SpriteFieldMax)
             {
-                StatusText.Text = _settings.DebugMode
+                StatusText.Text = _settings.General.DebugMode
                     ? "Group and Index must be whole numbers of 0 or more."
                     : "Group and Index must be whole numbers from 0 to 65535.";
                 return;
@@ -2524,7 +2524,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 return;
             }
 
-            if (_settings.SyncSpriteAcrossTabs && !ReferenceEquals(_current, sprite) && HasPendingColorAdjust())
+            if (_settings.General.SyncSpriteAcrossTabs && !ReferenceEquals(_current, sprite) && HasPendingColorAdjust())
             {
                 var choice = await Dialogs.AskAboutPendingColorAdjust(this);
                 if (choice == PendingAdjustChoice.Cancel || !ReferenceEquals(_file, file)
@@ -2547,7 +2547,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
 
             int row = _visible.IndexOf(position);
             if (row < 0) return;
-            if (_settings.SyncSpriteAcrossTabs)
+            if (_settings.General.SyncSpriteAcrossTabs)
             {
                 if (!await ActivateSpriteRow(row)) return;
                 SelectOnlySpriteRow(row, suppressEvents: true);
@@ -2557,7 +2557,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             _palettePreviewSprite = sprite;
             SyncPalettePreviewNav();
             RefreshPaletteTab();
-            CrashLog.Trace($"[palettes] preview set to first sprite using {pal.Group},{pal.Index}: #{sprite.Group},{sprite.Index}; sync={_settings.SyncSpriteAcrossTabs}");
+            CrashLog.Trace($"[palettes] preview set to first sprite using {pal.Group},{pal.Index}: #{sprite.Group},{sprite.Index}; sync={_settings.General.SyncSpriteAcrossTabs}");
             StatusText.Text = $"Previewing sprite {sprite.Group},{sprite.Index}, the first to use palette {PaletteLabel(pal)}.";
         }
         catch (Exception ex)
@@ -2823,7 +2823,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 ".rgba" => System.Text.Encoding.UTF8.GetBytes(PaletteRgbaFile.Write(palette)),
                 _ => throw new NotSupportedException($"Palette files with extension '{targetExtension}' cannot be saved."),
             };
-            Backups.Make(path, _settings.BackupCount);
+            Backups.Make(path, _settings.Files.BackupCount);
             File.WriteAllBytes(path, output);
             palette.SourcePath = path;
             if (targetExtension is not (".png" or ".pcx")) palette.SourceData = null;
@@ -2860,7 +2860,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             if ((Path.GetExtension(path).Equals(".png", StringComparison.OrdinalIgnoreCase)
                     || Path.GetExtension(path).Equals(".pcx", StringComparison.OrdinalIgnoreCase)) && sourceBytes is null)
                 throw new FileNotFoundException("The source image is missing.", path);
-            Backups.Make(path, _settings.BackupCount);
+            Backups.Make(path, _settings.Files.BackupCount);
             switch (Path.GetExtension(path).ToLowerInvariant())
             {
                 case ".act": ActFile.Save(palette, path, palette.SourceActReversed); break;
@@ -2949,8 +2949,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                     $"{Path.GetFileName(rgbaPath)} already exists and will be replaced.", "Replace"))
                 return;
 
-            Backups.Make(rgbaPath, _settings.BackupCount);
-            Backups.Make(path, _settings.BackupCount);
+            Backups.Make(rgbaPath, _settings.Files.BackupCount);
+            Backups.Make(path, _settings.Files.BackupCount);
             PaletteRgbaFile.Save(pal, rgbaPath);
             switch (format)
             {
@@ -2958,7 +2958,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                     JascPalFile.Save(pal, path);
                     break;
                 case Dialogs.PaletteExportFormat.Png:
-                    int cell = Settings.Checked(nameof(_settings.PalettePngSwatchSize), _settings.PalettePngSwatchSize,
+                    int cell = Settings.Checked(nameof(_settings.Palettes.PalettePngSwatchSize), _settings.Palettes.PalettePngSwatchSize,
                         Settings.DefaultPalettePngSwatchSize, v => v is >= 1 and <= 64);
                     PalettePngFile.Save(pal, path, cell);
                     break;

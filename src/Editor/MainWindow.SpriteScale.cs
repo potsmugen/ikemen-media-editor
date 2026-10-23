@@ -13,13 +13,13 @@ public partial class MainWindow
             var selected = SelectedSpriteTargets();
             var targets = selected.Count > 1 ? selected : [sprite];
             bool indexed = targets.Any(s => s.Indexed is not null);
-            int initialPercent = Settings.Checked(nameof(Settings.SpriteScalePercent), _settings.SpriteScalePercent,
+            int initialPercent = Settings.Checked(nameof(Settings.SpritesSection.SpriteScalePercent), _settings.Sprites.SpriteScalePercent,
                 Settings.DefaultSpriteScalePercent, v => v >= 1);
-            int minPercent = Settings.Checked(nameof(Settings.SpriteScaleMinPercent), _settings.SpriteScaleMinPercent,
+            int minPercent = Settings.Checked(nameof(Settings.SpritesSection.SpriteScaleMinPercent), _settings.Sprites.SpriteScaleMinPercent,
                 Settings.DefaultSpriteScaleMinPercent, v => v is >= 1 && v <= Settings.DefaultSpriteScaleMaxPercent);
-            int maxPercent = Settings.Checked(nameof(Settings.SpriteScaleMaxPercent), _settings.SpriteScaleMaxPercent,
+            int maxPercent = Settings.Checked(nameof(Settings.SpritesSection.SpriteScaleMaxPercent), _settings.Sprites.SpriteScaleMaxPercent,
                 Settings.DefaultSpriteScaleMaxPercent, v => v >= minPercent);
-            initialPercent = Settings.Checked(nameof(Settings.SpriteScalePercent), initialPercent,
+            initialPercent = Settings.Checked(nameof(Settings.SpritesSection.SpriteScalePercent), initialPercent,
                 Settings.DefaultSpriteScalePercent, v => v >= minPercent && v <= maxPercent);
             if (targets.Count == 1 && RefuseBorrowerEdit(sprite, "resize")) return;
             var choice = await Dialogs.PromptSpriteScale(this,

@@ -58,7 +58,7 @@ public partial class MainWindow
         _paintStepNames.RemoveRange(_paintStatePos, _paintStepNames.Count - _paintStatePos);
         _paintStates.Add(state);
         _paintStepNames.Add(name);
-        int limit = Settings.Checked(nameof(Settings.PaintUndoLimit), _settings.PaintUndoLimit,
+        int limit = Settings.Checked(nameof(Settings.SpritesSection.PaintUndoLimit), _settings.Sprites.PaintUndoLimit,
             Settings.DefaultPaintUndoLimit, v => v is >= 1 and <= 10000);
         while (_paintStepNames.Count > limit) { _paintStates.RemoveAt(0); _paintStepNames.RemoveAt(0); }
         _paintStatePos = _paintStates.Count - 1;
@@ -124,7 +124,7 @@ public partial class MainWindow
         if (_paintBaseline is null) return false;
         if (PaintSessionHasChanges())
         {
-            StatusText.Text = "Older paint steps were dropped (settings.json PaintUndoLimit). Reset drops the rest.";
+            StatusText.Text = "Older paint steps were dropped (settings.json Sprites.PaintUndoLimit). Reset drops the rest.";
             return true;
         }
         DropPendingPaint(); // back at the start: close the empty session, then undo the main history

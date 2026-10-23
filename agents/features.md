@@ -877,6 +877,9 @@ summaries; treat anything marked unverified as unknown.
     is the library in the user's error.
   - Manual fallback, if the editor still won't start: `xattr -dr com.apple.quarantine
     <editor folder>`.
+- **settings.json sections**: keys live under General, Files, Layout, Appearance, Canvas,
+  Sprites, Palettes, Animations and Sounds (nested `Settings.*Section` classes; `Shortcuts` stays
+  top-level). `Default*` constants stay on `Settings`. Old flat files load as defaults.
 - **Trimming: the JSON half is a `JsonSerializerContext`, the XAML half is a root
   assembly.** `PublishTrimmed=true` reports IL2026 on `ReflectionBindingExtension`
   (every XAML binding) and on `JsonSerializer.Serialize/Deserialize` in

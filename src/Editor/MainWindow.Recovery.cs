@@ -26,7 +26,7 @@ public partial class MainWindow
 
     private void StartRecoveryTimer()
     {
-        int minutes = Settings.Checked(nameof(Settings.RecoveryIntervalMinutes), _settings.RecoveryIntervalMinutes,
+        int minutes = Settings.Checked(nameof(Settings.FilesSection.RecoveryIntervalMinutes), _settings.Files.RecoveryIntervalMinutes,
             Settings.DefaultRecoveryIntervalMinutes, v => v >= 1 && v <= 1440);
         _recoveryInterval = RecoveryTestMode ? TimeSpan.FromSeconds(15) : TimeSpan.FromMinutes(minutes);
         // Checks at most once a minute. A snapshot is taken only when there is unsaved work and it is due.

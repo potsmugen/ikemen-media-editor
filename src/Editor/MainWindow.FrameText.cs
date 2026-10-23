@@ -41,8 +41,8 @@ public partial class MainWindow
         FrameTextView.CaretMoved += OnFrameTextCaretMoved;
         FrameTextView.EditFinished += OnFrameTextEditFinished;
         FrameTextView.TextEdited += OnFrameTextEdited;
-        _respanTimer.Interval = TimeSpan.FromMilliseconds(Settings.Checked(nameof(Settings.TextViewRespanMilliseconds),
-            _settings.TextViewRespanMilliseconds, Settings.DefaultTextViewRespanMilliseconds, v => v > 0));
+        _respanTimer.Interval = TimeSpan.FromMilliseconds(Settings.Checked(nameof(Settings.AnimationsSection.TextViewRespanMilliseconds),
+            _settings.Animations.TextViewRespanMilliseconds, Settings.DefaultTextViewRespanMilliseconds, v => v > 0));
         _respanTimer.Tick += (_, _) => LiveRespan();
     }
 

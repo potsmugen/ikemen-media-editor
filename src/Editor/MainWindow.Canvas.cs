@@ -29,15 +29,15 @@ public partial class MainWindow
     private Dialogs.CanvasLimits CanvasLimits()
     {
         var s = _settings;
-        double armMin = Settings.Checked(nameof(s.CrosshairArmMin), s.CrosshairArmMin,
+        double armMin = Settings.Checked(nameof(s.Canvas.CrosshairArmMin), s.Canvas.CrosshairArmMin,
             Settings.DefaultCrosshairArmMin, v => double.IsFinite(v) && v > 0);
-        double armMax = Settings.Checked(nameof(s.CrosshairArmMax), s.CrosshairArmMax,
+        double armMax = Settings.Checked(nameof(s.Canvas.CrosshairArmMax), s.Canvas.CrosshairArmMax,
             Math.Max(armMin, Settings.DefaultCrosshairArmMax), v => double.IsFinite(v) && v >= armMin);
-        double thMin = Settings.Checked(nameof(s.CrosshairThicknessMin), s.CrosshairThicknessMin,
+        double thMin = Settings.Checked(nameof(s.Canvas.CrosshairThicknessMin), s.Canvas.CrosshairThicknessMin,
             Settings.DefaultCrosshairThicknessMin, v => double.IsFinite(v) && v > 0);
-        double thMax = Settings.Checked(nameof(s.CrosshairThicknessMax), s.CrosshairThicknessMax,
+        double thMax = Settings.Checked(nameof(s.Canvas.CrosshairThicknessMax), s.Canvas.CrosshairThicknessMax,
             Math.Max(thMin, Settings.DefaultCrosshairThicknessMax), v => double.IsFinite(v) && v >= thMin);
-        int offMax = Settings.Checked(nameof(s.BackgroundOffsetMax), s.BackgroundOffsetMax,
+        int offMax = Settings.Checked(nameof(s.Canvas.BackgroundOffsetMax), s.Canvas.BackgroundOffsetMax,
             Settings.DefaultBackgroundOffsetMax, v => v >= 0);
         return new(armMin, armMax, thMin, thMax, offMax);
     }
@@ -61,39 +61,38 @@ public partial class MainWindow
     private Dialogs.CanvasValues CanvasValuesFromSettings(Settings? from = null)
     {
         var s = from ?? _settings;
-        var style = s.BackgroundStyle is null
-            ? (s.Checkerboard ? BackgroundStyle.Checkerboard : BackgroundStyle.Flat)
-            : CheckedEnum(nameof(s.BackgroundStyle), s.BackgroundStyle, BackgroundStyle.Checkerboard);
-        return new(style, s.BaseColor, s.CheckerColor, s.CheckerSize,
-            s.BackgroundImagePath, s.BackgroundTile, s.BackgroundOffsetX, s.BackgroundOffsetY, s.BackgroundOpacityPercent,
-            s.BackgroundFollowZoom, s.BackgroundFollowPan,
-            string.Equals(s.CrosshairMode, "Image", StringComparison.OrdinalIgnoreCase), s.CrosshairColor,
-            s.CrosshairArmLength, s.CrosshairThickness, s.CrosshairImagePath,
-            s.CrosshairHotspotX, s.CrosshairHotspotY, s.CrosshairScaleWithZoom);
+        var style = s.Canvas.BackgroundStyle is null ? BackgroundStyle.Checkerboard
+            : CheckedEnum(nameof(s.Canvas.BackgroundStyle), s.Canvas.BackgroundStyle, BackgroundStyle.Checkerboard);
+        return new(style, s.Canvas.BaseColor, s.Canvas.CheckerColor, s.Canvas.CheckerSize,
+            s.Canvas.BackgroundImagePath, s.Canvas.BackgroundTile, s.Canvas.BackgroundOffsetX, s.Canvas.BackgroundOffsetY, s.Canvas.BackgroundOpacityPercent,
+            s.Canvas.BackgroundFollowZoom, s.Canvas.BackgroundFollowPan,
+            string.Equals(s.Canvas.CrosshairMode, "Image", StringComparison.OrdinalIgnoreCase), s.Canvas.CrosshairColor,
+            s.Canvas.CrosshairArmLength, s.Canvas.CrosshairThickness, s.Canvas.CrosshairImagePath,
+            s.Canvas.CrosshairHotspotX, s.Canvas.CrosshairHotspotY, s.Canvas.CrosshairScaleWithZoom);
     }
 
     private void StoreCanvasValues(Dialogs.CanvasValues c)
     {
         var s = _settings;
-        s.BackgroundStyle = c.Style.ToString();
-        s.BaseColor = c.BaseColor;
-        s.CheckerColor = c.CheckerColor;
-        s.CheckerSize = c.CheckerSize;
-        s.BackgroundImagePath = c.BackgroundPath;
-        s.BackgroundTile = c.Tile;
-        s.BackgroundOffsetX = c.OffsetX;
-        s.BackgroundOffsetY = c.OffsetY;
-        s.BackgroundOpacityPercent = c.OpacityPercent;
-        s.BackgroundFollowZoom = c.FollowZoom;
-        s.BackgroundFollowPan = c.FollowPan;
-        s.CrosshairMode = c.CrosshairImageStyle ? "Image" : "Lines";
-        s.CrosshairColor = c.Color;
-        s.CrosshairArmLength = c.ArmLength;
-        s.CrosshairThickness = c.Thickness;
-        s.CrosshairImagePath = c.CrosshairImagePath;
-        s.CrosshairHotspotX = c.HotspotX;
-        s.CrosshairHotspotY = c.HotspotY;
-        s.CrosshairScaleWithZoom = c.ScaleWithZoom;
+        s.Canvas.BackgroundStyle = c.Style.ToString();
+        s.Canvas.BaseColor = c.BaseColor;
+        s.Canvas.CheckerColor = c.CheckerColor;
+        s.Canvas.CheckerSize = c.CheckerSize;
+        s.Canvas.BackgroundImagePath = c.BackgroundPath;
+        s.Canvas.BackgroundTile = c.Tile;
+        s.Canvas.BackgroundOffsetX = c.OffsetX;
+        s.Canvas.BackgroundOffsetY = c.OffsetY;
+        s.Canvas.BackgroundOpacityPercent = c.OpacityPercent;
+        s.Canvas.BackgroundFollowZoom = c.FollowZoom;
+        s.Canvas.BackgroundFollowPan = c.FollowPan;
+        s.Canvas.CrosshairMode = c.CrosshairImageStyle ? "Image" : "Lines";
+        s.Canvas.CrosshairColor = c.Color;
+        s.Canvas.CrosshairArmLength = c.ArmLength;
+        s.Canvas.CrosshairThickness = c.Thickness;
+        s.Canvas.CrosshairImagePath = c.CrosshairImagePath;
+        s.Canvas.CrosshairHotspotX = c.HotspotX;
+        s.Canvas.CrosshairHotspotY = c.HotspotY;
+        s.Canvas.CrosshairScaleWithZoom = c.ScaleWithZoom;
     }
 
     /// <summary>Image picker for the Preferences dialog, parented to it. When it exists, <paramref name="startFolder"/> opens the picker there.</summary>
@@ -143,8 +142,8 @@ public partial class MainWindow
         var limits = CanvasLimits();
         var problems = new List<string>();
 
-        var baseColor = CheckedColor(nameof(Settings.BaseColor), v.BaseColor) ?? _themeCanvasColor;
-        var checkerColor = CheckedColor(nameof(Settings.CheckerColor), v.CheckerColor) ?? CanvasColors.CheckerFor(baseColor);
+        var baseColor = CheckedColor(nameof(Settings.CanvasSection.BaseColor), v.BaseColor) ?? _themeCanvasColor;
+        var checkerColor = CheckedColor(nameof(Settings.CanvasSection.CheckerColor), v.CheckerColor) ?? CanvasColors.CheckerFor(baseColor);
 
         var bgImage = v.Style == BackgroundStyle.Image
             ? UseImage(_backgroundSlot, v.BackgroundPath, "Background image", problems) : null; // null = Flat
@@ -154,7 +153,7 @@ public partial class MainWindow
             Tile = v.Tile,
             Offset = new Point(Math.Clamp(v.OffsetX, -limits.OffsetMax, limits.OffsetMax),
                 Math.Clamp(v.OffsetY, -limits.OffsetMax, limits.OffsetMax)),
-            Opacity = Settings.Checked(nameof(Settings.BackgroundOpacityPercent), v.OpacityPercent,
+            Opacity = Settings.Checked(nameof(Settings.CanvasSection.BackgroundOpacityPercent), v.OpacityPercent,
                 Settings.DefaultBackgroundOpacityPercent, o => o is >= 0 and <= 100) / 100,
             FollowZoom = v.FollowZoom,
             FollowPan = v.FollowPan,
@@ -164,10 +163,10 @@ public partial class MainWindow
             ? UseImage(_crosshairSlot, v.CrosshairImagePath, "Crosshair image", problems) : null; // null = Lines
         var crosshair = new CrosshairStyle
         {
-            Color = CheckedColor(nameof(Settings.CrosshairColor), v.Color) ?? CrosshairStyle.DefaultColor,
-            ArmLength = Settings.Checked(nameof(Settings.CrosshairArmLength), v.ArmLength,
+            Color = CheckedColor(nameof(Settings.CanvasSection.CrosshairColor), v.Color) ?? CrosshairStyle.DefaultColor,
+            ArmLength = Settings.Checked(nameof(Settings.CanvasSection.CrosshairArmLength), v.ArmLength,
                 Math.Clamp(Settings.DefaultCrosshairArmLength, limits.ArmMin, limits.ArmMax), a => a >= limits.ArmMin && a <= limits.ArmMax),
-            Thickness = Settings.Checked(nameof(Settings.CrosshairThickness), v.Thickness,
+            Thickness = Settings.Checked(nameof(Settings.CanvasSection.CrosshairThickness), v.Thickness,
                 Math.Clamp(Settings.DefaultCrosshairThickness, limits.ThicknessMin, limits.ThicknessMax), t => t >= limits.ThicknessMin && t <= limits.ThicknessMax),
             Image = chImage,
             Hotspot = chImage is null ? default : new PixelPoint(
@@ -178,7 +177,7 @@ public partial class MainWindow
 
         var baseBrush = new SolidColorBrush(baseColor);
         var checkerBrush = new SolidColorBrush(checkerColor);
-        var checkerSize = Settings.Checked(nameof(Settings.CheckerSize), v.CheckerSize,
+        var checkerSize = Settings.Checked(nameof(Settings.CanvasSection.CheckerSize), v.CheckerSize,
             Settings.DefaultCheckerSize, c => c >= Settings.CheckerSizeMin && c <= Settings.CheckerSizeMax);
         _canvasLook = new CanvasLook(baseBrush, checkerBrush, v.Style == BackgroundStyle.Checkerboard, checkerSize);
         foreach (var c in AllCanvases())

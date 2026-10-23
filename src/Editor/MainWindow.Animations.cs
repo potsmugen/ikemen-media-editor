@@ -39,7 +39,7 @@ public partial class MainWindow
     /// <summary>Most ticks one poll catches up; a longer stall skips the rest instead of fast-forwarding.</summary>
     private const int MaxCatchUpTicks = 30;
 
-    private int InfiniteAnimationTimeoutTicks => Math.Max(1, (int)Math.Round(_settings.InfiniteAnimationTimeout / TickLength.TotalSeconds));
+    private int InfiniteAnimationTimeoutTicks => Math.Max(1, (int)Math.Round(_settings.Animations.InfiniteAnimationTimeout / TickLength.TotalSeconds));
 
     // The convention this project follows: red for a frame's own Clsn1, blue
     // for its own Clsn2. Default-sourced boxes get their own color per kind
@@ -463,7 +463,7 @@ public partial class MainWindow
                 writtenDefOrder = order;
             }
 
-            Backups.Make(path, _settings.BackupCount);
+            Backups.Make(path, _settings.Files.BackupCount);
             if (sourceBytesForSave is not null && trackedSourcePath is not null)
             {
                 var currentHash = SHA256.HashData(File.ReadAllBytes(trackedSourcePath));
@@ -1557,8 +1557,8 @@ public partial class MainWindow
     };
 
     /// <summary>settings.json AutoBoxesAlphaThreshold, checked: 32-bit pixels below it are transparent to Auto Clsn.</summary>
-    private byte AutoBoxesAlphaThreshold() => (byte)Settings.Checked(nameof(Settings.AutoBoxesAlphaThreshold),
-        _settings.AutoBoxesAlphaThreshold, Settings.DefaultAutoBoxesAlphaThreshold, v => v is >= 1 and <= 255);
+    private byte AutoBoxesAlphaThreshold() => (byte)Settings.Checked(nameof(Settings.AnimationsSection.AutoBoxesAlphaThreshold),
+        _settings.Animations.AutoBoxesAlphaThreshold, Settings.DefaultAutoBoxesAlphaThreshold, v => v is >= 1 and <= 255);
 
     /// <summary>Generates Clsn1 or Clsn2 boxes covering this frame's transformed sprite,
     /// replacing that kind's own boxes. The other kind is untouched; the count and layout are
@@ -1588,17 +1588,17 @@ public partial class MainWindow
                 return;
             }
 
-            int initialBoxes = _autoBoxCount ?? Settings.Checked(nameof(Settings.AutoBoxesDefault), _settings.AutoBoxesDefault,
-                Math.Min(Settings.DefaultAutoBoxes, _settings.MaxAutoBoxes), v => v >= 1 && v <= _settings.MaxAutoBoxes);
+            int initialBoxes = _autoBoxCount ?? Settings.Checked(nameof(Settings.AnimationsSection.AutoBoxesDefault), _settings.Animations.AutoBoxesDefault,
+                Math.Min(Settings.DefaultAutoBoxes, _settings.Animations.MaxAutoBoxes), v => v >= 1 && v <= _settings.Animations.MaxAutoBoxes);
             CoverLayout initialLayout;
             if (_autoLayout is { } last) initialLayout = last;
-            else if (Enum.TryParse<CoverLayout>(_settings.AutoBoxesLayout, true, out var a) && Enum.IsDefined(a)) initialLayout = a;
+            else if (Enum.TryParse<CoverLayout>(_settings.Animations.AutoBoxesLayout, true, out var a) && Enum.IsDefined(a)) initialLayout = a;
             else
             {
-                CrashLog.Error("Settings", $"AutoBoxesLayout = {_settings.AutoBoxesLayout} isn't valid; using Stacked");
+                CrashLog.Error("Settings", $"AutoBoxesLayout = {_settings.Animations.AutoBoxesLayout} isn't valid; using Stacked");
                 initialLayout = CoverLayout.Stacked;
             }
-            if (await Dialogs.PromptAutoBoxCount(this, initialBoxes, initialLayout, _settings.MaxAutoBoxes) is not { } choice) return;
+            if (await Dialogs.PromptAutoBoxCount(this, initialBoxes, initialLayout, _settings.Animations.MaxAutoBoxes) is not { } choice) return;
             _autoBoxCount = choice.Boxes;
             _autoLayout = choice.Layout;
             var kind = choice.Kind;
@@ -1658,17 +1658,17 @@ public partial class MainWindow
             return;
         }
 
-        int initialBoxes = _autoBoxCount ?? Settings.Checked(nameof(Settings.AutoBoxesDefault), _settings.AutoBoxesDefault,
-            Math.Min(Settings.DefaultAutoBoxes, _settings.MaxAutoBoxes), v => v >= 1 && v <= _settings.MaxAutoBoxes);
+        int initialBoxes = _autoBoxCount ?? Settings.Checked(nameof(Settings.AnimationsSection.AutoBoxesDefault), _settings.Animations.AutoBoxesDefault,
+            Math.Min(Settings.DefaultAutoBoxes, _settings.Animations.MaxAutoBoxes), v => v >= 1 && v <= _settings.Animations.MaxAutoBoxes);
         CoverLayout initialLayout;
         if (_autoLayout is { } last) initialLayout = last;
-        else if (Enum.TryParse<CoverLayout>(_settings.AutoBoxesLayout, true, out var a) && Enum.IsDefined(a)) initialLayout = a;
+        else if (Enum.TryParse<CoverLayout>(_settings.Animations.AutoBoxesLayout, true, out var a) && Enum.IsDefined(a)) initialLayout = a;
         else
         {
-            CrashLog.Error("Settings", $"AutoBoxesLayout = {_settings.AutoBoxesLayout} isn't valid; using Stacked");
+            CrashLog.Error("Settings", $"AutoBoxesLayout = {_settings.Animations.AutoBoxesLayout} isn't valid; using Stacked");
             initialLayout = CoverLayout.Stacked;
         }
-        if (await Dialogs.PromptAutoBoxCount(this, initialBoxes, initialLayout, _settings.MaxAutoBoxes) is not { } choice) return;
+        if (await Dialogs.PromptAutoBoxCount(this, initialBoxes, initialLayout, _settings.Animations.MaxAutoBoxes) is not { } choice) return;
         _autoBoxCount = choice.Boxes;
         _autoLayout = choice.Layout;
         if (_action != action) return;
@@ -1718,17 +1718,17 @@ public partial class MainWindow
                 return;
             }
 
-            int initialBoxes = _autoBoxCount ?? Settings.Checked(nameof(Settings.AutoBoxesDefault), _settings.AutoBoxesDefault,
-                Math.Min(Settings.DefaultAutoBoxes, _settings.MaxAutoBoxes), v => v >= 1 && v <= _settings.MaxAutoBoxes);
+            int initialBoxes = _autoBoxCount ?? Settings.Checked(nameof(Settings.AnimationsSection.AutoBoxesDefault), _settings.Animations.AutoBoxesDefault,
+                Math.Min(Settings.DefaultAutoBoxes, _settings.Animations.MaxAutoBoxes), v => v >= 1 && v <= _settings.Animations.MaxAutoBoxes);
             CoverLayout initialLayout;
             if (_autoLayout is { } last) initialLayout = last;
-            else if (Enum.TryParse<CoverLayout>(_settings.AutoBoxesLayout, true, out var a) && Enum.IsDefined(a)) initialLayout = a;
+            else if (Enum.TryParse<CoverLayout>(_settings.Animations.AutoBoxesLayout, true, out var a) && Enum.IsDefined(a)) initialLayout = a;
             else
             {
-                CrashLog.Error("Settings", $"AutoBoxesLayout = {_settings.AutoBoxesLayout} isn't valid; using Stacked");
+                CrashLog.Error("Settings", $"AutoBoxesLayout = {_settings.Animations.AutoBoxesLayout} isn't valid; using Stacked");
                 initialLayout = CoverLayout.Stacked;
             }
-            if (await Dialogs.PromptAutoBoxCount(this, initialBoxes, initialLayout, _settings.MaxAutoBoxes, forAll: true) is not { } choice) return;
+            if (await Dialogs.PromptAutoBoxCount(this, initialBoxes, initialLayout, _settings.Animations.MaxAutoBoxes, forAll: true) is not { } choice) return;
             _autoBoxCount = choice.Boxes;
             _autoLayout = choice.Layout;
 

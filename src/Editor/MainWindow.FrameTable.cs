@@ -628,8 +628,8 @@ public partial class MainWindow
         {
             _fillTo = Math.Clamp(_fillTo + (above ? -1 : 1), 0, action.Elements.Count - 1);
             FrameTableList.ScrollIntoView(_fillTo);
-            _fillScrollTimer ??= new DispatcherTimer(TimeSpan.FromMilliseconds(Settings.Checked(nameof(Settings.FillScrollMilliseconds),
-                _settings.FillScrollMilliseconds, Settings.DefaultFillScrollMilliseconds, v => v is >= 10 and <= 1000)),
+            _fillScrollTimer ??= new DispatcherTimer(TimeSpan.FromMilliseconds(Settings.Checked(nameof(Settings.SpritesSection.FillScrollMilliseconds),
+                _settings.Sprites.FillScrollMilliseconds, Settings.DefaultFillScrollMilliseconds, v => v is >= 10 and <= 1000)),
                 DispatcherPriority.Input, (_, _) => UpdateFillTarget());
             _fillScrollTimer.Start();
         }

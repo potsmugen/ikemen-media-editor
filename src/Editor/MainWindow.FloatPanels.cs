@@ -145,7 +145,7 @@ public partial class MainWindow
     private void Dock(FloatPanel p, bool closeWindow)
     {
         if (p.Window is not { } window) return;
-        _settings.FloatingPanels.Remove(p.Key);
+        _settings.Layout.FloatingPanels.Remove(p.Key);
         p.Window = null;
         p.RolledUp = false;
         p.SetRolledUp = null;
@@ -176,7 +176,7 @@ public partial class MainWindow
         foreach (var p in FloatPanels.Where(p => p.Tab == tab))
         {
             Dock(p, closeWindow: true);
-            _settings.FloatingPanels.Remove(p.Key); // also entries for panels not yet restored
+            _settings.Layout.FloatingPanels.Remove(p.Key); // also entries for panels not yet restored
         }
     }
 
@@ -201,7 +201,7 @@ public partial class MainWindow
     /// <summary>The panel's saved placement, or null when missing or unusable (logged).</summary>
     private FloatPanelPlacement? SavedPlacement(FloatPanel p)
     {
-        if (!_settings.FloatingPanels.TryGetValue(p.Key, out var s) || s is null) return null;
+        if (!_settings.Layout.FloatingPanels.TryGetValue(p.Key, out var s) || s is null) return null;
         if (double.IsFinite(s.Width) && double.IsFinite(s.Height) && s.Width > 0 && s.Height > 0) return s;
         CrashLog.Error(nameof(SavedPlacement), $"ignoring FloatingPanels.{p.Key}: size {s.Width}x{s.Height}.");
         return null;
@@ -210,7 +210,7 @@ public partial class MainWindow
     private void RecordPlacement(FloatPanel p, Window window)
     {
         var size = p.RolledUp ? p.ExpandedSize : window.ClientSize;
-        _settings.FloatingPanels[p.Key] = new FloatPanelPlacement
+        _settings.Layout.FloatingPanels[p.Key] = new FloatPanelPlacement
         {
             Floating = true, RolledUp = p.RolledUp,
             X = window.Position.X, Y = window.Position.Y,

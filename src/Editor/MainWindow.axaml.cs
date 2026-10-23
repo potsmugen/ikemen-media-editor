@@ -70,25 +70,25 @@ public partial class MainWindow : Window
         Waveform.SelectionEdited += OnWaveformSelectionEdited;
         Waveform.ViewChanged += SyncWaveformScroll;
         WaveformScroll.ValueChanged += (_, e) => { if (!_syncingWaveformScroll) Waveform.ViewStart = e.NewValue; };
-        Waveform.MaxPixelsPerSample = Settings.Checked(nameof(Settings.WaveformMaxPixelsPerSample), _settings.WaveformMaxPixelsPerSample,
+        Waveform.MaxPixelsPerSample = Settings.Checked(nameof(Settings.SoundsSection.WaveformMaxPixelsPerSample), _settings.Sounds.WaveformMaxPixelsPerSample,
             Settings.DefaultWaveformMaxPixelsPerSample, v => double.IsFinite(v) && v > 0);
-        Waveform.ZoomStep = Settings.Checked(nameof(Settings.WaveformZoomStep), _settings.WaveformZoomStep,
+        Waveform.ZoomStep = Settings.Checked(nameof(Settings.SoundsSection.WaveformZoomStep), _settings.Sounds.WaveformZoomStep,
             Settings.DefaultWaveformZoomStep, v => double.IsFinite(v) && v > 1);
-        Waveform.ScrollStep = Settings.Checked(nameof(Settings.WaveformScrollStep), _settings.WaveformScrollStep,
+        Waveform.ScrollStep = Settings.Checked(nameof(Settings.SoundsSection.WaveformScrollStep), _settings.Sounds.WaveformScrollStep,
             Settings.DefaultWaveformScrollStep, v => double.IsFinite(v) && v > 0);
-        Waveform.DragThreshold = Settings.Checked(nameof(Settings.WaveformDragThresholdPixels), _settings.WaveformDragThresholdPixels,
+        Waveform.DragThreshold = Settings.Checked(nameof(Settings.SoundsSection.WaveformDragThresholdPixels), _settings.Sounds.WaveformDragThresholdPixels,
             Settings.DefaultWaveformDragThresholdPixels, v => double.IsFinite(v) && v >= 0);
         TimelineView.ViewChanged += SyncTimelineScroll;
         TimelineScroll.ValueChanged += (_, e) => { if (!_syncingTimelineScroll) TimelineView.ViewStart = e.NewValue; };
-        TimelineView.MaxPixelsPerTick = Settings.Checked(nameof(Settings.TimelineMaxPixelsPerTick), _settings.TimelineMaxPixelsPerTick,
+        TimelineView.MaxPixelsPerTick = Settings.Checked(nameof(Settings.AnimationsSection.TimelineMaxPixelsPerTick), _settings.Animations.TimelineMaxPixelsPerTick,
             Settings.DefaultTimelineMaxPixelsPerTick, v => double.IsFinite(v) && v > 0);
-        TimelineView.ZoomStep = Settings.Checked(nameof(Settings.TimelineZoomStep), _settings.TimelineZoomStep,
+        TimelineView.ZoomStep = Settings.Checked(nameof(Settings.AnimationsSection.TimelineZoomStep), _settings.Animations.TimelineZoomStep,
             Settings.DefaultTimelineZoomStep, v => double.IsFinite(v) && v > 1);
-        TimelineView.ScrollStep = Settings.Checked(nameof(Settings.TimelineScrollStep), _settings.TimelineScrollStep,
+        TimelineView.ScrollStep = Settings.Checked(nameof(Settings.AnimationsSection.TimelineScrollStep), _settings.Animations.TimelineScrollStep,
             Settings.DefaultTimelineScrollStep, v => double.IsFinite(v) && v > 0);
-        TimelineView.DragThreshold = Settings.Checked(nameof(Settings.TimelineDragThresholdPixels), _settings.TimelineDragThresholdPixels,
+        TimelineView.DragThreshold = Settings.Checked(nameof(Settings.AnimationsSection.TimelineDragThresholdPixels), _settings.Animations.TimelineDragThresholdPixels,
             Settings.DefaultTimelineDragThresholdPixels, v => double.IsFinite(v) && v >= 0);
-        TimelineView.TickMarkMinPixels = Settings.Checked(nameof(Settings.TimelineTickMarkMinPixels), _settings.TimelineTickMarkMinPixels,
+        TimelineView.TickMarkMinPixels = Settings.Checked(nameof(Settings.AnimationsSection.TimelineTickMarkMinPixels), _settings.Animations.TimelineTickMarkMinPixels,
             Settings.DefaultTimelineTickMarkMinPixels, v => double.IsFinite(v) && v > 0);
         SpriteCanvas.AxisDragStarted += OnAxisDragStarted;
         SpriteCanvas.AxisDragFinished += OnAxisDragFinished;
@@ -126,19 +126,19 @@ public partial class MainWindow : Window
         DragDrop.SetAllowDrop(this, true);
 
         // At least the window's MinWidth/MinHeight; anything else (0, NaN, huge) falls back.
-        Width = Settings.Checked(nameof(Settings.WindowWidth), _settings.WindowWidth,
+        Width = Settings.Checked(nameof(Settings.LayoutSection.WindowWidth), _settings.Layout.WindowWidth,
             Settings.DefaultWindowWidth, v => double.IsFinite(v) && v >= MinWidth && v <= 16384);
-        Height = Settings.Checked(nameof(Settings.WindowHeight), _settings.WindowHeight,
+        Height = Settings.Checked(nameof(Settings.LayoutSection.WindowHeight), _settings.Layout.WindowHeight,
             Settings.DefaultWindowHeight, v => double.IsFinite(v) && v >= MinHeight && v <= 16384);
-        if (_settings.Maximized) WindowState = WindowState.Maximized;
+        if (_settings.Layout.Maximized) WindowState = WindowState.Maximized;
 
-        _showMask = _settings.ShowMask;
-        _fullCrosshair = _settings.FullCrosshair;
-        _onionSkin = _settings.OnionSkin;
-        _onionGrayscale = _settings.OnionGrayscale;
-        _animOnion = _settings.AnimOnionSkin;
-        _animOnionGrayscale = _settings.AnimOnionGrayscale;
-        _animOnionClsn = _settings.AnimOnionClsn;
+        _showMask = _settings.Canvas.ShowMask;
+        _fullCrosshair = _settings.Canvas.FullCrosshair;
+        _onionSkin = _settings.Sprites.OnionSkin;
+        _onionGrayscale = _settings.Sprites.OnionGrayscale;
+        _animOnion = _settings.Animations.AnimOnionSkin;
+        _animOnionGrayscale = _settings.Animations.AnimOnionGrayscale;
+        _animOnionClsn = _settings.Animations.AnimOnionClsn;
         foreach (var c in AllCanvases())
         {
             c.FullCrosshair = _fullCrosshair;
@@ -147,9 +147,9 @@ public partial class MainWindow : Window
         AnimCanvas.ShowOnionSkin = _animOnion; // the Animations tab has its own onion
         AnimCanvas.OnionOpacityOverride = _animOnionOpacity;
 
-        ApplyTheme(_settings.ThemeName);
+        ApplyTheme(_settings.General.ThemeName);
         ApplyCanvasDecor(CanvasValuesFromSettings());
-        StatusBar.IsVisible = _settings.ShowStatusBar;
+        StatusBar.IsVisible = _settings.General.ShowStatusBar;
         ApplyEditorLimits();
         RebuildRecentMenu();
         UpdateTitle();
@@ -164,7 +164,7 @@ public partial class MainWindow : Window
     /// lifts it for engine testing — saving then truncates what doesn't fit,
     /// and the save paths say so.
     /// </summary>
-    private int SpriteFieldMax => _settings.DebugMode ? int.MaxValue : 65535;
+    private int SpriteFieldMax => _settings.General.DebugMode ? int.MaxValue : 65535;
 
     /// <summary>
     /// Axis range the sprite file's editors accept. Both SFF writers store the
@@ -172,8 +172,8 @@ public partial class MainWindow : Window
     /// -32768..32767 is the honest on-disk range; DebugMode lifts it just like
     /// SpriteFieldMax, and saving warns about whatever doesn't fit.
     /// </summary>
-    private int SpriteAxisMin => _settings.DebugMode ? int.MinValue : short.MinValue;
-    private int SpriteAxisMax => _settings.DebugMode ? int.MaxValue : short.MaxValue;
+    private int SpriteAxisMin => _settings.General.DebugMode ? int.MinValue : short.MinValue;
+    private int SpriteAxisMax => _settings.General.DebugMode ? int.MaxValue : short.MaxValue;
 
     // ---- theme --------------------------------------------------------------
 
@@ -189,33 +189,33 @@ public partial class MainWindow : Window
     private void ApplyStartupSettings()
     {
         var s = _settings;
-        int undoLimit = Settings.Checked(nameof(s.UndoLimit), s.UndoLimit, Settings.DefaultUndoLimit, v => v >= 1);
-        var undoMerge = TimeSpan.FromSeconds(Settings.Checked(nameof(s.UndoMergeSeconds), s.UndoMergeSeconds,
+        int undoLimit = Settings.Checked(nameof(s.General.UndoLimit), s.General.UndoLimit, Settings.DefaultUndoLimit, v => v >= 1);
+        var undoMerge = TimeSpan.FromSeconds(Settings.Checked(nameof(s.General.UndoMergeSeconds), s.General.UndoMergeSeconds,
             Settings.DefaultUndoMergeSeconds, v => double.IsFinite(v) && v >= 0));
         foreach (var undo in _docs.Select(d => d.Undo).Append(_undo).Distinct())
         {
             undo.Limit = undoLimit;
             undo.MergeWindow = undoMerge;
         }
-        ColorPickerView.BoxWidth = Settings.Checked(nameof(s.ColorPickerBoxWidth), s.ColorPickerBoxWidth,
+        ColorPickerView.BoxWidth = Settings.Checked(nameof(s.Palettes.ColorPickerBoxWidth), s.Palettes.ColorPickerBoxWidth,
             Settings.DefaultColorPickerBoxWidth, v => v is >= 16 and <= 2048);
-        ColorPickerView.BoxHeight = Settings.Checked(nameof(s.ColorPickerBoxHeight), s.ColorPickerBoxHeight,
+        ColorPickerView.BoxHeight = Settings.Checked(nameof(s.Palettes.ColorPickerBoxHeight), s.Palettes.ColorPickerBoxHeight,
             Settings.DefaultColorPickerBoxHeight, v => v is >= 16 and <= 2048);
-        SpriteView.OnionOpacity = Settings.Checked(nameof(s.OnionOpacity), s.OnionOpacity,
+        SpriteView.OnionOpacity = Settings.Checked(nameof(s.Sprites.OnionOpacity), s.Sprites.OnionOpacity,
             Settings.DefaultOnionOpacity, v => v is >= 0 and <= 1);
-        _animOnionOpacity = Settings.Checked(nameof(s.AnimOnionOpacity), s.AnimOnionOpacity,
+        _animOnionOpacity = Settings.Checked(nameof(s.Animations.AnimOnionOpacity), s.Animations.AnimOnionOpacity,
             Settings.DefaultOnionOpacity, v => v is >= 0 and <= 1);
-        SpriteView.SelectDragThreshold = Settings.Checked(nameof(s.SelectionDragThresholdPixels), s.SelectionDragThresholdPixels,
+        SpriteView.SelectDragThreshold = Settings.Checked(nameof(s.Canvas.SelectionDragThresholdPixels), s.Canvas.SelectionDragThresholdPixels,
             Settings.DefaultSelectionDragThresholdPixels, v => double.IsFinite(v) && v >= 0);
-        var zoom = s.ZoomLevels ?? [];
+        var zoom = s.Canvas.ZoomLevels ?? [];
         if (zoom.Length > 0 && zoom.All(v => double.IsFinite(v) && v > 0))
             SpriteView.ZoomLevels = zoom.Distinct().Order().ToArray();
         else
             CrashLog.Error("Settings", $"ZoomLevels [{string.Join(", ", zoom)}] needs at least one positive number; using the defaults");
-        if (double.IsFinite(s.PaletteCellMin) && double.IsFinite(s.PaletteCellMax) && s.PaletteCellMin > 0 && s.PaletteCellMax >= s.PaletteCellMin)
-            (PaletteView.MinCell, PaletteView.MaxCell) = (s.PaletteCellMin, s.PaletteCellMax);
+        if (double.IsFinite(s.Palettes.PaletteCellMin) && double.IsFinite(s.Palettes.PaletteCellMax) && s.Palettes.PaletteCellMin > 0 && s.Palettes.PaletteCellMax >= s.Palettes.PaletteCellMin)
+            (PaletteView.MinCell, PaletteView.MaxCell) = (s.Palettes.PaletteCellMin, s.Palettes.PaletteCellMax);
         else
-            CrashLog.Error("Settings", $"PaletteCellMin {s.PaletteCellMin} / PaletteCellMax {s.PaletteCellMax} need 0 < min <= max; using the defaults");
+            CrashLog.Error("Settings", $"PaletteCellMin {s.Palettes.PaletteCellMin} / PaletteCellMax {s.Palettes.PaletteCellMax} need 0 < min <= max; using the defaults");
     }
 
     private static readonly int[] UiFontSizes = [10, 11, 12, 13, 14, 16, 20];
@@ -224,9 +224,9 @@ public partial class MainWindow : Window
     private (double Min, double Max) UiScaleRange()
     {
         var s = _settings;
-        double min = Settings.Checked(nameof(s.UiScaleMinPercent), s.UiScaleMinPercent,
+        double min = Settings.Checked(nameof(s.Appearance.UiScaleMinPercent), s.Appearance.UiScaleMinPercent,
             Settings.DefaultUiScaleMinPercent, v => double.IsFinite(v) && v > 0);
-        double max = Settings.Checked(nameof(s.UiScaleMaxPercent), s.UiScaleMaxPercent,
+        double max = Settings.Checked(nameof(s.Appearance.UiScaleMaxPercent), s.Appearance.UiScaleMaxPercent,
             Math.Max(min, Settings.DefaultUiScaleMaxPercent), v => double.IsFinite(v) && v >= min);
         return (min, max);
     }
@@ -237,18 +237,18 @@ public partial class MainWindow : Window
     /// ButtonPadding), plus the one UiButtonGap every button row shares.
     /// Sprite/waveform canvases don't use them. Startup and Preferences OK.
     /// </summary>
-    private void ApplyUiScale() => ApplyUiScale(_settings.FontScalePercent, _settings.ButtonScalePercent, _settings.ButtonGap, _settings.PanelSeparatorWidth, _settings.PanelContentInset);
+    private void ApplyUiScale() => ApplyUiScale(_settings.Appearance.FontScalePercent, _settings.Appearance.ButtonScalePercent, _settings.Appearance.ButtonGap, _settings.Appearance.PanelSeparatorWidth, _settings.Appearance.PanelContentInset);
 
     /// <summary>Takes the values directly so Preferences can preview them before they're saved.</summary>
     private void ApplyUiScale(double fontPercent, double buttonPercent, double? gap = null, double? separatorWidth = null, double? panelContentInset = null)
     {
         if (Application.Current?.Resources is not { } r) return;
         var (min, max) = UiScaleRange();
-        double font = Settings.Checked(nameof(Settings.FontScalePercent), fontPercent,
+        double font = Settings.Checked(nameof(Settings.AppearanceSection.FontScalePercent), fontPercent,
             Math.Clamp(Settings.DefaultFontScalePercent, min, max), v => v >= min && v <= max) / 100;
-        double button = Settings.Checked(nameof(Settings.ButtonScalePercent), buttonPercent,
+        double button = Settings.Checked(nameof(Settings.AppearanceSection.ButtonScalePercent), buttonPercent,
             Math.Clamp(Settings.DefaultButtonScalePercent, min, max), v => v >= min && v <= max) / 100;
-        double gapPx = Settings.Checked(nameof(Settings.ButtonGap), gap ?? _settings.ButtonGap,
+        double gapPx = Settings.Checked(nameof(Settings.AppearanceSection.ButtonGap), gap ?? _settings.Appearance.ButtonGap,
             Settings.DefaultButtonGap, v => v >= 0 && v <= Settings.DefaultButtonGapMax);
 
         foreach (int size in UiFontSizes) r[$"UiFont{size}"] = size * font;
@@ -270,9 +270,9 @@ public partial class MainWindow : Window
         r["UiGapRightBottom"] = new Thickness(g, 0, 0, g);
         r["UiDividerHeight"] = 20 * button; // toolbar dividers, sized to the button row
         r["UiSwatchInfoHeight"] = 40 * font; // two lines, reserved so the first swatch pick does not resize the grid
-        double separatorTrackWidth = Settings.Checked(nameof(Settings.PanelSeparatorWidth), separatorWidth ?? _settings.PanelSeparatorWidth,
+        double separatorTrackWidth = Settings.Checked(nameof(Settings.AppearanceSection.PanelSeparatorWidth), separatorWidth ?? _settings.Appearance.PanelSeparatorWidth,
             Settings.DefaultPanelSeparatorWidth, v => v >= 1 && v <= Settings.DefaultPanelSeparatorWidthMax);
-        double contentInset = Settings.Checked(nameof(Settings.PanelContentInset), panelContentInset ?? _settings.PanelContentInset,
+        double contentInset = Settings.Checked(nameof(Settings.AppearanceSection.PanelContentInset), panelContentInset ?? _settings.Appearance.PanelContentInset,
             Settings.DefaultPanelContentInset, v => v >= 0 && v <= Settings.DefaultPanelContentInsetMax);
         r["PanelContentPadding"] = new Thickness(contentInset);
         r["PanelContentHeaderPadding"] = new Thickness(contentInset, contentInset, contentInset, 0);
@@ -299,10 +299,10 @@ public partial class MainWindow : Window
         _suppressEvents = true;
         try
         {
-            BrushSizeBox.Maximum = Math.Max(1, _settings.MaxBrushSize);
+            BrushSizeBox.Maximum = Math.Max(1, _settings.Sprites.MaxBrushSize);
             ReplaceBrushSizeBox.Maximum = BrushSizeBox.Maximum;
             // Reset Panel Sizes fits Sprite Tools to this, so the swatch starts at 16 × cell.
-            Swatches.NaturalCellSize = Settings.Checked(nameof(Settings.SpriteSwatchCellSize), _settings.SpriteSwatchCellSize,
+            Swatches.NaturalCellSize = Settings.Checked(nameof(Settings.SpritesSection.SpriteSwatchCellSize), _settings.Sprites.SpriteSwatchCellSize,
                 Settings.DefaultSpriteSwatchCellSize, v => double.IsFinite(v) && v >= PaletteView.MinCell && v <= PaletteView.MaxCell);
             OnionGroupBox.Maximum = SpriteFieldMax;
             OnionIndexBox.Maximum = SpriteFieldMax;
@@ -324,22 +324,22 @@ public partial class MainWindow : Window
     {
         var s = _settings;
         var (min, max) = UiScaleRange();
-        var initial = new Dialogs.PreferencesValues(s.SwitchTabOnOpen, s.SyncSpriteAcrossTabs, s.ThemeName, s.BackupCount,
-            s.InfiniteAnimationTimeout, s.SilenceThreshold, s.DebugMode,
-            Math.Clamp(s.FontScalePercent, min, max), Math.Clamp(s.ButtonScalePercent, min, max),
-            Math.Clamp(s.ButtonGap, 0, Settings.DefaultButtonGapMax),
-            Math.Clamp(s.PanelSeparatorWidth, 1, Settings.DefaultPanelSeparatorWidthMax),
-            Math.Clamp(s.PanelContentInset, 0, Settings.DefaultPanelContentInsetMax),
+        var initial = new Dialogs.PreferencesValues(s.General.SwitchTabOnOpen, s.General.SyncSpriteAcrossTabs, s.General.ThemeName, s.Files.BackupCount,
+            s.Animations.InfiniteAnimationTimeout, s.Sounds.SilenceThreshold, s.General.DebugMode,
+            Math.Clamp(s.Appearance.FontScalePercent, min, max), Math.Clamp(s.Appearance.ButtonScalePercent, min, max),
+            Math.Clamp(s.Appearance.ButtonGap, 0, Settings.DefaultButtonGapMax),
+            Math.Clamp(s.Appearance.PanelSeparatorWidth, 1, Settings.DefaultPanelSeparatorWidthMax),
+            Math.Clamp(s.Appearance.PanelContentInset, 0, Settings.DefaultPanelContentInsetMax),
             _appliedCanvas ?? CanvasValuesFromSettings());
         var d = new Settings();
-        var defaults = new Dialogs.PreferencesValues(d.SwitchTabOnOpen, d.SyncSpriteAcrossTabs, d.ThemeName, d.BackupCount,
-            d.InfiniteAnimationTimeout, d.SilenceThreshold, d.DebugMode,
-            Math.Clamp(d.FontScalePercent, min, max), Math.Clamp(d.ButtonScalePercent, min, max),
-            Math.Clamp(d.ButtonGap, 0, Settings.DefaultButtonGapMax),
-            Math.Clamp(d.PanelSeparatorWidth, 1, Settings.DefaultPanelSeparatorWidthMax),
-            Math.Clamp(d.PanelContentInset, 0, Settings.DefaultPanelContentInsetMax),
+        var defaults = new Dialogs.PreferencesValues(d.General.SwitchTabOnOpen, d.General.SyncSpriteAcrossTabs, d.General.ThemeName, d.Files.BackupCount,
+            d.Animations.InfiniteAnimationTimeout, d.Sounds.SilenceThreshold, d.General.DebugMode,
+            Math.Clamp(d.Appearance.FontScalePercent, min, max), Math.Clamp(d.Appearance.ButtonScalePercent, min, max),
+            Math.Clamp(d.Appearance.ButtonGap, 0, Settings.DefaultButtonGapMax),
+            Math.Clamp(d.Appearance.PanelSeparatorWidth, 1, Settings.DefaultPanelSeparatorWidthMax),
+            Math.Clamp(d.Appearance.PanelContentInset, 0, Settings.DefaultPanelContentInsetMax),
             CanvasValuesFromSettings(d));
-        string previewTheme = s.ThemeName;
+        string previewTheme = s.General.ThemeName;
         var previewUiScale = (Font: initial.FontScalePercent, Button: initial.ButtonScalePercent,
             Gap: initial.ButtonGap, Separator: initial.PanelSeparatorWidth, Inset: initial.PanelContentInset);
         void Preview(Dialogs.PreferencesValues v)
@@ -373,21 +373,21 @@ public partial class MainWindow : Window
             return;
         }
 
-        s.SwitchTabOnOpen = p.SwitchTabOnOpen;
-        s.SyncSpriteAcrossTabs = p.SyncSprite;
-        s.BackupCount = Settings.Checked(nameof(Settings.BackupCount), p.BackupCount,
+        s.General.SwitchTabOnOpen = p.SwitchTabOnOpen;
+        s.General.SyncSpriteAcrossTabs = p.SyncSprite;
+        s.Files.BackupCount = Settings.Checked(nameof(Settings.FilesSection.BackupCount), p.BackupCount,
             Settings.DefaultBackupCount, v => v is >= 0 and <= Settings.DefaultBackupCountMax);
-        s.InfiniteAnimationTimeout = p.InfiniteAnimationTimeout;
-        s.SilenceThreshold = p.SilenceThreshold;
-        s.DebugMode = p.DebugMode;
-        s.FontScalePercent = p.FontScalePercent;
-        s.ButtonScalePercent = p.ButtonScalePercent;
-        s.ButtonGap = p.ButtonGap;
-        s.PanelSeparatorWidth = p.PanelSeparatorWidth;
-        s.PanelContentInset = Settings.Checked(nameof(Settings.PanelContentInset), p.PanelContentInset,
+        s.Animations.InfiniteAnimationTimeout = p.InfiniteAnimationTimeout;
+        s.Sounds.SilenceThreshold = p.SilenceThreshold;
+        s.General.DebugMode = p.DebugMode;
+        s.Appearance.FontScalePercent = p.FontScalePercent;
+        s.Appearance.ButtonScalePercent = p.ButtonScalePercent;
+        s.Appearance.ButtonGap = p.ButtonGap;
+        s.Appearance.PanelSeparatorWidth = p.PanelSeparatorWidth;
+        s.Appearance.PanelContentInset = Settings.Checked(nameof(Settings.AppearanceSection.PanelContentInset), p.PanelContentInset,
             Settings.DefaultPanelContentInset, v => v >= 0 && v <= Settings.DefaultPanelContentInsetMax);
         StoreCanvasValues(p.Canvas);
-        s.ThemeName = p.ThemeName;
+        s.General.ThemeName = p.ThemeName;
         s.Shortcuts = Shortcuts.Changed(shortcuts);
         s.Save();
         LoadShortcuts();
@@ -1290,7 +1290,7 @@ public partial class MainWindow : Window
         {
             if (_suppressEvents) return;
             int row = (int)PalettePreviewNav.Value;
-            if (_settings.SyncSpriteAcrossTabs && _file is not null && row >= 0 && row < _visible.Count)
+            if (_settings.General.SyncSpriteAcrossTabs && _file is not null && row >= 0 && row < _visible.Count)
             {
                 // Selecting a sprite drops a pending adjustment, so ask first.
                 if (HasPendingColorAdjust())
@@ -1508,7 +1508,7 @@ public partial class MainWindow : Window
             if (_editingPalette is not null) DiscardPendingColorAdjust();
             int tab = Tabs?.SelectedIndex ?? 0;
             // Leaving Animations or Palettes: the sprite shown there becomes the selected sprite (one way only).
-            Sprite? shown = !_settings.SyncSpriteAcrossTabs ? null
+            Sprite? shown = !_settings.General.SyncSpriteAcrossTabs ? null
                 : _lastTab == 2 && tab != 2 ? _animSprite
                 : _lastTab == 1 && tab == 0 ? PalettePreviewSprite()
                 : null;
@@ -1690,7 +1690,7 @@ public partial class MainWindow : Window
     private void OnToggleMask(object? sender, RoutedEventArgs e)
     {
         _showMask = !_showMask;
-        _settings.ShowMask = _showMask;
+        _settings.Canvas.ShowMask = _showMask;
         _settings.Save();
         SyncViewMenu();
         RefreshSprite();
@@ -1707,7 +1707,7 @@ public partial class MainWindow : Window
     private void OnToggleOnion(object? sender, RoutedEventArgs e)
     {
         _onionSkin = !_onionSkin;
-        _settings.OnionSkin = _onionSkin;
+        _settings.Sprites.OnionSkin = _onionSkin;
         _settings.Save();
         foreach (var c in AllCanvases()) if (c != AnimCanvas) c.ShowOnionSkin = _onionSkin;
         ApplyOnionOptionsEnabled();
@@ -1720,7 +1720,7 @@ public partial class MainWindow : Window
     {
         if (_suppressEvents) return;
         SpriteView.OnionOpacity = OnionOpacitySlider.Value / 100;
-        _settings.OnionOpacity = SpriteView.OnionOpacity;
+        _settings.Sprites.OnionOpacity = SpriteView.OnionOpacity;
         _settings.Save();
         foreach (var c in AllCanvases()) c.InvalidateVisual();
     }
@@ -1728,7 +1728,7 @@ public partial class MainWindow : Window
     private void OnToggleOnionGrayscale(object? sender, RoutedEventArgs e)
     {
         _onionGrayscale = !_onionGrayscale;
-        _settings.OnionGrayscale = _onionGrayscale;
+        _settings.Sprites.OnionGrayscale = _onionGrayscale;
         _settings.Save();
         SyncViewMenu();
         RefreshSprite();
@@ -1738,7 +1738,7 @@ public partial class MainWindow : Window
     private void OnToggleStatusBar(object? sender, RoutedEventArgs e)
     {
         StatusBar.IsVisible = !StatusBar.IsVisible;
-        _settings.ShowStatusBar = StatusBar.IsVisible;
+        _settings.General.ShowStatusBar = StatusBar.IsVisible;
         _settings.Save();
         SyncViewMenu();
     }
@@ -1766,7 +1766,7 @@ public partial class MainWindow : Window
         }
 
         var star = new GridLength(1, GridUnitType.Star);
-        double separatorWidth = Settings.Checked(nameof(Settings.PanelSeparatorWidth), _settings.PanelSeparatorWidth,
+        double separatorWidth = Settings.Checked(nameof(Settings.AppearanceSection.PanelSeparatorWidth), _settings.Appearance.PanelSeparatorWidth,
             Settings.DefaultPanelSeparatorWidth, v => v >= 1 && v <= Settings.DefaultPanelSeparatorWidthMax);
         var splitter = new GridLength(separatorWidth);
         var bodies = new List<(Control Body, Button Toggle, Control Label, string Glyph)>();
@@ -1790,7 +1790,7 @@ public partial class MainWindow : Window
                 bodies.Add((SpriteListBody, SpriteListToggle, SpriteListLabel, "◀"));
                 bodies.Add((SpritePaletteBody, SpritePaletteToggle, SpritePaletteLabel, "▶"));
                 SpritesLeftSplitter.IsEnabled = SpritesRightSplitter.IsEnabled = true;
-                _settings.SpritesListWidth = _settings.SpritesPaletteWidth = null;
+                _settings.Layout.SpritesListWidth = _settings.Layout.SpritesPaletteWidth = null;
                 Swatches.CellSize = 0;
                 Swatches.InvalidateMeasure();
                 break;
@@ -1807,7 +1807,7 @@ public partial class MainWindow : Window
                 bodies.Add((PaletteListBody, PaletteListToggle, PaletteListLabel, "◀"));
                 bodies.Add((PaletteRightBody, PaletteRightToggle, PaletteRightLabel, "▶"));
                 PalettesLeftSplitter.IsEnabled = PalettesRightSplitter.IsEnabled = true;
-                _settings.PalettesListWidth = null;
+                _settings.Layout.PalettesListWidth = null;
                 foreach (var view in new[] { BigSwatches, ScratchSwatches })
                 {
                     view.CellSize = 0;
@@ -1822,7 +1822,7 @@ public partial class MainWindow : Window
                 bodies.Add((ActionListBody, ActionListToggle, ActionListLabel, "◀"));
                 bodies.Add((FramePanelBody, FramePanelToggle, FramePanelLabel, "▶"));
                 AnimLeftSplitter.IsEnabled = AnimRightSplitter.IsEnabled = true;
-                _settings.AnimActionsWidth = _settings.AnimFramePanelWidth = null;
+                _settings.Layout.AnimActionsWidth = _settings.Layout.AnimFramePanelWidth = null;
                 break;
             case 3: // Sounds
                 grid = SoundsGrid;
@@ -1831,8 +1831,8 @@ public partial class MainWindow : Window
                 SoundRightGrid.RowDefinitions[2].Height = splitter;
                 bodies.Add((SoundListBody, SoundListToggle, SoundListLabel, "◀"));
                 SoundsSplitter.IsEnabled = true;
-                _settings.SoundsListWidth = null;
-                _settings.SoundsWaveformHeight = null;
+                _settings.Layout.SoundsListWidth = null;
+                _settings.Layout.SoundsWaveformHeight = null;
                 break;
             default:
                 return;
@@ -1874,9 +1874,9 @@ public partial class MainWindow : Window
     private void FitSidePanels(Grid grid)
     {
         if (!grid.IsEffectivelyVisible || grid.Bounds.Width <= 0) return; // stays pending until shown
-        double min = Settings.Checked(nameof(Settings.PanelFitMinWidth), _settings.PanelFitMinWidth,
+        double min = Settings.Checked(nameof(Settings.LayoutSection.PanelFitMinWidth), _settings.Layout.PanelFitMinWidth,
             Settings.DefaultPanelFitMinWidth, v => double.IsFinite(v) && v >= 0);
-        double pct = Settings.Checked(nameof(Settings.PanelFitMaxPercent), _settings.PanelFitMaxPercent,
+        double pct = Settings.Checked(nameof(Settings.LayoutSection.PanelFitMaxPercent), _settings.Layout.PanelFitMaxPercent,
             Settings.DefaultPanelFitMaxPercent, v => double.IsFinite(v) && v > 0 && v <= 100);
         double max = Math.Max(min, grid.Bounds.Width * pct / 100);
         foreach (int col in new[] { 0, 4 })
@@ -1906,16 +1906,16 @@ public partial class MainWindow : Window
             if (width is { } w) grid.ColumnDefinitions[column].Width = new GridLength(w);
             else PendPanelFit(grid, column);
         }
-        Restore(SpritesGrid, 0, _settings.SpritesListWidth);
-        Restore(SpritesGrid, 4, _settings.SpritesPaletteWidth);
-        Restore(PalettesGrid, 0, _settings.PalettesListWidth);
+        Restore(SpritesGrid, 0, _settings.Layout.SpritesListWidth);
+        Restore(SpritesGrid, 4, _settings.Layout.SpritesPaletteWidth);
+        Restore(PalettesGrid, 0, _settings.Layout.PalettesListWidth);
         // PalettesGrid's right column is star-sized (the preview shares width
         // equally with the swatches and color editor), so it has no pixel
         // width to save or restore.
-        Restore(AnimationsGrid, 0, _settings.AnimActionsWidth);
-        Restore(AnimationsGrid, 4, _settings.AnimFramePanelWidth);
-        Restore(SoundsGrid, 0, _settings.SoundsListWidth);
-        if (_settings.SoundsWaveformHeight is { } i) SoundRightGrid.RowDefinitions[1].Height = new GridLength(i);
+        Restore(AnimationsGrid, 0, _settings.Layout.AnimActionsWidth);
+        Restore(AnimationsGrid, 4, _settings.Layout.AnimFramePanelWidth);
+        Restore(SoundsGrid, 0, _settings.Layout.SoundsListWidth);
+        if (_settings.Layout.SoundsWaveformHeight is { } i) SoundRightGrid.RowDefinitions[1].Height = new GridLength(i);
     }
 
     /// <summary>Records whatever the panels are currently sized to, so it survives a restart.</summary>
@@ -1923,14 +1923,14 @@ public partial class MainWindow : Window
     {
         // A column never fitted (its tab not shown yet) stays unsaved, so it's fitted next launch.
         double? Width(Grid grid, int column) => _pendingPanelFit.Contains((grid, column)) ? null : DockedWidth(grid, column);
-        _settings.SpritesListWidth = Width(SpritesGrid, 0);
-        _settings.SpritesPaletteWidth = Width(SpritesGrid, 4);
-        _settings.PalettesListWidth = Width(PalettesGrid, 0);
-        _settings.AnimActionsWidth = Width(AnimationsGrid, 0);
-        _settings.AnimFramePanelWidth = Width(AnimationsGrid, 4);
-        _settings.SoundsListWidth = Width(SoundsGrid, 0);
+        _settings.Layout.SpritesListWidth = Width(SpritesGrid, 0);
+        _settings.Layout.SpritesPaletteWidth = Width(SpritesGrid, 4);
+        _settings.Layout.PalettesListWidth = Width(PalettesGrid, 0);
+        _settings.Layout.AnimActionsWidth = Width(AnimationsGrid, 0);
+        _settings.Layout.AnimFramePanelWidth = Width(AnimationsGrid, 4);
+        _settings.Layout.SoundsListWidth = Width(SoundsGrid, 0);
         SaveFloatPlacements();
-        _settings.SoundsWaveformHeight = SoundRightGrid.RowDefinitions[1].Height.Value;
+        _settings.Layout.SoundsWaveformHeight = SoundRightGrid.RowDefinitions[1].Height.Value;
     }
 
     // Width a collapsed side panel shrinks to — just enough for the toggle button.
@@ -2025,7 +2025,7 @@ public partial class MainWindow : Window
     /// <summary>Jumps to a tab after opening that format's file, if the setting allows it.</summary>
     private void SwitchToTab(int index)
     {
-        if (_settings.SwitchTabOnOpen && Tabs is not null) Tabs.SelectedIndex = index;
+        if (_settings.General.SwitchTabOnOpen && Tabs is not null) Tabs.SelectedIndex = index;
     }
 
     private void OnToggleBounds(object? sender, RoutedEventArgs e)
@@ -2039,7 +2039,7 @@ public partial class MainWindow : Window
     private void OnToggleGuides(object? sender, RoutedEventArgs e)
     {
         _fullCrosshair = !_fullCrosshair;
-        _settings.FullCrosshair = _fullCrosshair;
+        _settings.Canvas.FullCrosshair = _fullCrosshair;
         _settings.Save();
         SyncViewMenu();
         foreach (var c in AllCanvases()) { c.FullCrosshair = _fullCrosshair; c.InvalidateVisual(); }

@@ -53,7 +53,7 @@ public partial class MainWindow
     private void OnToggleAnimOnion(object? sender, RoutedEventArgs e)
     {
         _animOnion = !_animOnion;
-        _settings.AnimOnionSkin = _animOnion;
+        _settings.Animations.AnimOnionSkin = _animOnion;
         _settings.Save();
         ApplyOnionOptionsEnabled();
         AnimCanvas.ShowOnionSkin = _animOnion;
@@ -64,7 +64,7 @@ public partial class MainWindow
     private void OnToggleAnimOnionGrayscale(object? sender, RoutedEventArgs e)
     {
         _animOnionGrayscale = !_animOnionGrayscale;
-        _settings.AnimOnionGrayscale = _animOnionGrayscale;
+        _settings.Animations.AnimOnionGrayscale = _animOnionGrayscale;
         _settings.Save();
         SyncViewMenu();
         ShowFrame();
@@ -73,7 +73,7 @@ public partial class MainWindow
     private void OnToggleAnimOnionClsn(object? sender, RoutedEventArgs e)
     {
         _animOnionClsn = !_animOnionClsn;
-        _settings.AnimOnionClsn = _animOnionClsn;
+        _settings.Animations.AnimOnionClsn = _animOnionClsn;
         _settings.Save();
         SyncViewMenu();
         ShowFrame();
@@ -83,7 +83,7 @@ public partial class MainWindow
     {
         if (_suppressEvents || AnimCanvas is null) return;
         AnimCanvas.OnionOpacityOverride = AnimOnionOpacitySlider.Value / 100;
-        _settings.AnimOnionOpacity = AnimCanvas.OnionOpacityOverride.Value;
+        _settings.Animations.AnimOnionOpacity = AnimCanvas.OnionOpacityOverride.Value;
         _settings.Save();
         AnimCanvas.InvalidateVisual();
     }

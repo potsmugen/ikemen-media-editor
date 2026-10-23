@@ -29,11 +29,11 @@ public partial class MainWindow
     private List<SimilarityChoice> SimilarityLevels() =>
     [
         new("Identical", "Exact duplicates, the same test Link All Duplicate Sprites uses.",
-            Settings.Checked(nameof(Settings.SimilarExactPercent), _settings.SimilarExactPercent, Settings.DefaultSimilarExact, v => v is >= 1 and <= 100)),
+            Settings.Checked(nameof(Settings.SpritesSection.SimilarExactPercent), _settings.Sprites.SimilarExactPercent, Settings.DefaultSimilarExact, v => v is >= 1 and <= 100)),
         new("Almost identical", "A stray pixel or two, or a small edit.",
-            Settings.Checked(nameof(Settings.SimilarNearPercent), _settings.SimilarNearPercent, Settings.DefaultSimilarNear, v => v is >= 1 and <= 100)),
+            Settings.Checked(nameof(Settings.SpritesSection.SimilarNearPercent), _settings.Sprites.SimilarNearPercent, Settings.DefaultSimilarNear, v => v is >= 1 and <= 100)),
         new("Similar", "The same drawing, visibly reworked.",
-            Settings.Checked(nameof(Settings.SimilarLoosePercent), _settings.SimilarLoosePercent, Settings.DefaultSimilarLoose, v => v is >= 1 and <= 100)),
+            Settings.Checked(nameof(Settings.SpritesSection.SimilarLoosePercent), _settings.Sprites.SimilarLoosePercent, Settings.DefaultSimilarLoose, v => v is >= 1 and <= 100)),
     ];
     /// <summary>The open Similar sprites report (it isn't modal); reopening replaces it.</summary>
     private Window? _similarReport;

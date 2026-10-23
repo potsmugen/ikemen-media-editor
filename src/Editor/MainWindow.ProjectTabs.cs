@@ -30,7 +30,7 @@ public partial class MainWindow
         WireUndo(_doc.Undo);
         // Tunnel: Ctrl+Tab must arrive before keyboard focus navigation takes the Tab key.
         AddHandler(KeyDownEvent, OnProjectTabKeyDown, RoutingStrategies.Tunnel);
-        _tabDragThreshold = Settings.Checked(nameof(Settings.TabDragThresholdPixels), _settings.TabDragThresholdPixels,
+        _tabDragThreshold = Settings.Checked(nameof(Settings.GeneralSection.TabDragThresholdPixels), _settings.General.TabDragThresholdPixels,
             Settings.DefaultTabDragThresholdPixels, v => double.IsFinite(v) && v >= 0);
         // The pointer is captured by the strip, not a tab: reordering rebuilds the tabs mid-drag.
         ProjectTabStrip.PointerMoved += OnProjectTabStripPointerMoved;

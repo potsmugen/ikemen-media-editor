@@ -999,8 +999,8 @@ public partial class MainWindow
             var file = _file!;
             string path = _path!;
             var version = file.Version;
-            bool clamp = !_settings.DebugMode;
-            int backupCount = _settings.BackupCount;
+            bool clamp = !_settings.General.DebugMode;
+            int backupCount = _settings.Files.BackupCount;
             var backup = await RunFileWorkAsync($"Saving {Path.GetFileName(path)}…", () =>
             {
                 string? made = Backups.Make(path, backupCount);
@@ -1067,7 +1067,7 @@ public partial class MainWindow
                 for (int i = rollback.Count - 1; i >= 0; i--) rollback[i]();
                 return;
             }
-            Backups.Make(path, _settings.BackupCount);
+            Backups.Make(path, _settings.Files.BackupCount);
             bool rekeyed = !SffVersions.IsV1(version) && SffVersions.IsV1(_file.Version);
 
             // The session becomes the saved file: the .acts embed here with
@@ -1136,7 +1136,7 @@ public partial class MainWindow
                 return;
             }
             var fileToSave = _file!;
-            bool clampToSave = !_settings.DebugMode;
+            bool clampToSave = !_settings.General.DebugMode;
             await RunFileWriteAsync($"Saving {Path.GetFileName(path)}…", () => fileToSave.Save(path, version, clamp: clampToSave));
             rollback.Clear(); // on disk now; the session keeps the changes
             _file.Version = version; // what's on disk now; plain Save keeps it from here
@@ -1266,8 +1266,8 @@ public partial class MainWindow
             if (_file is null) return;
             if (!await ResolvePendingPaintBeforeSwitch()) return;
             var file = _file;
-            if (await Dialogs.PromptSprMakerTool(this, _settings.SprMakerUseV2) is not { } v2) return;
-            _settings.SprMakerUseV2 = v2;
+            if (await Dialogs.PromptSprMakerTool(this, _settings.Files.SprMakerUseV2) is not { } v2) return;
+            _settings.Files.SprMakerUseV2 = v2;
             _settings.Save();
 
             bool fromV1 = SffVersions.IsV1(file.Version);
@@ -1285,13 +1285,13 @@ public partial class MainWindow
             SprMaker2Options? o2 = null;
             if (v2)
             {
-                if (await Dialogs.PromptSprMaker2Options(this, (_settings.SprMaker2 ?? new()).Copy(), notes) is not { } o) return;
-                _settings.SprMaker2 = o2 = o;
+                if (await Dialogs.PromptSprMaker2Options(this, (_settings.Files.SprMaker2 ?? new()).Copy(), notes) is not { } o) return;
+                _settings.Files.SprMaker2 = o2 = o;
             }
             else
             {
-                if (await Dialogs.PromptSprMakerOptions(this, (_settings.SprMaker ?? new()).Copy(), notes) is not { } o) return;
-                _settings.SprMaker = o1 = o;
+                if (await Dialogs.PromptSprMakerOptions(this, (_settings.Files.SprMaker ?? new()).Copy(), notes) is not { } o) return;
+                _settings.Files.SprMaker = o1 = o;
             }
             _settings.Save();
             if (!ReferenceEquals(_file, file)) return; // file changed while the dialogs were open
@@ -1312,8 +1312,8 @@ public partial class MainWindow
                 bool quiet = o2 is { QuietMode: true } || o1 is { QuietMode: true };
                 bool verboseReport = o2 is { VerboseMode: true } || o1 is { SummaryMode: false };
                 bool veryVerboseReport = o2 is { VeryVerboseMode: true };
-                bool clampSave = !_settings.DebugMode;
-                int backupCount = _settings.BackupCount;
+                bool clampSave = !_settings.General.DebugMode;
+                int backupCount = _settings.Files.BackupCount;
                 report = await RunFileWorkAsync($"Saving {Path.GetFileName(path)} like {(v2 ? "SprMaker 2.01" : "SprMaker 0.97")}…", () =>
                 {
                     Backups.Make(path, backupCount);
@@ -1430,7 +1430,7 @@ public partial class MainWindow
         if (over > 0) parts.Add($"{over} group/number value(s) outside 0..65535");
         if (axisOver > 0) parts.Add($"{axisOver} axis value(s) outside -32768..32767");
         return parts.Count == 0 ? "" : $"   |   WARNING: {string.Join(" and ", parts)} did not fit the file and were "
-            + (_settings.DebugMode ? "wrapped (Debug mode)" : "clamped to fit");
+            + (_settings.General.DebugMode ? "wrapped (Debug mode)" : "clamped to fit");
     }
 
     private async void OnFileDropped(object? sender, DragEventArgs e)
@@ -1456,14 +1456,14 @@ public partial class MainWindow
     // Open and save pickers each remember their own last folder (persisted in Settings).
     internal async Task<IStorageFolder?> StartFolder(bool save = false)
     {
-        string? d = save ? _settings.LastSaveDirectory ?? _settings.LastDirectory : _settings.LastDirectory;
+        string? d = save ? _settings.Files.LastSaveDirectory ?? _settings.Files.LastDirectory : _settings.Files.LastDirectory;
         return d is not null && Directory.Exists(d) ? await StorageProvider.TryGetFolderFromPathAsync(d) : null;
     }
 
     private void RememberFolder(string? dir, bool save)
     {
         if (string.IsNullOrEmpty(dir)) return;
-        if (save) _settings.LastSaveDirectory = dir; else _settings.LastDirectory = dir;
+        if (save) _settings.Files.LastSaveDirectory = dir; else _settings.Files.LastDirectory = dir;
         _settings.Save();
     }
 
@@ -1519,7 +1519,7 @@ public partial class MainWindow
     private void RebuildRecentMenu()
     {
         var items = new List<MenuItem>();
-        foreach (var path in _settings.RecentFiles)
+        foreach (var path in _settings.Files.RecentFiles)
         {
             // "__" shows a literal underscore; a single one would be taken as the access key.
             var item = new MenuItem { Header = path.Replace("_", "__"), Tag = path };
@@ -1527,7 +1527,7 @@ public partial class MainWindow
             {
                 if (!File.Exists(path))
                 {
-                    _settings.RecentFiles.Remove(path);
+                    _settings.Files.RecentFiles.Remove(path);
                     _settings.Save();
                     RebuildRecentMenu();
                     MainMenu.Close();
@@ -1729,11 +1729,11 @@ public partial class MainWindow
                 return;
             }
 
-            _settings.Maximized = WindowState == WindowState.Maximized;
+            _settings.Layout.Maximized = WindowState == WindowState.Maximized;
             if (WindowState == WindowState.Normal)
             {
-                _settings.WindowWidth = Width;
-                _settings.WindowHeight = Height;
+                _settings.Layout.WindowWidth = Width;
+                _settings.Layout.WindowHeight = Height;
             }
             SavePanelSizes();
             _settings.Save();

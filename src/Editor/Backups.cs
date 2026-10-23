@@ -7,7 +7,7 @@ internal static class Backups
 {
     public static string? Make(string path, int retainedCount)
     {
-        retainedCount = Settings.Checked(nameof(Settings.BackupCount), retainedCount,
+        retainedCount = Settings.Checked(nameof(Settings.FilesSection.BackupCount), retainedCount,
             Settings.DefaultBackupCount, v => v is >= 0 and <= Settings.DefaultBackupCountMax);
         if (retainedCount == 0 || !File.Exists(path)) return null;
 

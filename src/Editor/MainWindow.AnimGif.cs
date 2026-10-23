@@ -24,9 +24,9 @@ public partial class MainWindow
                 return;
             }
 
-            int scaleMax = Settings.Checked(nameof(Settings.GifScaleMax), _settings.GifScaleMax, Settings.DefaultGifScaleMax, v => v >= 1);
-            int scaleDefault = Settings.Checked(nameof(Settings.GifScale), _settings.GifScale, Settings.DefaultGifScale, v => v >= 1 && v <= scaleMax);
-            int maxSide = Settings.Checked(nameof(Settings.GifMaxSide), _settings.GifMaxSide, Settings.DefaultGifMaxSide, v => v is >= 1 and <= 65535);
+            int scaleMax = Settings.Checked(nameof(Settings.AnimationsSection.GifScaleMax), _settings.Animations.GifScaleMax, Settings.DefaultGifScaleMax, v => v >= 1);
+            int scaleDefault = Settings.Checked(nameof(Settings.AnimationsSection.GifScale), _settings.Animations.GifScale, Settings.DefaultGifScale, v => v >= 1 && v <= scaleMax);
+            int maxSide = Settings.Checked(nameof(Settings.AnimationsSection.GifMaxSide), _settings.Animations.GifMaxSide, Settings.DefaultGifMaxSide, v => v is >= 1 and <= 65535);
             if (await Dialogs.PromptGifExport(this, scaleDefault, scaleMax) is not { } choice) return;
             int scale = Math.Clamp(choice.Scale, 1, scaleMax);
 
@@ -94,7 +94,7 @@ public partial class MainWindow
             }
 
             var bytes = await Task.Run(() => Gif.Encode((int)width, (int)height, frames));
-            Backups.Make(path, _settings.BackupCount);
+            Backups.Make(path, _settings.Files.BackupCount);
             await File.WriteAllBytesAsync(path, bytes);
             CrashLog.Trace($"[anim] gif action {action.Number}: {frames.Count} frames, {width}x{height}, x{scale}, boxes {choice.Boxes}, {emitted} cs");
             StatusText.Text = $"Wrote {Path.GetFileName(path)}: {frames.Count} frames, {width}x{height}, {emitted / 100.0:0.##}s.";
