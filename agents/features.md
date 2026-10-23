@@ -334,13 +334,17 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Links to later sprites on load** are recorded, listed in the Media Health Report, and
   turned around on save after a Save/Cancel prompt that also names v1 sprites that would
   take the target's palette.
+- **Links to later palettes on load** (SFFv2) are recorded in `ForwardPaletteLinksOnLoad`, shown
+  in a "Links to Later Palettes" popup, listed in the Media Health Report, and turned around on a
+  v2 save after the same Save/Cancel prompt. A v1 save drops palette links, so it just clears them.
 - **Find Similar** compares visible pixels after trimming transparent borders; axes and
   position don't score. It doesn't compare indexed with true-color sprites and skips
   borrowers, undecoded and fully transparent sprites. Thresholds are minimum matching shares
   of the union of visible positions, and palette matching defaults by SFF version.
 - **Duplicate palette comparison** ignores index-0 RGB only when both palettes' index 0 is
   fully transparent. SprMaker's deduplication compares all RGBA including index 0.
-- **SFFv2 palette links** may only target earlier independent embedded palettes. Merging
+- **SFFv2 palette links** may only target earlier independent embedded palettes; after a
+  reorder or Sort Palettes, a save makes the set's earliest palette store the colors. Merging
   redirects sprites and links; unlinking copies the colors. Deleting a used palette
   redirects sprites to its link target or the first remaining palette and refuses when none
   exists.
@@ -493,6 +497,11 @@ summaries; treat anything marked unverified as unknown.
   palette link is a zero-length node plus a target number. The reader resolves
   link chains to the palette with data; the writer preserves links and resolves
   them by object, so deletion must leave no references to the removed palette.
+  Per linked set (same chain end), the earliest palette in the written order stores
+  the colors and the rest link back to it (`SffWriter.PaletteLinkTargets`), since
+  Ikemen GO's loadPalettes resolves links as it reads and a link to a later palette
+  gets palette 0's colors (verified in image.go, not tried in game). A set whose chain
+  end is not written stays in full. The colors are the same either way.
 - SFFv2's version is the user's choice and is never bumped by the writer.
   Compatibility is written as SprMaker 2.01 does: 2.0.1.0 only for PNG or
   deeper-than-8-bit sprites, otherwise 2.0.0.0. Ikemen skips bytes 16-35;

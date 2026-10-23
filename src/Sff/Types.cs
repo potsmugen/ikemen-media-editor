@@ -284,6 +284,9 @@ public sealed class SffFile
     /// <summary>Links read pointing at a later sprite, which Ikemen GO loads as blank. Saving turns
     /// them around (SffWriter.LinkTargets), so the editor warns; cleared once saved.</summary>
     public List<Sprite> ForwardLinksOnLoad = [];
+    /// <summary>SFFv2 palette links read pointing at a later palette, which Ikemen GO loads with wrong
+    /// colors. Saving turns them around (SffWriter.PaletteLinkTargets), so the editor warns; cleared once saved.</summary>
+    public List<Palette> ForwardPaletteLinksOnLoad = [];
     public List<Sprite> Sprites = [];
     public List<Palette> Palettes = [];
 
@@ -327,6 +330,7 @@ public sealed class SffFile
             if (s.SharesWith is { } t && spr.TryGetValue(t, out var ct)) c.SharesWith = ct;
         }
         copy.ForwardLinksOnLoad = [.. ForwardLinksOnLoad.Where(spr.ContainsKey).Select(s => spr[s])];
+        copy.ForwardPaletteLinksOnLoad = [.. ForwardPaletteLinksOnLoad.Where(pal.ContainsKey).Select(p => pal[p])];
         return copy;
     }
 

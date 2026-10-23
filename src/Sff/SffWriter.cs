@@ -43,6 +43,28 @@ public static class SffWriter
         return [.. f.Sprites.Where((s, i) => loaded.Contains(s) && s.SharesWith is not null && linkTo[i] < 0)];
     }
 
+    /// <summary>Palette links read pointing at a later palette that a save in the current order still
+    /// turns around: each stores the colors instead, and the rest of its set links back to it.</summary>
+    public static List<Palette> ForwardPaletteLinksTurnedOnSave(SffFile f)
+    {
+        if (f.ForwardPaletteLinksOnLoad.Count == 0) return [];
+        var palettes = WrittenPalettes(f, f.Version.Hi == 1 ? V1ConvertedKeys(f) : null);
+        var linkTo = PaletteLinkTargets(palettes);
+        var loaded = f.ForwardPaletteLinksOnLoad.ToHashSet();
+        return [.. palettes.Where((p, i) => loaded.Contains(p) && p.LinksTo is not null && linkTo[i] < 0)];
+    }
+
+    /// <summary>The palettes a v2 save writes, in order. External palette files stay outside the SFF
+    /// until a sprite uses them; a converted v1 table is written in key order.</summary>
+    private static List<Palette> WrittenPalettes(SffFile f, Dictionary<Palette, (int Group, int Index)>? converted)
+    {
+        var palettes = f.Palettes.Where(p => p.Source == PaletteSource.Embedded
+            || f.Sprites.Any(s => ReferenceEquals(s.Palette, p))).ToList();
+        if (converted is null) return palettes;
+        (int Group, int Index) Key(Palette p) => converted.TryGetValue(p, out var key) ? key : (p.Group, p.Index);
+        return [.. palettes.OrderBy(p => Key(p).Group).ThenBy(p => Key(p).Index)];
+    }
+
     /// <summary>The sprite at the end of a link chain, which holds the pixels.</summary>
     public static Sprite PixelOwner(Sprite s)
     {
@@ -69,6 +91,28 @@ public static class SffWriter
                 throw new InvalidDataException($"sprite {i} shares with a sprite that is not in this file");
             if (first.TryGetValue(owner, out int earliest)) result[i] = earliest;
             else { first[owner] = i; result[i] = -1; }
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Per position: -1 when that palette stores colors, else the position it links to. The earliest
+    /// palette of each linked set (same chain end, in the file) stores them and the rest link back to
+    /// it: Ikemen GO resolves palette links as it reads, so a link to a later palette gets wrong colors.
+    /// A palette whose chain ends outside the file is written in full.
+    /// </summary>
+    internal static int[] PaletteLinkTargets(IReadOnlyList<Palette> palettes)
+    {
+        var inFile = palettes.ToHashSet();
+        var first = new Dictionary<Palette, int>(); // chain end -> earliest position in its set
+        var result = new int[palettes.Count];
+        for (int i = 0; i < palettes.Count; i++)
+        {
+            var root = palettes[i];
+            while (root.LinksTo is { } next) root = next;
+            if (!inFile.Contains(root)) result[i] = -1;
+            else if (first.TryGetValue(root, out int earliest)) result[i] = earliest;
+            else { first[root] = i; result[i] = -1; }
         }
         return result;
     }
@@ -151,14 +195,9 @@ public static class SffWriter
         bool rekey = f.Version.Hi == 1;
         var converted = rekey ? V1ConvertedKeys(f) : null;
 
-        // External palette files stay outside the SFF until at least one
-        // sprite uses them. Once referenced, they are written as SFF palettes.
-        var palettes = f.Palettes.Where(p => p.Source == PaletteSource.Embedded
-            || f.Sprites.Any(s => ReferenceEquals(s.Palette, p))).ToList();
-        // The converted table is written in key order.
+        var palettes = WrittenPalettes(f, converted);
         (int Group, int Index) WrittenKey(Palette p) =>
             converted is not null && converted.TryGetValue(p, out var key) ? key : (p.Group, p.Index);
-        if (rekey) palettes = palettes.OrderBy(p => WrittenKey(p).Group).ThenBy(p => WrittenKey(p).Index).ToList();
         var palIdx = new Dictionary<Palette, int>();
         for (int i = 0; i < palettes.Count; i++) palIdx[palettes[i]] = i;
 
@@ -170,16 +209,7 @@ public static class SffWriter
         var tdata = new MemoryStream();
         var quad = new byte[4]; // reused so the loops below never allocate
 
-        // A linked palette is written as a link to the palette at the end of its
-        // chain (no data, that palette's number), if that one is in the file;
-        // otherwise it is written in full.
-        var palLink = new int[palettes.Count];
-        for (int i = 0; i < palettes.Count; i++)
-        {
-            var root = palettes[i].LinksTo;
-            while (root?.LinksTo is { } next) root = next;
-            palLink[i] = root is not null && palIdx.TryGetValue(root, out int ri) ? ri : -1;
-        }
+        var palLink = PaletteLinkTargets(palettes);
 
         var palOff = new uint[palettes.Count];
         var palLen = new uint[palettes.Count];

@@ -18,9 +18,6 @@ before a release. Remove items once they're done or checked.
     Windows, whatever the file had). Unverified cause for the boxes: ApplyOwnState normalizes
     every box of a frame when one is edited.
   - Found in the release review (2026-10-23), by reading code; unverified in the app:
-    - Save writes a link to a later palette when a linked palette sits before its target (drag
-      reorder, Sort Palettes). Ikemen GO's loadPalettes resolves links as it reads, so a forward
-      link gets palette 0's colors (blank if first). Read from Ikemen GO's image.go, not tried in game.
     - Delete These Palettes counts sprite use only; a .cns RemapPal can target palettes outside
       group 1. Question: should the confirm say so?
     - AIR: comment-only lines inside a Clsn block move above the block on save but don't count
@@ -47,6 +44,9 @@ before a release. Remove items once they're done or checked.
   - Requested (Discord): previous/next sprite (e.g. Left/Right), shift axis by 1 (e.g. Shift+arrows),
     previous/next sound (e.g. Ctrl+Left/Right) and play sound (e.g. Ctrl+Enter). Sprite commands
     should also work while the sprite list has focus, not only the canvas.
+- Review the save and load warnings (forward links, Saving Will Change the File, Links to Later
+  Palettes): they're too verbose. Their status suffix also gets cut off by the Cursor field
+  ("1 link to later pa…" at 1280 wide).
 - Audit for Sprites-only assumptions left from when SFF was the only format (Ctrl+O, Ctrl+F and
   Escape-in-a-text-box were three, fixed with the shortcuts).
 - Frame-insert group number and sound amount errors belong inside their prompts; today they
@@ -136,39 +136,6 @@ before a release. Remove items once they're done or checked.
   6 tooltips (~2.5 ms per row measured); the frame table has 41 bindings per row.
   Build fill handles and tooltips on demand (e.g. one shared fill handle over the
   hovered cell). Time it the same way as the look-ahead fix.
-- Project tabs: several projects (character, stage, screenpack, loose files) open at
-  once in one window, so the shared clipboards (frames, Clsn, pixels) work between them.
-  Stages 1-3 built in basic form (see features.md); not yet checked in the app. Left:
-  - A switch resets filters and the frame; canvas zoom/pan, sprite, action and palette
-    override are kept per tab.
-  - Sessions and the tab context menu are built (see features.md); not yet checked in the app.
-  - Opening a single file loads it into the current tab. Opening a set of files (a
-    character, stage, screenpack) asks Open in New Tab / Open in Current Tab / Cancel,
-    unless the current tab is empty; Current Tab then shows the usual unsaved-changes
-    prompt. A file already open in another tab simply opens again (no detection).
-  - Tab strip above the Sprites/Palettes/Animations/Sounds tabs. Label: the
-    .def's name= field, else the .def file name, else the file name, else "Untitled"; a repeated label gets " (2)"; "* " when
-    unsaved; tooltip shows the full path. "+" button and Ctrl+T for an empty tab,
-    Ctrl+Tab / Ctrl+Shift+Tab to switch, Ctrl+W or middle-click to close.
-  - Close Tab (Ctrl+W) removes the tab; Close All keeps its name and closes the
-    current tab's files. There is always one tab; closing the last leaves it empty.
-    Quitting prompts per unsaved tab (Save / Don't Save / Cancel), switching to it first.
-  - Per tab: the SFF, AIR and SND with their paths, dirty flags and errors; character
-    name; standalone palettes; undo stack; recovery origins and hashes; current sprite,
-    palette override, action, tick, sound and selection anchor; pinned onion sprite and animation onion frame (not saved; the other onion options are shared and saved).
-  - Per window: settings, theme, canvas, floating panels, view toggles, clipboards,
-    the scratch palette (no longer cleared by opening files or Close All),
-    last export formats and dialog choices. Frame paste keeps sprite numbers as they are.
-  - Switching tabs shows the existing pending paint / sound edit prompt (Commit /
-    Discard / Cancel) and drops color adjust, like ConfirmDiscardEverything minus the
-    discard prompt. Stop playback and cancel picks, drags and the eyedropper. Then rerun
-    the post-load refresh and restore the tab's selection without marking it dirty
-    or recording undo.
-  - Open .def releases the busy lock between the background SFF and
-    SND reads; hold one lock across the whole open so a tab click can't land mid-load.
-  - Stages: (1) Document class plus forwarding properties on MainWindow, no behavior
-    change; (2) switch routine; (3) tab strip, open/close/quit flows, busy lock;
-    (4) recovery; (5) features.md and in-app checks.
 
 - Logging: `crash.log` holds unhandled exceptions and non-exception errors alike (skipped
   export/import items, invalid settings values), so its name promises more than it delivers.
@@ -178,6 +145,11 @@ before a release. Remove items once they're done or checked.
 ## Not yet checked in the app
 
 Built, but not tried by the maintainer yet.
+
+### Palette links to later palettes
+
+- Check the turned-around links' colors in Ikemen GO. Passed in the Linux sandbox: load popup,
+  Save asks Save/Cancel, saved file links back with the right colors. Health Report entry unchecked.
 
 ### Save Like SprMaker
 
@@ -259,7 +231,6 @@ Built, but not tried by the maintainer yet.
 
 - An unreadable sound disables Play, Loop, Trim to Selection and the edit buttons;
   Replace and Delete stay enabled.
-- Duplicating a sound (one or several) leaves the copies selected, like the other lists.
 - Use a popup progress dialog for very long, cancellable multi-item operations,
   following Auto Clsn2 For All's cancellable progress window. Multi-selection
   actions now show status-bar progress under the busy lock and run to completion;

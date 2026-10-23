@@ -510,6 +510,115 @@ public class PaletteTests
         finally { File.Delete(tmp); }
     }
 
+    private static Rgba[] Ramp(byte g) => Enumerable.Range(0, 32).Select(i => new Rgba((byte)i, g, 0, 255)).ToArray();
+
+    /// <summary>Saves and reads back; per node, the link index read from disk (-1 when it has data).</summary>
+    private static (SffFile File, int[] Links) SaveAndReadLinks(SffFile f)
+    {
+        var tmp = Path.Combine(Path.GetTempPath(), $"pallink-{Guid.NewGuid():N}.sff");
+        try
+        {
+            f.Save(tmp);
+            var bytes = File.ReadAllBytes(tmp);
+            var r = SffFile.Open(tmp);
+            int palTable = BitConverter.ToInt32(bytes, 44);
+            var links = new int[r.Palettes.Count];
+            for (int i = 0; i < links.Length; i++)
+            {
+                int n = palTable + i * 16;
+                links[i] = BitConverter.ToInt32(bytes, n + 12) == 0 ? BitConverter.ToUInt16(bytes, n + 6) : -1;
+            }
+            return (r, links);
+        }
+        finally { File.Delete(tmp); }
+    }
+
+    [Fact]
+    public void LinkedPaletteBeforeItsTargetStoresTheColors()
+    {
+        var b = new Palette { Group = 1, Index = 2, Colors = Ramp(7) };
+        var a = new Palette { Group = 1, Index = 1, LinksTo = b };
+        var f = new SffFile { Palettes = [a, b] };
+        f.Sprites.Add(new Sprite { Width = 2, Height = 2, Palette = a, Indexed = new byte[4], PixelsDirty = true });
+
+        var (r, links) = SaveAndReadLinks(f);
+        Assert.Equal(new[] { -1, 0 }, links); // node 0 has data, node 1 links back to it
+        Assert.Equal(Ramp(7), r.Palettes[0].Colors);
+        Assert.Same(r.Palettes[0], r.Palettes[1].LinksTo);
+        Assert.Same(r.Palettes[0], r.Sprites[0].Palette);
+    }
+
+    [Fact]
+    public void PaletteChainsAndUnlinkedPalettesLinkBackward()
+    {
+        // c -> b -> a with a last, plus an unlinked palette and a backward link left as is.
+        var a = new Palette { Group = 1, Index = 4, Colors = Ramp(1) };
+        var b = new Palette { Group = 1, Index = 2, LinksTo = a };
+        var c = new Palette { Group = 1, Index = 1, LinksTo = b };
+        var solo = new Palette { Group = 1, Index = 3, Colors = Ramp(2) };
+        var back = new Palette { Group = 1, Index = 5, LinksTo = solo };
+        var f = new SffFile { Palettes = [c, b, solo, a, back] };
+
+        var (r, links) = SaveAndReadLinks(f);
+        Assert.Equal(new[] { -1, 0, -1, 0, 2 }, links);
+        Assert.All(links.Select((t, i) => (t, i)), x => Assert.True(x.t < x.i));
+        Assert.Equal(Ramp(1), r.Palettes[3].Colors);
+        Assert.Equal(Ramp(2), r.Palettes[4].Colors);
+        Assert.Equal(new[] { (1, 1), (1, 2), (1, 3), (1, 4), (1, 5) }, r.Palettes.Select(p => (p.Group, p.Index)).ToArray());
+    }
+
+    [Fact]
+    public void ForwardPaletteLinksAreFlaggedOnLoadAndTurnedOnSave()
+    {
+        // A file with node 0 linking to node 1, as older saves wrote after a reorder.
+        var b = new Palette { Group = 1, Index = 2, Colors = Ramp(7) };
+        var a = new Palette { Group = 1, Index = 1, LinksTo = b };
+        var tmp = Path.Combine(Path.GetTempPath(), $"pallink-{Guid.NewGuid():N}.sff");
+        try
+        {
+            new SffFile { Palettes = [b, a] }.Save(tmp);
+            var bytes = File.ReadAllBytes(tmp);
+            int palTable = BitConverter.ToInt32(bytes, 44);
+            for (int k = 0; k < 16; k++) (bytes[palTable + k], bytes[palTable + 16 + k]) = (bytes[palTable + 16 + k], bytes[palTable + k]);
+            BitConverter.GetBytes((ushort)1).CopyTo(bytes, palTable + 6); // the link node, now first, targets 1
+            File.WriteAllBytes(tmp, bytes);
+
+            var r = SffFile.Open(tmp);
+            Assert.Same(r.Palettes[1], r.Palettes[0].LinksTo);
+            Assert.Equal(new[] { r.Palettes[0] }, r.ForwardPaletteLinksOnLoad);
+            Assert.Equal(new[] { r.Palettes[0] }, SffWriter.ForwardPaletteLinksTurnedOnSave(r));
+            var c = r.Clone();
+            Assert.Same(c.Palettes[0], Assert.Single(c.ForwardPaletteLinksOnLoad));
+
+            (r.Palettes[0], r.Palettes[1]) = (r.Palettes[1], r.Palettes[0]); // moved after its target: nothing to turn
+            Assert.Empty(SffWriter.ForwardPaletteLinksTurnedOnSave(r));
+        }
+        finally { File.Delete(tmp); }
+    }
+
+    [Fact]
+    public void BackwardPaletteLinksAreNotFlagged()
+    {
+        var a = new Palette { Group = 1, Index = 1, Colors = Ramp(1) };
+        var f = new SffFile { Palettes = [a, new Palette { Group = 1, Index = 2, LinksTo = a }] };
+        var tmp = Path.Combine(Path.GetTempPath(), $"pallink-{Guid.NewGuid():N}.sff");
+        try
+        {
+            f.Save(tmp);
+            Assert.Empty(SffFile.Open(tmp).ForwardPaletteLinksOnLoad);
+        }
+        finally { File.Delete(tmp); }
+    }
+
+    [Fact]
+    public void UnlinkedPalettesAreWrittenInFull()
+    {
+        var f = new SffFile { Palettes = [new Palette { Group = 1, Index = 1, Colors = Ramp(1) }, new Palette { Group = 1, Index = 2, Colors = Ramp(2) }] };
+        var (r, links) = SaveAndReadLinks(f);
+        Assert.Equal(new[] { -1, -1 }, links);
+        Assert.Equal(Ramp(2), r.Palettes[1].Colors);
+    }
+
     [Fact]
     public void PalettePngKeepsAlphaAndOrder()
     {

@@ -65,6 +65,26 @@ public partial class MainWindow
             CrashLog.Trace($"[sff] {_file.ForwardLinksOnLoad.Count} link(s) point at a later sprite");
             ShowPopup("Links to Later Sprites", forward);
         }
+        if (ForwardPaletteLinkNote(_file.Version, done: false) is { } forwardPalettes)
+        {
+            CrashLog.Trace($"[sff] {_file.ForwardPaletteLinksOnLoad.Count} palette link(s) point at a later palette");
+            ShowPopup("Links to Later Palettes", forwardPalettes);
+        }
+    }
+
+    /// <summary>What saving does to palette links read pointing at a later palette; past tense once saved.
+    /// Null if none, or when saving as SFFv1, which has no palette links.</summary>
+    private string? ForwardPaletteLinkNote(SffVersion version, bool done)
+    {
+        if (_file is not { } file || SffVersions.IsV1(version)) return null;
+        var turned = SffWriter.ForwardPaletteLinksTurnedOnSave(file);
+        if (turned.Count == 0) return null;
+        string keys = string.Join(", ", turned.Take(5).Select(p => PaletteKey(file, p))) + (turned.Count > 5 ? ", …" : "");
+        string n = turned.Count == 1 ? "1 linked palette" : $"{turned.Count} linked palettes";
+        return done
+            ? $"{n} pointing at a later palette now {(turned.Count == 1 ? "stores" : "store")} the colors, and the rest of each linked set links back ({keys})."
+            : $"{n} {(turned.Count == 1 ? "points" : "point")} at a later palette, which Ikemen GO loads with the wrong colors ({keys}). "
+              + "Saving stores the colors on the earlier palette of each linked set and links the rest back to it. Nothing else changes.";
     }
 
     /// <summary>Loaded links to a later sprite that saving as <paramref name="version"/> turns around, and the
@@ -102,18 +122,35 @@ public partial class MainWindow
     }
 
     /// <summary>Asks before a save turns loaded forward links around; false = canceled.</summary>
-    private async Task<bool> ConfirmForwardLinks(SffVersion version) =>
-        ForwardLinkNote(version, done: false) is not { } note
-        || await Dialogs.Confirm(this, "Saving Will Change the File", note, "Save");
+    private async Task<bool> ConfirmForwardLinks(SffVersion version)
+    {
+        var notes = new[] { ForwardLinkNote(version, done: false), ForwardPaletteLinkNote(version, done: false) }
+            .OfType<string>().ToList();
+        return notes.Count == 0
+            || await Dialogs.Confirm(this, "Saving Will Change the File",
+                string.Join(Environment.NewLine + Environment.NewLine, notes), "Save");
+    }
 
     /// <summary>After a save: traces what happened to loaded forward links and clears them. A status suffix, or "".</summary>
-    private string ForwardLinksSaved(string? note)
+    private string ForwardLinksSaved(string? note, string? paletteNote)
     {
-        if (_file is null || note is null) return "";
-        CrashLog.Trace($"[sff] {note}");
-        int n = SffWriter.ForwardLinksTurnedOnSave(_file).Count;
-        _file.ForwardLinksOnLoad = [];
-        return n == 0 ? "" : $" {n} link{(n == 1 ? "" : "s")} to later sprites turned around.";
+        if (_file is null) return "";
+        string suffix = "";
+        if (note is not null)
+        {
+            CrashLog.Trace($"[sff] {note}");
+            int n = SffWriter.ForwardLinksTurnedOnSave(_file).Count;
+            if (n > 0) suffix += $" {n} link{(n == 1 ? "" : "s")} to later sprites turned around.";
+            _file.ForwardLinksOnLoad = [];
+        }
+        if (paletteNote is not null)
+        {
+            CrashLog.Trace($"[sff] {paletteNote}");
+            int n = SffWriter.ForwardPaletteLinksTurnedOnSave(_file).Count;
+            if (n > 0) suffix += $" {n} link{(n == 1 ? "" : "s")} to later palettes turned around.";
+        }
+        _file.ForwardPaletteLinksOnLoad = []; // a v1 save drops palette links, so nothing is left to warn about
+        return suffix;
     }
 
     /// <summary>Opens the file passed on the command line (Windows "Open with"), routed by
@@ -303,6 +340,8 @@ public partial class MainWindow
                 lines.Add(($"  Unused embedded palettes: {unused.Count} (group 1 not counted)", null));
                 var forward = SffWriter.ForwardLinksTurnedOnSave(file);
                 lines.Add(($"  Links to a later sprite (turned around on save): {forward.Count}", null));
+                var forwardPalettes = SffWriter.ForwardPaletteLinksTurnedOnSave(file);
+                lines.Add(($"  Links to a later palette (turned around on save): {forwardPalettes.Count}", null));
                 Section("Decode failures:", bad.Select(s => ($"  Sprite {s.Group},{s.Index}: {s.DecodeError}", (Action)(() => JumpToSprite(s)))));
                 Section("Duplicate sprite keys (the later ones):", duplicateSprites.Select(s => ($"  Sprite {s.Group},{s.Index}", (Action)(() => JumpToSprite(s)))));
                 Section("Duplicate SFF palette keys (the later ones):", duplicatePaletteKeys.Select(p => ($"  Palette {PaletteKey(file, p)}", (Action)(() => JumpToPalette(p)))));
@@ -311,6 +350,8 @@ public partial class MainWindow
                 Section("Unused embedded palettes:", unused.Select(p => ($"  Palette {PaletteKey(file, p)}", (Action)(() => JumpToPalette(p)))));
                 Section("Links to a later sprite (Ikemen GO loads them as blank):", forward.Select(s =>
                     ($"  Sprite {s.Group},{s.Index} links to {s.SharesWith!.Group},{s.SharesWith.Index}", (Action)(() => JumpToSprite(s)))));
+                Section("Links to a later palette (Ikemen GO loads them with the wrong colors):", forwardPalettes.Select(p =>
+                    ($"  Palette {PaletteKey(file, p)} links to {PaletteKey(file, p.LinksTo!)}", (Action)(() => JumpToPalette(p)))));
             }
             if (_air is { } air)
             {
@@ -1055,6 +1096,7 @@ public partial class MainWindow
             if (!await ConfirmForwardLinks(_file.Version)) return false;
             if (!await ConfirmRecoveredSourceWrite(_path)) return false;
             var forwardNote = ForwardLinkNote(_file.Version, done: true);
+            var forwardPaletteNote = ForwardPaletteLinkNote(_file.Version, done: true);
             var file = _file!;
             string path = _path!;
             var version = file.Version;
@@ -1070,7 +1112,7 @@ public partial class MainWindow
             MarkClean();
             StatusText.Text = $"Saved {Path.GetFileName(_path)}"
                 + (backup is null ? "" : $" (previous version kept as {Path.GetFileName(backup)})")
-                + ForwardLinksSaved(forwardNote) + TruncationWarning();
+                + ForwardLinksSaved(forwardNote, forwardPaletteNote) + TruncationWarning();
             return true;
         }
         catch (Exception ex)
@@ -1128,6 +1170,7 @@ public partial class MainWindow
                 return;
             }
             var forwardNote = ForwardLinkNote(version, done: true);
+            var forwardPaletteNote = ForwardPaletteLinkNote(version, done: true);
             Backups.Make(path, _settings.Files.BackupCount);
             bool rekeyed = !SffVersions.IsV1(version) && SffVersions.IsV1(_file.Version);
 
@@ -1239,7 +1282,7 @@ public partial class MainWindow
             if (mainDropped) parts.Add("The old main palette was dropped as a duplicate");
             if (droppedV1 > 0) parts.Add($"{droppedV1} palette{(droppedV1 == 1 ? "" : "s")} no sprite used {(droppedV1 == 1 ? "was" : "were")} dropped");
             StatusText.Text = $"Saved {Path.GetFileName(path)} as SFF {version}, {size / 1024:N0} KB."
-                + string.Concat(parts.Select(x => $" {x}.")) + ForwardLinksSaved(forwardNote) + TruncationWarning();
+                + string.Concat(parts.Select(x => $" {x}.")) + ForwardLinksSaved(forwardNote, forwardPaletteNote) + TruncationWarning();
         }
         catch (Exception ex)
         {

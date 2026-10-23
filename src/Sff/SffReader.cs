@@ -109,6 +109,7 @@ public static class SffReader
                 t = links[t] < f.Palettes.Count ? links[t] : -1;
             if (t >= 0 && links[t] < 0 && t != i) f.Palettes[i].LinksTo = f.Palettes[t];
         }
+        f.ForwardPaletteLinksOnLoad = [.. f.Palettes.Where((p, i) => p.LinksTo is not null && links[i] > i)];
     }
 
     /// <summary>
