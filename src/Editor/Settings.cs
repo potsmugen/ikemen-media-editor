@@ -341,6 +341,9 @@ public sealed class Settings
     {
         public bool OnionSkin { get; set; }
         public bool OnionGrayscale { get; set; } = true;
+        /// <summary>Sort Ascending on the whole file puts group 9000 first, so the portraits the
+        /// select screen needs are read from the start of the file.</summary>
+        public bool SortPortraitsFirst { get; set; } = true;
         /// <summary>Largest paint-brush square, in pixels per side.</summary>
         public int MaxBrushSize { get; set; } = 32;
         /// <summary>Find Similar Sprites' three levels, as the minimum percentages of visible

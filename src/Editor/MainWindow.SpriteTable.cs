@@ -4,6 +4,7 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Sff;
@@ -830,5 +831,95 @@ public partial class MainWindow
             CrashLog.Trace($"[sprite reorder] applied: group={sprite.Group}, number={sprite.Index}, position={file.Sprites.IndexOf(sprite)}, occurrences={occurrences}, count={file.Sprites.Count}");
         }
         Edit("reorder sprites", () => ApplyAt(destination), () => ApplyAt(from));
+    }
+
+    // ---- sort ----------------------------------------------------------------
+
+    private async void OnSortSpritesAscending(object? sender, RoutedEventArgs e)
+    {
+        try { SortSprites(selectionOnly: false); }
+        catch (Exception ex) { await Failed("OnSortSpritesAscending", ex); }
+    }
+
+    private async Task SortSelectedSprites()
+    {
+        try { SortSprites(selectionOnly: true); }
+        catch (Exception ex) { await Failed("SortSelectedSprites", ex); }
+    }
+
+    /// <summary>
+    /// Orders sprites by group, then number (group 9000 first on the whole file, per settings.json
+    /// SortPortraitsFirst); ties keep their order. selectionOnly sorts the selected
+    /// sprites among the positions they already hold. Links stay references, and the writers make
+    /// the earliest sprite of a linked set store the pixels, so links survive any order. On SFFv1,
+    /// refuses an order that would give a link its target's palette instead of its own, and lists them.
+    /// </summary>
+    private void SortSprites(bool selectionOnly)
+    {
+        if (_file is null) return;
+        var file = _file;
+        var before = file.Sprites.ToList();
+        List<Sprite> after;
+        if (selectionOnly)
+        {
+            var chosen = SelectedSpriteTargets().ToHashSet();
+            if (chosen.Count < 2)
+            {
+                StatusText.Text = "Select at least two sprites to sort.";
+                return;
+            }
+            var slots = Enumerable.Range(0, before.Count).Where(i => chosen.Contains(before[i])).ToList();
+            var sorted = slots.Select(i => before[i]).OrderBy(x => x.Group).ThenBy(x => x.Index).ToList();
+            after = before.ToList();
+            for (int k = 0; k < slots.Count; k++) after[slots[k]] = sorted[k];
+        }
+        else
+        {
+            bool portraitsFirst = _settings.Sprites.SortPortraitsFirst;
+            after = before.OrderBy(x => portraitsFirst && x.Group == 9000 ? 0 : 1)
+                .ThenBy(x => x.Group).ThenBy(x => x.Index).ToList();
+        }
+
+        if (before.SequenceEqual(after))
+        {
+            StatusText.Text = "Sprites are already sorted.";
+            return;
+        }
+
+        if (SffVersions.IsV1(file.Version))
+        {
+            // Only links this order breaks; ones a save already can't keep are the save's warning.
+            var lostBefore = SffWriter.V1LinksLosingPalette(before).ToHashSet();
+            var lost = SffWriter.V1LinksLosingPalette(after).Where(x => !lostBefore.Contains(x)).ToList();
+            if (lost.Count > 0)
+            {
+                CrashLog.Error("SortSprites", $"refused: {lost.Count} SFFv1 link(s) would lose their palette");
+                var lines = new List<(string Text, Action? Jump)>
+                {
+                    ($"Sorting would make {lost.Count} linked {(lost.Count == 1 ? "sprite" : "sprites")} lose {(lost.Count == 1 ? "its" : "their")} palette.", null),
+                    ("An SFFv1 link can only use its linked sprite's palette or the previous sprite's.", null),
+                    ("Unlink them, or save as SFFv2, then sort again.", null),
+                    ("", null),
+                };
+                foreach (var sprite in lost)
+                    lines.Add(($"Sprite {sprite.Group},{sprite.Index}", () => JumpToSprite(sprite)));
+                Dialogs.ShowReport(this, "Can't Sort Sprites", lines);
+                StatusText.Text = "Sort canceled: some links would lose their palette.";
+                return;
+            }
+        }
+
+        void Apply(List<Sprite> order)
+        {
+            file.Sprites.Clear();
+            file.Sprites.AddRange(order);
+        }
+        Edit("sort sprites", () => Apply(after), () => Apply(before));
+        CrashLog.Trace($"[sprite sort] sorted {(selectionOnly ? "selection" : "file")}, count={file.Sprites.Count}");
+        StatusText.Text = selectionOnly
+            ? "Selected sprites sorted by group and number."
+            : _settings.Sprites.SortPortraitsFirst
+                ? "Sprites sorted by group and number, group 9000 first."
+                : "Sprites sorted by group and number.";
     }
 }

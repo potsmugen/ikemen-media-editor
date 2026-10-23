@@ -281,6 +281,9 @@ public sealed class SffFile
     /// <summary>Read from SFFv1 header byte 32 (SprMaker "Shared palette"), only to tell the
     /// user; saving always writes the standard "use previous palette" format.</summary>
     public bool V1SharedPalette;
+    /// <summary>Links read pointing at a later sprite, which Ikemen GO loads as blank. Saving turns
+    /// them around (SffWriter.LinkTargets), so the editor warns; cleared once saved.</summary>
+    public List<Sprite> ForwardLinksOnLoad = [];
     public List<Sprite> Sprites = [];
     public List<Palette> Palettes = [];
 
@@ -323,6 +326,7 @@ public sealed class SffFile
             copy.Sprites.Add(c);
             if (s.SharesWith is { } t && spr.TryGetValue(t, out var ct)) c.SharesWith = ct;
         }
+        copy.ForwardLinksOnLoad = [.. ForwardLinksOnLoad.Where(spr.ContainsKey).Select(s => spr[s])];
         return copy;
     }
 

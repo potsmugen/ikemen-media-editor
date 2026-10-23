@@ -66,6 +66,9 @@
         <MenuItem Header="Save Like Spr_Maker" Click="OnSaveLikeSprMaker"
                   ToolTip.Tip="Saves a copy built the way SprMaker 0.97 or 2.01 would." />
         <Separator />
+        <MenuItem Header="Sort Asc_ending" Click="OnSortSpritesAscending"
+                  ToolTip.Tip="Orders sprites by group, then number." />
+        <Separator />
         <MenuItem Header="Export _All With Manifest" Click="OnExportAllSprites"
                   ToolTip.Tip="Exports every sprite with a manifest; you choose the format, palette PNGs and padding." />
         <MenuItem Header="_Import All From Manifest" Click="OnImportAllSpritesAndPalettes"

@@ -2851,9 +2851,9 @@ public static partial class Dialogs
     public static Task<ColorReorderChoice?> PromptColorSort(Window owner, bool canUpdateSprites, string? disabledReason)
     {
         var result = new TaskCompletionSource<ColorReorderChoice?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var brightness = new RadioButton { GroupName = "ColorSortKey", Content = "Brightness", IsChecked = true };
+        var brightness = new RadioButton { GroupName = "ColorSortKey", Content = "Brightness" };
         var hue = new RadioButton { GroupName = "ColorSortKey", Content = "Hue" };
-        var index = new RadioButton { GroupName = "ColorSortKey", Content = "Index" };
+        var index = new RadioButton { GroupName = "ColorSortKey", Content = "Index", IsChecked = true };
         var ascending = new RadioButton { GroupName = "ColorSortOrder", Content = "Ascending", IsChecked = true };
         var descending = new RadioButton { GroupName = "ColorSortOrder", Content = "Descending" };
         var update = new CheckBox { Content = "Update sprites that use this palette", IsEnabled = canUpdateSprites };

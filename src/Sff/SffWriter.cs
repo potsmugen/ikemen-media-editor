@@ -24,10 +24,54 @@ public static class SffWriter
     }
 
     /// <summary>Linked sprites a v1 save gives their target's palette instead of their own; see SffV1Writer.</summary>
-    public static List<string> V1LinksLosingPalette(SffFile f, int max = int.MaxValue) => SffV1Writer.LinksLosingPalette(f, max);
+    public static List<string> V1LinksLosingPalette(SffFile f, int max = int.MaxValue) => SffV1Writer.LinksLosingPalette(f.Sprites, max);
+
+    /// <summary>As V1LinksLosingPalette, for the sprites in a given order (e.g. a sort not yet applied).</summary>
+    public static List<Sprite> V1LinksLosingPalette(IReadOnlyList<Sprite> order) =>
+        SffV1Writer.LinksLosingPaletteSprites(order, int.MaxValue);
 
     /// <summary>Whether SFFv1 can hold every sprite (all 8-bit and decoded).</summary>
     public static bool FitsV1(SffFile f) => SffV1Writer.Unsupported(f, 1).Count == 0;
+
+    /// <summary>Links read pointing at a later sprite that a save in the current order still turns
+    /// around: each stores the pixels instead, and the rest of its set links back to it.</summary>
+    public static List<Sprite> ForwardLinksTurnedOnSave(SffFile f)
+    {
+        if (f.ForwardLinksOnLoad.Count == 0) return [];
+        var linkTo = LinkTargets(f.Sprites);
+        var loaded = f.ForwardLinksOnLoad.ToHashSet();
+        return [.. f.Sprites.Where((s, i) => loaded.Contains(s) && s.SharesWith is not null && linkTo[i] < 0)];
+    }
+
+    /// <summary>The sprite at the end of a link chain, which holds the pixels.</summary>
+    public static Sprite PixelOwner(Sprite s)
+    {
+        while (s.SharesWith is { } t) s = t;
+        return s;
+    }
+
+    /// <summary>
+    /// Per position: -1 when that sprite stores pixels, else the position it links to. The earliest
+    /// sprite of each linked set stores them and the rest link back to it, whatever the model's
+    /// direction: Ikemen GO loads a link to a later sprite as blank. A link node carries its target's
+    /// format and depth with a zero length, as real files do, rather than the "linked" format id.
+    /// </summary>
+    internal static int[] LinkTargets(IReadOnlyList<Sprite> sprites)
+    {
+        var position = new Dictionary<Sprite, int>();
+        for (int i = 0; i < sprites.Count; i++) position[sprites[i]] = i;
+        var first = new Dictionary<Sprite, int>(); // pixel owner -> earliest position in its set
+        var result = new int[sprites.Count];
+        for (int i = 0; i < sprites.Count; i++)
+        {
+            var owner = PixelOwner(sprites[i]);
+            if (!position.ContainsKey(owner))
+                throw new InvalidDataException($"sprite {i} shares with a sprite that is not in this file");
+            if (first.TryGetValue(owner, out int earliest)) result[i] = earliest;
+            else { first[owner] = i; result[i] = -1; }
+        }
+        return result;
+    }
 
     public static void Save(SffFile f, string path) => Save(f, path, allowPng: true, clamp: false);
 
@@ -120,8 +164,7 @@ public static class SffWriter
 
         // Links are held as references, so their on-disk positions are worked
         // out here, at the one moment the list order is fixed.
-        var position = new Dictionary<Sprite, int>();
-        for (int i = 0; i < f.Sprites.Count; i++) position[f.Sprites[i]] = i;
+        var linkTo = LinkTargets(f.Sprites);
 
         var ldata = new MemoryStream();
         var tdata = new MemoryStream();
@@ -161,8 +204,9 @@ public static class SffWriter
 
         for (int i = 0; i < f.Sprites.Count; i++)
         {
-            var s = f.Sprites[i];
-            if (s.SharesWith is not null) continue; // resolved once its target has a home
+            if (linkTo[i] >= 0) continue; // resolved once its target has a home
+            // The earliest sprite of a linked set stores the pixels, so encode from the one that owns them.
+            var s = PixelOwner(f.Sprites[i]);
 
             // Links borrow their target's bytes with a zero length and carry no
             // flag of their own, so they never touch either block.
@@ -237,7 +281,8 @@ public static class SffWriter
             placed[i] = new Placement(start, (uint)data.Length - start, fmt, depth, toTdata);
         }
 
-        ResolveLinkPlacements(f, placed, position);
+        for (int i = 0; i < f.Sprites.Count; i++)
+            if (linkTo[i] >= 0) placed[i] = placed[linkTo[i]]!.Value with { Length = 0 };
 
         uint sprTable = SffReader.HeaderSize;
         uint palTable = sprTable + (uint)(f.Sprites.Count * SffReader.SpriteNodeSize);
@@ -274,7 +319,7 @@ public static class SffWriter
             Put16(head, n + 6, (ushort)s.Height);
             Put16(head, n + 8, unchecked((ushort)S16(s.AxisX, clamp)));
             Put16(head, n + 10, unchecked((ushort)S16(s.AxisY, clamp)));
-            if (s.SharesWith is not null) Put16(head, n + 12, (ushort)position[s.SharesWith]);
+            if (linkTo[i] >= 0) Put16(head, n + 12, (ushort)linkTo[i]);
             head[n + 14] = (byte)pl.Format;
             head[n + 15] = pl.Depth;
             Put32(head, n + 16, pl.Offset);
@@ -311,30 +356,6 @@ public static class SffWriter
             tdata.Position = 0;
             tdata.CopyTo(file);
         });
-    }
-
-    /// <summary>
-    /// A linked sprite points at its target's data and carries the target's
-    /// format and depth, with a zero length marking it as a link. That is what
-    /// real files do, rather than using the "linked" format id.
-    /// </summary>
-    private static void ResolveLinkPlacements(SffFile f, Placement?[] placed, Dictionary<Sprite, int> position)
-    {
-        for (int pass = 0; pass <= f.Sprites.Count; pass++)
-        {
-            bool done = true;
-            for (int i = 0; i < f.Sprites.Count; i++)
-            {
-                var s = f.Sprites[i];
-                if (s.SharesWith is not { } target || placed[i] is not null) continue;
-                if (!position.TryGetValue(target, out int ti))
-                    throw new InvalidDataException($"sprite {i} shares with a sprite that is not in this file");
-
-                if (placed[ti] is { } t) placed[i] = t with { Length = 0 };
-                else done = false;
-            }
-            if (done) break;
-        }
     }
 
     /// <summary>

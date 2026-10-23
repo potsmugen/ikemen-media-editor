@@ -84,6 +84,87 @@ public class SharingTests
         finally { File.Delete(tmp); }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AForwardLinkIsSavedPointingBack(bool v1)
+    {
+        // Ikemen GO loads a link to a later sprite as blank, so the earliest sprite of a set stores the pixels.
+        var f = TwoSprites();
+        if (v1) f.Version = SffVersions.V1;
+        var (owner, link) = (f.Sprites[0], f.Sprites[1]);
+        f.Share(link, owner);
+        f.Sprites.Reverse(); // the link now comes first
+        var pixels = owner.Indexed!.ToArray();
+
+        var tmp = Path.Combine(Path.GetTempPath(), $"fwd-{Guid.NewGuid():N}.sff");
+        try
+        {
+            f.Save(tmp, v1 ? SffVersions.V1 : SffVersions.V2_1);
+            var r = SffFile.Open(tmp);
+            Assert.Null(r.Sprites[0].SharesWith);
+            Assert.Same(r.Sprites[0], r.Sprites[1].SharesWith);
+            Assert.Equal((2, 1), (r.Sprites[0].Group, r.Sprites[1].Group));
+            Assert.Equal(pixels, r.Sprites[0].Indexed);
+            Assert.Equal(pixels, r.Sprites[1].Indexed);
+        }
+        finally { File.Delete(tmp); }
+    }
+
+    [Fact]
+    public void AForwardLinkToReusedBytesKeepsThem()
+    {
+        // The owner's on-disk bytes move to the earlier sprite instead of being re-encoded from nothing.
+        var f = TwoSprites();
+        f.Share(f.Sprites[1], f.Sprites[0]);
+        var a = Path.Combine(Path.GetTempPath(), $"fwd-a-{Guid.NewGuid():N}.sff");
+        var b = Path.Combine(Path.GetTempPath(), $"fwd-b-{Guid.NewGuid():N}.sff");
+        try
+        {
+            f.Save(a, SffVersions.V2_1);
+            var r = SffFile.Open(a);
+            var pixels = r.Sprites[0].Indexed!.ToArray();
+            r.Sprites.Reverse();
+            r.Save(b, SffVersions.V2_1);
+            var r2 = SffFile.Open(b);
+            Assert.Null(r2.Sprites[0].SharesWith);
+            Assert.Same(r2.Sprites[0], r2.Sprites[1].SharesWith);
+            Assert.Equal(pixels, r2.Sprites[0].Indexed);
+        }
+        finally { File.Delete(a); File.Delete(b); }
+    }
+
+    [Fact]
+    public void ForwardLinksFromLoadCountUntilTheOrderPointsThemBack()
+    {
+        var f = TwoSprites();
+        var (owner, link) = (f.Sprites[0], f.Sprites[1]);
+        f.Share(link, owner);
+        f.Sprites.Reverse();
+        f.ForwardLinksOnLoad = [link];
+        Assert.Equal(new[] { link }, SffWriter.ForwardLinksTurnedOnSave(f));
+
+        f.Sprites.Reverse(); // back behind its target: nothing to turn around
+        Assert.Empty(SffWriter.ForwardLinksTurnedOnSave(f));
+    }
+
+    [Fact]
+    public void V1PaletteCheckSeesTheLinkTheSaveCreates()
+    {
+        // T stores pixels with palette P; L links to T with its own Q, taken from X just before it.
+        var p = new Palette { Colors = [new Rgba(0, 0, 0, 0), new Rgba(10, 10, 10, 255)] };
+        var q = new Palette { Colors = [new Rgba(0, 0, 0, 0), new Rgba(20, 20, 20, 255)] };
+        var t = Pixels(1, p, 1);
+        var x = Pixels(2, q, 2);
+        var l = Pixels(3, q, 1);
+        var f = new SffFile { Version = SffVersions.V1, Palettes = [p, q], Sprites = [t, x, l] };
+        f.Share(l, t);
+        Assert.Empty(SffWriter.V1LinksLosingPalette(f.Sprites.ToList()));
+
+        // L first: it stores the pixels with Q, and T becomes a link that can keep neither P nor Q.
+        Assert.Equal(new[] { t }, SffWriter.V1LinksLosingPalette(new List<Sprite> { l, t, x }));
+    }
+
     private static Sprite Pixels(int group, Palette pal, byte fill) =>
         new() { Group = group, Width = 4, Height = 4, Palette = pal, Indexed = Enumerable.Repeat(fill, 16).ToArray(), PixelsDirty = true };
 

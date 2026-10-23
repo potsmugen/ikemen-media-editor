@@ -24,8 +24,7 @@ internal static class SffV1Writer
 
         var body = new MemoryStream();
         var offsets = new int[f.Sprites.Count];
-        var position = new Dictionary<Sprite, int>();
-        for (int i = 0; i < f.Sprites.Count; i++) position[f.Sprites[i]] = i;
+        var linkTo = SffWriter.LinkTargets(f.Sprites);
 
         // Two passes: lay the subfiles out, then fill in the next pointers once
         // every offset is known.
@@ -37,10 +36,10 @@ internal static class SffV1Writer
         for (int i = 0; i < f.Sprites.Count; i++)
         {
             var s = f.Sprites[i];
-            if (s.SharesWith is not null)
+            if (linkTo[i] >= 0)
             {
                 samePalettes[i] = previousPalette is not null
-                    && (usePreviousPalette || (linkPalettes && LinkUsesPrevious(s, previousPalette)));
+                    && (usePreviousPalette || (linkPalettes && LinkUsesPrevious(s, f.Sprites[linkTo[i]], previousPalette)));
                 payloads[i] = [];
                 continue;
             }
@@ -79,8 +78,8 @@ internal static class SffV1Writer
             BinaryPrimitives.WriteInt16LittleEndian(n.AsSpan(10), SffWriter.S16(s.AxisY, clamp));
             BinaryPrimitives.WriteUInt16LittleEndian(n.AsSpan(12), SffWriter.U16(s.Group, clamp));
             BinaryPrimitives.WriteUInt16LittleEndian(n.AsSpan(14), SffWriter.U16(s.Index, clamp));
-            if (s.SharesWith is not null)
-                BinaryPrimitives.WriteUInt16LittleEndian(n.AsSpan(16), (ushort)position[s.SharesWith]);
+            if (linkTo[i] >= 0)
+                BinaryPrimitives.WriteUInt16LittleEndian(n.AsSpan(16), (ushort)linkTo[i]);
 
             n[18] = (byte)(samePalettes[i] ? 1 : 0);
 
@@ -108,24 +107,30 @@ internal static class SffV1Writer
 
     /// <summary>A link reads its target's palette unless flagged; flag it only when its palette is the
     /// previous one and not the target's, so links that match their target keep the old bytes.</summary>
-    private static bool LinkUsesPrevious(Sprite link, Palette previous) =>
-        link.Palette is { } own && !SameColors(own, link.SharesWith!.Palette) && SameColors(own, previous);
+    private static bool LinkUsesPrevious(Sprite link, Sprite target, Palette previous) =>
+        link.Palette is { } own && !SameColors(own, target.Palette) && SameColors(own, previous);
 
     private static bool SameColors(Palette a, Palette? b) =>
         b is not null && (ReferenceEquals(a, b) || PcxWriter.SameRgbPalette(a.Colors, b.Colors));
 
     /// <summary>Up to <paramref name="max"/> linked sprites whose palette a plain v1 save can't keep (neither
     /// the target's nor the previous sprite's); they reload with the target's. As "group,index".</summary>
-    public static List<string> LinksLosingPalette(SffFile f, int max)
+    public static List<string> LinksLosingPalette(IReadOnlyList<Sprite> sprites, int max) =>
+        LinksLosingPaletteSprites(sprites, max).Select(s => $"{s.Group},{s.Index}").ToList();
+
+    /// <summary>As LinksLosingPalette, as the sprites themselves, for a save in this order.</summary>
+    public static List<Sprite> LinksLosingPaletteSprites(IReadOnlyList<Sprite> sprites, int max)
     {
-        var lost = new List<string>();
+        var lost = new List<Sprite>();
+        var linkTo = SffWriter.LinkTargets(sprites);
         Palette? previous = null;
-        foreach (var s in f.Sprites)
+        for (int i = 0; i < sprites.Count; i++)
         {
-            if (s.SharesWith is null) { previous = s.Palette ?? new Palette { Colors = [] }; continue; }
-            if (s.Palette is not { } own || SameColors(own, s.SharesWith.Palette)) continue;
+            var s = sprites[i];
+            if (linkTo[i] < 0) { previous = s.Palette ?? new Palette { Colors = [] }; continue; }
+            if (s.Palette is not { } own || SameColors(own, sprites[linkTo[i]].Palette)) continue;
             if (previous is not null && SameColors(own, previous)) continue;
-            lost.Add($"{s.Group},{s.Index}");
+            lost.Add(s);
             if (lost.Count >= max) break;
         }
         return lost;

@@ -442,7 +442,7 @@ and constraints that are easy to miss when reading one code path in isolation.
   colors among selected indexes, not by click order; this differs from RGB inversion.
   Index 0 stays in place, unlike the earlier reversal.
 - **Sort Colors** (swatch right-click) opens a dialog: brightness (Rec. 601 luma), hue,
-  or index, ascending or descending. Colors move into the selected slots. Index 0 never
+  or index (the default), ascending or descending. Colors move into the selected slots. Index 0 never
   moves. Hue puts grays last, ordered by brightness. Needs two movable colors.
 - **Reorder sprite updates**: Sort Colors asks whether to update sprites using the
   palette (off by default). When on, pixel indexes are remapped in
@@ -510,6 +510,23 @@ and constraints that are easy to miss when reading one code path in isolation.
   independent palettes. Links are flattened, and a later target's image is first
   taken over by an earlier match before relinking. Manual links may target only
   earlier sprites.
+- **Sort sprites**: Sprites > Sort Ascending orders the whole file by group, then number,
+  with group 9000 first unless settings.json Sprites `SortPortraitsFirst` is false (the
+  portraits sit at the start of the file, which speeds loading);
+  the list's right-click Sort Selected Ascending sorts only the selection among the
+  positions it already holds. Ties keep their order; one undo step. On SFFv1 it refuses an
+  order that would make a link lose its palette (only links this order breaks, compared
+  with the current one) and lists them with jumps; nothing changes.
+- **Link direction on save**: Ikemen GO loads a link to a later sprite as blank (verified in
+  its image.go: `indexOfPrevious < i`). Links are references in memory, so sorting or
+  dragging can put one before its target; both writers (`SffWriter.LinkTargets`) make the
+  earliest sprite of each linked set store the pixels (reusing the owner's bytes) and link
+  the rest back to it. In SFFv1 the sprite that turns into a link keeps its palette only if
+  it's the new target's or the previous one; `V1LinksLosingPalette` applies the same rule.
+- **Links to later sprites on load**: readers record them (`SffFile.ForwardLinksOnLoad`). Opening
+  shows a popup, the Media Health Report lists them, and a save that still turns them around
+  asks Save/Cancel first (also naming SFFv1 sprites in those sets that would take their
+  target's palette), then says so in the status line and clears the list.
 - **Find Similar** compares visible pixel data after trimming transparent borders;
   axes and canvas positions do not affect the score. Indexed and true-color sprites
   are not compared across modes. Borrowers, undecodable sprites, and fully

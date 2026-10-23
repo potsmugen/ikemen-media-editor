@@ -113,5 +113,6 @@ internal static class SffV1Reader
             s.Palette ??= target.Palette;
         }
         Sprite.BreakLinkLoops(f.Sprites);
+        f.ForwardLinksOnLoad = [.. f.Sprites.Where((s, i) => s.SharesWith is not null && linkTo[i] > i)];
     }
 }

@@ -12,6 +12,9 @@ before a release. Remove items once they're done or checked.
   - Column widths measure at the largest of the dialog, window and tab font sizes (style-set sizes
     aren't applied yet when the page is built); check "Animations tab" fits at large font scales.
   - Later: more commands (shift sprite axis with arrows on the focused canvas, paint tools, Commit).
+  - Requested (Discord): previous/next sprite (e.g. Left/Right), shift axis by 1 (e.g. Shift+arrows),
+    previous/next sound (e.g. Ctrl+Left/Right) and play sound (e.g. Ctrl+Enter). Sprite commands
+    should also work while the sprite list has focus, not only the canvas.
 - Audit for Sprites-only assumptions left from when SFF was the only format (Ctrl+O, Ctrl+F and
   Escape-in-a-text-box were three, fixed with the shortcuts).
 - First time saving a file doesn't need to make a backup of it
@@ -151,6 +154,11 @@ before a release. Remove items once they're done or checked.
     change; (2) switch routine; (3) tab strip, open/close/quit flows, busy lock;
     (4) recovery; (5) features.md and in-app checks.
 
+- Paint Mode Replace: remove a single Old/New square without Clear wiping them all (e.g. right-click).
+- Palette filter: the "e.g. 1 or 1,2" hint matches nothing on SFFv1, where groups show S/F. Fix the
+  hint for v1 or also match the sprite a palette comes from.
+- Find Unused Palettes: offer deleting them all from the report, after showing the list.
+
 ## Not yet checked in the app
 
 Built, but not tried by the maintainer yet.
@@ -240,6 +248,13 @@ Built, but not tried by the maintainer yet.
 
 ### Sprites and palettes
 
+- Sort sprites: Sprites > Sort Ascending and right-click Sort Selected Ascending, undo/redo,
+  current sprite and selection kept. On sprites_org.sff (v1), a sort that moves 6001 links
+  ahead of their targets is refused with the list. After sorting, a v1 and a v2 file with
+  links load correctly in Ikemen GO (no blank linked sprites). Sort Colors opens on Index.
+  Whole-file sort puts group 9000 first; SortPortraitsFirst false sorts it in place.
+- Links to later sprites: open a file that has some (sprites_org.sff 6001?): load popup, Health
+  Report section, Save asks Save/Cancel, status line after; a second Save asks nothing.
 - Test Save All with unsaved T palettes, with and without an SFF: no popups or save dialogs
   for them, the status line counts them, and closing still warns.
 - Test applying a temp palette in SFFv2: one sprite and several (the confirm says it moves;

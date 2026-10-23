@@ -222,6 +222,7 @@ public static class SffReader
             s.SharesWith = target;
         }
         Sprite.BreakLinkLoops(f.Sprites);
+        f.ForwardLinksOnLoad = [.. f.Sprites.Where((s, i) => s.SharesWith is not null && links[i] > i)];
 
         // Pixels and size are read through the link; this pass only carries a
         // failed target's error over to the sprites that borrow from it.
