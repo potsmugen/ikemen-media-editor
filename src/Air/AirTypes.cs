@@ -147,6 +147,14 @@ public sealed class AnimationElement
     public bool OwnAttackBoxes;
     public bool OwnHurtBoxes;
 
+    /// <summary>Comment lines found among this frame's lines, as written after the ';'; saved above all of
+    /// them (Clsn, Loopstart, Interpolate). They belong to the frame: they move, copy and are removed with it.</summary>
+    public List<string> Comments = [];
+    /// <summary>The comment at the end of the frame line, as written after the ';'; null if none.</summary>
+    public string? EndComment;
+
+    public bool HasComments => Comments.Count > 0 || EndComment is not null;
+
     public bool ShowsForever => Duration < 0;
 
     /// <summary>-1 as group or number is the normal way to show no sprite; never a missing one.</summary>
@@ -192,10 +200,13 @@ public sealed class AnimationAction
 
     public bool HasClsnLint => MisnumberedClsnLines > 0 || MismatchedClsnCounts > 0;
 
-    /// <summary>Comments inside the action that have no place of their own in the model (on a frame,
-    /// Clsn or header line, or on their own line), in file order; written after the last frame.</summary>
+    /// <summary>Comment lines after the last frame (or in a Copy Action), in file order. Comments before a
+    /// frame belong to it (AnimationElement.Comments).</summary>
     public List<string> TrailingComments = [];
-    /// <summary>How many of those weren't already after the last frame, so saving moves them.</summary>
+    /// <summary>The comment at the end of the [Begin Action] line, as written after the ';'; null if none.</summary>
+    public string? HeaderComment;
+    /// <summary>End-of-line comments on lines other than a frame or the header (Clsn, Loopstart, Interpolate,
+    /// Copy Action), which saving moves onto a line of their own.</summary>
     public int MovedComments;
 
     /// <summary>Saving would write something the user didn't edit differently from the file.</summary>

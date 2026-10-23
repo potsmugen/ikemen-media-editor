@@ -32,14 +32,17 @@ public static class AirParser
         bool useDefaultAttack = true, useDefaultHurt = true;
 
         var lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
-        // Trailing comments: which entries were seen before the action's last frame (so saving moves them),
-        // and the comment-only line that may still turn out to be the next action's name.
-        var seenAt = new Dictionary<AnimationAction, List<int>>();
-        (AnimationAction Action, int Index)? pendingName = null;
-        void Keep(AnimationAction a, string c)
+        // Comment lines waiting for the next frame, which they belong to. lastIsName: the last entry was the
+        // previous line, comment-only, so it may still turn out to be the next action's name.
+        var pending = new List<string>();
+        bool lastIsName = false;
+        void Moved(string c) { pending.Add(c); action!.MovedComments++; }
+        // Ends the action: comments left over sit after its last frame.
+        void Close(bool dropName)
         {
-            a.TrailingComments.Add(c);
-            (seenAt.TryGetValue(a, out var l) ? l : seenAt[a] = []).Add(a.Elements.Count);
+            if (dropName) pending.RemoveAt(pending.Count - 1);
+            action?.TrailingComments.AddRange(pending);
+            pending.Clear();
         }
 
         for (int i = 0; i < lines.Length; i++)
@@ -47,7 +50,8 @@ public static class AirParser
             var raw = lines[i];
             var (line, comment) = StripComment(raw);
             var rawComment = RawComment(raw); // kept as written, empty ";" lines included
-            var pendingNameBefore = pendingName;
+            bool nameBefore = lastIsName;
+            lastIsName = false;
             bool sectionHeader = line.StartsWith('[');
             bool header = sectionHeader && IsActionHeader(line);
 
@@ -63,16 +67,13 @@ public static class AirParser
             if (raw.Trim().Length == 0)
             {
                 adjacentComment = null;
-                pendingName = null;
                 continue;
             }
-            // Inside an action, every comment is kept (see TrailingComments); a comment-only
-            // line is held back as a possible name for the next action.
-            pendingName = null;
-            if (action is not null && rawComment is not null && !sectionHeader)
+            // Inside an action, a comment-only line waits for the next frame, and may be the next action's name.
+            if (action is not null && rawComment is not null && line.Length == 0)
             {
-                Keep(action, rawComment);
-                if (line.Length == 0) pendingName = (action, action.TrailingComments.Count - 1);
+                pending.Add(rawComment);
+                lastIsName = true;
             }
 
             if (line.Length == 0)
@@ -96,11 +97,7 @@ public static class AirParser
                 if (header)
                 {
                     // The comment line right above becomes this action's name, not the previous one's comment.
-                    if (adjacent is not null && pendingNameBefore is { } pn)
-                    {
-                        pn.Action.TrailingComments.RemoveAt(pn.Index);
-                        seenAt[pn.Action].RemoveAt(pn.Index);
-                    }
+                    Close(adjacent is not null && nameBefore);
                     // First action: the lines above it are the file header, except its own name line
                     // (always the line right before, when there is one).
                     if (action is null)
@@ -112,19 +109,15 @@ public static class AirParser
                     {
                         Number = ParseActionNumber(line),
                         Comments = adjacent is { } a ? [a] : [],
+                        HeaderComment = rawComment, // "[Begin Action 200] ; jab"
                     };
                     file.Actions.Add(action);
-                    if (rawComment is not null) Keep(action, rawComment); // "[Begin Action 200] ; jab"
                     currentAttack = currentHurt = [];
                     useDefaultAttack = useDefaultHurt = true;
                 }
                 else
                 {
-                    if (adjacent is not null && pendingNameBefore is { } pn)
-                    {
-                        pn.Action.TrailingComments.RemoveAt(pn.Index);
-                        seenAt[pn.Action].RemoveAt(pn.Index);
-                    }
+                    Close(adjacent is not null && nameBefore);
                     action = null;
                     currentAttack = currentHurt = [];
                     useDefaultAttack = useDefaultHurt = true;
@@ -139,29 +132,35 @@ public static class AirParser
             if (lower.StartsWith("copy action "))
             {
                 action.CopyAction = int.TryParse(line[12..].Trim(), out int n) ? n : -1;
+                if (rawComment is not null) Moved(rawComment);
                 continue;
             }
             if (lower.StartsWith("loopstart"))
             {
                 action.LoopStart = action.Elements.Count;
+                if (rawComment is not null) Moved(rawComment);
                 continue;
             }
             if (lower.StartsWith("interpolate "))
             {
                 Interpolation(action, lower)?.Add(action.Elements.Count);
+                if (rawComment is not null) Moved(rawComment);
                 continue;
             }
             if (lower.StartsWith("clsn"))
             {
-                var into = action;
+                if (rawComment is not null) Moved(rawComment);
                 ReadClsn(lines, ref i, lower, action, ref currentAttack, ref currentHurt,
-                    ref useDefaultAttack, ref useDefaultHurt, c => Keep(into, c));
+                    ref useDefaultAttack, ref useDefaultHurt, (c, ownLine) => { if (ownLine) pending.Add(c); else Moved(c); });
                 continue;
             }
 
             // Anything else is an element, but only if it starts like a number.
-            if (line[0] is not ('-' or >= '0' and <= '9')) continue;
-            if (ParseElement(line) is not { } element) continue;
+            if (line[0] is not ('-' or >= '0' and <= '9') || ParseElement(line) is not { } element)
+            {
+                if (rawComment is not null) Moved(rawComment); // an unreadable line is dropped, its comment kept
+                continue;
+            }
 
             element.Attack = [.. useDefaultAttack ? action.DefaultAttack : currentAttack];
             element.Hurt = [.. useDefaultHurt ? action.DefaultHurt : currentHurt];
@@ -169,14 +168,16 @@ public static class AirParser
             element.OwnHurtBoxes = !useDefaultHurt;
             useDefaultAttack = useDefaultHurt = true;
 
+            element.Comments = [.. pending];
+            element.EndComment = rawComment;
+            pending.Clear();
+
             action.Elements.Add(element);
         }
+        Close(false);
 
         foreach (var a in file.Actions)
-        {
             if (a.LoopStart >= a.Elements.Count) a.LoopStart = 0; // a loop point past the end is meaningless
-            if (seenAt.TryGetValue(a, out var at)) a.MovedComments = at.Count(n => n < a.Elements.Count);
-        }
         return file;
     }
 
@@ -225,7 +226,7 @@ public static class AirParser
     /// </summary>
     private static void ReadClsn(string[] lines, ref int i, string lower, AnimationAction action,
         ref List<ClsnBox> currentAttack, ref List<ClsnBox> currentHurt,
-        ref bool useDefaultAttack, ref bool useDefaultHurt, Action<string> keepComment)
+        ref bool useDefaultAttack, ref bool useDefaultHurt, Action<string, bool> keepComment)
     {
         int colon = lower.IndexOf(':');
         if (colon < 0 || lower.Length < 5) return;
@@ -254,9 +255,9 @@ public static class AirParser
             // The [n] is ignored (boxes go in file order); count lines where it's off or missing.
             if (found.Number != boxes.Count) action.MisnumberedClsnLines++;
             boxes.Add(found.Box);
-            // The main loop never sees these lines, so their comments are kept here.
+            // The main loop never sees these lines, so their comments are kept here (and whether on a line of their own).
             for (int k = i + 1; k <= found.Line; k++)
-                if (RawComment(lines[k]) is { } c) keepComment(c);
+                if (RawComment(lines[k]) is { } c) keepComment(c, StripComment(lines[k]).Line.Length == 0);
             i = found.Line;
         }
         if (boxes.Count != count) action.MismatchedClsnCounts++;

@@ -49,7 +49,8 @@ public static class AirWriter
     {
         foreach (var c in action.Comments)
             sb.Append(c.Length == 0 ? ";" : "; ").AppendLine(c); // an empty name is a bare ";"
-        sb.Append("[Begin Action ").Append(action.Number.ToString(CultureInfo.InvariantCulture)).AppendLine("]");
+        sb.Append("[Begin Action ").Append(action.Number.ToString(CultureInfo.InvariantCulture)).Append(']');
+        EndOfLine(sb, action.HeaderComment);
 
         if (action.CopyAction is { } copy)
         {
@@ -61,8 +62,9 @@ public static class AirWriter
 
         for (int i = 0; i < action.Elements.Count; i++)
         {
-            WriteDefaultSegmentsAt(sb, action, i);
             var e = action.Elements[i];
+            WriteComments(sb, e.Comments); // above all of the frame's lines
+            WriteDefaultSegmentsAt(sb, action, i);
             if (i == action.LoopStart && action.LoopStart > 0) sb.AppendLine("Loopstart");
             if (action.InterpolateOffset.Contains(i)) sb.AppendLine("Interpolate Offset");
             if (action.InterpolateScale.Contains(i)) sb.AppendLine("Interpolate Scale");
@@ -74,6 +76,7 @@ public static class AirWriter
             int start = sb.Length;
             WriteElement(sb, e);
             spans?.Add((start, sb.Length - start));
+            EndOfLine(sb, e.EndComment);
         }
         // A segment with nowhere left to attach — an empty action, or a
         // declaration trailing past the last element — still needs writing.
@@ -82,10 +85,19 @@ public static class AirWriter
         sb.AppendLine();
     }
 
-    /// <summary>Comments the model has no place for (AnimationAction.TrailingComments), after the last frame.</summary>
-    private static void WriteTrailingComments(StringBuilder sb, AnimationAction action)
+    /// <summary>Comments after the last frame (AnimationAction.TrailingComments).</summary>
+    private static void WriteTrailingComments(StringBuilder sb, AnimationAction action) => WriteComments(sb, action.TrailingComments);
+
+    private static void WriteComments(StringBuilder sb, List<string> comments)
     {
-        foreach (var c in action.TrailingComments) sb.Append(';').AppendLine(c); // as written after the semicolon
+        foreach (var c in comments) sb.Append(';').AppendLine(c); // as written after the semicolon
+    }
+
+    /// <summary>Ends a line, with its end-of-line comment if it has one.</summary>
+    private static void EndOfLine(StringBuilder sb, string? comment)
+    {
+        if (comment is not null) sb.Append(" ;").Append(comment);
+        sb.AppendLine();
     }
 
     /// <summary>
@@ -135,6 +147,5 @@ public static class AirWriter
           .Append(e.OffsetX).Append(',').Append(e.OffsetY).Append(", ")
           .Append(e.Duration);
         foreach (var t in tail) sb.Append(", ").Append(t);
-        sb.AppendLine();
     }
 }

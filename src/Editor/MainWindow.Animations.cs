@@ -254,7 +254,7 @@ public partial class MainWindow
         CrashLog.Trace($"[air] encoding: {_air.TextEncoding} {_air.LegacyEncodingName}");
         foreach (var a in _air.Actions.Where(a => a.ChangesOnSave))
             CrashLog.Trace($"[air] action {a.Number}: changes on save: {a.MisnumberedClsnLines} Clsn lines misnumbered, "
-                + $"{a.MismatchedClsnCounts} Clsn counts not matching their lines, {a.MovedComments} comments to move after the last frame");
+                + $"{a.MismatchedClsnCounts} Clsn counts not matching their lines, {a.MovedComments} end-of-line comments to move onto their own line");
         foreach (var a in _air.Actions)
             if (a.FramesWithDefaultAndOwnClsn() is { Count: > 0 } both)
                 CrashLog.Trace($"[air] action {a.Number}: default and own Clsn on frame {string.Join(", ", both.Select(i => i + 1))}");
@@ -379,8 +379,8 @@ public partial class MainWindow
             : $"renumber {Plural(mis, "Clsn line", "Clsn lines")} from 0");
         if (cnt > 0) parts.Add(done ? $"{Plural(cnt, "Clsn count was", "Clsn counts were")} rewritten to match the boxes"
             : $"rewrite {Plural(cnt, "Clsn count", "Clsn counts")} to match the boxes");
-        if (moved > 0) parts.Add(done ? $"{Plural(moved, "comment was", "comments were")} moved after the last frame"
-            : $"move {Plural(moved, "comment", "comments")} after the last frame");
+        if (moved > 0) parts.Add(done ? $"{Plural(moved, "end-of-line comment was", "end-of-line comments were")} moved onto their own line"
+            : $"move {Plural(moved, "end-of-line comment", "end-of-line comments")} onto their own line");
         return parts;
     }
 
@@ -432,7 +432,7 @@ public partial class MainWindow
         if (_air is null) return;
         foreach (var a in _air.Actions)
         {
-            a.MisnumberedClsnLines = a.MismatchedClsnCounts = a.MovedComments = 0; // comments now sit after the last frame
+            a.MisnumberedClsnLines = a.MismatchedClsnCounts = a.MovedComments = 0; // those comments are on their own line now
         }
     }
 
@@ -2246,6 +2246,7 @@ public partial class MainWindow
             CopyAction = _action.CopyAction,
             Comments = [.. _action.Comments],
             TrailingComments = [.. _action.TrailingComments],
+            HeaderComment = _action.HeaderComment,
             DefaultAttackSegments = CloneSegments(_action.DefaultAttackSegments),
             DefaultHurtSegments = CloneSegments(_action.DefaultHurtSegments),
             InterpolateOffset = new SortedSet<int>(_action.InterpolateOffset),
@@ -2261,6 +2262,7 @@ public partial class MainWindow
                 ScaleX = el.ScaleX, ScaleY = el.ScaleY, Angle = el.Angle,
                 Attack = [.. el.Attack], Hurt = [.. el.Hurt],
                 OwnAttackBoxes = el.OwnAttackBoxes, OwnHurtBoxes = el.OwnHurtBoxes,
+                Comments = [.. el.Comments], EndComment = el.EndComment,
             });
 
         var air = _air;

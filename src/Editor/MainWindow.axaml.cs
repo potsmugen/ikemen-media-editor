@@ -735,7 +735,8 @@ public partial class MainWindow : Window
         res["ThemeHeaderLine"] = new SolidColorBrush(Mix(mutedBrush.Color, bgColor, 0.45));
 
         res["ThemeSelection"] = selectionBrush;
-        res["ThemeAccent"] = new SolidColorBrush(Color.FromArgb(204, accentBrush.Color.R, accentBrush.Color.G, accentBrush.Color.B));
+        var accentMark = new SolidColorBrush(Color.FromArgb(204, accentBrush.Color.R, accentBrush.Color.G, accentBrush.Color.B));
+        res["ThemeAccent"] = accentMark;
 
                 // Warning text. One red cannot serve both variants: the fixed #ff9090
                 // this replaces is a light tint that only reads on a dark panel and
@@ -758,7 +759,7 @@ public partial class MainWindow : Window
             if (v is not null) { v.Background = canvasBg; v.InvalidateVisual(); }
         if (ScratchImage is not null) { ScratchImage.Background = canvasBg; ScratchImage.InvalidateVisual(); }
         if (Waveform is not null) { Waveform.Background = canvasBg; Waveform.InvalidateVisual(); }
-        if (TimelineView is not null) { TimelineView.Track = canvasBg; TimelineView.InvalidateVisual(); }
+        if (TimelineView is not null) { TimelineView.Track = canvasBg; TimelineView.LoopMarker = accentMark; TimelineView.InvalidateVisual(); }
         if (_replaceSquares.Length > 0) RefreshReplaceSquares(); // empty squares are painted from theme brushes
         UpdateColorCompare();
 

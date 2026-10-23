@@ -232,7 +232,12 @@ and constraints that are easy to miss when reading one code path in isolation.
 
 - **Duplicate Action** copies Copy Action, interpolation markers, comments,
   collision defaults, loop start, and cloned frames. Frame text edits reparse on
-  commit as one undo step, including trailing comments.
+  commit as one undo step, including comments.
+- **Frame comments**: comments inside an action belong to the frame below them
+  and move with it on insert, remove, reorder and undo. Removing a frame removes
+  its comments; Duplicate, Copy/Paste and Duplicate Action copy them, as copying
+  the text would. The frame table tags such frames with a muted ";" in the Frame
+  cell, whose tooltip lists the comments as written. They're edited in text view.
 - **Frame multi-selection**: the frame table is multi-select (Ctrl/Shift click, Ctrl+A).
   `FrameList.SelectedIndex` stays the one current frame (canvas, Clsn, Special Flags,
   Loop From Here): the clicked row, else the keyboard-focused row. Picking a frame inside
@@ -265,7 +270,7 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Sort Boxes For All** sorts own boxes and defaults across actions, resolving
   Clsn numbering/count warnings in one undo step.
 - **AIR save changes**: loading reports changes a save would make even without
-  user edits, including Clsn recount/renumbering, comment movement, and legacy
+  user edits, including Clsn recount/renumbering, end-of-line comments moved, and legacy
   encoding conversion. Save requires confirmation; rewritten output is UTF-8.
 - **Auto Clsn** (the button; the menu's For All is Clsn2 only) generates Clsn1 or Clsn2
   boxes around visible pixels and merges/splits them to the requested count, minimizing
@@ -800,8 +805,14 @@ summaries; treat anything marked unverified as unknown.
   empty name and a `----` rule is a name too, so a comment the author put there is
   never moved into another action, and nothing is invented where the file had no
   comment.
-  Comments before other section headers belong to those sections; remaining comments
-  stay with the action in `TrailingComments` and write after its last frame.
+  Comments before other section headers belong to those sections. Other comments
+  belong to the frame below: `Comments`, written above all of its lines (Clsn
+  defaults, Loopstart, Interpolate, Clsn), commented-out box lines included, and
+  `EndComment` at the end of the frame line. `[Begin Action]`'s end-of-line comment
+  is `HeaderComment`. Comments after the last frame, and in a Copy Action, are
+  `TrailingComments`. End-of-line comments on Clsn, Loopstart, Interpolate or Copy
+  Action lines have no place and are written on their own line with the frame's
+  comments (`MovedComments`).
   Reserved character-action names are suggested for standalone AIR files, not
   embedded .def actions, which may use those numbers for unrelated animations.
   Save-time differences (Clsn recount/renumber, comment movement, UTF-8) are
@@ -945,8 +956,8 @@ summaries; treat anything marked unverified as unknown.
   `MenuFlyoutItem*`; scrollbars and plain buttons only follow light/dark.
 - Never bind a `BorderBrush` to `ThemeMutedText` or `ThemeDimText`. Use
   `ThemeLine` (1px cells) or `ThemeHeaderLine` (2px header underlines).
-  Semantic colors stay literal: the loop chevron's purple and the warning
-  red mean something, so they don't follow the theme.
+  The warning red is picked per variant in code. Loopstart marks (timeline
+  chevron, frame table "L") use `ThemeAccent`, like the interpolate arrows.
 
 
 ## Auto Clsn2 experiments

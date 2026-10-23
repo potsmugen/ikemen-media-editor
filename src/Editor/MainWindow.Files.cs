@@ -271,7 +271,7 @@ public partial class MainWindow
                 var lint = air.Actions.Where(a => a.ChangesOnSave).ToList();
                 lines.Add(($"  Clsn lines numbered out of order: {lint.Sum(a => a.MisnumberedClsnLines)}", null));
                 lines.Add(($"  Clsn counts not matching their box lines: {lint.Sum(a => a.MismatchedClsnCounts)}", null));
-                lines.Add(($"  Comments with no place of their own (moved after the action's last frame on save): {lint.Sum(a => a.MovedComments)}", null));
+                lines.Add(($"  End-of-line comments on Clsn, Loopstart, Interpolate or Copy Action lines (moved onto their own line on save): {lint.Sum(a => a.MovedComments)}", null));
                 var both = air.Actions.SelectMany(a => a.FramesWithDefaultAndOwnClsn().Select(i => (Action: a, Frame: i))).ToList();
                 lines.Add(($"  Frames with both a Clsn default and their own Clsn (invalid): {both.Count}", null));
 
@@ -283,7 +283,7 @@ public partial class MainWindow
                 {
                     a.MisnumberedClsnLines > 0 ? $"{a.MisnumberedClsnLines} Clsn lines misnumbered" : null,
                     a.MismatchedClsnCounts > 0 ? $"{a.MismatchedClsnCounts} Clsn counts off" : null,
-                    a.MovedComments > 0 ? $"{a.MovedComments} comments moved" : null,
+                    a.MovedComments > 0 ? $"{a.MovedComments} end-of-line comments moved" : null,
                 }.Where(p => p is not null)), (Action)(() => JumpToAction(a)))));
             }
             if (_snd is { } snd)

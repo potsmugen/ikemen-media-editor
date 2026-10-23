@@ -689,7 +689,7 @@ public class AirTests
     }
 
     [Fact]
-    public void CommentsWithNoPlaceMoveAfterTheLastFrame()
+    public void CommentsStayWithTheirFrame()
     {
         const string text = """
             ; header
@@ -713,16 +713,78 @@ public class AirTests
         var stand = air.Actions[0];
         Assert.Equal(new[] { "Stand" }, stand.Comments);
         Assert.Equal(new[] { "; header", "; ------", "", "; more header" }, air.Header); // line for line, blank one included
-        Assert.Equal(new[] { " idle", " body", " torso", " first", " between", " tail" }, stand.TrailingComments); // as written after the ;
-        Assert.Equal(5, stand.MovedComments);             // "tail" was already after the last frame
+        Assert.Equal(" idle", stand.HeaderComment);                                    // as written after the ;
+        Assert.Equal(new[] { " body", " torso" }, stand.Elements[0].Comments);         // off the Clsn lines, onto their own
+        Assert.Equal(" first", stand.Elements[0].EndComment);
+        Assert.Equal(new[] { " between" }, stand.Elements[1].Comments);
+        Assert.Equal(new[] { " tail" }, stand.TrailingComments);
+        Assert.Equal(2, stand.MovedComments);                                          // only the two Clsn line ones
         Assert.Equal(new[] { "Walk" }, air.Actions[1].Comments);  // the name, not the previous action's comment
         Assert.Empty(air.Actions[1].TrailingComments);
 
         var again = AirParser.Parse(AirWriter.Write(air));
-        Assert.Equal(stand.TrailingComments, again.Actions[0].TrailingComments);
-        Assert.Equal(0, again.Actions[0].MovedComments);  // stable after one save
+        var stand2 = again.Actions[0];
+        Assert.Equal(" idle", stand2.HeaderComment);
+        Assert.Equal(stand.Elements[0].Comments, stand2.Elements[0].Comments);
+        Assert.StartsWith("; body", AirWriter.WriteAction(stand2).Split('\n')[2]); // above the Clsn lines
+        Assert.Equal(" first", stand2.Elements[0].EndComment);
+        Assert.Equal(new[] { " between" }, stand2.Elements[1].Comments);
+        Assert.Equal(new[] { " tail" }, stand2.TrailingComments);
+        Assert.Equal(0, stand2.MovedComments);  // stable after one save
         Assert.Equal(new[] { "Walk" }, again.Actions[1].Comments);
         Assert.Equal(air.Header, again.Header);
+    }
+
+    [Fact]
+    public void CommentedOutLinesRoundTripInPlace()
+    {
+        const string text = """
+            ; Jab
+            [Begin Action 200] ; jab
+            Clsn2Default: 1
+             Clsn2[0] = -10, -80, 10, 0
+            200,0, 0,0, 3
+            ;200,1, 0,0, 3
+            ;Clsn1[1] = 0, 0, 1, 1
+            Clsn1: 1
+             Clsn1[0] = 10, -70, 40, -60
+            200,2, 0,0, 4 ; hit
+            ;200,3, 0,0, 4
+            ; recovery
+            """;
+        var air = AirParser.Parse(text);
+        var a = air.Actions[0];
+        Assert.Equal(0, a.MovedComments);
+        Assert.Equal(new[] { "200,1, 0,0, 3", "Clsn1[1] = 0, 0, 1, 1" }, a.Elements[1].Comments); // above the frame's Clsn lines
+        Assert.Equal(text.Replace("\r\n", "\n") + "\n\n", AirWriter.Write(air).Replace("\r\n", "\n"));
+    }
+
+    [Fact]
+    public void CommentsMoveAndGoWithTheirFrame()
+    {
+        var a = AirParser.Parse("""
+            [Begin Action 1]
+            0,0, 0,0, 5
+            ;0,9, 0,0, 5
+            0,1, 0,0, 5 ; second
+            0,2, 0,0, 5
+            """).Actions[0];
+
+        // Moving the commented frame's owner to the end takes the comments along.
+        var second = a.Elements[1];
+        a.Elements.RemoveAt(1);
+        a.Elements.Add(second);
+        Assert.Equal("""
+            [Begin Action 1]
+            0,0, 0,0, 5
+            0,2, 0,0, 5
+            ;0,9, 0,0, 5
+            0,1, 0,0, 5 ; second
+            """.Replace("\r\n", "\n") + "\n\n", AirWriter.WriteAction(a).Replace("\r\n", "\n"));
+
+        // Removing it removes them.
+        a.Elements.RemoveAt(2);
+        Assert.DoesNotContain(";", AirWriter.WriteAction(a));
     }
 
     [Fact]

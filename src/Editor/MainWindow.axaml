@@ -1516,12 +1516,15 @@
                                                         <ColumnDefinition Width="Auto" />
                                                         <ColumnDefinition Width="Auto" />
                                                       </Grid.ColumnDefinitions>
-                            <Border Grid.Column="0" Width="{Binding Widths[0]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1">
+                            <Border Grid.Column="0" Width="{Binding Widths[0]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
+                                    Background="Transparent" ToolTip.Tip="{Binding CommentTip}">
                               <Panel>
                                 <TextBlock Text="{Binding Number}" Foreground="{DynamicResource ThemeMutedText}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                <!-- Loopstart frame; same purple as the Timeline's loop chevron. -->
-                                <TextBlock Classes="looptag" Text="L" Foreground="#c070d8" Margin="0,-2,-2,0" IsVisible="{Binding IsLoopFrame}" />
+                                <!-- Loopstart frame; Accent, like the Timeline's loop chevron and the interpolate arrows. -->
+                                <TextBlock Classes="looptag" Text="L" Foreground="{DynamicResource ThemeAccent}" Margin="0,-2,-2,0" IsVisible="{Binding IsLoopFrame}" />
+                                <!-- The frame carries comments from the file; the cell's tooltip lists them. -->
+                                <TextBlock Classes="looptag" Text=";" Foreground="{DynamicResource ThemeMutedText}" HorizontalAlignment="Left" Margin="-2,-2,0,0" IsVisible="{Binding HasComments}" />
                               </Panel>
                             </Border>
                             <Border Classes="cell" Grid.Column="1" Width="{Binding Widths[1]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Background="Transparent" Tag="Group" Tapped="OnFrameCellTapped">

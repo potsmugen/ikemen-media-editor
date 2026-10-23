@@ -121,7 +121,7 @@ public partial class MainWindow
         Apply(after, afterLoop, afterRow, afterSelected, afterAttackSegs, afterHurtSegs, afterInterp);
     }
 
-    /// <summary>A deep copy of a frame: fields and boxes.</summary>
+    /// <summary>A deep copy of a frame: fields, boxes and comments, as copying its text would.</summary>
     private static AnimationElement CloneElement(AnimationElement source) => new()
     {
         Group = source.Group, Index = source.Index,
@@ -132,6 +132,7 @@ public partial class MainWindow
         ScaleX = source.ScaleX, ScaleY = source.ScaleY, Angle = source.Angle,
         Attack = [.. source.Attack], Hurt = [.. source.Hurt],
         OwnAttackBoxes = source.OwnAttackBoxes, OwnHurtBoxes = source.OwnHurtBoxes,
+        Comments = [.. source.Comments], EndComment = source.EndComment,
     };
 
     private static SortedSet<int>[] CloneInterpolation(AnimationAction a) =>

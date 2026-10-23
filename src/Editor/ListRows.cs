@@ -175,6 +175,12 @@ public sealed class FrameTableRow(int frameRow) : INotifyPropertyChanged
     private bool _isLoopFrame;
     /// <summary>The Loopstart frame: tagged "L" in the Frame cell.</summary>
     public bool IsLoopFrame { get => _isLoopFrame; set => Set(ref _isLoopFrame, value); }
+    private string? _commentTip;
+    /// <summary>The frame's comments as written in the file, one per line; null if it has none.</summary>
+    public string? CommentTip { get => _commentTip; set { Set(ref _commentTip, value); Set(ref _hasComments, value is not null, nameof(HasComments)); } }
+    private bool _hasComments;
+    /// <summary>Tagged ";" in the Frame cell.</summary>
+    public bool HasComments => _hasComments;
     private string _groupText = "";
     public string GroupText { get => _groupText; set => Set(ref _groupText, value); }
     private string _indexText = "";
@@ -224,6 +230,7 @@ public sealed class FrameTableRow(int frameRow) : INotifyPropertyChanged
     {
         Number = r.Number;
         IsLoopFrame = r.IsLoopFrame;
+        CommentTip = r.CommentTip;
         GroupText = r.GroupText;
         IndexText = r.IndexText;
         OffsetXText = r.OffsetXText;

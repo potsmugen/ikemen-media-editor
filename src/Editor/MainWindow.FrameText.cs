@@ -198,13 +198,13 @@ public partial class MainWindow
 
     /// <summary>Snapshot of everything a text reparse could plausibly change, for one clean undo entry.</summary>
     private readonly record struct ActionSnapshot(
-        List<AnimationElement> Elements, int LoopStart, int? CopyAction, List<string> Comments, List<string> TrailingComments,
+        List<AnimationElement> Elements, int LoopStart, int? CopyAction, List<string> Comments, List<string> TrailingComments, string? HeaderComment,
         List<DefaultSegment> DefaultAttackSegments, List<DefaultSegment> DefaultHurtSegments,
         SortedSet<int> InterpolateOffset, SortedSet<int> InterpolateScale,
         SortedSet<int> InterpolateAngle, SortedSet<int> InterpolateBlend);
 
     private static ActionSnapshot SnapshotAction(AnimationAction a) => new(
-        a.Elements.ToList(), a.LoopStart, a.CopyAction, a.Comments.ToList(), a.TrailingComments.ToList(),
+        a.Elements.ToList(), a.LoopStart, a.CopyAction, a.Comments.ToList(), a.TrailingComments.ToList(), a.HeaderComment,
         CloneSegments(a.DefaultAttackSegments), CloneSegments(a.DefaultHurtSegments),
         new SortedSet<int>(a.InterpolateOffset), new SortedSet<int>(a.InterpolateScale),
         new SortedSet<int>(a.InterpolateAngle), new SortedSet<int>(a.InterpolateBlend));
@@ -216,6 +216,7 @@ public partial class MainWindow
         action.CopyAction = s.CopyAction;
         action.Comments = [.. s.Comments];
         action.TrailingComments = [.. s.TrailingComments];
+        action.HeaderComment = s.HeaderComment;
         action.DefaultAttackSegments = CloneSegments(s.DefaultAttackSegments);
         action.DefaultHurtSegments = CloneSegments(s.DefaultHurtSegments);
         action.InterpolateOffset = new SortedSet<int>(s.InterpolateOffset);

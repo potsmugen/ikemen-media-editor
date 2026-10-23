@@ -40,10 +40,8 @@ public class Timeline : Control
     private static readonly IPen Playhead = new Pen(Brushes.White, 2);
     // Darkens whatever cell fill it crosses, like the selection outline's black under-stroke.
     private static readonly IPen TickMark = new Pen(new SolidColorBrush(Color.FromArgb(0x70, 0, 0, 0)), 1);
-    // Distinct from every cell hue (Clsn red/blue, defaults orange/teal, hold
-    // green) and from the white playhead — the chevron is a fixed landmark,
-    // the playhead a moving line, and they can sit on the same cell.
-    private static readonly IBrush LoopMarker = new SolidColorBrush(Color.FromRgb(0xc0, 0x70, 0xd8));
+    /// <summary>Loopstart chevron, the theme's Accent (see MainWindow.ApplyTheme), like the frame table's L.</summary>
+    public IBrush LoopMarker { get; set; } = new SolidColorBrush(Color.FromRgb(0xc0, 0x70, 0xd8));
 
     private IReadOnlyList<Frame> _frames = [];
     private int _selected = -1;

@@ -80,6 +80,9 @@ public partial class MainWindow
         {
             Number = (r + 1).ToString(CultureInfo.InvariantCulture),
             IsLoopFrame = r == _action.LoopStart && _action.LoopStart > 0,
+            CommentTip = el.HasComments
+                ? string.Join(Environment.NewLine, el.Comments.Append(el.EndComment).OfType<string>().Select(c => ";" + c))
+                : null,
             InterpOffset = r > 0 && _action.InterpolateOffset.Contains(r),
             InterpScale = r > 0 && _action.InterpolateScale.Contains(r),
             InterpAngle = r > 0 && _action.InterpolateAngle.Contains(r),
