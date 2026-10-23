@@ -87,13 +87,17 @@ public partial class MainWindow
         file.Sprites.Where(s => s.DecodeError is null && s.HasPixels
             && (!UsesPcx(s, format) || s.Indexed is not null)).ToList();
 
-    private static void LogSkippedSprites(string source, IEnumerable<Sprite> skipped, BulkSpriteExportFormat format)
+    private static List<string> LogSkippedSprites(string source, IEnumerable<Sprite> skipped, BulkSpriteExportFormat format)
     {
+        var items = new List<string>();
         foreach (var s in skipped)
         {
             string reason = s.DecodeError ?? (!s.HasPixels ? "no pixels" : UsesPcx(s, format) ? "true-color" : "not exportable");
-            CrashLog.Error(source, $"skipped sprite {s.Group},{s.Index}: {reason}");
+            string item = $"skipped sprite {s.Group},{s.Index}: {reason}";
+            CrashLog.Error(source, item);
+            items.Add(item);
         }
+        return items;
     }
 
     private static bool UsesPcx(Sprite sprite, BulkSpriteExportFormat format) => format switch
@@ -406,8 +410,7 @@ public partial class MainWindow
                 && spritesAfter.Count == spritesBefore.Count && palettesAfter.Count == palettesBefore.Count)
             {
                 StatusText.Text = "Nothing imported.";
-                if (errors.Count > 0)
-                    await Dialogs.ShowMessage(this, "Some Entries Could Not Be Imported", SummarizeBulkErrors(errors));
+                ShowSkipped("Some Entries Could Not Be Imported", errors);
                 return;
             }
 
@@ -450,8 +453,7 @@ public partial class MainWindow
                              $"Palettes: {paletteChanges.Count} replaced, {addedPalettes} added";
             if (errors.Count > 0) summary += $"; {errors.Count} error(s)";
             StatusText.Text = summary;
-            if (errors.Count > 0)
-                await Dialogs.ShowMessage(this, "Some Entries Could Not Be Imported", SummarizeBulkErrors(errors));
+            ShowSkipped("Some Entries Could Not Be Imported", errors);
         }
         catch (Exception ex)
         {
@@ -498,7 +500,7 @@ public partial class MainWindow
         var sff = _file;
         var eligible = ExportableSprites(sff, options.Format);
         int skipped = sff.Sprites.Count - eligible.Count;
-        LogSkippedSprites("ExportAllSpritesAndPalettes", sff.Sprites.Except(eligible), options.Format);
+        var skippedItems = LogSkippedSprites("ExportAllSpritesAndPalettes", sff.Sprites.Except(eligible), options.Format);
         var duplicateSpriteKeys = eligible.GroupBy(s => (s.Group, s.Index)).Where(g => g.Count() > 1).ToList();
         var embeddedPalettes = options.IncludePalettes ? sff.Palettes.Where(p => p.Source != PaletteSource.External).ToList() : [];
         var duplicatePaletteKeys = embeddedPalettes.GroupBy(p => (p.Group, p.Index)).Where(g => g.Count() > 1).ToList();
@@ -552,6 +554,7 @@ public partial class MainWindow
                     + (skipped > 0 ? $", skipped {skipped} (see crash.log)" : "")
                 : $"Exported {written} sprites to {dir}"
                     + (skipped > 0 ? $", skipped {skipped} (see crash.log)" : "");
+            ShowSkipped("Sprites Skipped", skippedItems);
         }
         catch (Exception ex)
         {
@@ -579,44 +582,5 @@ public partial class MainWindow
         foreach (var err in errors) CrashLog.Error(source, err);
         var um = unmatched.ToList();
         if (um.Count > 0) CrashLog.Error(source, "no matching item in the open file for: " + string.Join(", ", um));
-    }
-
-    private static string SummarizeBulkErrors(IReadOnlyCollection<string> errors)
-    {
-        var groups = errors.GroupBy(BulkErrorReason)
-            .OrderByDescending(g => g.Count())
-            .ThenBy(g => g.Key, StringComparer.Ordinal)
-            .ToList();
-        var reasons = groups.Select(g => $"{g.Count()}: {g.Key}");
-        return $"Import reported {errors.Count} problem(s):\n{string.Join("\n", reasons)}\n"
-            + $"Per-entry details were logged to {CrashLog.Path}.";
-    }
-
-    private static string BulkErrorReason(string error)
-    {
-        string message = error.Trim();
-        if (message.StartsWith("line ", StringComparison.Ordinal))
-        {
-            int lineEnd = message.IndexOf(": ", StringComparison.Ordinal);
-            if (lineEnd >= 0) message = message[(lineEnd + 2)..];
-            if (message.Contains(" is outside an entry section", StringComparison.Ordinal))
-                return "manifest content is outside an entry section";
-            if (message.StartsWith("can't read section", StringComparison.Ordinal)) return "invalid manifest section";
-            if (message.StartsWith("missing '='", StringComparison.Ordinal)) return "manifest line is missing '='";
-            if (message.StartsWith("unknown field", StringComparison.Ordinal)) return "unknown manifest field";
-            if (message.StartsWith("bad axis", StringComparison.Ordinal)) return "invalid axis field";
-            if (message.StartsWith("bad palette", StringComparison.Ordinal)) return "invalid palette field";
-            if (message.Contains("has no file", StringComparison.Ordinal)) return "manifest entry has no file";
-            if (message.StartsWith("duplicate", StringComparison.Ordinal)) return "duplicate manifest field";
-        }
-
-        int separator = message.IndexOf(": ", StringComparison.Ordinal);
-        if (separator >= 0) message = message[(separator + 2)..];
-        if (message.StartsWith("file not found", StringComparison.Ordinal)) return "file not found";
-        if (message.Contains("isn't in this file or the manifest", StringComparison.Ordinal)) return "referenced palette is missing";
-        if (message.Contains("is linked to", StringComparison.Ordinal) && message.Contains("unlink it first", StringComparison.Ordinal))
-            return "linked sprite cannot be replaced with a different image";
-        if (message.StartsWith("unknown entry type", StringComparison.Ordinal)) return "unknown manifest entry type";
-        return message;
     }
 }

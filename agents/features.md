@@ -253,9 +253,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   it changed and aren't saved into it until applied to sprites or added with Add to SFF.
   Save All skips them but closing still warns. They are labeled T, file palettes F, and v1
   SFF palettes S, each numbered in list order; real keys appear only after v1 → v2
-  conversion. Saving asks for a location and offers RGBA, ACT or JASC-PAL. Applying one in
-  v2 moves it into the SFF as one shared palette; in v1 its colors are copied into each
-  sprite's palette and the temp leaves the list, in the same undo step.
+  conversion. Dialogs name a palette by that label, adding the file name for imported ones
+  (F1 kfm01.act), never the color count. Saving asks for a location and offers RGBA, ACT or
+  JASC-PAL. Applying one in v2 moves it into the SFF as one shared palette; in v1 its colors
+  are copied into each sprite's palette and the temp leaves the list, in the same undo step.
 - **Add to SFF** (v2 only) moves an external palette into the SFF at a group and number asked
   for, so alt palettes no sprite uses can be added. A taken key asks to replace that
   palette's colors, keeping its key, sprites and linked palettes. A different color count is
@@ -392,6 +393,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   1 out of the unused count, since a character can select it without a sprite. **Find Unused
   Palettes** lists unreferenced embedded palettes as clickable rows, and offers deleting them
   all as one undo step; palettes that link to one keep their current colors.
+- **Skipped items** from bulk import/export and multi-sound edits are listed in a popup: the
+  first 10 entries, then "…and N more (see crash.log)". The status line keeps the count.
 - **Themes**: user themes live under the platform's application-data directory. Dark is
   generated from `Themes.Fallback` when missing, shipped themes are refreshed at startup, and
   custom ones are never overwritten. Every key is required, missing ones are not defaulted,

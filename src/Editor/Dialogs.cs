@@ -263,7 +263,8 @@ public static partial class Dialogs
             (tabs ? $"[{item.TabName ?? (item.TabDef is { } def ? Path.GetFileName(def) : $"Tab {item.TabOrder + 1}")}] " : "")
             + $"{item.Kind.ToUpperInvariant()}: {item.Title}"
             + (item.SourcePath is null ? " (new file)" : $" — {item.SourcePath}")
-            + (RecoveryStore.SourceMatches(item) ? "" : " (source changed or missing; recovers separately)")));
+            + (item.SourcePath is not null && !RecoveryStore.SourceMatches(item)
+                ? " (source changed or missing; recovers separately)" : "")));
         var result = new TaskCompletionSource<RecoveryChoice>(TaskCreationOptions.RunContinuationsAsynchronously);
         var recover = new Button { Content = "Recover", MinWidth = 90, IsDefault = true };
         var discard = new Button { Content = "Discard", MinWidth = 90 };

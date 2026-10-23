@@ -29,10 +29,6 @@ before a release. Remove items once they're done or checked.
   - Found in the second sandbox pass (2026-10-23):
     - Palette list right-click acts on the selected palette, not the clicked row: Add to SFF on a
       right-clicked T2 added the selected T1.
-    - Temp palette names leak internal labels: "Added T1 temp  *new palette  (32 colors) to the SFF
-      as palette 1,16." (same in the replace prompt and the color-count refusal; double spaces).
-    - Recovery list names temp palettes "New external palette 1,17 (new file) (source changed or
-      missing; recovers separately)": internal keys, and "new file" contradicts "source changed".
     - Report text: a drag across two lines selects nothing; double-click selects within a line.
     - Question: an .act with a 20-color count trailer imports as 256 colors; JASC-PAL with 20 gives 20.
   - Unverified (sandbox has no window manager): Escape doesn't close the Alt+F4 refusal popup.
@@ -45,6 +41,8 @@ before a release. Remove items once they're done or checked.
     should also work while the sprite list has focus, not only the canvas.
 - Audit for Sprites-only assumptions left from when SFF was the only format (Ctrl+O, Ctrl+F and
   Escape-in-a-text-box were three, fixed with the shortcuts).
+- Frame-insert group number and sound amount errors belong inside their prompts; today they
+  are only reported after the prompt closes.
 - Saves that change a file the user didn't edit, like the Global Shared Palette popup;
   decide per case whether to keep the bytes or tell the user (verified on real files):
   - Plain Save of SFFv1 re-encodes every PCX (`SffV1Writer`), dropping PCX header
@@ -54,12 +52,6 @@ before a release. Remove items once they're done or checked.
     "Made in VirtuallTek / Powered by Fighter Factory" in working/kfm-v1.sff and kfm-v2.sff.
     Also happens on a Save All where only a temp palette was added and removed.
 - There's another app that opens large SFF's faster than ours. Means we could improve that
-- Audit for Sprites-only assumptions left from when SFF was the only format (Ctrl+O, Ctrl+F and
-  Escape-in-a-text-box were three, fixed with the shortcuts).
-- Status-bar summaries still listing skipped items "(see crash.log)": Bulk export/import
-  (BulkIO.cs ~552), sound Increase Loudness / Downsample (Sounds.cs ~1372, 1391, 1589).
-  Show a popup listing them like the palette batch does. Frame-insert group number
-  and sound amount errors belong inside their prompts.
 - Test and revisit the nearest-color alpha threshold: pixels below
   NearestColorAlphaThreshold (settings.json, default 32) map to index 0. Check
   against real sprites and the official tools.
@@ -168,6 +160,11 @@ before a release. Remove items once they're done or checked.
     change; (2) switch routine; (3) tab strip, open/close/quit flows, busy lock;
     (4) recovery; (5) features.md and in-app checks.
 
+- Logging: `crash.log` holds unhandled exceptions and non-exception errors alike (skipped
+  export/import items, invalid settings values), so its name promises more than it delivers.
+  Decide whether to split it into a crash dump file and an error log, and update the
+  `AGENTS.md` logging rule if so.
+
 ## Not yet checked in the app
 
 Built, but not tried by the maintainer yet.
@@ -227,6 +224,10 @@ Built, but not tried by the maintainer yet.
 - The palette right-click menu has no Export Palette (the panel button covers it).
 - Find Unused Palettes > Delete These Palettes: confirm text, linked palettes keep their
   colors, one undo step restores colors and the edited palette.
+- Dialogs name palettes T1 / F1 kfm01.act / 1,16 with no color count or star; the recovery
+  list says "Temp palette" and only claims a missing source when there was one.
+- Skipped export/import entries and skipped sounds now open a popup (first 10; the status
+  keeps the count).
 - Links to later sprites: open a file that has some (sprites_org.sff 6001?): load popup, Health
   Report section, Save asks Save/Cancel, status line after; a second Save asks nothing.
 - Undo after Sort Colors or Swap Colors with Update sprites restores the palette but not the

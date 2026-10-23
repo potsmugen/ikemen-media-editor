@@ -422,12 +422,7 @@ public partial class MainWindow
     private void ReportPaletteBatch(string action, int applied, int unchanged, List<string> skipped, string? summary = null)
     {
         foreach (string item in skipped) CrashLog.Error(action, item);
-        if (skipped.Count > 0)
-        {
-            string shown = string.Join("\n", skipped.Take(10));
-            if (skipped.Count > 10) shown += $"\n…and {skipped.Count - 10} more (see crash.log).";
-            ShowPopup("Sprites Skipped", shown);
-        }
+        ShowSkipped("Sprites Skipped", skipped);
         if (summary is not null)
             StatusText.Text = summary + (skipped.Count > 0 ? $" Skipped {skipped.Count} (see crash.log)." : "");
         else if (applied > 0)

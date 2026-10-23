@@ -2050,17 +2050,16 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     /// <summary>The displayed group of an external palette: T while it has no file, else F.</summary>
     private static string ExternalGroup(Palette p) => IsTempPalette(p) ? "T" : "F";
 
+    /// <summary>Dialog label: "1,16", "S1", "T1" or "F1 kfm01.act".</summary>
     private static string PaletteDisplayName(SffFile file, Palette palette,
         IReadOnlyDictionary<Palette, int>? externalOrdinals = null)
     {
-        if (palette.Source == PaletteSource.External)
-        {
-            externalOrdinals ??= ExternalPaletteOrdinals(file);
-            return externalOrdinals.TryGetValue(palette, out int ordinal)
-                ? $"{ExternalGroup(palette)}{ordinal} {palette.Describe()}"
-                : palette.Describe();
-        }
-        return $"{PaletteKey(file, palette)} palette ({palette.Colors.Length} colors)";
+        if (palette.Source != PaletteSource.External) return PaletteKey(file, palette);
+        string? fileName = palette.SourcePath is { } path ? Path.GetFileName(path) : null;
+        externalOrdinals ??= ExternalPaletteOrdinals(file);
+        if (externalOrdinals.TryGetValue(palette, out int ordinal))
+            return fileName is null ? $"{ExternalGroup(palette)}{ordinal}" : $"{ExternalGroup(palette)}{ordinal} {fileName}";
+        return fileName ?? "external palette";
     }
 
     /// <summary>Dropdown label: "1,1", "S3: sprite 6001,6" (first sprite carrying it), "F1: kfm01.act", "T1: temp",

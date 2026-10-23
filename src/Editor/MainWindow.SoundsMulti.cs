@@ -77,6 +77,7 @@ public partial class MainWindow
             if (changes.Count == 0)
             {
                 StatusText.Text = skipped.Count == 0 ? "Nothing to change in the selected sounds." : $"No sounds changed{skippedText}.";
+                ShowSkipped("Sounds Skipped", skipped);
                 return;
             }
 
@@ -94,6 +95,7 @@ public partial class MainWindow
             MarkSndDirty();
             AfterSoundEdit();
             StatusText.Text = done(changes.Count) + (unchanged > 0 ? $"; {unchanged} unchanged" : "") + skippedText + ".";
+            ShowSkipped("Sounds Skipped", skipped);
         }
         finally
         {

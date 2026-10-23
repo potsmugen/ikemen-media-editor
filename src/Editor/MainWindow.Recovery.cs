@@ -188,7 +188,7 @@ public partial class MainWindow
                         _path, false, _ => SffSnapshot(), dirty: false, sessionVersion: sessionVersion);
                 foreach (var pal in dirtyExternal)
                 {
-                    Add("act", pal.SourcePath is null ? $"New external palette {pal.Group},{pal.Index}" : Path.GetFileName(pal.SourcePath),
+                    Add("act", pal.SourcePath is null ? "Temp palette" : Path.GetFileName(pal.SourcePath),
                         pal.SourcePath, false, _ =>
                         {
                             var bytes = new byte[pal.Colors.Length * 4];

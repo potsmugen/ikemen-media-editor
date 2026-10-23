@@ -49,6 +49,16 @@ public partial class MainWindow
     private void ShowPopup(string title, string message) =>
         Dispatcher.UIThread.Post(() => _ = Dialogs.ShowMessage(this, title, message), DispatcherPriority.Background);
 
+    /// <summary>Lists skipped items in a popup, like the palette batch: the first 10, then a
+    /// pointer to the log. Posted, so sync code can call it without waiting.</summary>
+    private void ShowSkipped(string title, IReadOnlyCollection<string> items)
+    {
+        if (items.Count == 0) return;
+        string shown = string.Join("\n", items.Take(10));
+        if (items.Count > 10) shown += $"\n…and {items.Count - 10} more (see crash.log).";
+        ShowPopup(title, shown);
+    }
+
     /// <summary>One item of a multi-selection action: status-bar progress, a trace
     /// breadcrumb (so a hang shows which item), and a background-priority yield that
     /// lets the locked window repaint the progress.</summary>

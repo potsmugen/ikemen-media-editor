@@ -1006,8 +1006,7 @@ public partial class MainWindow
                 if (changes.Count == 0 && added == 0)
                 {
                     StatusText.Text = "Nothing imported.";
-                    if (errors.Count > 0)
-                        await Dialogs.ShowMessage(this, "Some Entries Could Not Be Imported", SummarizeBulkErrors(errors));
+                    ShowSkipped("Some Entries Could Not Be Imported", errors);
                     return;
                 }
 
@@ -1030,8 +1029,7 @@ public partial class MainWindow
                 string summary = $"Sounds: {changes.Count} replaced, {added} added";
                 if (errors.Count > 0) summary += $"; {errors.Count} error(s)";
                 StatusText.Text = summary;
-                if (errors.Count > 0)
-                    await Dialogs.ShowMessage(this, "Some Entries Could Not Be Imported", SummarizeBulkErrors(errors));
+                ShowSkipped("Some Entries Could Not Be Imported", errors);
             }
             catch (Exception ex)
             {

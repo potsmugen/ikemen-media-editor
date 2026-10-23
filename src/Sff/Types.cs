@@ -120,9 +120,9 @@ public sealed class Palette
     /// <summary>A short label for lists and menus.</summary>
     public string Describe() =>
         (Source == PaletteSource.External
-            ? $"{(System.IO.Path.GetExtension(SourcePath) is { Length: > 0 } ext ? ext : SourcePath is null ? "temp" : "external")}  {(Dirty ? "*" : "")}{System.IO.Path.GetFileName(SourcePath) ?? "new palette"}"
+            ? System.IO.Path.GetFileName(SourcePath) ?? "new palette"
             : IsCharacterPalette ? $"pal {Index}" : $"{Group},{Index}")
-        + $"  ({Colors.Length} colors)";
+        + $" ({Colors.Length} colors)";
 
     /// <summary>Lowest and highest alpha in the table, for display.</summary>
     public (byte Lo, byte Hi) AlphaRange()
