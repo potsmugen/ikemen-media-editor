@@ -235,6 +235,8 @@ public static partial class Dialogs
             if (e.Property == InputElement.IsKeyboardFocusWithinProperty && !list.IsKeyboardFocusWithin) CancelCapture();
         };
         dialog.Deactivated += (_, _) => CancelCapture();
+        // Clicking anywhere (another row, blank space) also ends it; tunnel runs before a double-click restarts one.
+        dialog.AddHandler(InputElement.PointerPressedEvent, (_, _) => CancelCapture(), RoutingStrategies.Tunnel, handledEventsToo: true);
 
         list.ItemsSource = rows;
 

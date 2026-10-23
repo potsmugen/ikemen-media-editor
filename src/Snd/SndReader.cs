@@ -115,7 +115,7 @@ public static class SndReader
             // Chunks are word-aligned. In long, so a huge size ends the walk instead of
             // wrapping p negative or backward (which threw or looped forever).
             long next = (long)body + size + (size & 1);
-            if (size == 0 || next + 8 > d.Length) break;
+            if (next + 8 > d.Length) break; // next is past the header, so even a size-0 chunk moves on
             p = (int)next;
         }
 

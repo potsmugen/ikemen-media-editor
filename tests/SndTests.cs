@@ -134,6 +134,20 @@ public class SndTests
     }
 
     [Fact]
+    public void EmptyChunkBeforeDataIsSkipped()
+    {
+        var wav = MakeWav();
+        var padded = new byte[wav.Length + 8];
+        wav.AsSpan(0, 36).CopyTo(padded);
+        "LIST"u8.CopyTo(padded.AsSpan(36)); // size 0
+        wav.AsSpan(36).CopyTo(padded.AsSpan(44));
+        var s = new SoundEntry { Data = padded };
+        SndReader.Describe(s);
+        Assert.Null(s.Problem);
+        Assert.Equal(0.5, s.Duration.TotalSeconds, 3);
+    }
+
+    [Fact]
     public void HugeFmtSizeIsReportedAsMissingData()
     {
         var wav = MakeWav();

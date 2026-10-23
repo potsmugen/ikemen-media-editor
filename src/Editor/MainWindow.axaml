@@ -101,8 +101,8 @@
         <MenuItem Header="_New Animation File" Click="OnNewAir"
                   ToolTip.Tip="Starts a blank animation file in place of the open one." />
         <MenuItem Header="_Open .air or .def" x:Name="OpenAirItem" Click="OnOpenAir" />
-        <MenuItem Header="_Save .air" x:Name="SaveAnimationsItem" Click="OnSaveAir" />
-        <MenuItem Header="Save .air _As" Click="OnSaveAirAs" />
+        <MenuItem Header="_Save" x:Name="SaveAnimationsItem" Click="OnSaveAir" />
+        <MenuItem Header="Save _As" Click="OnSaveAirAs" />
         <Separator />
         <MenuItem Header="_Sort Actions Ascending" Click="OnSortActionsAscending"
                   ToolTip.Tip="Orders every action by number." />
@@ -119,8 +119,8 @@
         <MenuItem Header="_New Sound File" Click="OnNewSnd"
                   ToolTip.Tip="Starts a blank sound file in place of the open one." />
         <MenuItem Header="_Open .snd" x:Name="OpenSndItem" Click="OnOpenSnd" />
-        <MenuItem Header="_Save .snd" x:Name="SaveSoundsItem" Click="OnSaveSnd" />
-        <MenuItem Header="Save .snd _As" Click="OnSaveSndAs" />
+        <MenuItem Header="_Save" x:Name="SaveSoundsItem" Click="OnSaveSnd" />
+        <MenuItem Header="Save _As" Click="OnSaveSndAs" />
         <MenuItem Header="_Sort Ascending" Click="OnSortSoundsAscending"
                   ToolTip.Tip="Orders sounds by group, then number." />
         <Separator />

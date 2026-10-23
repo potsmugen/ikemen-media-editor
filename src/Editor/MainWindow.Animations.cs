@@ -73,13 +73,25 @@ public partial class MainWindow
     /// <summary>Starts a blank .air (no actions) in place of whatever's open — the
     /// "start from scratch" counterpart to Open. _airPath stays null, same as
     /// LoadAirFromEmbeddedText's other caller, so Save prompts for a location.</summary>
+    /// <summary>Save / Discard / Cancel for unsaved animations. False when canceled or the save didn't finish.</summary>
+    private async Task<bool> AskToSaveAir()
+    {
+        if (!_airDirty) return true;
+        switch (await Dialogs.AskToSave(this, _airPath is null ? "This animation file" : Path.GetFileName(_airPath)))
+        {
+            case SaveChoice.Save:
+                await SaveAir(askPath: false);
+                return !_airDirty;
+            case SaveChoice.Discard: return true;
+            default: return false;
+        }
+    }
+
     private async void OnNewAir(object? sender, RoutedEventArgs e)
     {
         try
         {
-            if (_airDirty && !await Dialogs.Confirm(this, "Unsaved Animation Changes",
-                    "The animation file has unsaved changes.", "Discard Them"))
-                return;
+            if (!await AskToSaveAir()) return;
 
             LoadAirFromEmbeddedText(new AirFile(), showSuggestedNames: true);
             StatusText.Text = "New animation file. Add actions, then Save.";
@@ -98,11 +110,10 @@ public partial class MainWindow
             CrashLog.Trace("OnOpenAir: start");
             if (_airDirty)
             {
-                CrashLog.Trace("OnOpenAir: awaiting unsaved-changes confirm");
-                if (!await Dialogs.Confirm(this, "Unsaved Animation Changes",
-                        "The animation file has unsaved changes.", "Discard Them"))
+                CrashLog.Trace("OnOpenAir: awaiting unsaved-changes prompt");
+                if (!await AskToSaveAir())
                 {
-                    CrashLog.Trace("OnOpenAir: canceled at unsaved-changes confirm");
+                    CrashLog.Trace("OnOpenAir: canceled at unsaved-changes prompt");
                     return;
                 }
             }

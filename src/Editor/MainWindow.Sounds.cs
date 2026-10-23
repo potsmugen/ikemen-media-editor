@@ -58,9 +58,7 @@ public partial class MainWindow
         try
         {
             if (!await ResolvePendingSoundEditsBeforeSwitch()) return;
-            if (_sndDirty && !await Dialogs.Confirm(this, "Unsaved Sound Changes",
-                    "The sound file has unsaved changes.", "Discard Them"))
-                return;
+            if (!await AskToSaveSnd()) return;
 
             _snd = new SndFile();
             _sndPath = null;
@@ -107,8 +105,21 @@ public partial class MainWindow
     private async Task<bool> ConfirmReplaceSnd()
     {
         if (!await ResolvePendingSoundEditsBeforeSwitch()) return false;
-        return !_sndDirty || await Dialogs.Confirm(this, "Unsaved Sound Changes",
-            "The sound file has unsaved changes.", "Discard Them");
+        return await AskToSaveSnd();
+    }
+
+    /// <summary>Save / Discard / Cancel for unsaved sounds. False when canceled or the save didn't finish.</summary>
+    private async Task<bool> AskToSaveSnd()
+    {
+        if (!_sndDirty) return true;
+        switch (await Dialogs.AskToSave(this, _sndPath is null ? "This sound file" : Path.GetFileName(_sndPath)))
+        {
+            case SaveChoice.Save:
+                await SaveSnd(askPath: false);
+                return !_sndDirty;
+            case SaveChoice.Discard: return true;
+            default: return false;
+        }
     }
 
     /// <summary>Opens a .snd from a path (launch argument or dropped file), asking about unsaved sounds first.</summary>

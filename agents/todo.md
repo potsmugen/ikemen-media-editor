@@ -6,8 +6,6 @@ before a release. Remove items once they're done or checked.
 ## To do, easiest first
 
 - Found in Linux sandbox testing (2026-10-23), verified unless noted:
-  - Shortcut capture: clicking another row or blank dialog space doesn't cancel it, so the next
-    key is taken (F2 got assigned). Switching Preferences tabs does cancel.
   - Palettes tab after picking a sprite on Sprites: the list highlights the old palette (9000,1)
     while the grid shows the sprite's palette (1,1).
   - Sprite list scrolls half a row after Sort or Duplicate (row 1 half hidden).
@@ -22,9 +20,6 @@ before a release. Remove items once they're done or checked.
   - Questions: after Recover, the command-line file is skipped silently (by design per
     App.axaml.cs, but nothing tells the user). A recovered changed-source file opens from
     data/recovery/recovered/ under a GUID name, so plain Save writes into the app folder.
-    Sounds menu says "Save .snd" / "Save .snd As"; Sprites says "Save" / "Save As".
-  - Open/New for sounds and animations only offers "Discard Them" / Cancel (MainWindow.Sounds.cs
-    62, 111; MainWindow.Animations.cs 81, 103); sprites offer Save / Discard / Cancel (AskToSave).
   - Sound list narrows in a tab that also has an SFF (New Sound File there): the Rate column is
     cut off ("8kH", "22.1k").
   - At 200% font and button scale (window 1580x960) fixed-width buttons and fields clip:
@@ -203,6 +198,11 @@ Built, but not tried by the maintainer yet.
 - [ ] Reports, Help > Keyboard Shortcuts and the action text editor use a monospace font on Linux.
 - [ ] A WAV with a huge fmt size (0,2 in a copy of kfm.snd) shows "missing its data chunk" and counts as unreadable.
 - [ ] Palette filter hint reads "Filter, e.g. 1,2 or F1".
+- [ ] Open/New in Animations and Sounds with unsaved changes asks Save / Discard / Cancel; Save on a new file asks
+      for a path, and canceling that keeps the file open.
+- [ ] Shortcut capture ends on any click (another row, blank space); double-clicking a key cell still starts one.
+- [ ] Animations and Sounds menus say "Save" / "Save As".
+- [ ] A WAV with an empty chunk (size 0) before data plays and isn't flagged.
 
 ### Floating panels
 
