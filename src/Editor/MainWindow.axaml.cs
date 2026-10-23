@@ -1533,7 +1533,6 @@ public partial class MainWindow : Window
             CursorStatusText.Text = "";
             UpdateTabStatusVisibility(tab);
             UpdateCursorStatus();
-            FitPanelsForTab(tab);
             RestoreFloatingPanels(tab);
             switch (Tabs?.SelectedIndex)
             {
@@ -1749,6 +1748,13 @@ public partial class MainWindow : Window
     /// <summary>Expands the current tab's side panels and sizes them to fit their contents. Other tabs are left alone.</summary>
     private void OnResetPanelSizes(object? sender, RoutedEventArgs e)
     {
+        ResetPanelSizes(Tabs?.SelectedIndex ?? 0);
+        StatusText.Text = "Panel sizes reset.";
+    }
+
+    /// <summary>Expands the given tab's side panels and sizes them to fit their contents, once that tab is shown.</summary>
+    private void ResetPanelSizes(int tab)
+    {
         // ColumnDefinition itself is layout metadata, not part of the visual
         // tree, so x:Name on one doesn't generate a field the way it does for
         // a Control. The Grid holding them is a real control, so it gets the
@@ -1765,9 +1771,9 @@ public partial class MainWindow : Window
         var splitter = new GridLength(separatorWidth);
         var bodies = new List<(Control Body, Button Toggle, Control Label, string Glyph)>();
         Grid grid;
-        ResetFloatingPanels(Tabs?.SelectedIndex ?? 0); // reset means the default layout, docked
+        ResetFloatingPanels(tab); // reset means the default layout, docked
 
-        switch (Tabs?.SelectedIndex ?? 0)
+        switch (tab)
         {
             case 0: // Sprites
                 grid = SpritesGrid;
@@ -1810,7 +1816,7 @@ public partial class MainWindow : Window
                 break;
             case 2: // Animations
                 grid = AnimationsGrid;
-                Reset(AnimationsGrid, new GridLength(250), splitter, star, splitter, new GridLength(260));
+                Reset(AnimationsGrid, new GridLength(250), splitter, star, splitter, new GridLength(480)); // as in the XAML
                 AnimationsGrid.RowDefinitions[1].Height = splitter;
                 FramePanelBody.RowDefinitions[1].Height = splitter;
                 bodies.Add((ActionListBody, ActionListToggle, ActionListLabel, "◀"));
@@ -1847,28 +1853,27 @@ public partial class MainWindow : Window
         _settings.Save();
 
         // Fixed widths above are the fallback; fit this tab's panels once laid out.
-        _pendingPanelFit.Add(grid);
-        FitPanelsForTab(Tabs?.SelectedIndex ?? 0);
-
-        StatusText.Text = "Panel sizes reset.";
+        PendPanelFit(grid, 0);
+        PendPanelFit(grid, 4);
     }
 
-    // Tab grids still waiting to be fitted: a tab's content isn't templated until it's shown.
-    private readonly HashSet<Grid> _pendingPanelFit = new();
+    // Side columns with no saved width, fitted on their tab's next layout. A tab's content isn't laid out until it's shown.
+    private readonly HashSet<(Grid Grid, int Column)> _pendingPanelFit = new();
+    private readonly HashSet<Grid> _fitHooked = new();
 
-    /// <summary>Fits the given tab's side panels after the next layout pass, if a reset left them pending.</summary>
-    private void FitPanelsForTab(int tab)
+    /// <summary>Marks a side column to be fitted to its panel on the grid's next layout, before that frame is drawn.</summary>
+    private void PendPanelFit(Grid grid, int column)
     {
-        Grid? grid = tab switch { 0 => SpritesGrid, 1 => PalettesGrid, 2 => AnimationsGrid, 3 => SoundsGrid, _ => null };
-        if (grid is null || !_pendingPanelFit.Contains(grid)) return;
-        Dispatcher.UIThread.Post(() => FitSidePanels(grid), DispatcherPriority.Background);
+        _pendingPanelFit.Add((grid, column));
+        // Width changes made in LayoutUpdated get another layout pass before rendering, so the fit never shows.
+        if (_fitHooked.Add(grid)) grid.LayoutUpdated += (_, _) => { if (_pendingPanelFit.Any(p => p.Grid == grid)) FitSidePanels(grid); };
+        grid.InvalidateMeasure(); // makes sure a layout pass follows
     }
 
-    /// <summary>Sets each pixel-sized side column (0 and 4) to its panel's natural width, within PanelFitMinWidth and PanelFitMaxPercent of the tab.</summary>
+    /// <summary>Sets each pending pixel-sized side column to its panel's natural width, within PanelFitMinWidth and PanelFitMaxPercent of the tab.</summary>
     private void FitSidePanels(Grid grid)
     {
         if (!grid.IsEffectivelyVisible || grid.Bounds.Width <= 0) return; // stays pending until shown
-        _pendingPanelFit.Remove(grid);
         double min = Settings.Checked(nameof(Settings.PanelFitMinWidth), _settings.PanelFitMinWidth,
             Settings.DefaultPanelFitMinWidth, v => double.IsFinite(v) && v >= 0);
         double pct = Settings.Checked(nameof(Settings.PanelFitMaxPercent), _settings.PanelFitMaxPercent,
@@ -1876,6 +1881,7 @@ public partial class MainWindow : Window
         double max = Math.Max(min, grid.Bounds.Width * pct / 100);
         foreach (int col in new[] { 0, 4 })
         {
+            if (!_pendingPanelFit.Remove((grid, col))) continue;
             if (col >= grid.ColumnDefinitions.Count || !grid.ColumnDefinitions[col].Width.IsAbsolute) continue;
             var panel = grid.Children.FirstOrDefault(c => Grid.GetColumn(c) == col && c is not GridSplitter);
             if (panel is null || !panel.IsVisible) continue; // floating
@@ -1892,30 +1898,37 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>Applies any panel widths saved from a previous session.</summary>
+    /// <summary>Applies any panel widths saved from a previous session; a side panel with none is fitted to its contents.</summary>
     private void RestorePanelSizes()
     {
-        if (_settings.SpritesListWidth is { } a) SpritesGrid.ColumnDefinitions[0].Width = new GridLength(a);
-        if (_settings.SpritesPaletteWidth is { } b) SpritesGrid.ColumnDefinitions[4].Width = new GridLength(b);
-        if (_settings.PalettesListWidth is { } c) PalettesGrid.ColumnDefinitions[0].Width = new GridLength(c);
+        void Restore(Grid grid, int column, double? width)
+        {
+            if (width is { } w) grid.ColumnDefinitions[column].Width = new GridLength(w);
+            else PendPanelFit(grid, column);
+        }
+        Restore(SpritesGrid, 0, _settings.SpritesListWidth);
+        Restore(SpritesGrid, 4, _settings.SpritesPaletteWidth);
+        Restore(PalettesGrid, 0, _settings.PalettesListWidth);
         // PalettesGrid's right column is star-sized (the preview shares width
         // equally with the swatches and color editor), so it has no pixel
         // width to save or restore.
-        if (_settings.AnimActionsWidth is { } f) AnimationsGrid.ColumnDefinitions[0].Width = new GridLength(f);
-        if (_settings.AnimFramePanelWidth is { } g) AnimationsGrid.ColumnDefinitions[4].Width = new GridLength(g);
-        if (_settings.SoundsListWidth is { } h) SoundsGrid.ColumnDefinitions[0].Width = new GridLength(h);
+        Restore(AnimationsGrid, 0, _settings.AnimActionsWidth);
+        Restore(AnimationsGrid, 4, _settings.AnimFramePanelWidth);
+        Restore(SoundsGrid, 0, _settings.SoundsListWidth);
         if (_settings.SoundsWaveformHeight is { } i) SoundRightGrid.RowDefinitions[1].Height = new GridLength(i);
     }
 
     /// <summary>Records whatever the panels are currently sized to, so it survives a restart.</summary>
     private void SavePanelSizes()
     {
-        _settings.SpritesListWidth = DockedWidth(SpritesGrid, 0);
-        _settings.SpritesPaletteWidth = DockedWidth(SpritesGrid, 4);
-        _settings.PalettesListWidth = DockedWidth(PalettesGrid, 0);
-        _settings.AnimActionsWidth = DockedWidth(AnimationsGrid, 0);
-        _settings.AnimFramePanelWidth = DockedWidth(AnimationsGrid, 4);
-        _settings.SoundsListWidth = DockedWidth(SoundsGrid, 0);
+        // A column never fitted (its tab not shown yet) stays unsaved, so it's fitted next launch.
+        double? Width(Grid grid, int column) => _pendingPanelFit.Contains((grid, column)) ? null : DockedWidth(grid, column);
+        _settings.SpritesListWidth = Width(SpritesGrid, 0);
+        _settings.SpritesPaletteWidth = Width(SpritesGrid, 4);
+        _settings.PalettesListWidth = Width(PalettesGrid, 0);
+        _settings.AnimActionsWidth = Width(AnimationsGrid, 0);
+        _settings.AnimFramePanelWidth = Width(AnimationsGrid, 4);
+        _settings.SoundsListWidth = Width(SoundsGrid, 0);
         SaveFloatPlacements();
         _settings.SoundsWaveformHeight = SoundRightGrid.RowDefinitions[1].Height.Value;
     }

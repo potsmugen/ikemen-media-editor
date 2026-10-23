@@ -659,7 +659,7 @@
               </Grid>
               <Grid Grid.Row="1" x:Name="SpritePaletteBody">
                 <Grid.RowDefinitions>
-                  <RowDefinition Height="*" />
+                  <RowDefinition Height="Auto" />
                   <RowDefinition Height="{DynamicResource PanelSeparatorTrack}" />
                   <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
