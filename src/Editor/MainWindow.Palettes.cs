@@ -1685,12 +1685,138 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                     lines.Add(($"Palette {PaletteKey(file, palette)}", () => JumpToPalette(palette)));
             }
 
-            Dialogs.ShowReport(this, "Unused Palettes", lines);
+            List<(string Label, string Tip, Action Click)>? actions = null;
+            if (unused.Count > 0)
+                actions = [("Delete These Palettes", "Deletes every palette listed above.", () => OnDeleteUnusedPalettes(file))];
+
+            Dialogs.ShowReport(this, "Unused Palettes", lines, actions);
             CrashLog.Trace($"[palettes] found {unused.Count} unused embedded palette(s); ignored group 1 and external palettes");
         }
         catch (Exception ex)
         {
             await Failed("OnFindUnusedPalettes", ex);
+        }
+    }
+
+    /// <summary>
+    /// The unused-palettes report's action: deletes every embedded palette no sprite uses, as one
+    /// undo step. Palettes that link to one keep their current colors.
+    /// </summary>
+    private async void OnDeleteUnusedPalettes(SffFile file)
+    {
+        try
+        {
+            if (!ReferenceEquals(_file, file)) { StatusText.Text = "That sprite file is no longer open."; return; }
+
+            List<Palette> Unused() => file.Palettes
+                .Where(p => p.Source == PaletteSource.Embedded && !p.IsCharacterPalette
+                    && !file.Sprites.Any(s => ReferenceEquals(s.Palette, p)))
+                .ToList();
+            List<Palette> Linkers(HashSet<Palette> targets) => file.Palettes
+                .Where(p => p.LinksTo is { } target && targets.Contains(target) && !targets.Contains(p))
+                .ToList();
+
+            var targets = Unused();
+            if (targets.Count == 0) { StatusText.Text = "No unused palettes are left."; return; }
+
+            if (HasPendingColorAdjust() && _editingPalette is { Source: PaletteSource.Embedded } pending
+                && (targets.Contains(pending) || Linkers(targets.ToHashSet()).Contains(pending)))
+            {
+                var choice = await Dialogs.AskAboutPendingColorAdjust(this);
+                if (choice == PendingAdjustChoice.Cancel || !ReferenceEquals(_file, file)) return;
+                if (choice == PendingAdjustChoice.Commit) CommitPendingColorAdjust();
+                else DiscardPendingColorAdjust();
+            }
+
+            targets = targets.Where(file.Palettes.Contains).ToList(); // rechecked after the prompt
+            if (targets.Count == 0) return;
+            var candidateSet = targets.ToHashSet();
+            var linkers = Linkers(candidateSet);
+            string keys = string.Join(", ", targets.Take(5).Select(p => PaletteKey(file, p)))
+                + (targets.Count > 5 ? ", …" : "");
+            string message = targets.Count == 1
+                ? $"Delete palette {keys}?"
+                : $"Delete {targets.Count} palettes ({keys})?";
+            if (linkers.Count == 1)
+                message += "\n1 palette links to one of them and keeps its current colors.";
+            else if (linkers.Count > 1)
+                message += $"\n{linkers.Count} palettes link to them and keep their current colors.";
+            if (!await Dialogs.Confirm(this, "Delete Unused Palettes", message, "Delete")) return;
+            if (!ReferenceEquals(_file, file) || targets.Any(p => !file.Palettes.Contains(p))) return;
+
+            var order = file.Palettes.ToList();
+            var linkStates = linkers.Select(p => (Palette: p, State: PaletteLinkState.Capture(p))).ToList();
+            var selected = _paletteOverride >= 0 && _paletteOverride < order.Count ? order[_paletteOverride] : null;
+            bool editingDeleted = _editingPalette is { } editing && targets.Contains(editing);
+            var editingPalette = _editingPalette;
+            var editingView = _editingView;
+            int swatch = _selectedSwatch;
+            bool editorEnabled = ColorEditor.IsEnabled;
+            string? swatchInfo = SwatchInfo.Text;
+
+            void ClearDeletedPaletteEditor()
+            {
+                if (!editingDeleted) return;
+                _editingPalette = null;
+                _editingView = null;
+                _selectedSwatch = -1;
+                ColorEditor.IsEnabled = false;
+                ASlider.IsEnabled = false;
+                ResetColorAdjustBase();
+            }
+
+            void RestoreDeletedPaletteEditor()
+            {
+                if (!editingDeleted || editingPalette is null) return;
+                _editingPalette = editingPalette;
+                _editingView = editingView;
+                _selectedSwatch = swatch;
+                SwatchInfo.Text = swatchInfo;
+                ColorEditor.IsEnabled = editorEnabled;
+                ASlider.IsEnabled = editorEnabled && CanEditPaletteAlpha(editingPalette);
+                if (swatch >= 0 && swatch < editingPalette.Colors.Length)
+                {
+                    var color = editingPalette.Colors[swatch];
+                    _suppressEvents = true;
+                    RSlider.Value = color.R; GSlider.Value = color.G; BSlider.Value = color.B; ASlider.Value = color.A;
+                    _suppressEvents = false;
+                    SpriteCanvas.PaintColorIndex = swatch;
+                }
+                ResetColorAdjustBase();
+            }
+
+            Edit("delete unused palettes",
+                () =>
+                {
+                    foreach (var (palette, state) in linkStates)
+                        new PaletteLinkState(null, state.Colors).Restore(palette);
+                    file.Palettes.RemoveAll(targets.Contains);
+                    _paletteOverride = selected is null ? -1 : file.Palettes.IndexOf(selected);
+                    _suppressEvents = true;
+                    PaletteBox.SelectedIndex = _paletteOverride + 1;
+                    _suppressEvents = false;
+                    ClearDeletedPaletteEditor();
+                },
+                () =>
+                {
+                    file.Palettes.Clear();
+                    file.Palettes.AddRange(order);
+                    foreach (var (palette, state) in linkStates)
+                        state.Restore(palette);
+                    _paletteOverride = selected is null ? -1 : file.Palettes.IndexOf(selected);
+                    _suppressEvents = true;
+                    PaletteBox.SelectedIndex = _paletteOverride + 1;
+                    _suppressEvents = false;
+                    RestoreDeletedPaletteEditor();
+                });
+
+            CrashLog.Trace($"[palettes] deleted {targets.Count} unused palette(s); unlinked {linkStates.Count}");
+            StatusText.Text = $"Deleted {targets.Count} unused palette{(targets.Count == 1 ? "" : "s")}"
+                + (linkStates.Count > 0 ? $"; unlinked {linkStates.Count} with colors kept" : "") + ".";
+        }
+        catch (Exception ex)
+        {
+            await Failed("OnDeleteUnusedPalettes", ex);
         }
     }
 

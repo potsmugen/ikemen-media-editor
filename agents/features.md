@@ -262,7 +262,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   refused.
 - **Palette list right-click** offers "Save Original File" for imported palettes that have a
   file and "Save SFF File" for SFF palettes; the inapplicable one dims rather than hides.
-  Temp palettes have no original file, so they get Export Palette instead.
+  Temp palettes have no original file, so neither applies; the panel's Export button is
+  their save path. The menu holds only what the panel's buttons cannot do.
 - **Palette selection** follows the palette object; a preview can show the active sprite
   without changing the edited palette. Dirty palettes show `*`. Embedded v2 palettes convert
   among 1–8 bits, shrinking only when every sprite using them is decoded and its indexes fit;
@@ -374,6 +375,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   failures; Fade clamps per sound, Echo's Auto works per sound, and Resample or Bit Depth ask
   once if any would go up. Export picks a folder and asks before overwriting. Play, Loop,
   Stop, Trim to Selection and Replace are disabled, and Downsample All works the same way.
+- **Duplicate** leaves the copies selected (single and multi-selection), like the sprite,
+  action, frame and palette lists.
 
 ### Reports and configuration
 
@@ -387,7 +390,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   Save and Save As act on the current tab.
 - **Media Health Report** leaves external palettes out of SFF palette counts and leaves group
   1 out of the unused count, since a character can select it without a sprite. **Find Unused
-  Palettes** lists unreferenced embedded palettes as clickable rows.
+  Palettes** lists unreferenced embedded palettes as clickable rows, and offers deleting them
+  all as one undo step; palettes that link to one keep their current colors.
 - **Themes**: user themes live under the platform's application-data directory. Dark is
   generated from `Themes.Fallback` when missing, shipped themes are refreshed at startup, and
   custom ones are never overwritten. Every key is required, missing ones are not defaulted,

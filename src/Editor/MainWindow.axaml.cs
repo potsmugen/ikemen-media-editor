@@ -834,7 +834,6 @@ public partial class MainWindow : Window
                     single && rowPalette?.Source == PaletteSource.External && !IsTempPalette(rowPalette)),
                 MenuAction("Save SFF File", () => OnSave(null, new RoutedEventArgs()),
                     rowPalette?.Source == PaletteSource.Embedded && _file is not null),
-                MenuAction("Export Palette", () => OnExportPalette(null, new RoutedEventArgs()), single),
             };
             OpenContextMenu(PaletteList, new ContextMenu { ItemsSource = items });
         };

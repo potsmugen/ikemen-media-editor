@@ -36,12 +36,9 @@ before a release. Remove items once they're done or checked.
     - Report text: a drag across two lines selects nothing; double-click selects within a line.
     - Question: an .act with a 20-color count trailer imports as 256 colors; JASC-PAL with 20 gives 20.
   - Unverified (sandbox has no window manager): Escape doesn't close the Alt+F4 refusal popup.
-- Make what a duplicate leaves selected (originals or copies) consistent across tabs. Sprites
-  select the copies; check actions, frames, palettes and sounds and pick one rule.
-- Customizable shortcuts: built, not compiled yet. See features.md "Keyboard shortcuts". Left:
-  - Build and fix compile errors (Shortcuts.cs, MainWindow.Shortcuts.cs, Dialogs.Shortcuts.cs).
-  - Column widths measure at the largest of the dialog, window and tab font sizes (style-set sizes
-    aren't applied yet when the page is built); check "Animations tab" fits at large font scales.
+- Customizable shortcuts: see features.md "Keyboard shortcuts". It compiles, and column widths
+  measure at the largest of the dialog, window and tab font sizes. Left:
+  - Check the "Animations tab" command fits at large font scales.
   - Later: more commands (shift sprite axis with arrows on the focused canvas, paint tools, Commit).
   - Requested (Discord): previous/next sprite (e.g. Left/Right), shift axis by 1 (e.g. Shift+arrows),
     previous/next sound (e.g. Ctrl+Left/Right) and play sound (e.g. Ctrl+Enter). Sprite commands
@@ -57,13 +54,8 @@ before a release. Remove items once they're done or checked.
     "Made in VirtuallTek / Powered by Fighter Factory" in working/kfm-v1.sff and kfm-v2.sff.
     Also happens on a Save All where only a temp palette was added and removed.
 - There's another app that opens large SFF's faster than ours. Means we could improve that
-- Audit the menus and buttons for redundancy. The Sprites tab context menu repeated
-  four entries the sidebar already has as buttons (Add, Replace, Delete, Shift Offset),
-  and under different names, so one action had two labels in one panel; the names now
-  match. Check the other tabs the same way: anything a button already does probably
-  does not need a menu entry, which leaves the menu free to mean "what the panel
-  cannot do". Decide per entry whether to prune or keep both. Frame table done: dropped
-  Insert/Duplicate/Remove/Move (buttons) and the four Interpolate toggles (Special Flags).
+- Audit for Sprites-only assumptions left from when SFF was the only format (Ctrl+O, Ctrl+F and
+  Escape-in-a-text-box were three, fixed with the shortcuts).
 - Status-bar summaries still listing skipped items "(see crash.log)": Bulk export/import
   (BulkIO.cs ~552), sound Increase Loudness / Downsample (Sounds.cs ~1372, 1391, 1589).
   Show a popup listing them like the palette batch does. Frame-insert group number
@@ -176,8 +168,6 @@ before a release. Remove items once they're done or checked.
     change; (2) switch routine; (3) tab strip, open/close/quit flows, busy lock;
     (4) recovery; (5) features.md and in-app checks.
 
-- Find Unused Palettes: offer deleting them all from the report, after showing the list.
-
 ## Not yet checked in the app
 
 Built, but not tried by the maintainer yet.
@@ -234,6 +224,9 @@ Built, but not tried by the maintainer yet.
 - A report jump to an unused palette now also moves the palette list's selection (it used
   to show the palette in the grid while the list stayed on the old row).
 - Save Original File is disabled for temp palettes; it used to fall through to Export.
+- The palette right-click menu has no Export Palette (the panel button covers it).
+- Find Unused Palettes > Delete These Palettes: confirm text, linked palettes keep their
+  colors, one undo step restores colors and the edited palette.
 - Links to later sprites: open a file that has some (sprites_org.sff 6001?): load popup, Health
   Report section, Save asks Save/Cancel, status line after; a second Save asks nothing.
 - Undo after Sort Colors or Swap Colors with Update sprites restores the palette but not the
@@ -257,6 +250,7 @@ Built, but not tried by the maintainer yet.
 
 - An unreadable sound disables Play, Loop, Trim to Selection and the edit buttons;
   Replace and Delete stay enabled.
+- Duplicating a sound (one or several) leaves the copies selected, like the other lists.
 - Use a popup progress dialog for very long, cancellable multi-item operations,
   following Auto Clsn2 For All's cancellable progress window. Multi-selection
   actions now show status-bar progress under the busy lock and run to completion;

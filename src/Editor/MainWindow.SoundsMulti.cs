@@ -432,11 +432,13 @@ public partial class MainWindow
         StatusText.Text = $"Exported {files.Count} sounds to {dir}";
     }
 
-    /// <summary>Copies each selected sound right after its original (same group, next free number); one undo step.</summary>
+    /// <summary>Copies each selected sound right after its original (same group, next free number); one undo step.
+    /// The copies stay selected.</summary>
     private void DuplicateSoundsMany(List<SoundEntry> many)
     {
         if (_snd is not { } file) return;
         var before = file.Sounds.ToList();
+        var copies = new List<SoundEntry>();
         // In list order, so each copy's number is picked after the copies before it exist.
         foreach (var s in many.OrderBy(file.Sounds.IndexOf).ToList())
         {
@@ -444,6 +446,7 @@ public partial class MainWindow
             copy.Index = NextFreeSoundIndex(copy.Group);
             SndReader.Describe(copy);
             file.Sounds.Insert(file.Sounds.IndexOf(s) + 1, copy);
+            copies.Add(copy);
             CrashLog.Trace($"[sound] duplicate {s.Group},{s.Index} -> {copy.Group},{copy.Index}");
         }
         var after = file.Sounds.ToList();
@@ -456,6 +459,7 @@ public partial class MainWindow
         _undo.Record($"duplicate {many.Count} sounds", () => Apply(before), () => Apply(after));
         MarkSndDirty();
         AfterSoundEdit();
+        SelectSounds(copies);
         StatusText.Text = $"Duplicated {many.Count} sounds.";
     }
 }

@@ -1059,7 +1059,7 @@ public partial class MainWindow
 
     /// <summary>
     /// Duplicate: a copy as it sounds now (pending edits included), same group, next free
-    /// number, right after the original; one undo step. The original stays selected. The
+    /// number, right after the original; one undo step. The copy stays selected. The
     /// WAV bytes are shared: edits always replace Data with a new array, never mutate it.
     /// </summary>
     private void OnDuplicateSound(object? sender, RoutedEventArgs e)
@@ -1078,6 +1078,7 @@ public partial class MainWindow
         file.Sounds.Insert(at, copy);
         MarkSndDirty();
         AfterSoundEdit();
+        SelectSounds([copy]);
         CrashLog.Trace($"[sound] duplicate {s.Group},{s.Index} -> {copy.Group},{copy.Index}");
         StatusText.Text = $"Duplicated {s.Group},{s.Index} as {copy.Group},{copy.Index}.";
     }
@@ -2222,6 +2223,40 @@ public partial class MainWindow
         ShowSound();
         UpdateSoundButtonStates();
         UpdateSndInfo();
+    }
+
+    /// <summary>
+    /// Selects these sounds in the list, clearing the filter if it hides one, then refreshes the
+    /// waveform and buttons. Duplicate uses it so the copies, not the originals, stay selected.
+    /// </summary>
+    private void SelectSounds(IReadOnlyList<SoundEntry> sounds)
+    {
+        if (_snd is null || sounds.Count == 0) return;
+        if (SoundFilterBox.Text is { Length: > 0 } && sounds.Any(s => !_visibleSounds.Contains(_snd.Sounds.IndexOf(s))))
+        {
+            SoundFilterBox.Text = ""; // it's hidden by the filter, same as the list's jumps
+            ApplySoundFilter();
+        }
+        if (SoundList.Items is not { } items || SoundList.SelectedItems is not { } selectedItems) return;
+
+        _suppressEvents = true;
+        try
+        {
+            selectedItems.Clear();
+            foreach (var sound in sounds)
+            {
+                int row = _visibleSounds.IndexOf(_snd.Sounds.IndexOf(sound));
+                if (row >= 0 && row < items.Count && items[row] is { } item) selectedItems.Add(item);
+            }
+        }
+        finally { _suppressEvents = false; }
+
+        if (selectedItems.Count > 0)
+        {
+            SoundList.ScrollIntoView(SoundList.SelectedIndex);
+            ShowSound();
+            UpdateSoundButtonStates();
+        }
     }
 
     private int NextFreeSoundIndex(int group)
