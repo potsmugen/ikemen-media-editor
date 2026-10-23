@@ -6,8 +6,6 @@ before a release. Remove items once they're done or checked.
 ## To do, easiest first
 
 - Found in Linux sandbox testing (2026-10-23), verified unless noted:
-  - Palettes tab after picking a sprite on Sprites: the list highlights the old palette (9000,1)
-    while the grid shows the sprite's palette (1,1).
   - Sprite list scrolls half a row after Sort or Duplicate (row 1 half hidden).
   - Shortcuts table: the selected row shows a blue block past the last column; "Select all
     sprites, sounds, frames or p..." is cut off; zoom shows as "Ctrl++" / "Ctrl+-".
@@ -110,9 +108,6 @@ before a release. Remove items once they're done or checked.
 - Test the Save Like SprMaker report file and its -s/-q and -v/-q switches in
   the app; the writer and its tests are already in (see the Save Like SprMaker
   items below).
-- Check that every direct `_undo.Do` call sets its dirty flag, so autosave catches the
-  change. Sites: Palettes (sort palettes), Sounds (sort sounds, sound number), Animations
-  (action comment, toggle interpolate, reorder/sort actions, suggested names, renumber).
 - Autosave still rereads and rehashes the source file on every snapshot, and copies
   unchanged items into each new package. Cache the hash and write only what changed.
 - Autosave writes on the UI thread. Move the disk write to a background thread once
@@ -175,7 +170,6 @@ before a release. Remove items once they're done or checked.
     change; (2) switch routine; (3) tab strip, open/close/quit flows, busy lock;
     (4) recovery; (5) features.md and in-app checks.
 
-- Paint Mode Replace: remove a single Old/New square without Clear wiping them all (e.g. right-click).
 - Find Unused Palettes: offer deleting them all from the report, after showing the list.
 
 ## Not yet checked in the app
@@ -203,6 +197,9 @@ Built, but not tried by the maintainer yet.
 - [ ] Shortcut capture ends on any click (another row, blank space); double-clicking a key cell still starts one.
 - [ ] Animations and Sounds menus say "Save" / "Save As".
 - [ ] A WAV with an empty chunk (size 0) before data plays and isn't flagged.
+- [ ] Palettes tab after picking a sprite on Sprites: the list selects the sprite's palette (clearing a filter
+      that hides it); a multi-selection that already includes it is kept.
+- [ ] Paint Mode Replace: right-click a filled square empties just that one; its tooltip says so.
 
 ### Floating panels
 

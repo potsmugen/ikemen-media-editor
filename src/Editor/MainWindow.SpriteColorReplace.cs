@@ -1,6 +1,7 @@
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 
@@ -54,6 +55,13 @@ public partial class MainWindow
                 Tag = slot.ToString(CultureInfo.InvariantCulture),
             };
             btn.Click += OnReplaceSquareClicked;
+            int cleared = slot;
+            btn.PointerReleased += (_, e) =>
+            {
+                if (e.InitialPressMouseButton != MouseButton.Right) return;
+                e.Handled = true;
+                ClearReplaceSlot(cleared);
+            };
             _replaceSquares[slot] = btn;
         }
         // Old on the left, matching the header labels' 26px width and 4px gap.
@@ -101,6 +109,18 @@ public partial class MainWindow
         StatusText.Text = $"Set to index {paletteIndex}.";
     }
 
+    /// <summary>Right-click: empties one square, leaving the others.</summary>
+    private void ClearReplaceSlot(int slot)
+    {
+        _replaceSlotIndex[slot] = null;
+        if (_armedReplaceSlot == slot)
+        {
+            _armedReplaceSlot = null;
+            SpriteCanvas.ArmedForExternalPick = false;
+        }
+        RefreshReplaceSquares();
+    }
+
     private void OnClearReplaceSquares(object? sender, RoutedEventArgs e)
     {
         Array.Clear(_replaceSlotIndex);
@@ -145,7 +165,7 @@ public partial class MainWindow
                 double luma = 0.299 * c.R + 0.587 * c.G + 0.114 * c.B;
                 btn.Foreground = luma > 140 ? Brushes.Black : Brushes.White;
                 btn.Content = ix.ToString(CultureInfo.InvariantCulture);
-                ToolTip.SetTip(btn, $"Index {ix}: RGB {c.R}, {c.G}, {c.B}");
+                ToolTip.SetTip(btn, $"Index {ix}: RGB {c.R}, {c.G}, {c.B}. Right-click to clear.");
             }
             else
             {

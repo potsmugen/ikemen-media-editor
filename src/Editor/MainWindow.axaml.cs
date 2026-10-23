@@ -1541,7 +1541,13 @@ public partial class MainWindow : Window
             switch (Tabs?.SelectedIndex)
             {
                 case 2: ShowFrame(); break;        // sprites may have changed since last look
-                case 1: RefreshPaletteTab(); break;
+                case 1:
+                    RefreshPaletteTab();
+                    // The grid shows the sprite's palette; select its row too unless it's already selected.
+                    if (_file is { } file && ActivePalette() is { } shownPal && file.Palettes.Contains(shownPal)
+                        && PaletteList.SelectedItems?.OfType<PaletteRow>().Any(r => ReferenceEquals(r.Palette, shownPal)) != true)
+                        HighlightPaletteInList(shownPal);
+                    break;
                 default: Pause(); break;       // stop playback when leaving the tab
             }
             FocusTabList();
