@@ -1659,6 +1659,8 @@ public partial class MainWindow
     }
 
     private const string SffKind = "sff", AirKind = "air", SndKind = "snd";
+    /// <summary>Adding or importing an external palette with an SFF open: undoable, but the SFF is unchanged.</summary>
+    private const string ExternalPaletteKind = "external-palette";
 
     /// <summary>After Undo.Clear: the kinds with no unsaved changes are at their save point.</summary>
     private void MarkCleanKindsSaved()

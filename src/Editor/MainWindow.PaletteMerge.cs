@@ -368,5 +368,9 @@ public partial class MainWindow
         MergePalettesMenuItem.IsEnabled = count >= 2 && _file is not null;
     }
 
-    private void OnPalettesMenuOpened(object? sender, RoutedEventArgs e) => SyncPaletteMergeMenu();
+    private void OnPalettesMenuOpened(object? sender, RoutedEventArgs e)
+    {
+        SyncPaletteMergeMenu();
+        SyncAddToSffMenuItem();
+    }
 }

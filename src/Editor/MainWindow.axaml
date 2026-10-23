@@ -84,6 +84,7 @@
 
       <MenuItem Header="Pa_lettes" SubmenuOpened="OnPalettesMenuOpened">
         <MenuItem Header="_Import" x:Name="ImportPaletteItem" Click="OnImportPaletteFiles" />
+        <MenuItem Header="_Add to SFF" x:Name="AddPaletteToSffMenuItem" Click="OnAddPaletteToSff" />
         <MenuItem Header="_Create From Images" Click="OnCreatePaletteFromImages"
                   ToolTip.Tip="Builds one palette from the colors of PNG or PCX images, most used first. Over 255 colors are reduced." />
         <MenuItem x:Name="CombinePalettesMenuItem" Header="Com_bine Into New" Click="OnCombinePalettes"

@@ -89,7 +89,7 @@ public partial class MainWindow
             int at = after is not null && file.Palettes.IndexOf(after) is var i and >= 0 ? i + 1 : file.Palettes.Count;
             Edit(undoName,
                 () => { file.Palettes.Insert(Math.Min(at, file.Palettes.Count), pal); SelectPalette(pal); },
-                () => { file.Palettes.Remove(pal); _paletteOverride = -1; });
+                () => { file.Palettes.Remove(pal); _paletteOverride = -1; }, kind: ExternalPaletteKind);
         }
         else
         {

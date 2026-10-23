@@ -408,8 +408,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   palette list's right-click menu.
 - **Temp palettes** are palettes made in the editor with no file yet: New or Create From
   Images, with or without an SFF open, and Duplicate of any palette. Like imported file palettes they are external: with
-  an SFF they join its list (one undo step) but are not saved in it until applied to
-  sprites. Save All skips them (the status line counts them); they are saved or exported
+  an SFF they join its list (one undo step, not marking the SFF changed; the same goes for
+  importing palette files) but are not saved in it until applied to sprites or added with
+  Add to SFF. Save All skips them (the status line counts them); they are saved or exported
   deliberately, and closing still warns about unsaved ones. They show "temp" as their source and "New palette (not saved
   yet)" as their kind, and start unsaved. External palettes are labeled by group: F for
   palettes from a file, T for temp ones, each numbered in list order (F1, T1), with or
@@ -419,10 +420,17 @@ and constraints that are easy to miss when reading one code path in isolation.
   shown; real keys appear only on v1 → v2 conversion. Sort Ascending puts T after F. Save asks for a location and offers
   RGBA, ACT or JASC-PAL (not PNG/PCX, which need image pixels). Kept when an SFF opens,
   they become external palettes labeled temp until exported. Applying a temp palette to
-  sprites in SFFv2 moves it into the SFF (group 1, first free index) as one palette shared
-  by those sprites, in one undo step, rather than copying it per sprite. In SFFv1 its
+  sprites in SFFv2 moves it into the SFF (the first sprite's group, first free index from 0,
+  not group 1, the character palettes) as one palette shared by those sprites, in one undo step, rather than copying it per sprite. In SFFv1 its
   colors are copied into each sprite's own palette (v1 palettes live in the sprites) and
   the temp palette leaves the list in the same undo step. Either way none is left behind.
+- **Add to SFF** (palette list right-click and Palettes menu; one external palette, SFFv2
+  only) moves an imported or temp palette into the SFF at a group and number asked for,
+  starting at 1 and the next free number from 1, so alt palettes no sprite uses can be added.
+  A taken key asks to replace that palette's colors: it keeps its key, sprites and linked
+  palettes, and a palette that was itself a link gets its own colors. A different color count
+  is refused. One undo step. Applying a file palette to sprites copies it into the sprite's
+  group the same way.
 - **Palette list right-click** offers "Save Original File" (imported palettes, to their source file) and "Save SFF File" (SFF palettes, same as File > Save). The option that does not apply to the clicked palette is dimmed, not hidden.
 - **Palette PNG export** preserves RGBA as indexed pixels with alpha.
 - **Palette selection** follows the palette object. A palette preview can display

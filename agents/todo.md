@@ -26,9 +26,6 @@ before a release. Remove items once they're done or checked.
     Animations Play / |< / Special Flags, Sounds Play/Loop/Stop. Palettes Color R/G/B/A sliders
     collapse to nothing, the Sprites tab palette grid under Preview with disappears, and the
     float/collapse icons render as other glyphs.
-  - Creating a temp palette marks Sprites* and the file dirty.
-  - Questions: a plain box over only blank palette slots keeps the old selection instead of
-    clearing it. Applying a temp palette in SFFv2 puts it at 1,0 (NextFreePaletteIndex starts at 0).
   - Unverified (sandbox has no window manager): Escape doesn't close the Alt+F4 refusal popup.
 - Make what a duplicate leaves selected (originals or copies) consistent across tabs. Sprites
   select the copies; check actions, frames, palettes and sounds and pick one rule.
@@ -200,6 +197,14 @@ Built, but not tried by the maintainer yet.
 - [ ] Palettes tab after picking a sprite on Sprites: the list selects the sprite's palette (clearing a filter
       that hides it); a multi-selection that already includes it is kept.
 - [ ] Paint Mode Replace: right-click a filled square empties just that one; its tooltip says so.
+- [ ] New/Duplicate/Create From Images palettes and Palettes > Import with an SFF open leave Sprites* and the
+      SFF clean (Palettes* still shows for an unexported temp); undo/redo of the add stays clean too.
+- [ ] Applying a temp or file palette to sprites in SFFv2 puts it in the sprite's group (e.g. 9000,0), not 1,0.
+- [ ] Add to SFF: an imported .act into a free 1,n (Sprites* set, undo puts it back as external); into a taken
+      1,n asks to replace and keeps sprites/links; a linked target gets its own colors; a different color count
+      is refused; dimmed with a reason on SFFv1, for SFF palettes and for multi-selections.
+- [ ] Palette grid: dragging a box from blank slots selects the colors it touches; a box or click over only
+      blank slots clears the selection; Ctrl keeps it.
 
 ### Floating panels
 

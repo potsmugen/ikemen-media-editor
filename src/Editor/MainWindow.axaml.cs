@@ -829,6 +829,7 @@ public partial class MainWindow : Window
                 new Separator(),
                 MenuAction("Sort Ascending", () => OnSortPalettesAscending(null, new RoutedEventArgs())),
                 new Separator(),
+                AddToSffMenuItem(single ? rowPalette : null),
                 MenuAction("Save Original File", () => OnSaveAct(null, new RoutedEventArgs()),
                     single && rowPalette?.Source == PaletteSource.External),
                 MenuAction("Save SFF File", () => OnSave(null, new RoutedEventArgs()),
@@ -1015,6 +1016,7 @@ public partial class MainWindow : Window
                 palette.Dirty = _undo.Differs(kind);
             UpdateTitle();
         }
+        else if (kind == ExternalPaletteKind) UpdateTitle(); // listed beside the SFF, not saved in it
         else MarkDirty();
     }
 

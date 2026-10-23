@@ -34,6 +34,7 @@ public class PaletteView : Control
     private bool _boxArmed, _boxActive;
     private Point _boxStart, _boxEnd;
     private SortedSet<int>? _boxBase; // selection a Ctrl box adds to; null when no box is armed
+    private bool _blankPress; // pressed on a blank slot: a click there clears the selection
 
     /// <summary>The unzoomed swatch size. Zero or less falls back to NaturalCellSize.</summary>
     public double CellSize { get; set; }
@@ -112,6 +113,14 @@ public class PaletteView : Control
         if (col is < 0 or > 15 || row < 0) return -1;
         int i = row * 16 + col;
         return _palette is null || i >= _palette.Colors.Length ? -1 : i;
+    }
+
+    /// <summary>Inside the 16-column grid, blank slots included.</summary>
+    private bool InGrid(Point p)
+    {
+        double cell = EffectiveCellSize;
+        return p.X >= GridMargin && p.Y >= GridMargin
+            && p.X < GridMargin + 16 * cell && p.Y < GridMargin + Rows * cell;
     }
 
     /// <summary>Selects exactly one swatch, replacing whatever was selected before.</summary>
@@ -214,7 +223,22 @@ public class PaletteView : Control
         var p = e.GetCurrentPoint(this);
         if (!p.Properties.IsLeftButtonPressed) return;
         int idx = IndexAt(p.Position);
-        if (idx < 0) return;
+        if (idx < 0)
+        {
+            // Blank slots past the palette's colors still start a box; Ctrl adds to the selection.
+            if (!ClickSelects || ReadOnly || !InGrid(p.Position) || e.KeyModifiers.HasFlag(KeyModifiers.Shift)) return;
+            bool ctrlBlank = !SingleSelect && e.KeyModifiers.HasFlag(KeyModifiers.Control);
+            _boxBase = ctrlBlank ? new SortedSet<int>(_selected) : new SortedSet<int>();
+            e.Pointer.Capture(this);
+            _boxArmed = true;
+            _boxActive = false;
+            _boxStart = p.Position;
+            _blankPress = !ctrlBlank;
+            _pressedIndex = -1;
+            _dragArmed = false;
+            _collapseSelectionOnRelease = false;
+            return;
+        }
 
         bool ctrl = !SingleSelect && e.KeyModifiers.HasFlag(KeyModifiers.Control);
         bool shift = !SingleSelect && e.KeyModifiers.HasFlag(KeyModifiers.Shift);
@@ -305,6 +329,13 @@ public class PaletteView : Control
             InvalidateVisual(); // clears the box outline drawn during the drag
             BoxSelected?.Invoke();
         }
+        else if (_blankPress && _selected.Count > 0)
+        {
+            _selected.Clear();
+            InvalidateVisual();
+            BoxSelected?.Invoke();
+        }
+        _blankPress = false;
         _boxArmed = false;
         _boxBase = null;
         if (_collapseSelectionOnRelease && !_dragStarted && _pressedIndex >= 0)

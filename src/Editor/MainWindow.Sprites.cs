@@ -983,7 +983,7 @@ public partial class MainWindow
             if (MovesIntoSff(file, chosen))
             {
                 string label = PaletteDisplayName(file, chosen);
-                var (moveIn, moveOut, movedIndex) = MoveTempPaletteIntoSff(file, chosen, prepared.Value.Colors);
+                var (moveIn, moveOut, movedIndex) = MoveTempPaletteIntoSff(file, chosen, prepared.Value.Colors, sprite.Group);
                 Edit("move temp palette into sff",
                     () =>
                     {
@@ -1000,7 +1000,7 @@ public partial class MainWindow
                 StatusText.Text = $"Moved {label} into the SFF as palette {chosen.Group},{movedIndex} for sprite {sprite.Group},{sprite.Index}{(prepared.Value.DroppedAlpha ? " without alpha" : "")}.";
                 return true;
             }
-            int group = chosen.Group;
+            int group = sprite.Group; // like a new own palette; the file palette's group is 1, the character palettes
             var embedded = new Palette
             {
                 Group = group,
@@ -2032,23 +2032,25 @@ public partial class MainWindow
             () => { if (!file.Palettes.Contains(palette)) file.Palettes.Insert(Math.Min(at, file.Palettes.Count), palette); });
     }
 
-    /// <summary>Turns a temp palette into an embedded one at the next free index of its group; returns apply/undo steps.</summary>
-    private static (Action MoveIn, Action MoveOut, int Index) MoveTempPaletteIntoSff(SffFile file, Palette palette, Rgba[] colors)
+    /// <summary>Turns a temp palette into an embedded one at the next free index of <paramref name="group"/>
+    /// (the sprite's group, not 1, the character palettes); returns apply/undo steps.</summary>
+    private static (Action MoveIn, Action MoveOut, int Index) MoveTempPaletteIntoSff(SffFile file, Palette palette, Rgba[] colors, int group)
     {
-        var used = file.Palettes.Where(p => p.Group == palette.Group && !ReferenceEquals(p, palette)).Select(p => p.Index).ToHashSet();
+        var used = file.Palettes.Where(p => p.Group == group && !ReferenceEquals(p, palette)).Select(p => p.Index).ToHashSet();
         int index = 0;
         while (used.Contains(index)) index++;
-        var before = (palette.Index, palette.Colors, palette.Dirty);
+        var before = (palette.Group, palette.Index, palette.Colors, palette.Dirty);
         return (() =>
         {
             palette.Source = PaletteSource.Embedded;
+            palette.Group = group;
             palette.Index = index;
             palette.Colors = (Rgba[])colors.Clone();
             palette.Dirty = false;
         }, () =>
         {
             palette.Source = PaletteSource.External;
-            (palette.Index, palette.Colors, palette.Dirty) = before;
+            (palette.Group, palette.Index, palette.Colors, palette.Dirty) = before;
         }, index);
     }
 

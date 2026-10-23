@@ -2672,7 +2672,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             {
                 Edit(added.Count == 1 ? "import palette file" : $"import {added.Count} palette files",
                     () => { file.Palettes.AddRange(added); SelectPalette(added[^1]); },
-                    () => { foreach (var p in added) file.Palettes.Remove(p); _paletteOverride = -1; });
+                    () => { foreach (var p in added) file.Palettes.Remove(p); _paletteOverride = -1; }, kind: ExternalPaletteKind);
             }
             StatusText.Text = added.Count == 1 ? $"Opened {Path.GetFileName(added[0].SourcePath)}"
                 : $"Opened {added.Count} palette files";

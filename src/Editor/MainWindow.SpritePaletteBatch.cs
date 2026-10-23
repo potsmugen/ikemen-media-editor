@@ -135,7 +135,7 @@ public partial class MainWindow
                 plan.AfterPalette = move
                     ? chosen
                     : chosen.Source == PaletteSource.External && !v1
-                    ? NewPaletteForSprite(file, chosen.Group, 0, targetColors, plans, plan)
+                    ? NewPaletteForSprite(file, plan.Sprite.Group, 0, targetColors, plans, plan)
                     : plan.ChangesColors ? plan.BeforePalette : chosen;
             }
         }
@@ -148,7 +148,7 @@ public partial class MainWindow
         Action moveIn, moveOut;
         if (move)
         {
-            var steps = MoveTempPaletteIntoSff(file, chosen, targetColors);
+            var steps = MoveTempPaletteIntoSff(file, chosen, targetColors, plans[0].Sprite.Group);
             (moveIn, moveOut) = (steps.MoveIn, steps.MoveOut);
         }
         else (moveIn, moveOut) = TempPaletteLeavesList(file, chosen);
