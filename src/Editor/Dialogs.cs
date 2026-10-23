@@ -129,6 +129,9 @@ public sealed record SimilarityChoice(string Label, string Detail, int Percent);
 
 public static partial class Dialogs
 {
+    /// <summary>Monospace fonts by platform: Windows, macOS, then common Linux ones.</summary>
+    internal static readonly FontFamily MonoFont = new("Consolas,Menlo,DejaVu Sans Mono,Liberation Mono,monospace");
+
     /// <summary>
     /// Looks up a themed brush by resource key. Dialogs are short-lived (built,
     /// shown modally, discarded), so a snapshot at creation time is enough —
@@ -169,7 +172,7 @@ public static partial class Dialogs
     {
         var result = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        var mono = new FontFamily("Consolas,Menlo,monospace");
+        var mono = MonoFont;
         var grid = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions("Auto,*"),
@@ -1779,15 +1782,16 @@ public static partial class Dialogs
     public static Window ShowReport(Window owner, string title, IReadOnlyList<(string Text, Action? Jump)> lines,
         IReadOnlyList<(string Label, string Tip, Action Click)>? actions = null)
     {
-        var mono = new FontFamily("Consolas,Menlo,monospace");
+        var mono = MonoFont;
         var panel = new StackPanel { Margin = new Avalonia.Thickness(4) };
         foreach (var (text, jump) in lines)
         {
-            var line = new TextBlock
-            {
-                Text = text.Length == 0 ? " " : text, FontFamily = mono, Foreground = ThemeBrush("ThemeText"),
-                TextWrapping = TextWrapping.Wrap,
-            };
+            // Plain lines can be selected; jump lines keep TextBlock so a click still jumps.
+            var line = jump is null ? new SelectableTextBlock() : new TextBlock();
+            line.Text = text.Length == 0 ? " " : text;
+            line.FontFamily = mono;
+            line.Foreground = ThemeBrush("ThemeText");
+            line.TextWrapping = TextWrapping.Wrap;
             if (jump is not null)
             {
                 line.TextDecorations = TextDecorations.Underline;
@@ -1825,12 +1829,25 @@ public static partial class Dialogs
 
         var close = new Button { Content = "Close", MinWidth = 90, IsCancel = true };
         close.Click += (_, _) => dialog.Close();
+        var copy = new Button { Content = "Copy All", MinWidth = 90 };
+        ToolTip.SetTip(copy, "Copies the whole report as text.");
+        copy.Click += async (_, _) =>
+        {
+            try
+            {
+                if (dialog.Clipboard is { } clipboard)
+                    await clipboard.SetTextAsync(string.Join(Environment.NewLine, lines.Select(l => l.Text)));
+                else CrashLog.Error("ShowReport copy", "no clipboard");
+            }
+            catch (Exception ex) { CrashLog.Write("ShowReport copy", ex); }
+        };
 
         var buttons = new StackPanel
         {
             Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
             Spacing = 8, Margin = new Avalonia.Thickness(0, 12, 0, 0),
         };
+        buttons.Children.Add(copy);
         foreach (var (label, tip, click) in actions ?? Array.Empty<(string Label, string Tip, Action Click)>())
         {
             var b = new Button { Content = label, MinWidth = 90 };

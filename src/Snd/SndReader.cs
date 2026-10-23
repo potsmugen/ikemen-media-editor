@@ -81,6 +81,7 @@ public static class SndReader
         // Walk the chunks; fmt and data are not always where a naive reader looks.
         int p = 12;
         long dataBytes = 0;
+        bool foundData = false;
         while (p + 8 <= d.Length)
         {
             var id = d.AsSpan(p, 4);
@@ -108,6 +109,7 @@ public static class SndReader
             {
                 dataBytes = Math.Min(size, (uint)Math.Max(0, d.Length - body));
                 entry.DataOffset = body;
+                foundData = true;
             }
 
             // Chunks are word-aligned. In long, so a huge size ends the walk instead of
@@ -116,6 +118,9 @@ public static class SndReader
             if (size == 0 || next + 8 > d.Length) break;
             p = (int)next;
         }
+
+        // A bad chunk size can end the walk before data; without this it showed as a 0 s sound.
+        if (!foundData) entry.Problem ??= "missing its data chunk";
 
         int frame = entry.Channels * Math.Max(entry.BitsPerSample, 1) / 8;
         if (frame > 0 && entry.SampleRate > 0)

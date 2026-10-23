@@ -40,7 +40,7 @@ public sealed class ActionTextView : UserControl
             AcceptsReturn = true,
             AcceptsTab = true,
             TextWrapping = TextWrapping.NoWrap,
-            FontFamily = new FontFamily("Consolas,Menlo,monospace"),
+            FontFamily = Dialogs.MonoFont,
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
             Watermark = "Select an action to edit its .air text",

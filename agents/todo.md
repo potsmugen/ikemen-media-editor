@@ -6,8 +6,6 @@ before a release. Remove items once they're done or checked.
 ## To do, easiest first
 
 - Found in Linux sandbox testing (2026-10-23), verified unless noted:
-  - Report windows (Dialogs.ShowReport) use TextBlock, so text can't be selected; and the
-    "Consolas,Menlo,monospace" font renders proportional on Linux.
   - Shortcut capture: clicking another row or blank dialog space doesn't cancel it, so the next
     key is taken (F2 got assigned). Switching Preferences tabs does cancel.
   - Palettes tab after picking a sprite on Sprites: the list highlights the old palette (9000,1)
@@ -25,9 +23,6 @@ before a release. Remove items once they're done or checked.
     App.axaml.cs, but nothing tells the user). A recovered changed-source file opens from
     data/recovery/recovered/ under a GUID name, so plain Save writes into the app folder.
     Sounds menu says "Save .snd" / "Save .snd As"; Sprites says "Save" / "Save As".
-  - A WAV whose fmt chunk size is huge (0,2 in a copy of kfm.snd) ends the chunk walk before
-    data, so it shows as 0.00 s with no Problem and isn't counted as unreadable
-    (SndReader.cs ~114-124).
   - Open/New for sounds and animations only offers "Discard Them" / Cancel (MainWindow.Sounds.cs
     62, 111; MainWindow.Animations.cs 81, 103); sprites offer Save / Discard / Cancel (AskToSave).
   - Sound list narrows in a tab that also has an SFF (New Sound File there): the Rate column is
@@ -54,7 +49,6 @@ before a release. Remove items once they're done or checked.
     should also work while the sprite list has focus, not only the canvas.
 - Audit for Sprites-only assumptions left from when SFF was the only format (Ctrl+O, Ctrl+F and
   Escape-in-a-text-box were three, fixed with the shortcuts).
-- First time saving a file doesn't need to make a backup of it
 - Saves that change a file the user didn't edit, like the Global Shared Palette popup;
   decide per case whether to keep the bytes or tell the user (verified on real files):
   - Plain Save of SFFv1 re-encodes every PCX (`SffV1Writer`), dropping PCX header
@@ -187,8 +181,6 @@ before a release. Remove items once they're done or checked.
     (4) recovery; (5) features.md and in-app checks.
 
 - Paint Mode Replace: remove a single Old/New square without Clear wiping them all (e.g. right-click).
-- Palette filter: the "e.g. 1 or 1,2" hint matches nothing on SFFv1, where groups show S/F. Fix the
-  hint for v1 or also match the sprite a palette comes from.
 - Find Unused Palettes: offer deleting them all from the report, after showing the list.
 
 ## Not yet checked in the app
@@ -207,6 +199,10 @@ Built, but not tried by the maintainer yet.
 - [ ] `--test-recovery` keeps snapshotting every 15 s while there is unsaved work.
 - [ ] With no sound selected (startup, New Sound File, empty filter) only Import and Stop are enabled.
 - [ ] Switching project tabs keeps each tab's selected sound; on a non-Sprites sub-tab the left status is empty.
+- [ ] Reports: plain lines are selectable, jump lines still jump, Copy All copies the whole report.
+- [ ] Reports, Help > Keyboard Shortcuts and the action text editor use a monospace font on Linux.
+- [ ] A WAV with a huge fmt size (0,2 in a copy of kfm.snd) shows "missing its data chunk" and counts as unreadable.
+- [ ] Palette filter hint reads "Filter, e.g. 1,2 or F1".
 
 ### Floating panels
 

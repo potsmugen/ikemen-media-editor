@@ -130,6 +130,17 @@ public class SndTests
         var s = new SoundEntry { Data = padded };
         SndReader.Describe(s);
         Assert.Equal(22050, s.SampleRate); // fmt came first, so it's still read
+        Assert.Equal("missing its data chunk", s.Problem);
+    }
+
+    [Fact]
+    public void HugeFmtSizeIsReportedAsMissingData()
+    {
+        var wav = MakeWav();
+        BinaryPrimitives.WriteUInt32LittleEndian(wav.AsSpan(16), 0x7FFFFFF0u);
+        var s = new SoundEntry { Data = wav };
+        SndReader.Describe(s);
+        Assert.Equal("missing its data chunk", s.Problem);
     }
 
     private static byte[] SndHeader(int length, uint count, uint firstOffset)
