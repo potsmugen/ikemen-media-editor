@@ -138,6 +138,18 @@ public static partial class Dialogs
         Avalonia.Application.Current?.Resources.TryGetResource(key, null, out var v) == true && v is IBrush b
             ? b : Brushes.Gray;
 
+    /// <summary>Shows a dialog modally. Escape closes it like the X button, unless a control already used the key.</summary>
+    private static Task ShowModal(this Window dialog, Window owner)
+    {
+        dialog.KeyDown += (_, e) =>
+        {
+            if (e.Handled || e.Key != Avalonia.Input.Key.Escape || e.KeyModifiers != Avalonia.Input.KeyModifiers.None) return;
+            e.Handled = true;
+            dialog.Close();
+        };
+        return dialog.ShowDialog(owner);
+    }
+
     public static Task ShowMessage(Window owner, string title, string message) =>
         Show<object?>(owner, title, message, [("OK", null)]);
 
@@ -236,7 +248,7 @@ public static partial class Dialogs
         dialog.Closed += (_, _) => result.TrySetResult(false);
         dialog.Opened += (_, _) => ok.Focus();
 
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -267,7 +279,7 @@ public static partial class Dialogs
         recover.Click += (_, _) => { result.TrySetResult(RecoveryChoice.Recover); dialog.Close(); };
         discard.Click += (_, _) => { result.TrySetResult(RecoveryChoice.Discard); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(RecoveryChoice.Dismiss);
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -421,7 +433,7 @@ public static partial class Dialogs
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
         dialog.Opened += (_, _) => width.Focus();
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -509,7 +521,7 @@ public static partial class Dialogs
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
         dialog.Opened += (_, _) => { if (percentage.IsChecked == true) scaleX.Focus(); else width.Focus(); };
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -568,7 +580,7 @@ public static partial class Dialogs
         });
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -621,7 +633,7 @@ public static partial class Dialogs
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
         dialog.Opened += (_, _) => x.Focus();
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -669,7 +681,7 @@ public static partial class Dialogs
         };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -723,7 +735,7 @@ public static partial class Dialogs
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
 
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -774,7 +786,7 @@ public static partial class Dialogs
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
 
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -858,7 +870,7 @@ public static partial class Dialogs
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
 
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -903,7 +915,7 @@ public static partial class Dialogs
         };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -945,7 +957,7 @@ public static partial class Dialogs
         ok.Click += (_, _) => { result.TrySetResult(actCount > 0 && embed.IsChecked == true); dialog.Close(); };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -976,7 +988,7 @@ public static partial class Dialogs
         next.Click += (_, _) => { result.TrySetResult(two.IsChecked == true); dialog.Close(); };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -1127,7 +1139,7 @@ public static partial class Dialogs
         ok.Click += (_, _) => { result.TrySetResult(read()); dialog.Close(); };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -1176,7 +1188,7 @@ public static partial class Dialogs
         };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -1211,7 +1223,7 @@ public static partial class Dialogs
         };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -1243,7 +1255,7 @@ public static partial class Dialogs
         link.Click += (_, _) => { result.TrySetResult(SpriteShareDialogAction.Link); dialog.Close(); };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -1324,7 +1336,7 @@ public static partial class Dialogs
         pickFromList.Click += (_, _) => { result.TrySetResult(new(SpriteTargetDialogAction.PickFromList)); dialog.Close(); };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -1360,7 +1372,7 @@ public static partial class Dialogs
         merge.Click += (_, _) => { result.TrySetResult(PaletteShareDialogAction.Merge); dialog.Close(); };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -1441,7 +1453,7 @@ public static partial class Dialogs
         pickFromList.Click += (_, _) => { result.TrySetResult(new(PaletteTargetDialogAction.PickFromList)); dialog.Close(); };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -1497,7 +1509,7 @@ public static partial class Dialogs
         };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -1541,7 +1553,7 @@ public static partial class Dialogs
         dialog.Closed += (_, _) => result.TrySetResult(null);
         dialog.Opened += (_, _) => box.Focus();
 
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -1671,7 +1683,7 @@ public static partial class Dialogs
         };
         dialog.Opened += (_, _) => { if (box.IsVisible) box.Focus(); else ok.Focus(); };
 
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -1754,7 +1766,7 @@ public static partial class Dialogs
         dialog.Closed += (_, _) => result.TrySetResult(null);
         dialog.Opened += (_, _) => buttons[chosen].Focus();
 
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -2092,7 +2104,7 @@ public static partial class Dialogs
         }
         dialog.Closed += (_, _) => result.TrySetResult(null);
 
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -2392,7 +2404,7 @@ public static partial class Dialogs
         };
 
         Update();
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -2484,7 +2496,7 @@ public static partial class Dialogs
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
         Update();
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -2592,7 +2604,7 @@ public static partial class Dialogs
 
         dialog.Content = body;
         dialog.Closed += (_, _) => result.TrySetResult(null);
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -2711,7 +2723,7 @@ public static partial class Dialogs
         };
         dialog.Closed += (_, _) => result.TrySetResult(null);
 
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -2771,7 +2783,7 @@ public static partial class Dialogs
         };
         dialog.Closed += (_, _) => result.TrySetResult(null);
 
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -2831,7 +2843,7 @@ public static partial class Dialogs
         };
         dialog.Closed += (_, _) => result.TrySetResult(null);
 
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -2891,7 +2903,7 @@ public static partial class Dialogs
         });
         dialog.Content = panel;
 
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -2946,7 +2958,7 @@ public static partial class Dialogs
         };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -2986,7 +2998,7 @@ public static partial class Dialogs
         });
         dialog.Content = panel;
 
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -3031,7 +3043,7 @@ public static partial class Dialogs
             };
             _dialog.Closed += (_, _) => { _closed = true; if (!_finished) _cancel.Cancel(); };
             Report(0);
-            _dialog.ShowDialog(owner);
+            _dialog.ShowModal(owner);
         }
 
         public void Report(int done)
@@ -3119,7 +3131,7 @@ public static partial class Dialogs
         dialog.Closed += (_, _) => result.TrySetResult(null);
         dialog.Opened += (_, _) => box.Focus();
 
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -3260,7 +3272,7 @@ public static partial class Dialogs
         };
         blendDialog.Closed += (_, _) => result.TrySetResult(null);
 
-        blendDialog.ShowDialog(owner);
+        blendDialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -3313,7 +3325,7 @@ public static partial class Dialogs
         };
         dialog.Closed += (_, _) => result.TrySetResult(null);
 
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -3372,7 +3384,7 @@ public static partial class Dialogs
         };
         dialog.Closed += (_, _) => result.TrySetResult(null);
 
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -3640,7 +3652,7 @@ public static partial class Dialogs
         dialog.Closed += (_, _) => result.TrySetResult(null);
 
         ready = true;
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 
@@ -4047,7 +4059,7 @@ public static partial class Dialogs
         };
         dialog.Closed += (_, _) => result.TrySetResult(canceled);
 
-        dialog.ShowDialog(owner);
+        dialog.ShowModal(owner);
         return result.Task;
     }
 }

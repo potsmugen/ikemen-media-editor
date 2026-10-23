@@ -916,6 +916,8 @@ summaries; treat anything marked unverified as unknown.
   System.Text.Json ignores unknown keys, so removing Settings properties is
   safe. Dialog TaskCompletionSources need `RunContinuationsAsynchronously` or
   the caller may run before `dialog.Close()` and leave the main window disabled.
+  Show dialogs with `ShowModal`, not `ShowDialog`: it makes Escape close them like X
+  (after the dialog's own key handlers, which can claim Escape first).
 - Playback reassigns `AnimCanvas.Boxes` each tick; bounds-check held indices.
   `Pointer.Capture(null)` raises `PointerCaptureLost` synchronously, so read
   drag state before releasing capture. Put `DoubleTapped` on the cell Border
