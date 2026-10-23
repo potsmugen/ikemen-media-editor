@@ -1731,7 +1731,7 @@
                           ToolTip.Tip="Saves the selected sound as a .wav." />
                 </Grid>
                 <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*" Margin="{DynamicResource UiGapTop}">
-                  <Button Grid.Column="0" Content="Replace" HorizontalAlignment="Stretch" Click="OnReplaceSound"
+                  <Button Grid.Column="0" x:Name="SoundReplaceButton" Content="Replace" HorizontalAlignment="Stretch" Click="OnReplaceSound"
                           ToolTip.Tip="Replaces the sound with a .wav." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
                   <Button Grid.Column="2" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeleteSound" />

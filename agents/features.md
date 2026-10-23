@@ -558,6 +558,14 @@ and constraints that are easy to miss when reading one code path in isolation.
   the destination succeeds.
 - **Increase Loudness** raises quieter parts while preserving each clip's peak;
   LUFS is informational and does not drive gain.
+- **Several sounds selected** (`MainWindow.SoundsMulti.cs`): every edit, Export and
+  Duplicate act on all of them. Edits ask once (no Preview: the pending session follows
+  one sound), then `EditSounds` applies them immediately as one undo step, off the UI
+  thread under the busy lock; unchanged sounds are counted, failures logged. Fade
+  clamps to each sound's length; Echo's Auto works out each sound's repeats; Resample
+  and Bit Depth confirm once if any would go up. Export picks a folder (Group_Number.wav,
+  asks before overwriting). Play, Loop, Stop, Trim to Selection and Replace are disabled.
+  Downsample All runs through `EditSounds` too.
 
 ### Reports and configuration
 

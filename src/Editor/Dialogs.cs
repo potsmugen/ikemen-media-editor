@@ -1564,12 +1564,12 @@ public static partial class Dialogs
     /// one runs (the caller restarts it), and only the latest run's message is shown.
     /// The error line clears on the next Preview or OK. onClosed runs however the dialog closes (e.g. to stop a
     /// preview that's still playing). initial null hides the text box (the text is then "");
-    /// extra, if given, goes under the box (e.g. radio buttons). Returns the accepted text,
-    /// or null if canceled.
+    /// extra, if given, goes under the box (e.g. radio buttons). showPreview false hides Preview.
+    /// Returns the accepted text, or null if canceled.
     /// </summary>
     public static Task<string?> PromptTextWithPreview(Window owner, string title, string label, string? initial,
         Func<string, string?> validate, Func<string, Task<string?>> preview, Action onClosed, Control? extra = null,
-        Func<string, string?>? warn = null)
+        Func<string, string?>? warn = null, bool showPreview = true)
     {
         var result = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var box = new TextBox { Text = initial ?? "", MinWidth = 260, IsVisible = initial is not null };
@@ -1631,7 +1631,7 @@ public static partial class Dialogs
             dialog.Close();
         }
 
-        var previewButton = new Button { Content = "Preview", MinWidth = 90 };
+        var previewButton = new Button { Content = "Preview", MinWidth = 90, IsVisible = showPreview };
         var ok = new Button { Content = "OK", MinWidth = 90, IsDefault = true };
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
         int previewRun = 0;

@@ -566,9 +566,11 @@ public partial class MainWindow
             return;
         }
         // When multiple sounds are selected, hide waveform and show summary
-        if (HasMultipleSounds)
+        if (MultiSelection() is { } many)
         {
-            SoundTitle.Text = $"{GetSelectedSounds().Count} sounds selected";
+            if (ConvertToMonoButton is not null)
+                ConvertToMonoButton.IsEnabled = many.Any(x => x.Problem is null && x.Channels > 1);
+            SoundTitle.Text = $"{many.Count} sounds selected";
             SoundDetail.Text = "";
             SoundWarnings.Text = "";
             SoundSelectionText.Text = "";
@@ -607,8 +609,9 @@ public partial class MainWindow
         if (SoundLoopButton is not null) SoundLoopButton.IsEnabled = !multi;
         if (SoundStopButton is not null) SoundStopButton.IsEnabled = !multi;
 
-        // Trim to Selection needs a specific waveform selection
+        // Trim to Selection needs a specific waveform selection; Replace takes one .wav for one sound
         if (SoundTrimToSelectionButton is not null) SoundTrimToSelectionButton.IsEnabled = !multi;
+        if (SoundReplaceButton is not null) SoundReplaceButton.IsEnabled = !multi;
     }
 
     // ---- playing and moving sounds around ---------------------------------
@@ -831,6 +834,7 @@ public partial class MainWindow
     {
         try
         {
+            if (MultiSelection() is { } many) { await ExportSoundsMany(many); return; }
             if (CurrentSound is not { } s) return;
 
             var file = await PickSave(new FilePickerSaveOptions
@@ -1032,6 +1036,7 @@ public partial class MainWindow
     /// </summary>
     private void OnDuplicateSound(object? sender, RoutedEventArgs e)
     {
+        if (MultiSelection() is { } many) { DuplicateSoundsMany(many); return; }
         if (_snd is null || CurrentSound is not { } s) return;
         var copy = new SoundEntry { Group = s.Group, Data = s.Data };
         copy.Index = NextFreeSoundIndex(copy.Group);
@@ -1204,7 +1209,20 @@ public partial class MainWindow
         }
     }
 
-    private void OnTrimSilence(object? sender, RoutedEventArgs e)
+    private async void OnTrimSilence(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (MultiSelection() is { } many) { await TrimSilenceMany(many); return; }
+            TrimSilenceCurrent();
+        }
+        catch (Exception ex)
+        {
+            await Failed("OnTrimSilence", ex);
+        }
+    }
+
+    private void TrimSilenceCurrent()
     {
         if (CurrentSound is not { } s) return;
         if (s.Problem is not null) { StatusText.Text = "Can't trim: this sound's header couldn't be read."; return; }
@@ -1225,6 +1243,7 @@ public partial class MainWindow
     {
         try
         {
+            if (MultiSelection() is { } many) { await InsertSilenceMany(many); return; }
             if (CurrentSound is not { } s) return;
             if (s.Problem is not null || s.SampleRate <= 0)
             {
@@ -1244,14 +1263,9 @@ public partial class MainWindow
             string? Parse(string raw, out int frames)
             {
                 frames = 0;
-                string t = raw.Trim();
-                if (t.EndsWith("ms", StringComparison.OrdinalIgnoreCase)) t = t[..^2].Trim();
-                if ((!double.TryParse(t, NumberStyles.Float, CultureInfo.InvariantCulture, out double ms)
-                        && !double.TryParse(t, NumberStyles.Float, CultureInfo.CurrentCulture, out ms))
-                    || !double.IsFinite(ms) || ms <= 0)
-                    return $"\"{t}\" isn't a length in ms.";
+                if (ParseMilliseconds(raw, "length", out double ms) is { } error) return error;
                 if (ms > maxMs) return $"Up to {maxMs:N0} ms at a time.";
-                frames = Math.Max(1, (int)Math.Round(ms * s.SampleRate / 1000));
+                frames = MsToFrames(ms, s);
                 return null;
             }
 
@@ -1290,7 +1304,20 @@ public partial class MainWindow
         }
     }
 
-    private void OnMaximizeVolume(object? sender, RoutedEventArgs e)
+    private async void OnMaximizeVolume(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (MultiSelection() is { } many) { await MaximizeVolumeMany(many); return; }
+            MaximizeVolumeCurrent();
+        }
+        catch (Exception ex)
+        {
+            await Failed("OnMaximizeVolume", ex);
+        }
+    }
+
+    private void MaximizeVolumeCurrent()
     {
         if (CurrentSound is not { } s) return;
         if (s.Problem is not null) { StatusText.Text = "Can't maximize: this sound's header couldn't be read."; return; }
@@ -1318,103 +1345,12 @@ public partial class MainWindow
         }
     }
 
-    private async Task IncreaseLoudness(List<SoundEntry> targets)
-    {
-        if (_snd is null || _busy || !await ResolvePendingSoundEditsBeforeSwitch()) return;
-        var file = _snd;
-        double defaultAmount = Settings.Checked(nameof(Settings.SoundsSection.LoudnessDefaultAmount), _settings.Sounds.LoudnessDefaultAmount,
-            SndEdit.DefaultLoudnessAmount, v => v >= SndEdit.MinLoudnessAmount && v <= SndEdit.MaxLoudnessAmount);
-        string? text = await Dialogs.PromptText(this, "Increase Loudness",
-            $"Amount ({SndEdit.MinLoudnessAmount:0}-{SndEdit.MaxLoudnessAmount:0}; higher lifts quiet parts more, each sound's peak stays unchanged):",
-            defaultAmount.ToString("0.##", CultureInfo.InvariantCulture));
-        if (text is null) return;
-        string raw = text.Trim();
-        if ((!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double amount)
-                && !double.TryParse(raw, NumberStyles.Float, CultureInfo.CurrentCulture, out amount))
-            || !double.IsFinite(amount) || amount < SndEdit.MinLoudnessAmount || amount > SndEdit.MaxLoudnessAmount)
-        {
-            StatusText.Text = $"\"{raw}\" isn't an amount between {SndEdit.MinLoudnessAmount:0} and {SndEdit.MaxLoudnessAmount:0}.";
-            return;
-        }
-        if (!ReferenceEquals(_snd, file)) return;
-
-        var changes = new List<(SoundEntry Sound,
-            (byte[] Data, string? Problem, int Ch, int Rate, int Bits, ushort Format, TimeSpan Dur) Before,
-            (byte[] Data, string? Problem, int Ch, int Rate, int Bits, ushort Format, TimeSpan Dur) After)>();
-        var skipped = new List<string>();
-        if (!TryBeginBusy()) return;
-        try
-        {
-            for (int n = 0; n < targets.Count; n++)
-            {
-                var s = targets[n];
-                await BusyStep("Increasing loudness", n, targets.Count, $"{s.Group},{s.Index}");
-                if (!ReferenceEquals(_snd, file))
-                {
-                    StatusText.Text = "Increase loudness stopped — the file was closed.";
-                    return;
-                }
-                if (!file.Sounds.Contains(s)) continue;
-                var before = (s.Data, s.Problem, s.Channels, s.SampleRate, s.BitsPerSample, s.FormatTag, s.Duration);
-                var data = SndEdit.IncreaseLoudness(s, amount, out LoudnessResult result, out string? reason);
-                if (data is null)
-                {
-                    string why = reason switch
-                    {
-                        "silent" => "silent",
-                        "already-loud" => "already unchanged",
-                        "format" => "unsupported format",
-                        "header" => "unreadable WAV header",
-                        "below-gate" => "no measurable loudness",
-                        _ => reason ?? "could not be processed",
-                    };
-                    skipped.Add($"{s.Group},{s.Index}: {why}");
-                    continue;
-                }
-
-                var after = new SoundEntry { Data = data };
-                SndReader.Describe(after);
-                changes.Add((s, before, (data, after.Problem, after.Channels, after.SampleRate, after.BitsPerSample, after.FormatTag, after.Duration)));
-                CrashLog.Trace($"[sound] loudness curve complete: {s.Group},{s.Index}, {result.InputLufs:0.#} -> {result.OutputLufs:0.#} LUFS");
-            }
-
-            foreach (var item in skipped) CrashLog.Error("IncreaseLoudnessAll", item);
-            if (changes.Count == 0)
-            {
-                StatusText.Text = skipped.Count == 0 ? "Nothing to boost." : $"No sounds changed; {skipped.Count} skipped (see crash.log).";
-                return;
-            }
-
-            void Apply(bool useAfter)
-            {
-                foreach (var (s, before, after) in changes)
-                {
-                    var v = useAfter ? after : before;
-                    (s.Data, s.Problem, s.Channels, s.SampleRate, s.BitsPerSample, s.FormatTag, s.Duration) = v;
-                }
-                AfterSoundEdit();
-            }
-
-            foreach (var (s, _, after) in changes)
-                (s.Data, s.Problem, s.Channels, s.SampleRate, s.BitsPerSample, s.FormatTag, s.Duration) = after;
-            _undo.Record($"increase loudness on {changes.Count} sound(s)", () => Apply(false), () => Apply(true));
-            MarkSndDirty();
-            AfterSoundEdit();
-            StatusText.Text = $"Increased loudness on {changes.Count} sound(s)" + (skipped.Count > 0 ? $"; {skipped.Count} skipped (see crash.log)." : ".");
-        }
-        finally
-        {
-            EndBusy();
-        }
-    }
-
     /// <summary>Asks for an amount (1-100), then pulls quiet samples up toward the sound's own peak with a curve.</summary>
     private async Task IncreaseLoudness()
     {
-        var selected = GetSelectedSounds();
-        if (selected.Count > 1)
+        if (MultiSelection() is { } many)
         {
-            await IncreaseLoudness(selected);
+            await IncreaseLoudnessMany(many);
             return;
         }
         if (CurrentSound is not { } s) return;
@@ -1425,15 +1361,7 @@ public partial class MainWindow
             return;
         }
 
-        static string? Parse(string raw, out double amount)
-        {
-            string t = raw.Trim();
-            if ((!double.TryParse(t, NumberStyles.Float, CultureInfo.InvariantCulture, out amount)
-                    && !double.TryParse(t, NumberStyles.Float, CultureInfo.CurrentCulture, out amount))
-                || !double.IsFinite(amount) || amount < SndEdit.MinLoudnessAmount || amount > SndEdit.MaxLoudnessAmount)
-                return $"\"{t}\" isn't an amount between {SndEdit.MinLoudnessAmount:0} and {SndEdit.MaxLoudnessAmount:0}.";
-            return null;
-        }
+        static string? Parse(string raw, out double amount) => ParseLoudnessAmount(raw, out amount);
 
         var sel = SelectionOn(s);
         int crossfade = SelectionCrossfadeFrames(s);
@@ -1486,6 +1414,7 @@ public partial class MainWindow
     {
         try
         {
+            if (MultiSelection() is { } many) { await ResampleMany(many); return; }
             if (CurrentSound is not { } s) return;
             if (s.Problem is not null || s.SampleRate <= 0)
             {
@@ -1494,15 +1423,7 @@ public partial class MainWindow
                 return;
             }
 
-            static string? Parse(string raw, out int rate)
-            {
-                string t = raw.Trim();
-                if (t.EndsWith("hz", StringComparison.OrdinalIgnoreCase)) t = t[..^2].Trim();
-                if (!int.TryParse(t, NumberStyles.Integer, CultureInfo.InvariantCulture, out rate)
-                    || rate < SndEdit.MinSampleRate || rate > SndEdit.MaxSampleRate)
-                    return $"\"{t}\" isn't a sample rate between {SndEdit.MinSampleRate} and {SndEdit.MaxSampleRate} Hz.";
-                return null;
-            }
+            static string? Parse(string raw, out int rate) => ParseSampleRate(raw, out rate);
 
             if (await PromptSoundEdit(s, "Resample",
                     $"New sample rate in Hz (now {s.SampleRate}; common: 48000, 44100, 22050, 11025):",
@@ -1546,7 +1467,6 @@ public partial class MainWindow
     private async void OnDownsampleAll(object? sender, RoutedEventArgs e)
     {
         if (_snd is null || _busy) return;
-        bool busy = false;
         try
         {
             if (!await ResolvePendingSoundEditsBeforeSwitch()) return;
@@ -1554,59 +1474,25 @@ public partial class MainWindow
                     "Lower every sound above this rate to it (Hz; common: 44100, 22050, 11025):",
                     Settings.Checked(nameof(Settings.SoundsSection.DownsampleAllRate), _settings.Sounds.DownsampleAllRate, Settings.DefaultDownsampleAllRate,
                         v => v >= SndEdit.MinSampleRate && v <= SndEdit.MaxSampleRate).ToString(CultureInfo.InvariantCulture)) is not { } text) return;
-            text = text.Trim();
-            if (text.EndsWith("hz", StringComparison.OrdinalIgnoreCase)) text = text[..^2].Trim();
-            if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int rate)
-                || rate < SndEdit.MinSampleRate || rate > SndEdit.MaxSampleRate)
+            if (ParseSampleRate(text, out int rate) is { } error)
             {
-                StatusText.Text = $"\"{text}\" isn't a sample rate between {SndEdit.MinSampleRate} and {SndEdit.MaxSampleRate} Hz.";
+                StatusText.Text = error;
                 return;
             }
-
-            var file = _snd;
+            if (_snd is not { } file) return;
             var targets = file.Sounds.Where(x => x.Problem is null && x.SampleRate > rate).ToList();
             if (targets.Count == 0) { StatusText.Text = $"No sounds above {rate} Hz."; return; }
 
-            var changes = new List<(SoundEntry Sound,
-                (byte[] Data, string? Problem, int Ch, int Rate, int Bits, ushort Format, TimeSpan Dur) Before,
-                (byte[] Data, string? Problem, int Ch, int Rate, int Bits, ushort Format, TimeSpan Dur) After)>();
-            var errors = new List<string>();
             CrashLog.Trace($"[bulk] downsample {targets.Count} sounds to {rate} Hz");
-            busy = TryBeginBusy();
-            if (!busy) return;
-            for (int n = 0; n < targets.Count; n++)
+            await EditSounds(targets, "Downsampling", $"downsample to {rate} Hz", n => $"Downsampled {n} sound(s) to {rate} Hz", s =>
             {
-                var s = targets[n];
-                await BusyStep("Downsampling", n, targets.Count, $"{s.Group},{s.Index} {s.SampleRate} Hz");
-                if (!ReferenceEquals(_snd, file)) { StatusText.Text = "Downsample stopped \u2014 the file was closed."; return; }
-                var before = (s.Data, s.Problem, s.Channels, s.SampleRate, s.BitsPerSample, s.FormatTag, s.Duration);
-                if (SndEdit.Resample(s, rate) is not { } data) { errors.Add($"{s.Group},{s.Index}: header couldn't be read"); continue; }
-                s.Data = data;
-                s.Problem = null;
-                SndReader.Describe(s);
-                changes.Add((s, before, (s.Data, s.Problem, s.Channels, s.SampleRate, s.BitsPerSample, s.FormatTag, s.Duration)));
-            }
-            LogBulkProblems("DownsampleAll", errors, []);
-            if (changes.Count == 0) { StatusText.Text = "Nothing downsampled."; return; }
-
-            void Apply(bool useAfter)
-            {
-                foreach (var (s, before, after) in changes)
-                    (s.Data, s.Problem, s.Channels, s.SampleRate, s.BitsPerSample, s.FormatTag, s.Duration) = useAfter ? after : before;
-                AfterSoundEdit();
-            }
-            _undo.Record($"downsample {changes.Count} sound(s) to {rate} Hz", () => Apply(false), () => Apply(true));
-            MarkSndDirty();
-            AfterSoundEdit();
-            StatusText.Text = $"Downsampled {changes.Count} sound(s) to {rate} Hz" + (errors.Count > 0 ? $"; {errors.Count} skipped (see crash.log)" : ".");
+                if (SndEdit.Resample(s, rate) is { } data) return (data, null);
+                return (null, "PCM data couldn't be read");
+            });
         }
         catch (Exception ex)
         {
             await Failed("OnDownsampleAll", ex);
-        }
-        finally
-        {
-            if (busy) EndBusy();
         }
     }
 
@@ -1625,6 +1511,7 @@ public partial class MainWindow
 
     private async Task ChangeVolume()
     {
+        if (MultiSelection() is { } many) { await ChangeVolumeMany(many); return; }
         if (CurrentSound is not { } s) return;
         if (s.Problem is not null) { StatusText.Text = "Can't adjust volume: this sound's header couldn't be read."; return; }
 
@@ -1633,15 +1520,7 @@ public partial class MainWindow
         var sel = SelectionOn(s);
         int crossfade = SelectionCrossfadeFrames(s);
 
-        string? Parse(string raw, out float percent)
-        {
-            string t = raw.Trim().TrimEnd('%').Trim();
-            if ((!float.TryParse(t, NumberStyles.Float, CultureInfo.InvariantCulture, out percent)
-                    && !float.TryParse(t, NumberStyles.Float, CultureInfo.CurrentCulture, out percent))
-                || !float.IsFinite(percent) || percent <= 0 || percent > maxPercent)
-                return $"\"{t}\" isn't a volume between 1 and {maxPercent:0.##}%.";
-            return null;
-        }
+        string? Parse(string raw, out float percent) => ParseVolumePercent(raw, maxPercent, out percent);
 
         // Peak of what the edit touches, read once: the sound can't change while the dialog is open.
         float? peak = sel is { } r ? SndEdit.Peak(s, r.Start, r.End) : SndEdit.Peak(s);
@@ -1701,7 +1580,8 @@ public partial class MainWindow
                 $"Semitones, {-max:0.##} to {max:0.##} (12 = one octave up, -12 = one down; length stays the same):",
                 0, -max, max, $"a pitch shift between {-max:0.##} and {max:0.##} semitones",
                 SndEdit.ChangePitch,
-                (s, v, _) => $"Shifted {s.Group},{s.Index} by {v:+0.##;-0.##} semitones.");
+                (s, v, _) => $"Shifted {s.Group},{s.Index} by {v:+0.##;-0.##} semitones.",
+                (n, v) => $"Shifted {n} sound(s) by {v:+0.##;-0.##} semitones");
         }
         catch (Exception ex)
         {
@@ -1718,7 +1598,8 @@ public partial class MainWindow
                 $"Tempo %, {min:0.##} to {max:0.##} (100 = unchanged, 200 = twice as fast; pitch stays the same):",
                 100, min, max, $"a tempo between {min:0.##} and {max:0.##}%",
                 SndEdit.ChangeTempo,
-                (s, v, before) => $"Set {s.Group},{s.Index} to {v:0.#}% tempo: {before:0.00}s -> {s.Duration.TotalSeconds:0.00}s.");
+                (s, v, before) => $"Set {s.Group},{s.Index} to {v:0.#}% tempo: {before:0.00}s -> {s.Duration.TotalSeconds:0.00}s.",
+                (n, v) => $"Set {n} sound(s) to {v:0.#}% tempo");
         }
         catch (Exception ex)
         {
@@ -1735,7 +1616,8 @@ public partial class MainWindow
                 $"Speed %, {min:0.##} to {max:0.##} (100 = unchanged, 200 = twice as fast and an octave higher):",
                 100, min, max, $"a speed between {min:0.##} and {max:0.##}%",
                 SndEdit.ChangeSpeed,
-                (s, v, before) => $"Set {s.Group},{s.Index} to {v:0.#}% speed: {before:0.00}s -> {s.Duration.TotalSeconds:0.00}s.");
+                (s, v, before) => $"Set {s.Group},{s.Index} to {v:0.#}% speed: {before:0.00}s -> {s.Duration.TotalSeconds:0.00}s.",
+                (n, v) => $"Set {n} sound(s) to {v:0.#}% speed");
         }
         catch (Exception ex)
         {
@@ -1743,10 +1625,16 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Shared by Change Pitch/Tempo/Speed: asks for a value, then applies the edit as a pending edit.</summary>
+    /// <summary>Shared by Change Pitch/Tempo/Speed: asks for a value, then applies the edit as a pending edit (doneMany: the several-sounds status).</summary>
     private async Task RunRateEdit(string title, string prompt, double neutral, double min, double max,
-        string rangeText, Func<SoundEntry, double, CancellationToken, byte[]?> edit, Func<SoundEntry, double, double, string> done)
+        string rangeText, Func<SoundEntry, double, CancellationToken, byte[]?> edit, Func<SoundEntry, double, double, string> done,
+        Func<int, double, string> doneMany)
     {
+        if (MultiSelection() is { } many)
+        {
+            await RateEditMany(many, title, prompt, neutral, min, max, rangeText, edit, doneMany);
+            return;
+        }
         if (CurrentSound is not { } s) return;
         string verb = title.ToLowerInvariant();
         if (s.Problem is not null)
@@ -1759,15 +1647,7 @@ public partial class MainWindow
         var sel = SelectionOn(s);
         int crossfade = SelectionCrossfadeFrames(s);
 
-        string? Parse(string raw, out double v)
-        {
-            string t = raw.Trim().TrimEnd('%').Trim();
-            if ((!double.TryParse(t, NumberStyles.Float, CultureInfo.InvariantCulture, out v)
-                    && !double.TryParse(t, NumberStyles.Float, CultureInfo.CurrentCulture, out v))
-                || !double.IsFinite(v) || v < min || v > max)
-                return $"\"{t}\" isn't {rangeText}.";
-            return null;
-        }
+        string? Parse(string raw, out double v) => ParseInRange(raw, min, max, rangeText, out v);
 
         if (await PromptSoundEdit(s, title, prompt, neutral.ToString("0", CultureInfo.InvariantCulture),
                 raw => Parse(raw, out _),
@@ -1920,7 +1800,20 @@ public partial class MainWindow
         ApplyWholeEdit(s, kept, () => $"Trimmed {s.Group},{s.Index} to the selection: {before:0.00}s -> {s.Duration.TotalSeconds:0.00}s.");
     }
 
-    private void OnReverse(object? sender, RoutedEventArgs e)
+    private async void OnReverse(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (MultiSelection() is { } many) { await ReverseMany(many); return; }
+            ReverseCurrent();
+        }
+        catch (Exception ex)
+        {
+            await Failed("OnReverse", ex);
+        }
+    }
+
+    private void ReverseCurrent()
     {
         if (CurrentSound is not { } s) return;
         if (s.Problem is not null) { StatusText.Text = "Can't reverse: this sound's header couldn't be read."; return; }
@@ -1952,6 +1845,7 @@ public partial class MainWindow
     /// </summary>
     private async Task FadeSound(bool fadeIn)
     {
+        if (MultiSelection() is { } many) { await FadeMany(many, fadeIn); return; }
         if (CurrentSound is not { } s) return;
         string title = fadeIn ? "Fade in" : "Fade out", verb = fadeIn ? "fade in" : "fade out";
         if (s.Problem is not null || s.SampleRate <= 0)
@@ -1974,13 +1868,8 @@ public partial class MainWindow
         {
             frames = total;
             if (sel is not null) return null; // the selection sets the length
-            string t = raw.Trim();
-            if (t.EndsWith("ms", StringComparison.OrdinalIgnoreCase)) t = t[..^2].Trim();
-            if ((!double.TryParse(t, NumberStyles.Float, CultureInfo.InvariantCulture, out double ms)
-                    && !double.TryParse(t, NumberStyles.Float, CultureInfo.CurrentCulture, out ms))
-                || !double.IsFinite(ms) || ms <= 0)
-                return $"\"{t}\" isn't a length in ms.";
-            frames = Math.Max(1, (int)Math.Round(ms * s.SampleRate / 1000));
+            if (ParseMilliseconds(raw, "length", out double ms) is { } error) return error;
+            frames = MsToFrames(ms, s);
             if (frames > total) return $"{ms:0.##} ms is longer than the sound ({totalMs:0} ms).";
             return null;
         }
@@ -2036,6 +1925,7 @@ public partial class MainWindow
     /// </summary>
     private async Task EchoSound()
     {
+        if (MultiSelection() is { } many) { await EchoMany(many); return; }
         if (CurrentSound is not { } s) return;
         if (s.Problem is not null || s.SampleRate <= 0)
         {
@@ -2103,13 +1993,8 @@ public partial class MainWindow
         string? Parse(string raw, out int delayFrames)
         {
             delayFrames = 0;
-            string t = raw.Trim();
-            if (t.EndsWith("ms", StringComparison.OrdinalIgnoreCase)) t = t[..^2].Trim();
-            if ((!double.TryParse(t, NumberStyles.Float, CultureInfo.InvariantCulture, out double ms)
-                    && !double.TryParse(t, NumberStyles.Float, CultureInfo.CurrentCulture, out ms))
-                || !double.IsFinite(ms) || ms <= 0)
-                return $"\"{t}\" isn't a delay in ms.";
-            delayFrames = Math.Max(1, (int)Math.Round(ms * s.SampleRate / 1000));
+            if (ParseMilliseconds(raw, "delay", out double ms) is { } error) return error;
+            delayFrames = MsToFrames(ms, s);
             if (SndEdit.EchoLength(total, end, delayFrames, Repeats()) * frameBytes > int.MaxValue / 2)
                 return "Those echoes make the sound too long to hold.";
             lastDelayMs = ms;
@@ -2160,6 +2045,7 @@ public partial class MainWindow
     {
         try
         {
+            if (MultiSelection() is { } many) { await ChangeBitDepthMany(many); return; }
             if (CurrentSound is not { } s) return;
             if (s.Problem is not null)
             {
@@ -2221,7 +2107,20 @@ public partial class MainWindow
         }
     }
 
-    private void OnConvertToMono(object? sender, RoutedEventArgs e)
+    private async void OnConvertToMono(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (MultiSelection() is { } many) { await ConvertToMonoMany(many); return; }
+            ConvertToMonoCurrent();
+        }
+        catch (Exception ex)
+        {
+            await Failed("OnConvertToMono", ex);
+        }
+    }
+
+    private void ConvertToMonoCurrent()
     {
         if (CurrentSound is not { } s) return;
         if (s.Problem is not null) { StatusText.Text = "Can't convert: this sound's header couldn't be read."; return; }

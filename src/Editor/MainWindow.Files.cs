@@ -1488,6 +1488,22 @@ public partial class MainWindow
         return file;
     }
 
+    /// <summary>Folder picker; returns the local path, or null if canceled.</summary>
+    internal async Task<string?> PickFolder(string title)
+    {
+        CrashLog.Trace($"[picker] folder: {title}");
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false,
+            SuggestedStartLocation = await StartFolder(save: true),
+        });
+        string? path = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+        CrashLog.Trace($"[picker] closed: {path ?? "canceled"}");
+        RememberFolder(path, save: true);
+        return path;
+    }
+
     // ---- recent files -----------------------------------------------------
 
     /// <summary>
