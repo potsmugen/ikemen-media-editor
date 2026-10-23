@@ -68,6 +68,19 @@ and keep them current. Open, unchecked work is in `agents/todo.md`.
 - On the workstation, use `git --no-optional-locks` for reads. Index-writing
   git commands can leave `.git/index.lock`; only run them with delete
   permission and confirm the lock is gone. Never commit unless asked; never push.
+- When a task is finished (tested and confirmed, not after each step), end with a
+  suggested commit message for the maintainer to copy, in a code block: a
+  Conventional Commits title under 72 characters (`feat:`, `fix:`, `refactor:`,
+  `docs:`, ...), a blank line, then one or two lines on the general idea, not a
+  list of every change. The title names what is new to the user, not what
+  already existed. Example:
+
+  ```
+  feat: show live interpolated values in animation info line
+
+  While an animation interpolates, the line under the canvas shows the current
+  offset, scale, angle and alpha, and now also shows the time.
+  ```
 - After each XAML edit, check well-formedness and brace balance. The
   maintainer compiles; dotnet isn't available on the device shell.
 

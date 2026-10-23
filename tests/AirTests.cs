@@ -327,6 +327,23 @@ public class AirTests
     }
 
     [Fact]
+    public void LerpingAtListsMarkedValues()
+    {
+        // Scale is marked and counts even though both frames match; angle isn't marked.
+        var action = AirParser.Parse("""
+            [Begin Action 0]
+            0,0, 0,0, 10, , AS100D100, 2, 2, 0
+            Interpolate Offset
+            Interpolate Scale
+            Interpolate Blend
+            0,1, 10,20, 10, , AS200D50, 2, 2, 90
+            """).Actions[0];
+
+        Assert.Equal(Lerping.Offset | Lerping.Scale | Lerping.Blend, action.LerpingAt(5));
+        Assert.Equal(Lerping.None, action.LerpingAt(15)); // next is unmarked LoopStart
+    }
+
+    [Fact]
     public void ParsesLoneCrLineEndings()
     {
         var file = AirParser.Parse("[Begin Action 1]\r0,0, 0,0, 5\r0,1, 1,2, 6");

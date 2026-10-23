@@ -282,7 +282,11 @@ and constraints that are easy to miss when reading one code path in isolation.
   bitmaps (CacheBitmaps); both reset on pause, action change, undo and redo.
 - **Playback bar (Timeline)**: a click jumps to the frame's start; a drag past
   `TimelineDragThresholdPixels` pauses and scrubs to the exact tick, showing
-  Interpolate values. The playhead stays visible while paused, and picking a frame
+  Interpolate values. The line under the canvas (`UpdateFrameInfo`) reads "Frame X of Y |
+  Time X of Y" for the playhead (frame 1-based, tick 0-based like CNS; a hold counts as one tick), then offset, scale,
+  angle and alpha (S,D) only while they lerp at that tick (`AnimationAction.LerpingAt`:
+  marked, even if unchanged), with their live values.
+  The playhead stays visible while paused, and picking a frame
   any other way moves it (and where Play resumes) to that frame's start. A click focuses it;
   while focused, Left/Right step frames like Prev/Next. Zoom
   matches the waveform: the wheel zooms around the cursor, Shift+wheel scrolls,

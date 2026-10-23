@@ -45,6 +45,10 @@ public enum ClsnKind
 /// <summary>An element's drawn values at one tick, after interpolation (AnimationAction.StateAt).</summary>
 public readonly record struct DrawnState(double OffsetX, double OffsetY, double ScaleX, double ScaleY, double Angle, Blend Blend);
 
+/// <summary>Which values interpolate at a tick (AnimationAction.LerpingAt).</summary>
+[Flags]
+public enum Lerping { None = 0, Offset = 1, Scale = 2, Angle = 4, Blend = 8 }
+
 public readonly record struct Blend(BlendMode Mode, int Source, int Destination, string Text = "")
 {
     public static readonly Blend None = new(BlendMode.None, 255, 0);
@@ -484,6 +488,22 @@ public sealed class AnimationAction
                     (int)Math.Round(Lerp(cur.Blend.Destination, n.Blend.Destination, t))),
             };
         return state;
+    }
+
+    /// <summary>Values that interpolate at this tick, by StateAt's rules.</summary>
+    public Lerping LerpingAt(int tick)
+    {
+        var (i, _) = PositionAt(tick);
+        if (i < 0 || Elements[i].Duration <= 0) return Lerping.None;
+        int next = i + 1 < Elements.Count ? i + 1 : LoopStart;
+        if (next < 0 || next >= Elements.Count) return Lerping.None;
+        var cur = Elements[i];
+        var result = Lerping.None;
+        if (InterpolateOffset.Contains(next)) result |= Lerping.Offset;
+        if (InterpolateScale.Contains(next)) result |= Lerping.Scale;
+        if (InterpolateAngle.Contains(next)) result |= Lerping.Angle;
+        if (InterpolateBlend.Contains(next) && cur.Blend.Mode != BlendMode.None) result |= Lerping.Blend;
+        return result;
     }
 
     public bool HasInterpolation =>

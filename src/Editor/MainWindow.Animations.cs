@@ -647,12 +647,7 @@ public partial class MainWindow
         if (CurrentElement is not { } element || AnimCanvas is null) return;
         AnimCanvas.ElementOffset = new Point(element.OffsetX, element.OffsetY);
         AnimCanvas.InvalidateVisual();
-        var loop = _action?.LoopTime is { } t ? $"{t} ticks" : "no loop";
-        FrameInfo.Text = _animSprite is null && !element.NoSprite
-            ? $"Sprite {element.Group},{element.Index} is not in the loaded .sff"
-            : $"frame {FrameList.SelectedIndex + 1} of {_action!.Elements.Count}   |   "
-              + (element.NoSprite ? "no sprite   |   " : "")
-              + $"offset {element.OffsetX},{element.OffsetY}   |   action {loop}";
+        UpdateFrameInfo();
         if (_frameTableActive) RefreshFrameTableRow(FrameList.SelectedIndex);
         if (_frameTextActive) SyncTextFromAction();
     }
@@ -676,15 +671,33 @@ public partial class MainWindow
 
         ShowAnimOnion();
 
-        var loop = _action?.LoopTime is { } t ? $"{t} ticks" : "no loop";
-        FrameInfo.Text = sprite is null && !element.NoSprite
-            ? $"Sprite {element.Group},{element.Index} is not in the loaded .sff"
-            : $"frame {FrameList.SelectedIndex + 1} of {_action!.Elements.Count}   |   "
-              + (element.NoSprite ? "no sprite   |   " : "")
-              + $"offset {element.OffsetX},{element.OffsetY}   |   action {loop}";
-
         UpdateBoxInfo();
         UpdateTimeline();
+        UpdateFrameInfo();
+    }
+
+    /// <summary>The line under the canvas for the playhead tick; values show only while they lerp.</summary>
+    private void UpdateFrameInfo()
+    {
+        if (CurrentElement is not { } element || _action is not { Elements.Count: > 0 } action || FrameInfo is null) return;
+        static string N(double v) => v.ToString("0.##", CultureInfo.InvariantCulture);
+        int finite = action.Elements.TakeWhile(e => !e.ShowsForever).Sum(e => Math.Max(e.Duration, 0));
+        int total = action.LoopTime ?? finite + 1; // a hold counts as one tick, as on the timeline
+        int tick = Math.Min(PlayheadTick(action), total - 1); // 0-based, like AnimElemTime
+
+        var parts = new List<string> { $"Frame {FrameList.SelectedIndex + 1} of {action.Elements.Count}", $"Time {tick} of {total}" };
+        if (element.NoSprite) parts.Add("no sprite");
+        else if (_animSprite is null) parts.Add($"sprite {element.Group},{element.Index} is not in the loaded .sff");
+        var lerping = action.LerpingAt(_tick);
+        if (lerping != Lerping.None)
+        {
+            var st = action.StateAt(_tick);
+            if (lerping.HasFlag(Lerping.Offset)) parts.Add($"offset {N(st.OffsetX)},{N(st.OffsetY)}");
+            if (lerping.HasFlag(Lerping.Scale)) parts.Add($"scale {N(st.ScaleX)},{N(st.ScaleY)}");
+            if (lerping.HasFlag(Lerping.Angle)) parts.Add($"angle {N(st.Angle)}");
+            if (lerping.HasFlag(Lerping.Blend)) parts.Add($"alpha {st.Blend.Source},{st.Blend.Destination}");
+        }
+        FrameInfo.Text = string.Join("   |   ", parts);
     }
 
     private static List<BoxOverlay> BoxesFor(AnimationElement element)
@@ -2014,6 +2027,7 @@ public partial class MainWindow
         }
         TimelineView.SetPlayTick(PlayheadTick(action));
         ApplyInterpolation(tick);
+        UpdateFrameInfo();
     }
 
     private bool _syncingTimelineScroll;
@@ -2055,6 +2069,7 @@ public partial class MainWindow
             ShowFrame();
         }
         ApplyInterpolation(_tick);
+        UpdateFrameInfo();
     }
 
     /// <summary>Playback only: overrides the frame's own offset/scale/angle/blend with the
