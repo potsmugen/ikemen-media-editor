@@ -856,6 +856,9 @@ public partial class MainWindow : Window
         DragDrop.SetAllowDrop(SpriteList, true);
         SpriteList.AddHandler(DragDrop.DragOverEvent, OnSpriteListDragOver);
         SpriteList.AddHandler(DragDrop.DropEvent, OnSpriteListDrop);
+        DragDrop.SetAllowDrop(PaletteList, true);
+        PaletteList.AddHandler(DragDrop.DragOverEvent, OnPaletteListDragOver);
+        PaletteList.AddHandler(DragDrop.DropEvent, OnPaletteListDrop);
 
         // FrameList itself is permanently hidden now that List view is retired
         // (see MainWindow.FrameText.cs) — the context menu moved to the Table

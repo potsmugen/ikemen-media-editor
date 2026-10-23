@@ -186,21 +186,6 @@ before a release. Remove items once they're done or checked.
 
 Built, but not tried by the maintainer yet.
 
-
-### Sandbox fixes (2026-10-23)
-
-Everything else in this batch passed in the Linux sandbox; Copy All wasn't checked (no clipboard reader there).
-
-- [ ] Palette grid: dragging a box that starts on a blank slot selects nothing (20-color F palette, box
-      from a row-2 blank slot up into row 1); it only clears. A box from a color, Ctrl-click and a plain
-      click on blank slots work.
-
-### Floating panels
-
-- [ ] Move and resize a floating panel, dock it, float it again: it opens at the docked spot and size.
-- [ ] Restart with a moved, resized panel floating: it reopens there at that size.
-- [ ] Dock a panel, restart: it stays docked.
-
 ### Save Like SprMaker
 
 - Test reloading after saving over the open file.

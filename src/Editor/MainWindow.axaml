@@ -824,7 +824,9 @@
                   </ListBox.Styles>
                   <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="local:PaletteRow" x:CompileBindings="True">
-                      <Grid ToolTip.Tip="{Binding Kind}">
+                      <Grid ToolTip.Tip="{Binding Kind}"
+                            PointerPressed="OnPaletteRowPointerPressed" PointerMoved="OnPaletteRowPointerMoved"
+                            PointerReleased="OnPaletteRowPointerReleased">
                         <Grid.ColumnDefinitions>
                           <ColumnDefinition Width="Auto" />
                           <ColumnDefinition Width="Auto" />

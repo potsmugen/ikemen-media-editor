@@ -1733,6 +1733,106 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         StatusText.Text = "Palettes sorted by source, group and number.";
     }
 
+    // ---- drag to reorder ---------------------------------------------------
+    // Same press/move-armed drag as the action list, carrying the palette's
+    // absolute index in _file.Palettes (or the standalone list). Nothing in the
+    // session references a palette by position; the writer recomputes palette
+    // indices at save, and only the visible order and labels change.
+
+    private const string PaletteDragFormat = "ime/palette-index";
+    private bool _paletteDragArmed;
+    private int _paletteDragFromIndex = -1;
+    private Point _paletteDragPressPoint;
+
+    private List<Palette> OrderedPalettes => _file?.Palettes ?? _standalonePalettes;
+
+    private void OnPaletteRowPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is not Control c || c.DataContext is not PaletteRow row) return;
+        var p = e.GetCurrentPoint(c);
+        if (!p.Properties.IsLeftButtonPressed) return;
+        if (e.ClickCount >= 2) { _paletteDragArmed = false; return; }
+        _paletteDragFromIndex = OrderedPalettes.IndexOf(row.Palette);
+        _paletteDragPressPoint = p.Position;
+        _paletteDragArmed = _paletteDragFromIndex >= 0;
+    }
+
+    /// <summary>Past a small threshold, turns an armed press into a real drag.</summary>
+    private async void OnPaletteRowPointerMoved(object? sender, PointerEventArgs e)
+    {
+        try
+        {
+            if (!_paletteDragArmed || sender is not Control c) return;
+            var p = e.GetPosition(c);
+            double dx = p.X - _paletteDragPressPoint.X, dy = p.Y - _paletteDragPressPoint.Y;
+            if (dx * dx + dy * dy < 36) return; // 6px, squared
+            _paletteDragArmed = false;
+
+            var data = new DataObject();
+            data.Set(PaletteDragFormat, _paletteDragFromIndex);
+            await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
+        }
+        catch (Exception ex)
+        {
+            await Failed("OnPaletteRowPointerMoved", ex);
+        }
+    }
+
+    private void OnPaletteRowPointerReleased(object? sender, PointerReleasedEventArgs e) => _paletteDragArmed = false;
+
+    private void OnPaletteListDragOver(object? sender, DragEventArgs e) =>
+        e.DragEffects = e.Data.Contains(PaletteDragFormat) ? DragDropEffects.Move : DragDropEffects.None;
+
+    private void OnPaletteListDrop(object? sender, DragEventArgs e)
+    {
+        if (e.Data.Get(PaletteDragFormat) is not int from) return;
+        var palettes = OrderedPalettes;
+        int to = palettes.Count;
+        if (e.Source is Visual v && v.FindAncestorOfType<ListBoxItem>(true) is { } item
+            && PaletteList.IndexFromContainer(item) is var row and >= 0
+            && PaletteList.ItemsSource is IEnumerable<PaletteRow> rows
+            && rows.ElementAtOrDefault(row) is { } target
+            && palettes.IndexOf(target.Palette) is var index and >= 0)
+            to = index;
+        MovePalette(from, to);
+    }
+
+    /// <summary>Moves a palette to a drop boundary; dropping past the last row means the end.</summary>
+    private void MovePalette(int from, int to)
+    {
+        var palettes = OrderedPalettes;
+        if (from < 0 || from >= palettes.Count) return;
+        to = Math.Clamp(to, 0, palettes.Count);
+        if (to == from || to == from + 1) return; // no real move
+
+        var palette = palettes[from];
+        int destination = to > from ? to - 1 : to; // `to` is a boundary, not a slot
+        // Keep the editor on the same palette object, not the same position.
+        var active = _file is not null
+            ? (_paletteOverride >= 0 && _paletteOverride < palettes.Count ? palettes[_paletteOverride] : null)
+            : (_standalonePaletteOverride >= 0 && _standalonePaletteOverride < palettes.Count ? palettes[_standalonePaletteOverride] : null);
+        void ApplyAt(int target)
+        {
+            // Read the list fresh: Save As may replace _file.Palettes before an undo runs.
+            var list = OrderedPalettes;
+            int oldPosition = list.IndexOf(palette);
+            if (oldPosition < 0) throw new InvalidOperationException("The palette being reordered is no longer in the list.");
+            list.RemoveAt(oldPosition);
+            list.Insert(Math.Clamp(target, 0, list.Count), palette);
+            if (_file is not null) _paletteOverride = active is null ? -1 : list.IndexOf(active);
+            else _standalonePaletteOverride = active is null ? -1 : list.IndexOf(active);
+        }
+
+        if (_file is not null)
+        {
+            Edit("reorder palettes", () => ApplyAt(destination), () => ApplyAt(from));
+            return;
+        }
+        _undo.Do("reorder palettes",
+            () => { ApplyAt(destination); RebuildPaletteList(); RefreshPaletteTab(); UpdateTitle(); },
+            () => { ApplyAt(from); RebuildPaletteList(); RefreshPaletteTab(); UpdateTitle(); });
+    }
+
     private void SelectPalette(Palette pal)
     {
         if (_file is null) return;

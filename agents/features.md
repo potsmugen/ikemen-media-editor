@@ -406,6 +406,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   back). SFFv1: every chosen SFF palette gets the colors;
   nothing is removed. Imported and temp palettes only add colors. Sort Ascending is only in the
   palette list's right-click menu.
+- **Palette rows drag to reorder**, with or without an SFF open, as one undo step.
+  Dropping on a row puts the palette before it; dropping past the last row puts it at
+  the end. Sprites and links reference palette objects, so only the list order, the F/T
+  numbers and (SFFv2) the saved palette table order change.
 - **Temp palettes** are palettes made in the editor with no file yet: New or Create From
   Images, with or without an SFF open, and Duplicate of any palette. Like imported file palettes they are external: with
   an SFF they join its list (one undo step, not marking the SFF changed; the same goes for
