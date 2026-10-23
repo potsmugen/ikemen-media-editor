@@ -13,637 +13,385 @@ and constraints that are easy to miss when reading one code path in isolation.
 
 ### Files and saving
 
-- **Project tabs** (basic, `MainWindow.ProjectTabs.cs`): a strip above the Sprites/Palettes/
-  Animations/Sounds tabs, one tab per `Document`. Label: the .def's name= field, else the .def
-  file name, else the first loaded file's name, else "Untitled"; repeats get " (2)"; "* " when unsaved; tooltip shows
-  the path. Open .def, Open Recent and "Open with" .defs ask Open in New Tab / Open in
-  Current Tab / Cancel after the file is picked, unless the tab is empty; single files load
-  into the current tab. New Tab (Ctrl+T, "+"; always added at the right end), Close Tab (Ctrl+W, ✕, middle-click; the last
-  tab is emptied, not removed), Ctrl+Tab / Ctrl+Shift+Tab. Drag a tab to reorder
-  (past settings.json `TabDragThresholdPixels`, default 6; the strip holds the pointer
-  capture because reordering rebuilds the tabs). Undo history is per tab, as in most editors.
-  Right-click menu: Rename (Rename Tab prompt; empty or the automatic name clears it; kept
-  when files are reopened into the tab, cleared when the last tab is closed), Close, Close
-  Others, Close Tabs to the Right (each tab gets its own unsaved check; Cancel stops), Open
-  Containing Folder (when the tab has a path).
-  Both tab strips (project tabs and Sprites/Palettes/Animations/Sounds) are folder-style:
-  outlined top and sides, inactive on ThemeListBg, the current one on ThemePanelBg covering
-  the baseline under the strip. Sub-tab colors come from the `TabItemHeader*` resources in
-  `ApplyControlColors` (pipe transparent), not styles on template parts: Fluent's template
-  bindings outrank those (verified: such styles had no effect). The outline is set on TabItem
-  (`PanelSeparatorTabThickness`, `PanelTabMargin`). Both live in App.axaml (a `TabControl`
-  ControlTheme with the baseline, and `TabItem` styles), so every TabControl gets them. A project tab's
-  close button shows only on hover. Switching resolves pending paint
-  and sound edits (Cancel stays), drops color adjust, stops playback and picks, then redraws
-  every sub-tab from the stored state (`ShowDocument`); the sub-tab shown stays the same, and
-  the Sprites and Animations canvases get back the tab's zoom and pan (`SpriteView.View`).
-  Closing a tab, or quitting (each unsaved tab in turn, shown first), asks Save / Discard / Cancel
-  (`ConfirmCloseTab`); Save runs the tab's Save All (`SaveAllInTab`) and stops if anything is
-  left unsaved, e.g. a temp palette. Close All keeps the discard question.
-  Onion skin pins (Sprites Pin sprite, Animations pinned frame) are per tab and not saved;
-  every tab starts automatic. Show, opacity, grayscale and Clsn stay shared and saved. Tab clicks are blocked
-  while busy and across a .def open (`RunProjectOpen`). The scratch palette is shared and
-  no longer cleared by Close All. Clipboards are per window, so they work across tabs.
-- **Recovery with tabs**: each snapshot carries its tab (`Document.Id`), order, .def and Rename
-  name. Capture walks every tab with unsaved work (pointing `_doc` at each; pending paint, sound
-  edits and color adjust only count for the active tab). Restore rebuilds one tab per group in
-  order, labeled as before; untabbed (older) snapshots restore into one tab. New unsaved files
-  are keyed by tab. Discarding a tab's work or closing it drops only that tab's snapshots
-  (`RecoveryStore.ResolveTab`) and schedules a fresh capture of the rest. The recovery prompt
-  prefixes each line with its tab when there are several.
-- **Sessions** (`MainWindow.Sessions.cs`, `Session.cs`): File > Load Session / Save Session (own group),
-  `.imesession` JSON via `SettingsContext`. Per tab in order: the .def, or the loose SFF, AIR
-  (.air or .def with embedded actions), SND and standalone palette paths; the custom name; and
-  the active tab. Not edits, selection or zoom; saving asks nothing, and tabs with no saved
-  path are skipped (status bar). Loading (menu, Open Recent, or dropping the file) asks
-  Replace / Append when any tab is in use; Replace runs each unsaved tab's check first, like
-  quitting. Missing files are skipped and listed afterwards. Not reopened on startup.
-  `OpenDefFile` routes a .def to the character/stage/other loader without a tab prompt.
-- **DEF animation source**: for characters, `[Files] anim=` `.air` is authoritative
-  even when the character `.def` also contains embedded actions. Embedded actions
-  can be edited and saved back to the same `.def`; existing action sections stay
-  in place, new actions append after the last action block, and only action blocks
-  are rewritten. If the file changed on disk, Save asks before writing and keeps
-  the latest non-action content. Nested references are not followed.
-- **Atomic writes**: SFF (v1/v2), SND, AIR and embedded-AIR `.def` saves go
-  through `AtomicFile` (one copy per library): a `.tmp-<guid>` file beside the
-  target, flushed to disk, then moved over it. A failed or interrupted write
-  leaves the old file intact. Palette and export writes still write directly.
-  Closing the window while the busy lock is held is refused with a popup.
-- **Open Recent**: Delete removes the hovered (or arrow-highlighted) entry from
-  the list and keeps the menu open. The file on disk is untouched; no confirmation.
-  Clicking an entry whose file is gone removes it and shows a "File not found" popup.
-- **Open .def** (File menu, Ctrl+Shift+O): one entry for every .def kind; it replaced
-  Open Character, Open Stage and Open Other, since Open Recent and "Open with" detected the
-  kind anyway. `DetectDefKind` reads the sprite line: [Files] sprite= (character), [BGdef]
-  spr= (stage), [Files] spr=/sff= or [SceneDef] spr= (screenpack/lifebar/storyboard). A .def
-  matching none (e.g. a SprMaker 2.01 input .def) or unreadable gets a popup before the tab
-  prompt, so the tab is untouched. `OpenDefWithTabPrompt` is shared by the menu, Open Recent
-  and the launch file.
-- **Opening a character**: after the definition parses, all prior open files are cleared
-  before loading its references. Missing or unreadable references therefore cannot leave an
-  unrelated previous asset active.
-- **Saving**: Before overwriting, saves retain `BackupCount` prior versions
-  (`.bak`, `.bak.1`…; settings.json, default
-  1, range 0–10; 0 disables backups). If creating a backup fails, the save is
-  aborted. Existing `KeepBackups` settings migrate to 1 or 0. Crash recovery is
-  separate from backups: every five minutes it snapshots eligible committed
-  dirty SFF, AIR/DEF, SND, and external ACT assets into data/recovery without
-  writing source files. Pending live edits skip only their affected asset. After
-  an unclean exit, one recovery list appears before command-line file opening.
-  Matching sources restore as dirty documents; changed or missing sources
-  recover to separate files. Keep for later preserves the package; successful
-  saves retire matching recovery items; Discard removes the package.
-  Each running copy works in its own `recovery/run-<guid>/` folder, locked by an
-  open `run.lock` until exit (the OS releases it on a crash). At startup, run
-  folders that can be locked (crashed, or kept for later) are merged into the new
-  run's package, newest snapshot per file winning, then deleted; locked ones
-  belong to another running copy and are skipped. `recovered/` stays shared.
-  A v1 session SFFv1 can't hold (true-color sprites) is snapshotted as v2 with
-  `Version` switched to 2.0.1.0 for the write, so palettes keep their keys; the
-  item's `SessionVersion` puts v1 back on recovery. Any snapshot failure shows one
-  popup per session.
-  `--test-recovery` forces a snapshot, then snapshots every 15 s, and leaves the run marker for the next launch.
-  Saving an `.air` warns if its on-disk bytes changed since load; confirming
-  overwrites them with the current Media animation.
-- **Saving v1 as v2+**: every v1 → v2+ Save As (and Save Like SprMaker 2.01)
-  rekeys the SFF's own palettes, since v1 palettes have no keys
-  (`SffWriter.V1ConvertedKeys`, the one source for writer and session):
-  1. Embedded .act palettes and externals a sprite uses keep their group-1 keys
-     and are placed first.
-  2. Sprite 0,0's palette takes 1,1, unless an .act already holds it.
-  3. Every other palette takes the group of the first sprite using it (sprites
-     that store pixels before links), numbered from 0 and stepping up only past
-     taken keys, 1,1 and the .act keys included. E.g. a portrait palette carried
-     by 9000,1 becomes 9000,0 when 9000,0's palette went to 1,1.
-  4. A palette no sprite uses has no group to take: group 2, numbered the same.
-  Faithful to the data: a 0,0 that stores a stray palette puts it at 1,1.
-  The saved file's palette and sprite ordering is rebound into the
-  open session. Before the filename picker, a conversion prompt offers to
-  embed unused external .act palettes (off by default). Embedded palettes use
-  group 1 and their .act index, advancing to the next free index on conflict.
-  Sprites using the old main palette switch to embedded 1,1. Internal palettes
-  with matching colors link to it; if an .act duplicates the main palette,
-  the old main is dropped and its linked palettes follow the .act. The prompt
-  and status report these changes. Cancel aborts; a failed save or a declined
-  confirmation after conversion begins rolls back session changes.
-  Plain Save keeps the version, so it never converts and never embeds.
-- **Saving v2 as v1**: the same popup lists what is lost — palettes no
-  sprite uses (v1 keeps palettes only inside sprites), group/index keys,
-  links and alpha. True-color or undecoded sprites stop it before the
-  picker. After saving, the session drops those palettes and resolves links
-  into copies, so it matches the file.
-- **Save Like SprMaker** works on a copy; the open file changes only if output
-  replaces it and reload is accepted. Processing order is duplicate sprite
-  linking, palette deduplication, then autocrop. Conversion losses and true-color
-  restrictions are checked before saving. SFFv2 output may discard alpha according
-  to encoding. Reports follow the tool's summary/verbose modes; verbose lines are
-  keyed by sprite/palette group and index because the editor saves from an open SFF,
-  not source files. SprMaker palette matching includes index-0 RGBA; see
-  **Duplicate palette comparison** for the difference from the editor's rule.
+- **Project tabs**: a strip above the sub-tabs, one tab per `Document`. Label comes from the
+  .def's name=, else the file name, else "Untitled"; repeats get " (2)", unsaved get "* ".
+  Opening a .def asks New/Current Tab/Cancel unless the tab is empty; loose files load into
+  the current tab. Closing the last tab empties it, it isn't removed. Undo history is per tab.
+  Both strips take their folder-style outline from App.axaml, so every `TabControl` has it;
+  `TabItem` colors come from the theme's `TabItemHeader*` keys, not template-part styles
+  (Fluent's bindings outrank those). Switching tabs resolves pending paint and sound edits
+  and restores each sub-tab's state plus the canvas zoom and pan. Closing a tab or quitting
+  asks Save/Discard/Cancel per tab and runs that tab's Save All; a failed save stops the
+  close. Onion pins are per tab and unsaved; clipboards are per window, so they cross tabs.
+- **Recovery with tabs**: each snapshot records its tab, order and name, and closing or
+  discarding a tab's work drops only that tab's snapshots. Restore rebuilds one tab per
+  group; older untabbed snapshots restore into one tab.
+- **Sessions**: `.imesession` JSON (File > Load/Save Session). Per tab in order: its .def or
+  loose files, the custom name, and the active tab; not edits, selection or zoom. Tabs with
+  no saved path are skipped. Loading asks Replace/Append, and Replace runs each unsaved tab's
+  check first. Missing files are skipped and listed afterwards. Not reopened on startup.
+- **DEF animation source**: for characters, `[Files] anim=` `.air` is authoritative even
+  when the .def also embeds actions. Embedded actions can be edited and saved back in place:
+  only action blocks are rewritten, new ones appended after the last. A file changed on disk
+  asks before writing. Nested references are not followed.
+- **Atomic writes**: SFF, SND, AIR and embedded-AIR .def saves write a temp file beside the
+  target, flush it, then move it over, so a failed write leaves the old file intact. Palette
+  and export writes are still direct.
+- **Open Recent**: Delete removes the hovered entry and keeps the menu open; the file is
+  untouched. Clicking an entry whose file is gone removes it and says so.
+- **Open .def** is one entry for every kind. `DetectDefKind` reads the sprite line:
+  character, stage, or screenpack/lifebar/storyboard. A .def matching none, or unreadable,
+  gets a popup before the tab prompt, so the tab is untouched.
+- **Opening a character** clears all prior open files before loading its references, so a
+  missing reference can't leave an unrelated asset active.
+- **Saving**: before overwriting, keep `BackupCount` prior versions (`.bak`, `.bak.1`…;
+  default 1, 0–10, 0 disables), and abort the save if the backup fails. Recovery is separate:
+  every five minutes the app snapshots committed dirty files into `data/recovery` without
+  touching sources. After an unclean exit, one list appears before command-line opening;
+  matching sources restore as dirty documents, changed or missing ones become separate
+  files. Saves retire matching items. Each copy works in its own locked `run-<guid>/`
+  folder, so a crashed run's snapshots merge into the next run and another copy's are
+  skipped. A v1 SFF holding true-color sprites is snapshotted as v2 and put back to v1 on
+  recovery. Saving an `.air` warns if its bytes changed on disk since load.
+- **Saving v1 as v2+** rekeys the SFF's palettes, since v1 palettes have no keys
+  (`SffWriter.V1ConvertedKeys`):
+  1. Embedded .act palettes and externals a sprite uses keep their group-1 keys and go
+     first.
+  2. Sprite 0,0's palette takes 1,1 unless an .act holds it.
+  3. Every other palette takes the group of the first sprite using it (storing sprites
+     before borrowers), numbered from 0 and stepping up only past taken keys, 1,1 and the
+     .act keys included.
+  4. A palette no sprite uses takes group 2, numbered the same.
+  Unused external .act palettes can be embedded first (off by default), taking group 1 and
+  their .act index; sprites on the old main palette switch to 1,1. Cancel aborts, and a
+  failed or declined save rolls the session back. Plain Save never converts.
+- **Saving v2 as v1** lists what is lost: palettes no sprite uses, group/index keys, links and
+  alpha. True-color or undecoded sprites stop it before the picker. Afterwards the session
+  drops those palettes and resolves links into copies, matching the file.
+- **Save Like SprMaker** works on a copy; the open file changes only if the output replaces it
+  and the reload is accepted. Order is duplicate linking, palette deduplication, then
+  autocrop, with losses and true-color limits checked before saving. Verbose lines are keyed
+  by sprite and palette.
 
 ### Editor behavior
 
-- **Scroll bars** use Avalonia's auto-hide by default: thin until hovered for 0.5 s, thin
-  again 2 s after the pointer leaves. settings.json `ScrollBarsAutoHide: false` (read at
-  startup) keeps them full width. `App.KeepScrollBarsExpanded` styles ScrollViewer,
-  ListBox, TextBox and TreeView, since those templates pass their own value down.
-- **Debug mode and saving**: with Debug off, saving clamps group/number to
-  0-65535 and axes to signed 16-bit range, with a warning. Debug on preserves
-  the prior wrapping behavior.
-- **Undo**: multi-item operations are one step. Adjacent Clsn reposition edits
-  on the same frame merge. Undo across a save point clears the changed mark.
-- **Paint layers**: a Layers toggle in Paint Mode opens a panel for one top layer
-  over the sprite's own (bottom) pixels. Bottom/Top chooses what the tools draw on;
-  Show bottom and Show top hide each layer separately. A non-zero top pixel wins, and
-  index 0 is transparent. Hidden layers are left out of the sprite, and painting on a
-  hidden layer is refused. Merge flattens the visible layers into the bottom and keeps
-  the session pending. Closing the panel merges them the same way. Leaving Paint Mode asks Commit, Discard or Cancel when there are changes.
-  Delete Layer discards the top, Reset drops everything, and Commit makes the merge one
-  undo step. Layers are never saved.
-- **Panel widths start fitted**: a side panel with no saved width (fresh install, or after
-  Reset Panel Sizes) is fitted to its contents on its tab's first layout (`PendPanelFit`).
-  The fit runs in the grid's `LayoutUpdated`; Avalonia runs the layout pass that queues
-  before drawing the frame, so the fixed XAML width never shows. A column never fitted stays unsaved.
-  The XAML sizes must match what `ResetPanelSizes` sets, or a reset changes a fresh layout.
-- **Sprite Tools swatch on reset**: Reset Panel Sizes fits each side panel to its natural
-  width; the swatch grid's natural cell is `SpriteSwatchCellSize` (16, a 256px grid), so
-  it starts at 256×256 when the tab is wide and tall enough (`PanelFitMaxPercent`).
-- **Paint Tools panel** is a vertical column right of the Sprites canvas, left of Sprite Tools,
-  sized to its content and collapsible (▶). Top to bottom: Paint Mode, Commit/Reset, then
-  Tools, Tool Options (hidden when the active tool has none) and Layers sections. It lives inside the canvas column's own grid,
-  so SpritesGrid keeps its five columns (saved widths and fitting use 0 and 4).
-- **Floating panels**: every side panel with a collapse arrow has a ⧉ button on the arrow's inner
-  side (hidden while collapsed or floating); the onion skins don't float (they belong to the canvas). It moves the panel body into an owned window
-  (`MainWindow.FloatPanels.cs`, list `FloatPanels`) at the docked size and position; the docked
-  column and its separator column are zeroed, and the widths come back
-  on dock. The window has no system title bar (`SystemDecorations.BorderOnly`): one header for
-  all, `[▲] Title [✕]`, dragged by hand so Windows doesn't snap it, outlined in the Separator
-  color. ▲/▼ rolls it up to just its header, sized to fit the title; ✕ or closing docks it back expanded. Windows hide on
-  other tabs and return on their own. Floating and docking are a reset: floating by hand opens
-  at the docked spot and size, and docking forgets the window. Only panels floating at exit are
-  saved (settings `FloatingPanels`, keyed by body name: position, expanded size, rolled up) and
-  reopen as they were, unactivated, the first time their tab is shown; a saved spot whose header
-  touches no monitor's working area uses the docked spot. Reset Panel Sizes docks the current
-  tab's panels and forgets their entries.
-  `SavePanelSizes` saves docked widths (`DockedWidth`) and the open windows' placements. Unhandled
-  keys go through `OnKeyDown` (`KeyFocus()` reports the floating window's focus) and the list
-  lookahead keys; focus checks on lists use the list's own TopLevel. The busy lock disables
-  floating bodies (`SetFloatingBusy`).
-- **Paint tool panels**: each tool's options sit in their own panel under the tools,
-  shown only while that tool is active (`UpdateToolPanels`): Brush for Pencil and Eraser;
-  Rectangle/Lasso and Copy/Paste for Select; Replace's colors plus its own Brush box (synced to the same
-  size) for Replace. Fill and Eyedropper have none. New tool options follow the same pattern.
-- **Replace inverse**: Shift-drag with Replace paints New → Old (fixed at the press; the brush
-  outline's dashes turn ThemeAccent while Shift is held). A New that several pairs share is
-  left alone and named in the status bar. Swap flips Old and New in every pair.
-- **Paint selection and paste**: Paste returns the copy to where it was taken, as a
-  floating selection, and switches to the Select tool. Dragging it past the sprite's
-  edge clips the off-canvas part, which returns if dragged back until Commit. Transparent
-  pasted pixels leave the pixels under them. The selection shows only while the Select
-  tool is active; switching tools or leaving Paint Mode clears it. Painting or starting
-  a new selection settles a floating paste. Copy needs a selection, and Paste needs a
-  copied block.
-- **Lasso selection**: Select's Rectangle/Lasso toggle (session-only, Rectangle by default)
-  picks the drag shape. A lasso is a freehand drag that closes on release; a pixel is in when
-  its center is inside the path (nonzero winding, so loops stay filled). The path is clamped to
-  the sprite, and a lasso enclosing no pixel center clears the selection. `PixelSelection.Mask`
-  holds the shape over its bounding box; the outline follows pixel edges. Copy leaves
-  pixels outside the mask transparent, and Paste restores the lasso shape. Pressing inside the
-  shape moves it; pressing outside starts a new selection.
-- **Select clicks**: with the Select tool, a click (less movement than settings.json
-  `SelectionDragThresholdPixels`, default 3) clears the selection and settles a floating paste,
-  whether it lands on the sprite, inside the selection, or on the canvas outside the sprite. Only
-  a drag selects (so no 1×1 selection from a click) or moves; a drag off the sprite still pans.
-- **Paint history**: a pending paint session has its own undo/redo (`MainWindow.PaintHistory.cs`):
-  one step per stroke or fill, paste, selection drag, layer add/delete/merge and layer show/hide.
-  Edit > Undo/Redo name the step. Commit and
-  Reset grey out once undo reaches the start; Ctrl+Z then closes the empty session and
-  continues in the main history (dropping paint redo). If older steps were dropped
-  (settings.json `PaintUndoLimit`, default 100) and changes remain, Undo stops with a status
-  note. Commit records the session as one main step and clears the paint history; Reset and
-  Discard drop the session and its history with no undo, like the Sounds tab's Reset.
-- **Pending sessions**: Paint Mode and sound edits apply live, one undo on
-  Commit (both also have Reset = discard, no undo; both enabled only while edits are pending); switching away or leaving Paint Mode asks Commit/Discard/Cancel only when there are changes; an empty paint layer or a no-op paint session is dropped silently. Color-slider
-  adjustments survive only via the Commit button — leaving them discards
-  silently, without a dialog.
+- **Scroll bars** auto-hide by default; settings.json `ScrollBarsAutoHide: false` (read at
+  startup) keeps them full width. `App.KeepScrollBarsExpanded` styles ScrollViewer, ListBox,
+  TextBox and TreeView, since those templates pass their own value down.
+- **Debug mode**: with Debug off, saving clamps group/number to 0–65535 and axes to signed
+  16-bit range, with a warning. Debug on preserves the old wrapping.
+- **Undo**: multi-item operations are one step, adjacent Clsn reposition edits on the same
+  frame merge, and undo across the save point clears the changed mark.
+- **Paint layers**: a top layer over the sprite's own pixels. Bottom/Top chooses what the
+  tools draw on, Show toggles hide each layer, a non-zero top pixel wins, and index 0 is
+  transparent. Hidden layers are left out of the sprite and can't be painted. Merge flattens
+  the visible layers into the bottom and stays pending, as does closing the panel; Delete
+  Layer drops the top and Reset drops everything. Commit makes the merge one undo step.
+  Leaving Paint Mode with changes asks Commit/Discard/Cancel. Layers are never saved.
+- **Panel widths start fitted**: a side panel with no saved width is fitted to its contents
+  on its tab's first layout, inside `LayoutUpdated`, so the fixed XAML width never shows.
+  The XAML sizes must match what `ResetPanelSizes` sets.
+- **Sprite Tools swatch on reset**: the swatch grid's natural cell is `SpriteSwatchCellSize`
+  (16, a 256px grid), so Reset Panel Sizes starts it at 256×256 when the tab is big enough
+  (`PanelFitMaxPercent`).
+- **Paint Tools panel** is a collapsible column right of the canvas: Paint Mode,
+  Commit/Reset, then Tools, Tool Options (hidden when the tool has none) and Layers. It lives
+  inside the canvas column, so SpritesGrid keeps its five saved columns.
+- **Floating panels**: a ⧉ button on each side panel with a collapse arrow moves its body
+  into an owned window at the docked size and spot; the onion skins don't float. The window
+  has no system title bar, drags by hand so Windows doesn't snap it, and rolls up to its
+  header. ✕ docks it back expanded. Floating is a reset, not a saved state of its own: only
+  panels floating at exit are saved (settings `FloatingPanels`, by body name) and reopen
+  unactivated with their tab. A saved spot touching no monitor falls back to the docked one.
+  Reset Panel Sizes docks the current tab's panels and forgets them.
+- **Paint tool panels**: each tool's options sit under the tools and show only while it is
+  active. Brush for Pencil and Eraser; Rectangle/Lasso and Copy/Paste for Select; colors plus
+  a synced Brush box for Replace; Fill and Eyedropper have none.
+- **Replace inverse**: Shift-drag paints New → Old, fixed at the press (the brush outline
+  turns ThemeAccent while Shift is held). A New shared by several pairs is left alone and
+  named in the status bar. Swap flips Old and New everywhere.
+- **Selection and paste**: Paste floats the block where it was copied and switches to Select.
+  Dragging it past the sprite's edge clips the off-canvas part until Commit, and transparent
+  pasted pixels leave the pixels under them. The selection shows only with the Select tool;
+  switching tools or leaving Paint Mode clears it. Copy needs a selection, Paste a copied
+  block.
+- **Lasso**: Select's Rectangle/Lasso toggle is session-only, Rectangle by default. A lasso
+  closes on release, and a pixel is in when its center is inside the path (nonzero winding,
+  so loops stay filled). The path is clamped to the sprite, and an empty lasso clears the
+  selection. Copy leaves pixels outside the mask transparent and Paste restores the shape.
+- **Select clicks**: a click (under settings.json `SelectionDragThresholdPixels`, default 3)
+  clears the selection and settles a floating paste. Only a drag selects or moves, so there
+  are no 1×1 selections; a drag off the sprite still pans.
+- **Paint history**: the pending session has its own undo, one step per stroke, fill, paste,
+  selection drag, layer operation or layer show/hide. Undo past the start closes the empty
+  session and continues in the main history. If `PaintUndoLimit` (default 100) dropped steps
+  and changes remain, Undo stops with a status note. Commit records one main step.
+- **Pending sessions**: paint and sound edits apply live, commit as one undo step, and ask
+  Commit/Discard/Cancel only when there are changes; Reset discards with no undo. An empty
+  paint session is dropped silently. Color-slider adjustments survive only via Commit.
 
 ### Animation editing
 
-- **Duplicate Action** copies Copy Action, interpolation markers, comments,
-  collision defaults, loop start, and cloned frames. Frame text edits reparse on
-  commit as one undo step, including comments.
-- **Frame comments**: comments inside an action belong to the frame below them
-  and move with it on insert, remove, reorder and undo. Removing a frame removes
-  its comments; Duplicate, Copy/Paste and Duplicate Action copy them, as copying
-  the text would. The frame table tags such frames with a muted ";" in the Frame
-  cell, whose tooltip lists the comments as written. They're edited in text view.
-- **Frame multi-selection**: the frame table is multi-select (Ctrl/Shift click, Ctrl+A).
-  `FrameList.SelectedIndex` stays the one current frame (canvas, Clsn, Special Flags,
-  Loop From Here): the clicked row, else the keyboard-focused row. Picking a frame inside
-  the selection (right-click, timeline, Prev/Next) keeps it; any other frame collapses it.
-  Remove, Duplicate, Move Up/Down, Delete and Copy act on the selection; Remove keeps at
-  least one frame, Move stops at either edge, Duplicate inserts the block after the last
-  selected frame. Insert and Insert Sprite Group add after the last selected frame (Insert
-  templates on it). Special Flags sets Interpolate on every selected frame (a mixed flag left
-  mixed changes nothing) and dims Loopstart. Auto Clsn, Sort Boxes, Delete All Boxes and
-  Copy from Onion Skin (and the menu's Paste Clsn) act on every selected frame as one undo step; Add Clsn1/2 needs
-  a single frame. Delete Box (and the Delete key) and Toggle Default act on the boxes selected on the canvas,
-  so they work with any frame selection: Delete Box removes every selected box, and Toggle Default toggles each
-  kind with a selected box (both kinds as one undo step). `UpdateFrameButtons` dims every frame and Clsn
-  button that can't act (no action, edges, last frame, no own boxes, no box selected). Ctrl+C / Ctrl+V copy frames and paste them after the current frame in any
-  action with their lines (ClsnDefault, Interpolate, Loopstart), as pasted text would. Row rebuilds, fills and undo keep
-  the selection (`RestoreFrameTableSelection(keep)`).
-- **Frame-table fill handles** copy one field down a dragged row range as one
-  undo step; dragging and auto-scroll do not change the selected frame. Sprite
-  table fills likewise preserve the prior multi-selection and selection anchor.
-- **Clsn editing**: a frame either owns boxes or inherits the current default; a
-  default declared on a frame counts as that frame's own boxes. Editing another
-  frame creates own boxes, not a changed default. Deleting its last own box returns
-  it to the default; deleting a default's last box removes the declaration. Loaded
-  zero-box declarations are preserved, but the editor does not create them. Frame-
-  attached lines (defaults, Loopstart, Interpolate) move and copy with their frame.
-- **Onion skins** use the ghost sprite's own palette; the active sprite's palette
-  remains selected for editing. Each panel (Sprite and Animation) has its own Show toggle; turning it
-  off dims that panel's options. Copying Clsn from an onion frame copies the shown
-  boxes into the current frame as owned boxes.
-- **Sort Boxes For All** sorts own boxes and defaults across actions, resolving
-  Clsn numbering/count warnings in one undo step.
-- **AIR save changes**: loading reports changes a save would make even without
-  user edits, including Clsn recount/renumbering, end-of-line comments moved, and legacy
-  encoding conversion. Save requires confirmation; rewritten output is UTF-8.
-- **Auto Clsn** (the button; the menu's For All is Clsn2 only) generates Clsn1 or Clsn2
-  boxes around visible pixels and merges/splits them to the requested count, minimizing
-  empty space. Its dialog lists Kind (opens on Clsn2 every time), Boxes and Layout, each
-  label above its control; count and layout are remembered for the session and shared by
-  both kinds. Only the chosen kind is replaced. Frame offsets apply after making
-  the cover relative to the sprite axis. It is intended as a starting point for
-  hand editing; see **Auto Clsn2 experiments** before adding options. For batch
-  generation, declared Clsn2 defaults are replaced; other frames receive owned
-  boxes. Missing, empty, or fully transparent sprites keep their existing boxes.
-- **Playback** waits `InfiniteAnimationTimeout` before restarting infinite actions
-  or actions whose loop start is past frame 1. Dragging the sprite to change frame
-  offsets is disabled while playback runs.
-  The clock counts ticks from a Stopwatch (60 per second), polled about every
-  8 ms; late polls step the missed ticks and draw only the last, so a busy UI
-  or screen recorder drops frames instead of slowing playback. A stall over 30
-  ticks skips the extra time.
-  While playing, sprites are looked up by table and AnimCanvas caches decoded
-  bitmaps (CacheBitmaps); both reset on pause, action change, undo and redo.
-- **Playback bar (Timeline)**: a click jumps to the frame's start; a drag past
-  `TimelineDragThresholdPixels` pauses and scrubs to the exact tick, showing
-  Interpolate values. The line under the canvas (`UpdateFrameInfo`) reads "Frame X of Y |
-  Time X of Y" for the playhead (frame 1-based, tick 0-based like CNS; a hold counts as one tick), then offset, scale,
-  angle and alpha (S,D) only while they lerp at that tick (`AnimationAction.LerpingAt`:
-  marked, even if unchanged), with their live values.
-  The playhead stays visible while paused, and picking a frame
-  any other way moves it (and where Play resumes) to that frame's start. A click focuses it;
-  while focused, Left/Right step frames like Prev/Next. Zoom
-  matches the waveform: the wheel zooms around the cursor, Shift+wheel scrolls,
-  and the scrollbar below is always shown, disabled at fit. A new action fits;
-  frame edits keep zoom. Same-size tick marks show from `TimelineTickMarkMinPixels`.
-  Holding and zero-length frames
-  take one tick of width, and the playhead uses the same layout as the cells.
-- **List keyboard navigation**: arrows, Page Up/Down and Home/End act only in the focused
-  list or control; nothing steps a list behind it. Each tab's main list (sprites, palettes,
-  actions, sounds) gets focus when the tab opens and after a file loads (`FocusTabList`);
-  a navigation key with nothing focused does the same instead of moving through the menus.
-  The frame table reselects and refocuses the current frame after a row is replaced or
-  rebuilt (`RestoreFrameTableSelection`). Don't wrap `SelectedItems` edits in
-  `Selection.BatchUpdate()`: Avalonia then applies them twice (duplicate selection).
-- **List row models** live in `ListRows.cs` as top-level types so the row templates can use
-  compiled bindings (`x:DataType`); a binding typo is a build error.
-- **Frame table rows update in place**: `FrameTableRow` notifies changes, `RefreshFrameTableRow`
-  copies into the existing row, and `RebuildFrameTable` updates rows and adds or removes only
-  the tail. Replacing or clearing rows (measured): ~80–180 ms of layout per edit, and after a
-  rebuild following edits every scroll step re-created all visible rows (~50 ms each). Don't
-  go back to replacing row objects.
-- **Frame table cell editor**: one shared TextBox placed over the clicked text cell
-  (`OpenFrameEditor`). Enter confirms and returns to the row, Tab/Shift+Tab move across, Escape cancels.
-- **List keyboard look-ahead** (`MainWindow.ListLookahead.cs`): after an arrow,
-  Page, Home or End step in the sprite, palette, action, frame-table or sound list,
-  the next row in the direction of travel is scrolled fully into view, so the
-  highlight stops one row short of the edge. Avalonia 11.3's VirtualizingStackPanel
-  rebuilds every visible row when ScrollIntoView targets an unrealized row
-  (measured: ~50 ms per step on a 12k-sprite SFF, ~3 ms with the look-ahead).
-- **GIF export** splits playback into runs of identical drawn state to show
-  Interpolate, and uses configured dwell for -1 holds. Delays are rounded to
-  centiseconds with a 2-centisecond minimum. Frames use a local color table,
-  alpha below 128 is transparent, and blends render normally.
+- **Duplicate Action** copies Copy Action, interpolation markers, comments, collision
+  defaults, loop start and cloned frames. Frame text edits reparse on commit as one step.
+- **Frame comments** belong to the frame below them and move with it through insert, remove,
+  reorder and undo; removing a frame removes its comments, and duplication copies them. The
+  frame table marks such frames with a muted ";" whose tooltip lists the comments.
+- **Frame multi-selection**: Ctrl/Shift click and Ctrl+A select frames, while
+  `FrameList.SelectedIndex` stays the one current frame for the canvas, Clsn, Special Flags
+  and Loop From Here. Picking a frame inside the selection keeps it; any other frame
+  collapses it. Remove, Duplicate, Move Up/Down, Delete and Copy act on the selection, and
+  Insert, Insert Sprite Group and Duplicate insert after the last selected frame. Special
+  Flags sets Interpolate on every selected frame and dims Loopstart.
+- **Batch Clsn actions**: Auto Clsn, Sort Boxes, Delete All Boxes, Copy from Onion Skin and
+  Paste Clsn act on every selected frame as one undo step; Add Clsn1/2 needs a single frame.
+  Delete Box and Toggle Default act on the boxes selected on the canvas, whatever the frame
+  selection. Buttons dim when they can't act.
+- **Frame-table fill handles** copy one field down a dragged row range as one step without
+  changing the selected frame. Sprite table fills likewise keep the prior selection.
+- **Clsn editing**: a frame either owns boxes or inherits the current default, and a default
+  declared on a frame counts as its own. Editing another frame creates own boxes; deleting a
+  frame's last own box returns it to the default, and deleting a default's last box removes
+  the declaration. Loaded zero-box declarations are kept; the editor never creates them.
+- **Onion skins** use the ghost sprite's own palette while the active palette stays selected
+  for editing. Each panel has its own Show toggle. Copying Clsn from an onion frame copies
+  the shown boxes as owned boxes.
+- **Sort Boxes For All** sorts own boxes and defaults across actions, clearing Clsn
+  numbering/count warnings in one step.
+- **AIR save changes**: loading reports what a save would change even without edits (Clsn
+  recounting, moved comments, encoding conversion). Save asks first and writes UTF-8.
+- **Auto Clsn** generates Clsn1 or Clsn2 boxes around visible pixels and splits or merges
+  them to the requested count, minimizing empty space. The dialog offers Kind (opens on
+  Clsn2), Boxes and Layout; count and layout are remembered for the session and shared by
+  both kinds, and only the chosen kind is replaced. Batch generation replaces declared
+  defaults and gives other frames owned boxes; missing or fully transparent sprites keep
+  theirs. It is a starting point for hand editing: read **Auto Clsn2 experiments** before
+  adding options.
+- **Playback** waits `InfiniteAnimationTimeout` before restarting infinite actions. It counts
+  Stopwatch ticks (60/s) polled every ~8 ms, steps missed ticks and draws only the last, and
+  skips stalls over 30 ticks. Dragging the sprite to change offsets is disabled while it
+  runs.
+- **Timeline**: a click jumps to a frame's start; a drag past `TimelineDragThresholdPixels`
+  pauses and scrubs to the exact tick. The line under the canvas reads "Frame X of Y | Time
+  X of Y" (frames 1-based, ticks 0-based) plus offset, scale, angle and alpha while they
+  interpolate. The playhead stays visible when paused and follows any frame pick. The wheel
+  zooms around the cursor, Shift+wheel scrolls, and the bar is disabled at fit. A new action
+  fits the zoom; frame edits keep it.
+- **List keyboard navigation** stays inside the focused list. Each tab's main list takes
+  focus when the tab opens and after a load, and a navigation key with nothing focused does
+  the same instead of stepping the menus. Don't wrap `SelectedItems` edits in
+  `Selection.BatchUpdate()`: Avalonia then applies them twice.
+- **Frame table rows update in place** (`FrameTableRow`, `RefreshFrameTableRow`): replacing
+  rows cost 80–180 ms of layout per edit, so only the tail is added or removed.
+- **Frame table cell editor**: one shared TextBox over the clicked cell; Enter confirms,
+  Tab/Shift+Tab move, Escape cancels.
+- **List look-ahead** scrolls the next row fully into view after an arrow, Page, Home or End
+  step, since Avalonia rebuilds every visible row when `ScrollIntoView` targets an unrealized
+  one (measured ~50 ms per step on a 12k-sprite SFF).
+- **GIF export** splits playback into runs of identical drawn state so Interpolate shows, and
+  uses the configured dwell for -1 holds. Delays round to centiseconds with a 2-centisecond
+  minimum; alpha below 128 is transparent.
 
 ### Sprites and palettes
 
-- **Before/After squares** top the color panel, with Commit/Reset right under them (they act on
-  every pending change in the panel, not just Adjustments). Before is the session start
-  (`_adjustSession`, what Reset restores); After is the live color of the selected swatch.
-  `UpdateColorCompare` runs from `SyncAdjustCommitButton`, `RefreshPaletteViews`, the RGBA
-  sliders' ValueChanged and theme changes; alpha shows as a PaletteView-style bottom strip.
-- **Selecting a color from the sprite preview** is only in its right-click menu (Select Color Here);
-  the old Select from Preview button duplicated it and was removed. The preview's tooltip hints at it.
-- **Copy to Scratch/Current Palette** (swatch right-click, Current palette <-> Scratch palette) keeps each selected color's
-  index, unlike drag-and-drop, which packs them from the drop slot. Disabled, with the reason as its tooltip,
-  when an index is past the target's end. One undo step like a drop (scratch: none); a pending adjust on the
-  target is settled first (Commit/Discard/Cancel). Target selection is left alone.
-- **Canvas tooltips** (`SpriteView`): a real move closes the tip and a `ToolTip.ShowDelay` timer reopens
-  it once the cursor rests. Avalonia opens a tip once per hover, so close-on-move alone hid it for good.
-- **Scratch palette color adjustments**: the color Commit button works on scratch like any palette
-  (it keeps the preview) but records no undo entry; `SyncAdjustCommitButton` uses
-  `HasAdjustedColors`, which counts scratch. `HasPendingColorAdjust` still leaves scratch out, so
-  it never triggers the uncommitted-adjustment prompts, close checks or recovery. On scratch,
-  `OnColorAdjustChanged` only redraws differently; it still syncs the RGBA sliders and Commit.
-- **Sprite rotation**: quarter turns and mirrors only rearrange pixels, so they
-  are lossless and keep axes on whole pixels. Free-angle rotation resamples and
-  rounds fractional axis coordinates. Indexed sprites cannot use bilinear
-  sampling because interpolated palette indexes have no defined color mapping.
-  Rotation fitting must use the signed angle because clockwise and counterclockwise
-  offsets differ.
-- **Sprite flips** rearrange pixels without resampling or re-quantizing; linked
-  sprites follow their target's axis, and linked selections are skipped.
-- **Sprite Resize** resamples pixel content to absolute dimensions or independent
-  X/Y percentages, scaling the axis coordinates by each dimension's ratio. Nearest
-  is the default; Area weights source-pixel coverage, and Bilinear blends true-color
-  pixels only. Indexed sprites stay indexed and preserve their palette; Area selects
-  an existing index rather than inventing one. Resize Canvas remains the separate
-  center crop/pad operation.
-- **Mask on import with nearest matching**: index 0 is never picked for an opaque pixel
-  by color distance. **Keep mask** (import dialog, under Match the nearest color; on
-  each time, indexed images only) sends pixels at the image's index 0 to 0 whatever
-  their color, so a black mask and black outlines stay apart. Otherwise (unticked, or
-  true color) the mask comes from alpha, or, in images with no transparent pixels (PCX,
-  mask-shown PNGs), from an exact match of the palette's index 0 RGB. Palette match
-  counts in the dropdown follow the default (ticked).
-- **Palette export/import** always writes a lossless `.rgba` text palette with exact color count, index order, and RGBA channels, plus a user-chosen ACT, JASC-PAL, or indexed PNG companion. For 1–7-bit palettes, PNG is a visual reference; `.rgba` is the exact round-trip format. `.rgba` imports preserve any 1–256 color count and all channels. Existing ACT, JASC-PAL, indexed PNG, and PCX imports remain supported. Without an SFF open, imported palette files are standalone documents; multiple files can be edited and saved to their source format. Indexed PNG and PCX saves replace the palette while preserving image data; saves confirm before dropping unrepresentable alpha or palette entries. Opening an SFF offers to keep standalone palettes as external SFF palettes, discard them, or cancel.
-- **Create From Images** (Palettes menu) builds one 256-color palette from the visible
-  pixels of picked PNG or PCX files. Index 0 is a transparent black mask; pixels below the
-  transparent alpha threshold are skipped. Up to 255 colors are kept exactly, most used
-  first (ties in first-seen order); more are reduced by frequency-weighted median cut. The
-  rest pads with opaque black. The result is a temp palette.
-- **Combine Into New and Merge and Update Sprites** (Palettes menu and palette right-click) work on the palette
-  rows selected with Ctrl/Shift; the list is multi-select, and single-palette entries in its
-  right-click menu dim while several rows are selected. Every entry of every chosen palette is
-  kept, used by sprites or not, except padding: each palette's most frequent color, if it
-  fills 2+ entries, is left out of that palette (Merge keeps it at indexes a sprite's pixels
-  use). Each time, a dialog shows "Based on" and "Padding" dropdowns and a "Colors: n of 256"
-  line. Padding lists the detected padding colors, most entries first, then 0,0,0; the pick
-  fills every slot no color takes. Identical RGBA colors
-  share an entry. Placement keeps indexes: walking the chosen palettes in list order, each color
-  takes its old index if still free; the rest fill free slots, most used first (sprite pixel
-  counts, a sprite on a palette linking to a chosen one counting toward it). Index 0 is
-  the first palette's mask. The size is the largest chosen palette's,
-  grown to a power of two only when the colors don't fit. **Combine Into New** makes a temp
-  palette and changes nothing else; its dialog's "Based on" dropdown (any chosen palette,
-  starting on the right-clicked one) picks whose indexes and mask win; over 256 colors (with the mask) its button reads "Reduce and Combine" and it reduces by
-  frequency-weighted median cut, averaging alpha too, each reduced color taking a member's old
-  index when free. **Merge and Update Sprites** needs at least one SFF palette, refuses over 256, and remaps
-  pixels through the exact old-to-new index map (no nearest color), one undo step. It refuses
-  when a sprite can't follow: a borrower on an unmerged palette, a pixel owner on an unmerged
-  palette, or an undecoded sprite; pixel owners on a merged palette are remapped and their
-  borrowers follow. The dialog's "Based on" dropdown picks the target among the chosen
-  SFF palettes (SFFv2 links excluded), starting on the right-clicked one, else the topmost; it
-  goes first, so its indexes and mask win. SFFv2: the target gets the colors and keeps its key;
-  the other chosen SFF palettes are removed and their sprites redirected to it. Palettes linking to a removed one
-  relink to the target when after it, else get their own copy of the colors (links only point
-  back). SFFv1: every chosen SFF palette gets the colors;
-  nothing is removed. Imported and temp palettes only add colors. Sort Ascending is only in the
-  palette list's right-click menu.
-- **Palette rows drag to reorder**, with or without an SFF open, as one undo step.
-  Dropping on a row puts the palette before it; dropping past the last row puts it at
-  the end. Sprites and links reference palette objects, so only the list order, the F/T
-  numbers and (SFFv2) the saved palette table order change.
-- **Temp palettes** are palettes made in the editor with no file yet: New or Create From
-  Images, with or without an SFF open, and Duplicate of any palette. Like imported file palettes they are external: with
-  an SFF they join its list (one undo step, not marking the SFF changed; the same goes for
-  importing palette files) but are not saved in it until applied to sprites or added with
-  Add to SFF. Save All skips them (the status line counts them); they are saved or exported
-  deliberately, and closing still warns about unsaved ones. They show "temp" as their source and "New palette (not saved
-  yet)" as their kind, and start unsaved. External palettes are labeled by group: F for
-  palettes from a file, T for temp ones, each numbered in list order (F1, T1), with or
-  without an SFF open. SFFv1 stores no palette keys, so its own palettes are labeled S,
-  numbered in list order (S1, S2), everywhere a palette is named (`PaletteKey`); the
-  Number tooltip names the sprite that stores it. The internal group/number is not
-  shown; real keys appear only on v1 → v2 conversion. Sort Ascending puts T after F. Save asks for a location and offers
-  RGBA, ACT or JASC-PAL (not PNG/PCX, which need image pixels). Kept when an SFF opens,
-  they become external palettes labeled temp until exported. Applying a temp palette to
-  sprites in SFFv2 moves it into the SFF (the first sprite's group, first free index from 0,
-  not group 1, the character palettes) as one palette shared by those sprites, in one undo step, rather than copying it per sprite. In SFFv1 its
-  colors are copied into each sprite's own palette (v1 palettes live in the sprites) and
-  the temp palette leaves the list in the same undo step. Either way none is left behind.
-- **Add to SFF** (palette list right-click and Palettes menu; one external palette, SFFv2
-  only) moves an imported or temp palette into the SFF at a group and number asked for,
-  starting at 1 and the next free number from 1, so alt palettes no sprite uses can be added.
-  A taken key asks to replace that palette's colors: it keeps its key, sprites and linked
-  palettes, and a palette that was itself a link gets its own colors. A different color count
-  is refused. One undo step. Applying a file palette to sprites copies it into the sprite's
-  group the same way.
-- **Palette list right-click** offers "Save Original File" (imported palettes, to their source file) and "Save SFF File" (SFF palettes, same as File > Save). The option that does not apply to the clicked palette is dimmed, not hidden.
-- **Palette PNG export** preserves RGBA as indexed pixels with alpha.
-- **Palette selection** follows the palette object. A palette preview can display
-  the active sprite without changing which palette is being edited. Dirty palettes
-  show `*` beside their number in the palette list. Independent embedded SFFv2
-  palettes can convert among 1- through 8-bit depths. Shrinking is
-  available only when every sprite using the palette is decoded and its indexes
-  fit the target depth. Growing fills new entries with opaque black. Palette
-  depth changes are undoable and preserve existing indexes and colors.
-- **Pending color edits** apply live but form one undoable session. Operations
-  compose with prior edits; Reset restores the session baseline and Commit records
-  the current result. Selection is limited to one swatch grid at a time.
-- **Palette eyedroppers** distinguish replacing a swatch's RGBA from selecting a
-  palette entry. A true-color preview has no palette index to select, but its pixel
-  color can still be used to replace a swatch.
-- **Swatch order reversal** is Sort Colors by Index, Descending. It reorders selected
-  colors among selected indexes, not by click order; this differs from RGB inversion.
-  Index 0 stays in place, unlike the earlier reversal.
-- **Sort Colors** (swatch right-click) opens a dialog: brightness (Rec. 601 luma), hue,
-  or index (the default), ascending or descending. Colors move into the selected slots. Index 0 never
-  moves. Hue puts grays last, ordered by brightness. Needs two movable colors.
-- **Reorder sprite updates**: Sort Colors asks whether to update sprites using the
-  palette (off by default). When on, pixel indexes are remapped in
-  the same undo step, and pending slider edits are committed first. Linked sprites
-  follow their pixel owner; a sprite whose pixels are shared with a sprite on another
-  palette, or that failed to decode, is skipped and listed. True-color sprites are
-  never touched.
-- **Box selection** on a palette grid: pressing an unselected swatch and dragging draws a
-  box that selects every swatch it touches. Ctrl adds the box to the current selection.
-  Pressing a selected swatch and dragging still copies the whole selection.
-- **Palette hue and saturation** sliders use OKLCH by default, so a hue move keeps the
-  color's perceived lightness (HSV hue shifts brightness, e.g. yellow toward blue turns
-  much darker). settings.json `PalettePerceptualHue: false` restores HSV. Saturation is a
-  percent of the most chroma sRGB allows at that lightness and hue. Lighten and RGB
-  sliders still add to RGB directly.
-- **Swap Colors** (swatch right-click) swaps exactly two selected colors. Index 0 is
-  refused. It uses the Sort Colors dialog pattern and the same sprite update rules.
-- **Single-color popups**: Create Gradient, Sort Colors, and Swap Colors show
-  a popup, not a status-bar line, when fewer than two colors are selected.
-- **Reference image view** keeps its own zoom state, independent of the sprite
-  canvas and palette preview.
-- **Canvas background images** follow the view pan when Follow pan is enabled,
-  preserving their position relative to the sprite; tiled images keep the same
-  tile phase. With Follow pan off, the image stays fixed to the canvas.
-- **Image import**: indexed images preserve palette/index order when possible;
-  own-palette 8-bit imports pad the palette to 256 entries with opaque black,
-  without changing existing colors or indexes. True-color reduction uses
-  frequency-weighted median cut, reserving index 0 for transparency. Palette
-  reduction weights colors by occurrence, not by unique color. PNG, PCX, and GIF
-  are supported; true-color sprites cannot be exported as PCX.
-- **Sprite import dialog palette help**: each palette's label counts how many of
-  the images it reproduces exactly, comparing full RGBA. Keep indexes: same color
-  at every index the image uses. Nearest color: every visible color present
-  outside index 0. Index 0 never counts. The specific-palette dropdown opens on a
-  palette matching every image (ties: selected sprite's, previous sprite's, list
-  order), otherwise on the previous sprite's palette; radio defaults are
-  unchanged. A preview shows the first image as the current choices would import
-  it, rebuilt off the UI thread on each change. It is square, as tall as the
-  options column, and fits the visible pixels, ignoring transparent borders; no
-  zoom or pan. Shared colors that overflow a palette preview reduced.
-- **GIF import** composites frame rectangles onto the logical screen and honors
-  disposal and interlace. Transparency is binary and pinned to index 0. Truncated
-  LZW data leaves undecoded pixels transparent. Repeated frames can be dropped by
-  comparing each frame against all earlier kept frames; this reduces pose duration.
-  Imported frames share one palette in first-seen play order. If their color union
-  exceeds 255 colors, import must use true-color, reduce colors, or be canceled.
-  Replacing a sprite from a multi-frame GIF is refused.
-- **Sprite-sheet import** uses connected components and groups detections into
-  approximate reading-order bands. Opaque sheets use the most common color as a
-  guessed background, cleared inside sprite crops as well. A configurable minimum
-  size filters specks; touching sprites remain merged rather than risking pixel
-  loss by separating them. True-color sheet palettes exceeding 255 colors require
-  true-color import or lossy reduction.
-- **Applying palettes** preserves indexes by default. Nearest-color conversion
-  is unavailable for linked sprites and sprites with borrowers; converting
-  true-color to indexed is lossy. In SFFv1, changing a shared palette can alter
-  the appearance of every sprite that uses it.
-- **Bulk import/export** uses a key-based manifest, not a folder scan. Duplicate
-  type/key entries are rejected before mutation; matching keys overwrite after
-  confirmation and other entries append. Unexpected batch failures roll back the
-  batch, while per-entry failures do not prevent other entries from applying.
-  Palette PNGs preserve RGBA; external character palettes are not included.
-- **Duplicate sprite linking** matches dimensions and pixel bytes. SFFv1 also
-  requires equal palette colors and links share the target palette; SFFv2 permits
-  independent palettes. Links are flattened, and a later target's image is first
-  taken over by an earlier match before relinking. Manual links may target only
-  earlier sprites.
-- **Sort sprites**: Sprites > Sort Ascending orders the whole file by group, then number,
-  with group 9000 first unless settings.json Sprites `SortPortraitsFirst` is false (the
-  portraits sit at the start of the file, which speeds loading);
-  the list's right-click Sort Selected Ascending sorts only the selection among the
-  positions it already holds. Ties keep their order; one undo step. On SFFv1 it refuses an
-  order that would make a link lose its palette (only links this order breaks, compared
-  with the current one) and lists them with jumps; nothing changes.
-- **Link direction on save**: Ikemen GO loads a link to a later sprite as blank (verified in
-  its image.go: `indexOfPrevious < i`). Links are references in memory, so sorting or
-  dragging can put one before its target; both writers (`SffWriter.LinkTargets`) make the
-  earliest sprite of each linked set store the pixels (reusing the owner's bytes) and link
-  the rest back to it. In SFFv1 the sprite that turns into a link keeps its palette only if
-  it's the new target's or the previous one; `V1LinksLosingPalette` applies the same rule.
-- **Links to later sprites on load**: readers record them (`SffFile.ForwardLinksOnLoad`). Opening
-  shows a popup, the Media Health Report lists them, and a save that still turns them around
-  asks Save/Cancel first (also naming SFFv1 sprites in those sets that would take their
-  target's palette), then says so in the status line and clears the list.
-- **Find Similar** compares visible pixel data after trimming transparent borders;
-  axes and canvas positions do not affect the score. Indexed and true-color sprites
-  are not compared across modes. Borrowers, undecodable sprites, and fully
-  transparent sprites are excluded. A visual match is not necessarily linkable.
-  Thresholds are minimum matching shares of the union of visible positions; palette
-  matching defaults by SFF version because SFFv1 shares palette colors while v2
-  permits independent palettes.
-- **Duplicate palette comparison** ignores index-0 RGB only when both palettes'
-  index 0 is fully transparent. SprMaker palette deduplication instead compares
-  all resolved RGBA values, including index 0, and affects only the saved copy.
-- **SFFv2 palette links** may only target earlier independent embedded palettes.
-  Merge redirects sprites and linked palettes; unlink copies current colors.
-  Deleting a used palette redirects sprite users to its link target or the first
-  remaining palette, and linked palettes become independent copies. Deletion is
-  refused if no fallback palette exists; displayed colors can change.
-- **Borrowed sprites** share target pixels. Pixel edits to a borrower are refused
-  rather than silently breaking the link. Editing a target preserves borrowers
-  and adjusts their axes; unlinking copies the target bitmap.
-- **Sprite deletion** refuses sprites with pixel borrowers outside the selection;
-  a linker selected with its target is deleted with it, and undo keeps the link. In SFFv1, palettes
-  are carried by sprite PCX records, so deleting the last sprite user silently
-  removes its embedded palette automatically; group 1 is not exempt. In SFFv2, the last
-  direct users of embedded, non-group-1 palettes trigger a second prompt after
-  sprite deletion is confirmed, explaining which palettes will become unused and
-  offering to delete them too or keep them. Multi-sprite confirmation shows only
-  the count; single-sprite confirmation names its key. Deleting v2 palettes unlinks dependents while
-  preserving their current colors. Each deletion is one undo step. Delete acts on
-  the focused list; selected sounds delete together in one undo step.
-- **Find Duplicate Palettes** shows a clickable report for duplicate palettes;
-  closing it continues to the existing Merge/Link/Cancel choice.
+- **Before/After squares** top the color panel, with Commit/Reset under them; they cover every
+  pending change in the panel. Before is the session start (what Reset restores), After the
+  live color of the selected swatch.
+- **Select Color Here** (sprite preview right-click) is the only way to pick a color from the
+  preview; the preview's tooltip hints at it.
+- **Copy to Scratch/Current Palette** (swatch right-click) keeps each color's index, unlike
+  drag-and-drop, which packs from the drop slot. It is disabled, with the reason as its
+  tooltip, when an index is past the target's end, and it settles a pending adjust first.
+- **Canvas tooltips**: a real move closes the tip and the show-delay timer reopens it, since
+  Avalonia opens a tip only once per hover.
+- **Scratch palette adjustments** commit like any palette but record no undo entry, and they
+  never count as pending, so they trigger no prompts, close checks or recovery.
+- **Sprite rotation**: quarter turns and mirrors only rearrange pixels, so they are lossless
+  and keep axes on whole pixels; a free angle resamples and rounds fractional axes. Indexed
+  sprites can't use bilinear sampling, since interpolated indexes have no color. Fitting must
+  use the signed angle, because clockwise and counterclockwise offsets differ.
+- **Sprite flips** rearrange pixels without resampling; linked sprites follow their target's
+  axis and linked selections are skipped.
+- **Sprite Resize** resamples to absolute dimensions or independent X/Y percentages, scaling
+  the axis by each ratio. Nearest is the default; Area weights source coverage and keeps
+  indexed sprites exact, and Bilinear blends true color only. Resize Canvas stays the
+  separate crop/pad operation.
+- **Mask on import**: index 0 is never picked for an opaque pixel by color distance. **Keep
+  mask** (indexed images) sends pixels at the image's index 0 to 0 whatever their color, so a
+  black mask and black outlines stay apart. Otherwise the mask comes from alpha, or in images
+  with no transparency from an exact match of the palette's index 0 RGB.
+- **Palette export/import** writes a lossless `.rgba` text palette (exact count, order and
+  RGBA) plus a chosen ACT, JASC-PAL or indexed PNG companion, and palette PNG export keeps
+  RGBA as indexed pixels. Without an SFF, imported palettes are standalone documents that
+  save to their source format; indexed PNG and PCX saves replace the palette and ask before
+  dropping unrepresentable alpha or entries. Opening an SFF offers to keep standalone
+  palettes as external SFF palettes, discard them, or cancel.
+- **Create From Images** builds one 256-color palette from the visible pixels of picked PNG
+  or PCX files: index 0 is a transparent black mask, up to 255 colors are kept exactly most
+  used first, and the rest are reduced by frequency-weighted median cut or padded with black.
+- **Combine Into New and Merge and Update Sprites** work on the selected palette rows. Every
+  entry of every chosen palette is kept except padding: each palette's most frequent color,
+  if it fills 2+ entries, is left out (Merge keeps it at indexes sprites use). Identical RGBA
+  shares an entry. Colors keep their old index when it is free, walking palettes in list
+  order; the rest fill free slots most used first. Index 0 is the first palette's mask, and
+  the size is the largest chosen palette, grown to a power of two only when needed. The
+  dialog offers "Based on" (whose indexes and mask win) and "Padding" dropdowns and shows
+  "Colors: n of 256".
+- **Combine Into New** makes a temp palette and changes nothing else. Over 256 colors its
+  button reads "Reduce and Combine" and it reduces by frequency-weighted median cut,
+  averaging alpha, each reduced color taking a member's old index when free.
+- **Merge and Update Sprites** needs an SFF palette, refuses over 256, and remaps pixels
+  through the exact old-to-new index map in one undo step. It refuses when a sprite can't
+  follow: a borrower or pixel owner on an unmerged palette, or an undecoded sprite. In v2 the
+  target keeps its key, the other chosen palettes are removed and their sprites redirected,
+  and links to them relink or copy the colors; in v1 every chosen palette gets the colors and
+  nothing is removed.
+- **Palette rows drag to reorder** in one undo step; only the list order, the F/T numbers
+  and (v2) the saved palette table order change.
+- **Temp palettes** are made in the editor with no file yet: New, Create From Images, or
+  Duplicate. They are external, so they join an SFF's list in one undo step without marking
+  it changed and aren't saved into it until applied to sprites or added with Add to SFF.
+  Save All skips them but closing still warns. They are labeled T, file palettes F, and v1
+  SFF palettes S, each numbered in list order; real keys appear only after v1 → v2
+  conversion. Saving asks for a location and offers RGBA, ACT or JASC-PAL. Applying one in
+  v2 moves it into the SFF as one shared palette; in v1 its colors are copied into each
+  sprite's palette and the temp leaves the list, in the same undo step.
+- **Add to SFF** (v2 only) moves an external palette into the SFF at a group and number asked
+  for, so alt palettes no sprite uses can be added. A taken key asks to replace that
+  palette's colors, keeping its key, sprites and linked palettes. A different color count is
+  refused.
+- **Palette list right-click** offers "Save Original File" for imported palettes and "Save
+  SFF File" for SFF palettes; the inapplicable one dims rather than hides.
+- **Palette selection** follows the palette object; a preview can show the active sprite
+  without changing the edited palette. Dirty palettes show `*`. Embedded v2 palettes convert
+  among 1–8 bits, shrinking only when every sprite using them is decoded and its indexes fit;
+  growing fills with opaque black. Depth changes undo and keep indexes and colors.
+- **Pending color edits** apply live, form one undoable session, and compose with prior
+  edits; Reset restores the baseline and Commit records the result. One swatch grid is
+  selected at a time.
+- **Palette eyedroppers** distinguish replacing a swatch's RGBA from selecting an entry; a
+  true-color preview has no index to select but can still replace a swatch.
+- **Sort Colors by Index, Descending** reverses order among selected indexes, not by click
+  order; index 0 stays in place.
+- **Sort Colors** sorts by brightness (Rec. 601 luma), hue or index into the selected slots.
+  Index 0 never moves, and hue puts grays last by brightness.
+- **Reorder sprite updates**: Sort Colors asks whether to update sprites using the palette
+  (off). When on, indexes are remapped in the same undo step and pending slider edits commit
+  first. Linked sprites follow their owner; shared pixels and undecoded sprites are skipped
+  and listed, and true-color sprites are never touched.
+- **Box selection** drags a box that selects every swatch it touches; Ctrl adds it. Dragging
+  from a selected swatch still copies the selection.
+- **Palette hue and saturation** sliders use OKLCH by default, so a hue move keeps perceived
+  lightness; settings.json `PalettePerceptualHue: false` restores HSV. Saturation is a
+  percent of the most chroma sRGB allows. Lighten and RGB add to RGB directly.
+- **Swap Colors** swaps exactly two selected colors, refusing index 0, with the same sprite
+  update rules as Sort Colors.
+- **Single-color popups**: Create Gradient, Sort Colors and Swap Colors show a popup, not a
+  status line, when fewer than two colors are selected.
+- **Reference image view** keeps its own zoom, independent of the canvas and preview.
+- **Canvas background images** follow the view pan when Follow pan is on, keeping their
+  position relative to the sprite; tiled images keep the same phase.
+- **Image import** keeps palette and index order when possible; own-palette 8-bit imports
+  pad to 256 entries with opaque black. True-color reduction uses frequency-weighted median
+  cut weighted by occurrence, reserving index 0 for transparency. PNG, PCX and GIF are
+  supported; true-color sprites can't be exported as PCX.
+- **Sprite import palette help** counts how many images each palette reproduces exactly
+  (full RGBA) or by index or nearest color, with index 0 excluded. The specific-palette
+  dropdown opens on a palette matching every image, else the previous sprite's. A square
+  preview rebuilds off the UI thread and fits the visible pixels.
+- **GIF import** composites frame rectangles onto the logical screen and honors disposal and
+  interlace. Transparency is binary at index 0, and truncated LZW leaves pixels transparent.
+  Repeated frames can be dropped, which shortens pose time. Frames share one palette in play
+  order, and over 255 colors the import must use true color, reduce, or cancel. Replacing a
+  sprite from a multi-frame GIF is refused.
+- **Sprite-sheet import** detects sprites as connected components grouped into reading-order
+  bands. Opaque sheets guess the most common color as background and clear it inside crops.
+  Touching sprites stay merged, and a minimum size filters specks. Palettes over 255 colors
+  need true color or reduction.
+- **Applying palettes** preserves indexes by default. Nearest-color conversion is unavailable
+  for linked sprites and sprites with borrowers, and converting true color to indexed is
+  lossy. In v1, changing a shared palette changes every sprite using it.
+- **Bulk import/export** uses a key-based manifest; duplicate keys are rejected before
+  mutation, matching keys overwrite after confirmation, others append. Unexpected failures
+  roll back the batch, per-entry failures don't. Palette PNGs keep RGBA; external character
+  palettes are not included.
+- **Duplicate sprite linking** matches dimensions and pixel bytes; v1 also requires equal
+  palette colors and shares the target palette, while v2 allows independent palettes. Links
+  are flattened, and manual links may target only earlier sprites.
+- **Sort sprites** orders the whole file by group, then number, with group 9000 first unless
+  settings.json `Sprites SortPortraitsFirst` is false; Sort Selected Ascending sorts only the
+  selection among its positions. Ties keep their order. On v1 it refuses an order that would
+  make a link lose its palette and lists the sprites instead.
+- **Link direction on save**: Ikemen loads a link to a later sprite as blank, so both writers
+  make the earliest sprite of each linked set store the pixels and link the rest back. In v1
+  a sprite that turns into a link keeps its palette only if it is the new target's or the
+  previous one (`V1LinksLosingPalette`).
+- **Links to later sprites on load** are recorded, listed in the Media Health Report, and
+  turned around on save after a Save/Cancel prompt that also names v1 sprites that would
+  take the target's palette.
+- **Find Similar** compares visible pixels after trimming transparent borders; axes and
+  position don't score. It doesn't compare indexed with true-color sprites and skips
+  borrowers, undecoded and fully transparent sprites. Thresholds are minimum matching shares
+  of the union of visible positions, and palette matching defaults by SFF version.
+- **Duplicate palette comparison** ignores index-0 RGB only when both palettes' index 0 is
+  fully transparent. SprMaker's deduplication compares all RGBA including index 0.
+- **SFFv2 palette links** may only target earlier independent embedded palettes. Merging
+  redirects sprites and links; unlinking copies the colors. Deleting a used palette
+  redirects sprites to its link target or the first remaining palette and refuses when none
+  exists.
+- **Borrowed sprites** share the target's pixels: pixel edits to a borrower are refused,
+  editing a target adjusts borrowers' axes, and unlinking copies the bitmap.
+- **Sprite deletion** refuses sprites with pixel borrowers outside the selection; a linker
+  selected with its target goes with it, and undo keeps the link. In v1, deleting the last
+  user of a palette removes it. In v2, deleting the last direct users of an embedded
+  non-group-1 palette asks a second time whether to delete those palettes too, and doing so
+  unlinks dependents while keeping their colors. Each deletion is one undo step.
+- **Find Duplicate Palettes** shows a clickable report, then the usual Merge/Link/Cancel
+  choice.
 
 ### Sounds
 
-- **Sound edits** replace the WAV data chunk while preserving later chunks.
-  Resampling uses a Blackman-windowed sinc filter; previews may reuse a matching
-  completed render. Upsampling and bit-depth increases require confirmation.
-  Volume and echo operations warn before applying clipping.
-- **Waveform ranges** are used by range-capable edits, while previews play the
-  whole sound. Range edits crossfade at their edges except fades. Format changes,
-  trim/insert, undo/redo, reset, and switching sounds clear the range.
-- **Echo** extends the sound after its source. Auto repeat count is bounded so
-  the tail always ends; a selected range echoes without replacing other samples.
-- **Pitch, tempo, and speed** are pending per-sound edits. Speed changes playback
-  rate while retaining the file header rate; tempo changes duration without pitch;
-  pitch changes pitch without duration. Float WAV samples remain float through
-  sample edits; bit-depth conversion can convert them to integer PCM, but loudness
-  analysis remains integer-PCM only.
-- **Sound imports** stage the batch before applying it, so unexpected read failure
-  leaves the open list unchanged. Duplicate sound keys are rejected because
-  manifest paths are key-based. Save As retains the current path until saving to
-  the destination succeeds.
-- **Increase Loudness** raises quieter parts while preserving each clip's peak;
-  LUFS is informational and does not drive gain.
-- **Several sounds selected** (`MainWindow.SoundsMulti.cs`): every edit, Export and
-  Duplicate act on all of them. Edits ask once (no Preview: the pending session follows
-  one sound), then `EditSounds` applies them immediately as one undo step, off the UI
-  thread under the busy lock; unchanged sounds are counted, failures logged. Fade
-  clamps to each sound's length; Echo's Auto works out each sound's repeats; Resample
-  and Bit Depth confirm once if any would go up. Export picks a folder (Group_Number.wav,
-  asks before overwriting). Play, Loop, Stop, Trim to Selection and Replace are disabled.
-  Downsample All runs through `EditSounds` too.
+- **Sound edits** replace the WAV data chunk and preserve later chunks. Resampling uses a
+  Blackman-windowed sinc filter, and previews may reuse a matching render. Upsampling and
+  bit-depth increases ask first; volume and echo warn before clipping.
+- **Waveform ranges** feed the range-capable edits, though previews play the whole sound.
+  Range edits crossfade at their edges except fades, and format changes, trim/insert,
+  undo/redo, reset and switching sounds clear the range.
+- **Echo** extends the sound after its source, with an auto repeat count bounded so the tail
+  always ends; a selected range echoes without replacing other samples.
+- **Pitch, tempo and speed** are pending per-sound edits: speed changes playback rate but
+  keeps the header rate, tempo changes duration without pitch, pitch changes pitch without
+  duration. Float samples stay float; loudness analysis is integer PCM only.
+- **Sound imports** stage the batch first, so a read failure leaves the list unchanged, and
+  reject duplicate keys. Save As keeps the current path until the destination succeeds.
+- **Increase Loudness** raises quiet parts while keeping each clip's peak; LUFS is
+  informational.
+- **Several sounds selected**: every edit, Export and Duplicate acts on all of them. Edits ask
+  once and apply off the UI thread as one undo step, counting unchanged sounds and logging
+  failures; Fade clamps per sound, Echo's Auto works per sound, and Resample or Bit Depth ask
+  once if any would go up. Export picks a folder and asks before overwriting. Play, Loop,
+  Stop, Trim to Selection and Replace are disabled, and Downsample All works the same way.
 
 ### Reports and configuration
 
-- **Keyboard shortcuts**: one table, `Shortcuts.cs` (id, section, label, scope, default,
-  works-in-text-boxes), drives `OnKeyDown`, the project-tab tunnel handler (Tabs section), menu
-  gesture text (`ApplyMenuGestures`) and Help > Keyboard Shortcuts (plus fixed navigation rows).
-  settings.json `Shortcuts` holds only changed bindings ("" = none); bad entries fall back and are
-  logged. Scopes: Everywhere, Animations tab; the more specific wins. Built-in navigation (list
-  arrows, Page/Home/End, Delete, Escape, Enter/Tab in tables, Shift-drag, Ctrl/Shift-click) isn't
-  in the table. Open, Save and Save As act on the current tab (`OpenCurrentTab`, `SaveCurrentTab`,
-  `SaveAsCurrentTab`); Ctrl+O shows on each tab's Open menu item. Zoom in/out default to Ctrl+Plus/Minus (with
-  Ctrl+0 actual size, the usual convention); numpad +/- count as main +/-, which also match
-  with Shift added. Preferences > Shortcuts
-  (`Dialogs.ShortcutsPage`) is a table (Where, Command, Shortcut) ordered by Where, then table
-  order; no filter or section column. It's left out of the page measuring so the window
-  keeps its size; double-click a Shortcut cell or press Enter/F2 on the selected row to capture
-  (Escape cancels, modifiers alone wait; leaving the table or the window cancels too). Conflicts in
-  overlapping scopes ask to move the key; keys built-in navigation uses, and Alt+letter keys that
-  open a menu (`MenuAccessKeys`), ask first; Alt+F4 is refused. One binding per command. Each tab's
-  Open and Save menu items show Ctrl+O and Ctrl+S.
-- **Media Health Report** excludes external palettes from SFF palette counts
-  and comparisons. Group 1 palettes are excluded from the unused count because
-  a character can select them in-game without an SFF sprite referencing them.
-  **Find Unused Palettes** lists unreferenced embedded palettes as clickable rows
-  and states that group 1 and external palettes were ignored. Palette comparisons
-  use the mask-color rule in **Duplicate palette comparison**.
-- **Themes**: user theme files live under the platform's application-data
-  directory. The Dark theme is generated from `Themes.Fallback` when missing;
-  other shipped themes are refreshed at startup, while custom themes are not
-  overwritten. Every theme key is required. `Selection` fills selected table
-  rows; `Active` and `ActiveText` color checked toggle button backgrounds and
-  text. Theme files can be edited without rebuilding the app. Dark uses gray
-  surfaces with Ikemen-blue accents; Black remains the near-black theme.
-- **Theme resources**: `ThemeLine` and `ThemeHeaderLine` are derived colors;
-  do not use text-oriented `Muted`/`Dim` colors for hairlines. `ThemeSelection`
-  comes from the required `Selection` theme key. Checked toggle states use the
-  required `Active` and `ActiveText` theme keys. `Hover` is a required theme key
-  for unselected button hover backgrounds and sits between `Field` and `Active`;
-  missing theme keys are not migrated or defaulted. Swap theme resources as a
-  detached dictionary rather than updating keys individually, which causes
-  repeated dynamic-resource invalidations. Keep `Theme*` keys out of `App.axaml`;
-  local resources would shadow merged theme values. Override Fluent brush
-  families per control template, not
-  by assuming one family themes every control.
+- **Keyboard shortcuts**: one table in `Shortcuts.cs` drives the key handler, menu text and
+  Help > Keyboard Shortcuts. Settings hold only changed bindings, and bad entries fall back
+  and are logged. Scopes are Everywhere and Animations tab, and the more specific wins.
+  Built-in navigation (arrows, Page/Home/End, Delete, Escape, Enter/Tab in tables, Shift-drag,
+  Ctrl/Shift-click) isn't in the table. Preferences > Shortcuts lists Where, Command and
+  Shortcut; conflicts in overlapping scopes ask to move the key, and keys used by navigation
+  or by a menu access key ask first. Alt+F4 is refused, and one binding per command. Open,
+  Save and Save As act on the current tab.
+- **Media Health Report** leaves external palettes out of SFF palette counts and leaves group
+  1 out of the unused count, since a character can select it without a sprite. **Find Unused
+  Palettes** lists unreferenced embedded palettes as clickable rows.
+- **Themes**: user themes live under the platform's application-data directory. Dark is
+  generated from `Themes.Fallback` when missing, shipped themes are refreshed at startup, and
+  custom ones are never overwritten. Every key is required, missing ones are not defaulted,
+  and `Theme*` keys stay out of `App.axaml` because local resources shadow merged themes. Swap
+  the resource dictionary as a whole rather than key by key. Use `ThemeLine` and
+  `ThemeHeaderLine` for hairlines, never the text `Muted`/`Dim` colors, and override Fluent
+  brush families per control template.
 
 ## Implementation notes
 
