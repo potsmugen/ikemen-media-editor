@@ -264,7 +264,9 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Palette list right-click** offers "Save Original File" for imported palettes that have a
   file and "Save SFF File" for SFF palettes; the inapplicable one dims rather than hides.
   Temp palettes have no original file, so neither applies; the panel's Export button is
-  their save path. The menu holds only what the panel's buttons cannot do.
+  their save path. The menu holds only what the panel's buttons cannot do. Right-clicking
+  selects the row under the pointer first, unless it is part of a multi-selection, so every
+  entry acts on the palette that was clicked.
 - **Palette selection** follows the palette object; a preview can show the active sprite
   without changing the edited palette. Dirty palettes show `*`. Embedded v2 palettes convert
   among 1–8 bits, shrinking only when every sprite using them is decoded and its indexes fit;

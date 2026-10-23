@@ -11,10 +11,20 @@ before a release. Remove items once they're done or checked.
     sprites, sounds, frames or p..." is cut off; zoom shows as "Ctrl++" / "Ctrl+-".
   - Linux default font at the 1100x700 default window: "Resize Canvas" and "Shift Offset" are
     cut off in Sprite Tools.
-  - Questions: Sort Selected Ascending with everything selected puts 9000 last while Sort Ascending
-    puts it first. Sorting or deleting a sprite marks Palettes* dirty too (v1 Donald, v2 kfm).
+  - Question: sorting or deleting a sprite marks Palettes* dirty too (v1 Donald, v2 kfm).
   - Saving a standalone .air turns CRLF into LF and rewrites untouched boxes: action 20's
     "Clsn2[0] = -10,0, 10,-80" became "-10, -80, 10, 0". No warning (Preserve data as read).
+    Verified in code: AirWriter ends lines with Environment.NewLine (LF on Linux, CRLF on
+    Windows, whatever the file had). Unverified cause for the boxes: ApplyOwnState normalizes
+    every box of a frame when one is edited.
+  - Found in the release review (2026-10-23), by reading code; unverified in the app:
+    - Save writes a link to a later palette when a linked palette sits before its target (drag
+      reorder, Sort Palettes). Ikemen GO's loadPalettes resolves links as it reads, so a forward
+      link gets palette 0's colors (blank if first). Read from Ikemen GO's image.go, not tried in game.
+    - Delete These Palettes counts sprite use only; a .cns RemapPal can target palettes outside
+      group 1. Question: should the confirm say so?
+    - AIR: comment-only lines inside a Clsn block move above the block on save but don't count
+      in ChangesOnSave, so there's no warning.
   - Questions: after Recover, the command-line file is skipped silently (by design per
     App.axaml.cs, but nothing tells the user). A recovered changed-source file opens from
     data/recovery/recovered/ under a GUID name, so plain Save writes into the app folder.
@@ -27,9 +37,7 @@ before a release. Remove items once they're done or checked.
     collapse to nothing, the Sprites tab palette grid under Preview with disappears, and the
     float/collapse icons render as other glyphs.
   - Found in the second sandbox pass (2026-10-23):
-    - Palette list right-click acts on the selected palette, not the clicked row: Add to SFF on a
-      right-clicked T2 added the selected T1.
-    - Report text: a drag across two lines selects nothing; double-click selects within a line.
+    Report text: a drag across two lines selects nothing; double-click selects within a line.
     - Question: an .act with a 20-color count trailer imports as 256 colors; JASC-PAL with 20 gives 20.
   - Unverified (sandbox has no window manager): Escape doesn't close the Alt+F4 refusal popup.
 - Customizable shortcuts: see features.md "Keyboard shortcuts". It compiles, and column widths
@@ -107,6 +115,8 @@ before a release. Remove items once they're done or checked.
 - Decide whether to use a change event on the undo stack instead of polling for dirty state.
 - Loading is much slower than saving for large SFFs. Find out why.
 - Improve the Export Palette dialog (what to change is undecided).
+- Multiple sprite export, one file per sprite: offer the shared-canvas option Export All has
+  ("Pad every sprite to the same canvas size").
 - Add a tool to split palettes, the counterpart of Combine Into New and Merge and Update Sprites
   (design undecided).
 - Palette list is now multi-select: decide whether Delete (and other sidebar buttons) should act
@@ -175,13 +185,9 @@ Built, but not tried by the maintainer yet.
 
 ### Files and app
 
-- Windows "Open with" (launch argument) routes by extension like the menus; before, every
-  file was parsed as SFF. Double-click each with the editor as handler: .sff (sprites only),
-  .snd (Sounds tab), .air (Animations tab), .def (character/stage/other, all its files),
-  .act/.pal/.rgba (standalone palette), .imesession.
+- "Open with" (launch argument) routing passed for .sff, .snd, .air, .def and .act. Left: .imesession.
 - Release build: double-clicking the exe opens no console window; Debug still shows one.
 - Close during a large SFF save: the "Still working" popup appears and the save completes.
-  Normal saves leave no `.tmp-` file beside the target.
 - Recovery of an SFFv1 with an imported true-color sprite: the snapshot succeeds (no
   crash.log entry), recovery restores it as v1 with the same palettes, and Save shows
   the same "SFFv1 holds 8-bit sprites only" error as before the crash. Make a snapshot
@@ -220,6 +226,8 @@ Built, but not tried by the maintainer yet.
 
 - A report jump to an unused palette now also moves the palette list's selection (it used
   to show the palette in the grid while the list stayed on the old row).
+- The palette list's right-click menu now selects the row under the pointer before opening,
+  so Add to SFF and the other single-palette entries act on the row that was clicked.
 - Save Original File is disabled for temp palettes; it used to fall through to Export.
 - The palette right-click menu has no Export Palette (the panel button covers it).
 - Find Unused Palettes > Delete These Palettes: confirm text, linked palettes keep their
@@ -264,21 +272,9 @@ Built, but not tried by the maintainer yet.
 
 Unverified in the app; found by reading code and logs.
 
-Should fix:
-
-- After one single-file publish, confirm `themes/` and `backgrounds/` sit beside the exe
-  (Microsoft's docs say only managed DLLs are bundled). If missing, add
-  `ExcludeFromSingleFile="true"` to those items in Editor.csproj.
-
 Release hygiene:
 
-- Add LICENSE (MIT) on GitHub via Add file > Create new file > "LICENSE" > Choose a license
-  template, then pull; Editor.csproj copies it beside the exe as LICENSE.txt once present.
-- After a publish, the folder holds only the exe, LICENSE.txt (once pulled), backgrounds/,
-  lib/ (3 native DLLs + third-party licenses) and themes/. Start it: data/ and
-  logs/ appear, nothing new in %AppData% or %TEMP%. Run `tasklist /m av_libGLESv2.dll`: the
-  editor must be listed (ANGLE preloaded from lib/ by Program.UseLibFolder). Sprites draw
-  (Skia) and text renders (HarfBuzz). Your old settings/themes in %AppData%\ikemen-media-editor
+- After a publish, start it: nothing new in %AppData% or %TEMP%. Your old settings/themes in %AppData%\ikemen-media-editor
   are no longer read; copy custom themes into themes/, then delete that folder.
   When a package version changes, refresh src/Editor/third-party/ from ~/.nuget/packages.
 - Load decodes every sprite and copies each one's data on open (`SffReader.ReadSprites`);
@@ -287,20 +283,8 @@ Release hygiene:
 ### Other
 
 - Re-verify writers against Ikemen GO.
-- Test a trimmed Release build. `dotnet publish src/Editor -c Release -r
-  win-x64 --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=true`
-  takes the exe from ~73 MB to ~21 MB. Both reflection risks are now handled:
-  `Settings.cs` serializes through `SettingsContext`, and `Editor.csproj` roots
-  the assembly so XAML binding targets survive. Check the published size — the
-  root assembly gives back some of the saving, and whether the result is small
-  enough decides whether compiled bindings are ever worth doing. Before
-  publishing, test every Preferences tab and the main window's tables and
-  palette swatches, since a trimmed binding shows as an empty cell rather than
-  an error.
-- Also confirm on a trimmed build that `logs/` is created beside the exe and is
-  writable. Untrimmed single-file publishes do not extract, so
-  `AppContext.BaseDirectory` is the app folder; a single-file app that extracts
-  would point somewhere else.
+- Trimmed build checked (Preferences, tables, swatches, Shortcuts, sprite sheet dialog, logs/
+  beside the exe). Left: whether its size (Linux exe 23.6 MB) makes compiled bindings worth doing.
 - Consider round-trip tests with kfm/Donald files.
 - Test stage playback with a real stage SFF.
 

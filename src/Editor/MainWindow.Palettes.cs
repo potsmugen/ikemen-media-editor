@@ -2726,6 +2726,27 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         if (idx >= 0) PaletteList.SelectedIndex = idx;
     }
 
+    /// <summary>The row under the pointer, from the hit test: the event source does not
+    /// always point into the row.</summary>
+    private PaletteRow? PaletteRowUnderPointer(ContextRequestedEventArgs e) =>
+        e.TryGetPosition(PaletteList, out var pos)
+            && PaletteList.InputHitTest(pos) is Visual hit
+            && hit.FindAncestorOfType<ListBoxItem>(true)?.DataContext is PaletteRow row
+                ? row
+                : null;
+
+    /// <summary>Selects just this row, as a left click would. Clears the other rows with the empty
+    /// selection suppressed, so the palette tab refreshes once, already showing this palette.</summary>
+    private void SelectPaletteRowOnly(PaletteRow row)
+    {
+        if (PaletteList?.SelectedItems is not { } selectedItems || selectedItems.Contains(row)) return;
+        bool wasSuppressed = _suppressEvents;
+        _suppressEvents = true;
+        try { selectedItems.Clear(); }
+        finally { _suppressEvents = wasSuppressed; }
+        selectedItems.Add(row);
+    }
+
     /// <summary>
     /// The palette tab shows the chosen table large, with the current sprite
     /// beside it so color edits can be judged against real pixels.

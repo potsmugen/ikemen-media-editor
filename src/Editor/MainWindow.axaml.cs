@@ -800,12 +800,12 @@ public partial class MainWindow : Window
 
         PaletteList.ContextRequested += (_, e) =>
         {
-            // Right-clicking inside a multi-selection keeps it for Combine and Merge.
-            if (e.Source is not Visual clicked || clicked.FindAncestorOfType<ListBoxItem>(true) is not { IsSelected: true }
-                || PaletteList.SelectedItems?.Count is not > 1)
-                SelectRowUnderPointer(PaletteList, e.Source);
-            var clickedPalette = (e.Source as Visual)?.FindAncestorOfType<ListBoxItem>(true)?.DataContext is PaletteRow clickedRow
-                ? clickedRow.Palette : null;
+            // The menu acts on the row under the pointer, so select it by identity rather
+            // than by index. Right-clicking inside a multi-selection keeps it for Combine and Merge.
+            var clickedRow = PaletteRowUnderPointer(e);
+            if (clickedRow is not null && PaletteList.SelectedItems?.Contains(clickedRow) != true)
+                SelectPaletteRowOnly(clickedRow);
+            var clickedPalette = clickedRow?.Palette;
             int selectedCount = PaletteList.SelectedItems?.Count ?? 0;
             bool single = selectedCount <= 1;
             var rowPalette = (PaletteList.SelectedItem as PaletteRow)?.Palette;
