@@ -105,7 +105,8 @@ jobs:
           # Keep the tag if it already points here: GITHUB_TOKEN may not create tags on
           # commits whose workflow files differ from main, so old rebuilds need a pushed tag.
           gh release delete "$tag" --yes || true
-          existing=$(gh api "repos/$GH_REPO/commits/$tag" --jq .sha 2>/dev/null || true)
+          # The tag's commit, or empty when there's no such tag; a failed lookup must not leave output here.
+          existing=$(gh api "repos/$GH_REPO/commits/refs/tags/$tag" --jq .sha 2>/dev/null) || existing=""
           if [[ "$existing" == "$FULL_SHA" ]]; then
             target=(--verify-tag)
           else
