@@ -26,6 +26,19 @@ before a release. Remove items once they're done or checked.
     Animations Play / |< / Special Flags, Sounds Play/Loop/Stop. Palettes Color R/G/B/A sliders
     collapse to nothing, the Sprites tab palette grid under Preview with disappears, and the
     float/collapse icons render as other glyphs.
+  - Found in the second sandbox pass (2026-10-23):
+    - Palette list right-click acts on the selected palette, not the clicked row: Add to SFF on a
+      right-clicked T2 added the selected T1.
+    - Temp palette names leak internal labels: "Added T1 temp  *new palette  (32 colors) to the SFF
+      as palette 1,16." (same in the replace prompt and the color-count refusal; double spaces).
+    - Clicking a report jump line (Find Unused Palettes > Palette 9000,1) shows that palette in the
+      grid but the list keeps the old selection (1,1).
+    - Recovery list names temp palettes "New external palette 1,17 (new file) (source changed or
+      missing; recovers separately)": internal keys, and "new file" contradicts "source changed".
+    - Save Original File is enabled for temp palettes, which have no original file.
+    - Report text: a drag across two lines selects nothing; double-click selects within a line.
+    - An unreadable sound (missing data chunk) keeps Play and the edit buttons enabled.
+    - Question: an .act with a 20-color count trailer imports as 256 colors; JASC-PAL with 20 gives 20.
   - Unverified (sandbox has no window manager): Escape doesn't close the Alt+F4 refusal popup.
 - Make what a duplicate leaves selected (originals or copies) consistent across tabs. Sprites
   select the copies; check actions, frames, palettes and sounds and pick one rule.
@@ -176,35 +189,11 @@ Built, but not tried by the maintainer yet.
 
 ### Sandbox fixes (2026-10-23)
 
-- [ ] Delete Sprites Only on kfm-v2.sff (9001,0) keeps the palette; undo says "delete sprite".
-- [ ] Loading an SFFv1 no longer says "Saving converts to SFFv2."
-- [ ] Opening a .snd shows "Loaded N sounds from kfm.snd"; New Sound File's corner reads "Unsaved sounds: 0 sounds, 00:00 total".
-- [ ] Linux without paplay/aplay: Play says "No sound player found (paplay or aplay)." and points to Export.
-- [ ] Sprite filter: typing 9000,1 or pressing Clear updates "N of M shown" (or drops it).
-- [ ] Recovery dialog after a crash shows the snapshot's time, not the next launch's.
-- [ ] `--test-recovery` keeps snapshotting every 15 s while there is unsaved work.
-- [ ] With no sound selected (startup, New Sound File, empty filter) only Import and Stop are enabled.
-- [ ] Switching project tabs keeps each tab's selected sound; on a non-Sprites sub-tab the left status is empty.
-- [ ] Reports: plain lines are selectable, jump lines still jump, Copy All copies the whole report.
-- [ ] Reports, Help > Keyboard Shortcuts and the action text editor use a monospace font on Linux.
-- [ ] A WAV with a huge fmt size (0,2 in a copy of kfm.snd) shows "missing its data chunk" and counts as unreadable.
-- [ ] Palette filter hint reads "Filter, e.g. 1,2 or F1".
-- [ ] Open/New in Animations and Sounds with unsaved changes asks Save / Discard / Cancel; Save on a new file asks
-      for a path, and canceling that keeps the file open.
-- [ ] Shortcut capture ends on any click (another row, blank space); double-clicking a key cell still starts one.
-- [ ] Animations and Sounds menus say "Save" / "Save As".
-- [ ] A WAV with an empty chunk (size 0) before data plays and isn't flagged.
-- [ ] Palettes tab after picking a sprite on Sprites: the list selects the sprite's palette (clearing a filter
-      that hides it); a multi-selection that already includes it is kept.
-- [ ] Paint Mode Replace: right-click a filled square empties just that one; its tooltip says so.
-- [ ] New/Duplicate/Create From Images palettes and Palettes > Import with an SFF open leave Sprites* and the
-      SFF clean (Palettes* still shows for an unexported temp); undo/redo of the add stays clean too.
-- [ ] Applying a temp or file palette to sprites in SFFv2 puts it in the sprite's group (e.g. 9000,0), not 1,0.
-- [ ] Add to SFF: an imported .act into a free 1,n (Sprites* set, undo puts it back as external); into a taken
-      1,n asks to replace and keeps sprites/links; a linked target gets its own colors; a different color count
-      is refused; dimmed with a reason on SFFv1, for SFF palettes and for multi-selections.
-- [ ] Palette grid: dragging a box from blank slots selects the colors it touches; a box or click over only
-      blank slots clears the selection; Ctrl keeps it.
+Everything else in this batch passed in the Linux sandbox; Copy All wasn't checked (no clipboard reader there).
+
+- [ ] Palette grid: dragging a box that starts on a blank slot selects nothing (20-color F palette, box
+      from a row-2 blank slot up into row 1); it only clears. A box from a color, Ctrl-click and a plain
+      click on blank slots work.
 
 ### Floating panels
 
