@@ -31,13 +31,9 @@ before a release. Remove items once they're done or checked.
       right-clicked T2 added the selected T1.
     - Temp palette names leak internal labels: "Added T1 temp  *new palette  (32 colors) to the SFF
       as palette 1,16." (same in the replace prompt and the color-count refusal; double spaces).
-    - Clicking a report jump line (Find Unused Palettes > Palette 9000,1) shows that palette in the
-      grid but the list keeps the old selection (1,1).
     - Recovery list names temp palettes "New external palette 1,17 (new file) (source changed or
       missing; recovers separately)": internal keys, and "new file" contradicts "source changed".
-    - Save Original File is enabled for temp palettes, which have no original file.
     - Report text: a drag across two lines selects nothing; double-click selects within a line.
-    - An unreadable sound (missing data chunk) keeps Play and the edit buttons enabled.
     - Question: an .act with a 20-color count trailer imports as 256 colors; JASC-PAL with 20 gives 20.
   - Unverified (sandbox has no window manager): Escape doesn't close the Alt+F4 refusal popup.
 - Make what a duplicate leaves selected (originals or copies) consistent across tabs. Sprites
@@ -235,6 +231,9 @@ Built, but not tried by the maintainer yet.
 
 ### Sprites and palettes
 
+- A report jump to an unused palette now also moves the palette list's selection (it used
+  to show the palette in the grid while the list stayed on the old row).
+- Save Original File is disabled for temp palettes; it used to fall through to Export.
 - Links to later sprites: open a file that has some (sprites_org.sff 6001?): load popup, Health
   Report section, Save asks Save/Cancel, status line after; a second Save asks nothing.
 - Undo after Sort Colors or Swap Colors with Update sprites restores the palette but not the
@@ -256,6 +255,8 @@ Built, but not tried by the maintainer yet.
 
 ### Sounds
 
+- An unreadable sound disables Play, Loop, Trim to Selection and the edit buttons;
+  Replace and Delete stay enabled.
 - Use a popup progress dialog for very long, cancellable multi-item operations,
   following Auto Clsn2 For All's cancellable progress window. Multi-selection
   actions now show status-bar progress under the busy lock and run to completion;

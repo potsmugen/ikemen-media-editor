@@ -831,7 +831,7 @@ public partial class MainWindow : Window
                 new Separator(),
                 AddToSffMenuItem(single ? rowPalette : null),
                 MenuAction("Save Original File", () => OnSaveAct(null, new RoutedEventArgs()),
-                    single && rowPalette?.Source == PaletteSource.External),
+                    single && rowPalette?.Source == PaletteSource.External && !IsTempPalette(rowPalette)),
                 MenuAction("Save SFF File", () => OnSave(null, new RoutedEventArgs()),
                     rowPalette?.Source == PaletteSource.Embedded && _file is not null),
                 MenuAction("Export Palette", () => OnExportPalette(null, new RoutedEventArgs()), single),

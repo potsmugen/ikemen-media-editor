@@ -618,18 +618,20 @@ public partial class MainWindow
         bool multi = HasMultipleSounds;
         // With no sound selected, only Import (and Stop, for a sound still playing) has anything to act on.
         bool none = CurrentSound is null;
+        // An unreadable sound has no samples to play or process; Replace can still repair it.
+        bool unreadable = !multi && CurrentSound is { Problem: not null };
 
-        // Playback buttons only work on a single sound
-        if (SoundPlayButton is not null) SoundPlayButton.IsEnabled = !multi && !none;
-        if (SoundLoopButton is not null) SoundLoopButton.IsEnabled = !multi && !none;
+        // Playback buttons only work on a single readable sound
+        if (SoundPlayButton is not null) SoundPlayButton.IsEnabled = !multi && !none && !unreadable;
+        if (SoundLoopButton is not null) SoundLoopButton.IsEnabled = !multi && !none && !unreadable;
         if (SoundStopButton is not null) SoundStopButton.IsEnabled = !multi;
 
         // Trim to Selection needs a specific waveform selection; Replace takes one .wav for one sound
-        if (SoundTrimToSelectionButton is not null) SoundTrimToSelectionButton.IsEnabled = !multi;
+        if (SoundTrimToSelectionButton is not null) SoundTrimToSelectionButton.IsEnabled = !multi && !unreadable;
         if (SoundReplaceButton is not null) SoundReplaceButton.IsEnabled = !multi && !none;
         if (SoundExportButton is not null) SoundExportButton.IsEnabled = !none;
         if (SoundDeleteButton is not null) SoundDeleteButton.IsEnabled = !none;
-        if (SoundEditButtons is not null) SoundEditButtons.IsEnabled = !none;
+        if (SoundEditButtons is not null) SoundEditButtons.IsEnabled = !none && !unreadable;
     }
 
     // ---- playing and moving sounds around ---------------------------------

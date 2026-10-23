@@ -260,8 +260,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   for, so alt palettes no sprite uses can be added. A taken key asks to replace that
   palette's colors, keeping its key, sprites and linked palettes. A different color count is
   refused.
-- **Palette list right-click** offers "Save Original File" for imported palettes and "Save
-  SFF File" for SFF palettes; the inapplicable one dims rather than hides.
+- **Palette list right-click** offers "Save Original File" for imported palettes that have a
+  file and "Save SFF File" for SFF palettes; the inapplicable one dims rather than hides.
+  Temp palettes have no original file, so they get Export Palette instead.
 - **Palette selection** follows the palette object; a preview can show the active sprite
   without changing the edited palette. Dirty palettes show `*`. Embedded v2 palettes convert
   among 1–8 bits, shrinking only when every sprite using them is decoded and its indexes fit;
@@ -364,6 +365,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   duration. Float samples stay float; loudness analysis is integer PCM only.
 - **Sound imports** stage the batch first, so a read failure leaves the list unchanged, and
   reject duplicate keys. Save As keeps the current path until the destination succeeds.
+- **Unreadable sounds** (a missing or broken data chunk) explain why in the detail line and
+  disable Play, Loop, Trim to Selection and the edit buttons; Replace and Delete stay usable.
 - **Increase Loudness** raises quiet parts while keeping each clip's peak; LUFS is
   informational.
 - **Several sounds selected**: every edit, Export and Duplicate acts on all of them. Edits ask

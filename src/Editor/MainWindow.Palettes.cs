@@ -1837,8 +1837,16 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     {
         if (_file is null) return;
         _paletteOverride = _file.Palettes.IndexOf(pal);
-        RebuildPaletteList(); // already reselects PaletteList by identity, using _paletteOverride above
-        if (PaletteList is { SelectedIndex: < 0 } && PaletteFilterBox is { Text.Length: > 0 })
+        RebuildPaletteList();
+        // RebuildPaletteList only reselects PaletteList when the rows change; with the same rows
+        // on screen (a report jump, for one) the list would keep its old selection.
+        bool wasSuppressed = _suppressEvents;
+        _suppressEvents = true;
+        if (!ReferenceEquals((PaletteList.SelectedItem as PaletteRow)?.Palette, pal))
+            ReselectPaletteRow(pal);
+        _suppressEvents = wasSuppressed;
+        if (PaletteFilterBox is { Text.Length: > 0 } && PaletteList.ItemsSource is IEnumerable<PaletteRow> rows
+            && !rows.Any(row => ReferenceEquals(row.Palette, pal)))
         {
             // Not in the current filter's results — clear it, same as the sprite
             // list does when jumping to a sprite the filter is hiding.
