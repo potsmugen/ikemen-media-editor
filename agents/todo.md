@@ -5,6 +5,63 @@ before a release. Remove items once they're done or checked.
 
 ## To do, easiest first
 
+- Found in Linux sandbox testing (2026-10-23), verified unless noted:
+  - Delete Sprites Only still deletes the palettes: `deletePalettes = palettesToDelete.Count > 0`
+    (MainWindow.Sprites.cs:1840) overwrites the user's choice. Seen on kfm-v2.sff deleting 9001,0
+    (trace: "delete sprites and palettes").
+  - Loading an SFFv1 says "Saving converts to SFFv2." (MainWindow.Files.cs:58), but plain Save
+    keeps v1 (features.md "Saving"); Donald.sff saved as 1.0.1.0.
+  - Report windows (Dialogs.ShowReport) use TextBlock, so text can't be selected; and the
+    "Consolas,Menlo,monospace" font renders proportional on Linux.
+  - Shortcut capture: clicking another row or blank dialog space doesn't cancel it, so the next
+    key is taken (F2 got assigned). Switching Preferences tabs does cancel.
+  - Sprite list "N of M shown" in the status bar goes stale: still "8 of 315 shown" after Clear;
+    "3 of 282 shown" with filter 9000,1 showing one row.
+  - Palettes tab after picking a sprite on Sprites: the list highlights the old palette (9000,1)
+    while the grid shows the sprite's palette (1,1).
+  - Sprite list scrolls half a row after Sort or Duplicate (row 1 half hidden).
+  - Shortcuts table: the selected row shows a blue block past the last column; "Select all
+    sprites, sounds, frames or p..." is cut off; zoom shows as "Ctrl++" / "Ctrl+-".
+  - Linux default font at the 1100x700 default window: "Resize Canvas" and "Shift Offset" are
+    cut off in Sprite Tools.
+  - Questions: Sort Selected Ascending with everything selected puts 9000 last while Sort Ascending
+    puts it first. Sorting or deleting a sprite marks Palettes* dirty too (v1 Donald, v2 kfm).
+  - Opening a .snd leaves "Opening kfm.snd…" in the status bar: OpenSndPath
+    (MainWindow.Sounds.cs ~128) never sets a status on success.
+  - New Sound File: the right status reads ": 0 sounds, 00:00 total" (no file name), and the
+    edit buttons stay enabled with no sound selected.
+  - Saving a standalone .air turns CRLF into LF and rewrites untouched boxes: action 20's
+    "Clsn2[0] = -10,0, 10,-80" became "-10, -80, 10, 0". No warning (Preserve data as read).
+  - Recovery dialog "Unsaved work from 12:52" shows when the run was taken over, not when the
+    snapshot was captured (12:36 in the trace).
+  - `--test-recovery`: CaptureRecoveryForTest stops the timer after its startup snapshot, so the
+    15 s test interval in StartRecoveryTimer never runs.
+  - Switching back to a project tab resets the selected sound to the first one (11,0 -> 0,0),
+    and the left status says "No file loaded" on a tab with only a .snd.
+  - Questions: after Recover, the command-line file is skipped silently (by design per
+    App.axaml.cs, but nothing tells the user). A recovered changed-source file opens from
+    data/recovery/recovered/ under a GUID name, so plain Save writes into the app folder.
+    Sounds menu says "Save .snd" / "Save .snd As"; Sprites says "Save" / "Save As".
+  - A WAV whose fmt chunk size is huge (0,2 in a copy of kfm.snd) ends the chunk walk before
+    data, so it shows as 0.00 s with no Problem and isn't counted as unreadable
+    (SndReader.cs ~114-124).
+  - Open/New for sounds and animations only offers "Discard Them" / Cancel (MainWindow.Sounds.cs
+    62, 111; MainWindow.Animations.cs 81, 103); sprites offer Save / Discard / Cancel (AskToSave).
+  - Play on Linux without paplay/aplay shows the raw .NET exception ("An error occurred trying
+    to start process 'aplay' with working directory ..."). Say no player was found instead; the
+    hint says "Export .wav" but the button is "Export".
+  - Sound list narrows in a tab that also has an SFF (New Sound File there): the Rate column is
+    cut off ("8kH", "22.1k").
+  - At 200% font and button scale (window 1580x960) fixed-width buttons and fields clip:
+    Paint Tools (Commit, Reset, Pencil, Eraser, Eyedropper, Replace, Select), Resize Canvas,
+    Shift Offset, onion-skin Group/Number and Pin frame boxes, Palettes Commit, Scratch label,
+    Animations Play / |< / Special Flags, Sounds Play/Loop/Stop. Palettes Color R/G/B/A sliders
+    collapse to nothing, the Sprites tab palette grid under Preview with disappears, and the
+    float/collapse icons render as other glyphs.
+  - Creating a temp palette marks Sprites* and the file dirty.
+  - Questions: a plain box over only blank palette slots keeps the old selection instead of
+    clearing it. Applying a temp palette in SFFv2 puts it at 1,0 (NextFreePaletteIndex starts at 0).
+  - Unverified (sandbox has no window manager): Escape doesn't close the Alt+F4 refusal popup.
 - Make what a duplicate leaves selected (originals or copies) consistent across tabs. Sprites
   select the copies; check actions, frames, palettes and sounds and pick one rule.
 - Customizable shortcuts: built, not compiled yet. See features.md "Keyboard shortcuts". Left:
@@ -25,6 +82,7 @@ before a release. Remove items once they're done or checked.
     records. Pixels and colors are unchanged. Seen in kfm_win's kfm.sff.
   - Saving SFF drops header comment text (v1 bytes 36-511, v2 after byte 67), e.g.
     "Made in VirtuallTek / Powered by Fighter Factory" in working/kfm-v1.sff and kfm-v2.sff.
+    Also happens on a Save All where only a temp palette was added and removed.
 - There's another app that opens large SFF's faster than ours. Means we could improve that
 - Audit the menus and buttons for redundancy. The Sprites tab context menu repeated
   four entries the sidebar already has as buttons (Add, Replace, Delete, Shift Offset),
@@ -41,11 +99,6 @@ before a release. Remove items once they're done or checked.
   NearestColorAlphaThreshold (settings.json, default 32) map to index 0. Check
   against real sprites and the official tools.
 
-- Test crash recovery in the app: five-minute snapshots, pending-session skips,
-  recovery-first startup with a command-line file, changed/missing sources,
-  embedded AIR/DEF, external ACT palettes, Keep for later, Discard, and the
-  `--test-recovery` hook. Recovery lives separately in ApplicationData; it never
-  overwrites sources and retires items after a successful save.
 - Paint Mode: add a Polygonal Lasso to Select. It can reuse the lasso's mask and outline code.
   - Click corner points; double-click, Enter, or a click near the first point closes it. The snap
     radius is a settings.json value in screen pixels; a double-click adds no duplicate point.
@@ -122,7 +175,6 @@ before a release. Remove items once they're done or checked.
 - Project tabs: several projects (character, stage, screenpack, loose files) open at
   once in one window, so the shared clipboards (frames, Clsn, pixels) work between them.
   Stages 1-3 built in basic form (see features.md); not yet checked in the app. Left:
-  - Close Tab and quitting ask Save / Discard / Cancel per tab (built, untested).
   - A switch resets filters and the frame; canvas zoom/pan, sprite, action and palette
     override are kept per tab.
   - Sessions and the tab context menu are built (see features.md); not yet checked in the app.
@@ -163,18 +215,6 @@ before a release. Remove items once they're done or checked.
 
 Built, but not tried by the maintainer yet.
 
-- Shortcuts: every default still works (Ctrl+S/Shift+S/F in a text box too, Ctrl+Tab/T/W, frame
-  Ctrl+C/V only on Animations, zoom with Ctrl+Plus/Minus (main and numpad, also
-  Ctrl+=) while plain +/- no longer zoom; Ctrl+O opens the current tab's file: .sff,
-  palette import, .air/.def, .snd). Preferences > Shortcuts: same window size as before; columns
-  Where, Command, Shortcut, ordered by Where (Everywhere first); double-click a Shortcut cell, press keys (Tab and
-  Ctrl+Tab are captured, Escape cancels, Shift alone waits); a used key asks to move it; Left
-  warns about list navigation; right-click Reset/Remove; changed rows bold with the default in
-  the tooltip; Reset to Defaults; Cancel discards; OK updates menus and Help, and settings.json
-  Shortcuts holds only changed ones. Help > Keyboard Shortcuts > Customize opens that tab.
-  Enter/F2 on a row captures; clicking elsewhere cancels a capture; Alt+F4 is refused, Alt+F
-  warns about the File menu. Ctrl+F focuses each tab's own filter; Escape in a text box returns
-  to that tab's list; Ctrl+Tab/T/W work with a floating panel focused.
 
 ### Floating panels
 
@@ -192,29 +232,13 @@ Built, but not tried by the maintainer yet.
   file was parsed as SFF. Double-click each with the editor as handler: .sff (sprites only),
   .snd (Sounds tab), .air (Animations tab), .def (character/stage/other, all its files),
   .act/.pal/.rgba (standalone palette), .imesession.
-- File > Open .def (Ctrl+Shift+O) replaced Open Character/Stage/Other: open a character,
-  a stage and a screenpack through it and through Open Recent; a SprMaker input .def
-  (working/rawtest) shows "Could Not Open the Definition" with no tab prompt and the
-  tab unchanged. Help > Keyboard Shortcuts lists "Open .def". Also drop a .snd on the window: it
-  opens in the Sounds tab and the open SFF stays.
-- Make report windows have selectable text
 - Release build: double-clicking the exe opens no console window; Debug still shows one.
 - Close during a large SFF save: the "Still working" popup appears and the save completes.
   Normal saves leave no `.tmp-` file beside the target.
-- Two copies open: each has its own recovery/run-* folder; the second offers no recovery
-  for the first; kill one in Task Manager and the next launch offers its work while the
-  other copy keeps running. Keep for later survives a restart. Check on Linux too
-  (FileShare.None locking).
 - Recovery of an SFFv1 with an imported true-color sprite: the snapshot succeeds (no
   crash.log entry), recovery restores it as v1 with the same palettes, and Save shows
   the same "SFFv1 holds 8-bit sprites only" error as before the crash. Make a snapshot
   fail (e.g. read-only recovery folder): one popup.
-- Unsaved sprites, then File > Open / New / drop a file and pick Save: the save finishes,
-  then the open goes ahead. On a never-saved file, Save As runs first; canceling it
-  cancels the open.
-- Help > About shows "Build <yyyy.MM.dd>" with today's date (no "+commit" suffix), and the
-  exe's Properties > Details shows File version <yyyy.M.d>.0.
-- A .snd with a broken WAV chunk size opens; that sound shows a problem, the rest play.
 - Windows sound playback after the SoundPlayer removal (WinSound/PlaySound): Play, Play loop,
   Stop, playing another sound while one plays, a range selection, and a non-PCM sound
   (shows "Could not play the sound"). No System.Windows.Extensions.dll in the build.
@@ -239,7 +263,6 @@ Built, but not tried by the maintainer yet.
 
 ### Preferences and look
 
-- Check whether fixed-size cells clip at large font/button sizes.
 - Test guides using the custom crosshair color and thickness.
 - Test live palette adjustment drag producing one undo step.
 - Test palette adjustment speed on big sprites.
@@ -248,31 +271,13 @@ Built, but not tried by the maintainer yet.
 
 ### Sprites and palettes
 
-- Sort sprites: Sprites > Sort Ascending and right-click Sort Selected Ascending, undo/redo,
-  current sprite and selection kept. On sprites_org.sff (v1), a sort that moves 6001 links
-  ahead of their targets is refused with the list. After sorting, a v1 and a v2 file with
-  links load correctly in Ikemen GO (no blank linked sprites). Sort Colors opens on Index.
-  Whole-file sort puts group 9000 first; SortPortraitsFirst false sorts it in place.
 - Links to later sprites: open a file that has some (sprites_org.sff 6001?): load popup, Health
   Report section, Save asks Save/Cancel, status line after; a second Save asks nothing.
-- Test Save All with unsaved T palettes, with and without an SFF: no popups or save dialogs
-  for them, the status line counts them, and closing still warns.
-- Test applying a temp palette in SFFv2: one sprite and several (the confirm says it moves;
-  one shared SFF palette at the first free group 1 index; the T palette leaves the list;
-  undo restores it as T). In SFFv1 the colors are copied into each sprite's own palette and
-  the T palette leaves the list; undo brings it back.
-- Test Swap Colors (two selected colors, index 0 refused, sprite update, one undo step).
 - Undo after Sort Colors or Swap Colors with Update sprites restores the palette but not the
-  sprites. Cause not yet traced; reproduce, then trace before changing code.
+  sprites. Cause not yet traced; reproduce, then trace before changing code. Not reproduced on
+  kfm-v2.sff (Sort Colors on 9000,1, Swap Colors on 1,1: palette and sprites both restored); try v1.
 - Test hue and saturation sliders in OKLCH against HSV: zero-slider round trip, hue steadiness
   of perceived lightness, out-of-gamut colors, and the PalettePerceptualHue toggle.
-- Test box selection on palette grids: plain and Ctrl boxes, box over the blank slots,
-  drag-copy from a selected group still works, and the sliders rebase after a box.
-- Test the Sort Colors dialog (brightness, hue, index; both directions), index 0 fixed,
-  grays last for hue, the single-color popup, and Update sprites (remapped indexes,
-  linked and decode-failed skips, one undo step).
-- Test deleting sprites with newly unused palettes: verify the sprite confirmation appears before the palette-choice prompt, each prompt choice, linked palette color preservation, external/group-1 exclusion, and one-step undo/redo. Test Delete-key routing from each list, including multi-selected sounds.
-- Test Find Unused Palettes with no SFF, no matches, unused embedded palettes, group 1, external palettes, and clicking a result.
 - Export multiple selected sprites as separate files.
 - Verify multi-selection Crop covers what the removed Crop All Sprites command did
   (whole-file crop with links followed).
@@ -287,15 +292,11 @@ Built, but not tried by the maintainer yet.
 
 ### Sounds
 
-- Test multi-selection surviving sound edits and row rebuilds.
-- Test range edits.
 - Use a popup progress dialog for very long, cancellable multi-item operations,
   following Auto Clsn2 For All's cancellable progress window. Multi-selection
   actions now show status-bar progress under the busy lock and run to completion;
   a popup is only for operations that should also be cancelable. Decide which need
   it and verify cancellation leaves their data unchanged.
-- Test sound Export All.
-- Test sound Import All.
 
 ## Before release
 
