@@ -22,6 +22,7 @@ namespace Editor;
 public class WaveformView : Control
 {
     private SoundEntry? _entry;
+    private static readonly Cursor IbeamCursor = new(StandardCursorType.Ibeam);
     private float[]? _minsL, _maxsL, _minsR, _maxsR;
     private (double Width, double Start, double Spp, bool Stereo, byte[]? Data) _envelopeKey;
 
@@ -100,6 +101,8 @@ public class WaveformView : Control
     {
         bool sameSound = entry is not null && ReferenceEquals(entry, _entry);
         _entry = entry;
+        // A drag selects a range, so show the text-selection cursor while there is audio.
+        Cursor = entry is null ? Cursor.Default : IbeamCursor;
         _minsL = _maxsL = _minsR = _maxsR = null;
         if (sameSound) SetView(_samplesPerPixel, _viewStart); // an edit: keep zoom and position, clamped
         else SetView(null, 0);                                // another sound: fit it

@@ -1098,13 +1098,29 @@ public class SpriteView : Control
     protected override void OnKeyDown(KeyEventArgs e)
     {
         if (e.Key is Key.LeftShift or Key.RightShift) SetInverseHeld(true);
+        RefreshHoverCursorForKey(e, true);
         base.OnKeyDown(e);
     }
 
     protected override void OnKeyUp(KeyEventArgs e)
     {
         if (e.Key is Key.LeftShift or Key.RightShift) SetInverseHeld(false);
+        RefreshHoverCursorForKey(e, false);
         base.OnKeyUp(e);
+    }
+
+    /// <summary>Ctrl/Shift turn a box press into a selection toggle, so the hover cursor follows them.</summary>
+    private void RefreshHoverCursorForKey(KeyEventArgs e, bool down)
+    {
+        if (_lastMovePos is not { } pos) return;
+        var key = e.Key switch
+        {
+            Key.LeftCtrl or Key.RightCtrl => KeyModifiers.Control,
+            Key.LeftShift or Key.RightShift => KeyModifiers.Shift,
+            _ => KeyModifiers.None,
+        };
+        if (key == KeyModifiers.None) return;
+        UpdateHoverCursor(pos, down ? e.KeyModifiers | key : e.KeyModifiers & ~key);
     }
 
     private static void DrawIndexLabel(DrawingContext ctx, Rect r, int index, Color color)
@@ -1292,6 +1308,61 @@ public class SpriteView : Control
         return true;
     }
 
+    private static readonly Cursor MoveCursor = new(StandardCursorType.SizeAll);
+    private static readonly Cursor CrossCursor = new(StandardCursorType.Cross);
+    private static readonly Cursor PanCursor = new(StandardCursorType.Hand);
+    private static readonly Cursor SizeWestEastCursor = new(StandardCursorType.SizeWestEast);
+    private static readonly Cursor SizeNorthSouthCursor = new(StandardCursorType.SizeNorthSouth);
+    private static readonly Cursor TopLeftCursor = new(StandardCursorType.TopLeftCorner);
+    private static readonly Cursor TopRightCursor = new(StandardCursorType.TopRightCorner);
+    private static readonly Cursor BottomLeftCursor = new(StandardCursorType.BottomLeftCorner);
+    private static readonly Cursor BottomRightCursor = new(StandardCursorType.BottomRightCorner);
+
+    private static Cursor GripCursor(BoxGrip grip) => grip switch
+    {
+        BoxGrip.Left or BoxGrip.Right => SizeWestEastCursor,
+        BoxGrip.Top or BoxGrip.Bottom => SizeNorthSouthCursor,
+        BoxGrip.TopLeft => TopLeftCursor,
+        BoxGrip.TopRight => TopRightCursor,
+        BoxGrip.BottomLeft => BottomLeftCursor,
+        BoxGrip.BottomRight => BottomRightCursor,
+        _ => MoveCursor,
+    };
+
+    /// <summary>The cursor for what a left press at p would start; mirrors OnPointerPressed's order.</summary>
+    private Cursor HoverCursor(Point p, KeyModifiers modifiers)
+    {
+        if (ArmedForExternalPick)
+            return _bitmap is not null && SpriteRect().Contains(p) ? CrossCursor : Cursor.Default;
+        if (ReadOnly) return Cursor.Default;
+
+        (int Index, BoxGrip Grip) hit = Boxes.Count > 0 ? HitTest(p) : (-1, BoxGrip.None);
+        bool replacing = PaintMode && ActiveTool == PaintTool.Replace;
+        bool extendSelection = (modifiers & (replacing ? KeyModifiers.Control : KeyModifiers.Control | KeyModifiers.Shift)) != 0;
+        if (hit.Index >= 0) return extendSelection ? Cursor.Default : GripCursor(hit.Grip);
+        if (extendSelection) return Cursor.Default;
+
+        bool onSprite = SpriteContains(p);
+        if (PaintMode && ActiveTool == PaintTool.Selection && onSprite)
+        {
+            bool inSelection = _selection is { } sel && PixelRect(sel).Contains(p)
+                && TryPixelAt(p, out int x, out int y) && sel.Contains(x - sel.X, y - sel.Y);
+            return inSelection ? MoveCursor : CrossCursor;
+        }
+        if (PaintMode && onSprite) return CrossCursor;
+        if (onSprite && (!DragChangesOffset || OffsetDraggingEnabled)) return MoveCursor;
+        // Empty canvas pans, but keeps the arrow until pressed, as in other image editors.
+        return Cursor.Default;
+    }
+
+    private bool DragInProgress =>
+        _panning || _draggingSprite || _painting || _selecting || _movingSelection || _grip != BoxGrip.None;
+
+    private void UpdateHoverCursor(Point p, KeyModifiers modifiers)
+    {
+        if (!DragInProgress) Cursor = HoverCursor(p, modifiers);
+    }
+
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
@@ -1330,7 +1401,7 @@ public class SpriteView : Control
             // always just a pan, full stop.
             _dragFrom = p.Position;
             _panning = true;
-            Cursor = new Cursor(StandardCursorType.Hand);
+            Cursor = PanCursor;
             e.Pointer.Capture(this);
             InvalidateVisual();
             return;
@@ -1388,7 +1459,7 @@ public class SpriteView : Control
             if (_grip == BoxGrip.Body) _editingBoxes.UnionWith(_selectedBoxes);
             else if (SelectedBox >= 0) _editingBoxes.Add(SelectedBox);
             BoxEditStarted?.Invoke();
-            Cursor = new Cursor(_grip == BoxGrip.Body ? StandardCursorType.SizeAll : StandardCursorType.Cross);
+            Cursor = GripCursor(_grip);
             e.Pointer.Capture(this);
             InvalidateVisual();
             return;
@@ -1405,7 +1476,7 @@ public class SpriteView : Control
                 _selectionMoveStart = p.Position;
                 _selectPressPos = p.Position;
                 _selectDragged = false;
-                Cursor = new Cursor(StandardCursorType.SizeAll);
+                Cursor = MoveCursor;
                 e.Pointer.Capture(this);
                 return;
             }
@@ -1417,7 +1488,7 @@ public class SpriteView : Control
             _selectDragged = false;
             _selection = null; // nothing is selected until the press becomes a drag
             if (LassoSelect) StartLasso(p.Position);
-            Cursor = new Cursor(StandardCursorType.Cross);
+            Cursor = CrossCursor;
             e.Pointer.Capture(this);
             InvalidateVisual();
             return;
@@ -1435,7 +1506,7 @@ public class SpriteView : Control
             if (!_pickingStroke) PaintStrokeStarted?.Invoke();
             if (_inverseStroke) InverseReplaceStarted?.Invoke();
             ApplyTool(p.Position);
-            Cursor = new Cursor(StandardCursorType.Cross);
+            Cursor = CrossCursor;
             e.Pointer.Capture(this);
             InvalidateVisual();
             return;
@@ -1450,7 +1521,7 @@ public class SpriteView : Control
             if (DragChangesOffset) OffsetDragStarted?.Invoke();
             else AxisDragStarted?.Invoke();
         }
-        Cursor = new Cursor(_draggingSprite ? StandardCursorType.SizeAll : StandardCursorType.Hand);
+        Cursor = _draggingSprite ? MoveCursor : PanCursor;
         e.Pointer.Capture(this);
         InvalidateVisual();
     }
@@ -1495,6 +1566,7 @@ public class SpriteView : Control
 
         _cursorPosition = e.GetPosition(this);
         RefreshCursorPosition();
+        UpdateHoverCursor(movedTo, e.KeyModifiers);
 
         if (PaintMode && ActiveTool is PaintTool.Pencil or PaintTool.Eraser or PaintTool.Replace)
         {
@@ -1566,8 +1638,8 @@ public class SpriteView : Control
             _movingSelection = false;
             if (_selectDragged) { SelectionMoved?.Invoke(); SelectionMoveFinished?.Invoke(); }
             else ClearSelectionByClick();
-            Cursor = Cursor.Default;
             e.Pointer.Capture(null);
+            UpdateHoverCursor(e.GetPosition(this), e.KeyModifiers);
             return;
         }
         if (_selecting)
@@ -1589,8 +1661,8 @@ public class SpriteView : Control
                 UpdateSelection(e.GetPosition(this));
                 if (_selection is { Width: > 0, Height: > 0 }) SelectionChanged?.Invoke();
             }
-            Cursor = Cursor.Default;
             e.Pointer.Capture(null);
+            UpdateHoverCursor(e.GetPosition(this), e.KeyModifiers);
             return;
         }
         if (_painting)
@@ -1598,8 +1670,8 @@ public class SpriteView : Control
             _painting = false;
             if (_pickingStroke) _pickingStroke = false;
             else PaintStrokeFinished?.Invoke();
-            Cursor = Cursor.Default;
             e.Pointer.Capture(null);
+            UpdateHoverCursor(e.GetPosition(this), e.KeyModifiers);
             return;
         }
         if (_draggingSprite)
@@ -1627,8 +1699,8 @@ public class SpriteView : Control
             ClearSelectionByClick();
         }
         _panning = _draggingSprite = false;
-        Cursor = Cursor.Default;
         e.Pointer.Capture(null);
+        UpdateHoverCursor(e.GetPosition(this), e.KeyModifiers);
     }
 
     /// <summary>

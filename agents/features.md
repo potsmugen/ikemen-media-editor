@@ -88,6 +88,12 @@ and constraints that are easy to miss when reading one code path in isolation.
   the visible layers into the bottom and stays pending, as does closing the panel; Delete
   Layer drops the top and Reset drops everything. Commit makes the merge one undo step.
   Leaving Paint Mode with changes asks Commit/Discard/Cancel. Layers are never saved.
+- **Canvas cursors** (`SpriteView.HoverCursor`) show on hover what a left press would do,
+  using built-in cursors only: four-way move over a draggable sprite, box body or pixel
+  selection; directional resize arrows on box handles; crosshair for paint/select tools and an
+  armed pick. Empty canvas keeps the arrow and shows the hand only while panning, as in other
+  editors. Ctrl/Shift over a box (a selection toggle) shows the arrow.
+  The sound waveform shows the I-beam while a sound is loaded, since a drag selects a range.
 - **Panel widths start fitted**: a side panel with no saved width is fitted to its contents
   on its tab's first layout, inside `LayoutUpdated`, so the fixed XAML width never shows.
   The XAML sizes must match what `ResetPanelSizes` sets.
