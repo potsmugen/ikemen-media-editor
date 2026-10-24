@@ -12,6 +12,7 @@ public partial class MainWindow
     internal SffFile? _file { get => _doc.File; set => _doc.File = value; }
     private string? _path { get => _doc.Path; set => _doc.Path = value; }
     private bool _dirty { get => _doc.Dirty; set => _doc.Dirty = value; }
+    private SffPaletteSnapshot? _savedPalettes { get => _doc.SavedPalettes; set => _doc.SavedPalettes = value; }
     private string? _characterName { get => _doc.CharacterName; set => _doc.CharacterName = value; }
     private List<Palette> _standalonePalettes => _doc.StandalonePalettes;
     private Dictionary<Palette, string> _standalonePaletteKinds => _doc.StandalonePaletteKinds;

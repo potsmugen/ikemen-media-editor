@@ -251,6 +251,7 @@ public partial class MainWindow
         CancelPaletteLinkPick(restoreSelection: false);
 
         _dirty = false;
+        _savedPalettes = _file is null ? null : SffPaletteSnapshot.Take(_file);
         _paletteOverride = -1;
         _undo.Clear(() =>
         {
@@ -882,6 +883,7 @@ public partial class MainWindow
         _doc.DefName = null;
         _file = null;
         _path = null;
+        _savedPalettes = null;
         _standalonePalettes.Clear();
         _standalonePaletteOverride = -1;
         _editingPalette = null;
@@ -1695,6 +1697,7 @@ public partial class MainWindow
     private void MarkClean()
     {
         _dirty = false;
+        _savedPalettes = _file is null ? null : SffPaletteSnapshot.Take(_file);
         _undo.MarkSaved(SffKind);
         UpdateTitle();
         UpdateStatus();
@@ -1801,15 +1804,15 @@ public partial class MainWindow
 
     /// <summary>
     /// A tab's header carries a '*' while the file that feeds it has unsaved
-    /// changes — Sprites and Palettes share the .sff's state, Animations the
-    /// .air's, Sounds the .snd's. Runs from UpdateTitle, so every dirty/clean
-    /// transition already reaches it.
+    /// changes — Sprites follows the .sff, Palettes only its palette tables,
+    /// Animations the .air, Sounds the .snd. Runs from UpdateTitle, so every
+    /// dirty/clean transition already reaches it.
     /// </summary>
     private void SyncTabHeaders()
     {
         SetTabHeader(SpritesTab, "Sprites", _dirty);
         SetTabHeader(AnimationsTab, "Animations", _airDirty);
-        SetTabHeader(PalettesTab, "Palettes", _dirty || HasDirtyExternalPalettes() || HasDirtyStandalonePalettes());
+        SetTabHeader(PalettesTab, "Palettes", HasDirtySffPalettes() || HasDirtyExternalPalettes() || HasDirtyStandalonePalettes());
         SetTabHeader(SoundsTab, "Sounds", _sndDirty);
     }
 

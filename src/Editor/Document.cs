@@ -23,6 +23,8 @@ internal sealed class Document
     public SffFile? File;
     public string? Path;
     public bool Dirty;
+    /// <summary>Embedded palettes at the last load/save; null when unknown, so any SFF change counts.</summary>
+    public SffPaletteSnapshot? SavedPalettes;
     /// <summary>Set when opened via a .def, so the title can show the character's own name rather than its sprite filename. Cleared on Close All.</summary>
     public string? CharacterName;
     public readonly List<Palette> StandalonePalettes = [];

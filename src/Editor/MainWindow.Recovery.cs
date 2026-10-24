@@ -323,7 +323,7 @@ public partial class MainWindow
                         _recoverySourceHashes[item.SourcePath] = item.SourceHash;
                     ApplyLoadedSff();
                     _dirty = item.Dirty;
-                    if (_dirty) _undo.Untracked(SffKind);
+                    if (_dirty) { _undo.Untracked(SffKind); _savedPalettes = null; }
                     break;
                 case "air":
                     if (item.Embedded)
@@ -378,7 +378,7 @@ public partial class MainWindow
                             _path = contextSame ? contextSff.SourcePath : PersistRecoveredCopy(sffSnapshot);
                             ApplyLoadedSff();
                             _dirty = contextSff.Dirty;
-                            if (_dirty) _undo.Untracked(SffKind);
+                            if (_dirty) { _undo.Untracked(SffKind); _savedPalettes = null; }
                         }
                     }
                     RestoreActSnapshot(item, snapshot, same);

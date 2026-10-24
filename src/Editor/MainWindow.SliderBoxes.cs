@@ -8,7 +8,7 @@ namespace Editor;
 
 public partial class MainWindow
 {
-    // Palette Color and Adjustments sliders each pair with a number box.
+    // Palette Color and Adjustments sliders each pair with a number box (Preferences' sliders too).
     private void WireSliderBoxes()
     {
         PairSliderBox(RSlider, RBox); PairSliderBox(GSlider, GBox);
@@ -37,7 +37,7 @@ public partial class MainWindow
     }
 
     /// <summary>Box mirrors the slider; typed values apply on Enter or focus loss, spins at once.</summary>
-    private static void PairSliderBox(Slider slider, NumericUpDown box)
+    internal static void PairSliderBox(Slider slider, NumericUpDown box)
     {
         box.Minimum = (decimal)slider.Minimum;
         box.Maximum = (decimal)slider.Maximum;

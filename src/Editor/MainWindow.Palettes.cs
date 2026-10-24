@@ -358,6 +358,10 @@ public partial class MainWindow
         _adjustSession is { Count: > 0 } session && _editingPalette is { } pal
         && session.Any(kv => kv.Key < pal.Colors.Length && !pal.Colors[kv.Key].Equals(kv.Value));
 
+    /// <summary>The SFF has unsaved changes that reach its palette tables.</summary>
+    private bool HasDirtySffPalettes() =>
+        _dirty && _file is not null && (_savedPalettes is null || _savedPalettes.Differs(_file));
+
     private bool HasDirtyStandalonePalettes() => _standalonePalettes.Any(p => p.Dirty);
 
     private bool HasDirtyExternalPalettes() => _file?.Palettes.Any(p => p.Source == PaletteSource.External && p.Dirty) == true;
