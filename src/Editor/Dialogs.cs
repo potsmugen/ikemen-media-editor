@@ -3441,7 +3441,7 @@ public static partial class Dialogs
 
     /// <summary>Preferences > Canvas. Colors are #RRGGBB; null BaseColor = theme, null CheckerColor = auto from the base.</summary>
     public sealed record CanvasValues(BackgroundStyle Style, string? BaseColor, string? CheckerColor,
-        int CheckerSize,
+        int CheckerSize, bool CheckerFollowZoom, bool CheckerFollowPan,
         string? BackgroundPath, bool Tile, int OffsetX, int OffsetY, double OpacityPercent,
         bool FollowZoom, bool FollowPan,
         bool CrosshairImageStyle, string Color, double ArmLength, double Thickness,
@@ -3802,7 +3802,10 @@ public static partial class Dialogs
         bool checkerTouched = init.CheckerColor is not null;
         var checkerSize = number(Math.Clamp(init.CheckerSize, Settings.CheckerSizeMin, Settings.CheckerSizeMax),
             Settings.CheckerSizeMin, 1, "0", Settings.CheckerSizeMax);
-        ToolTip.SetTip(checkerSize, "Stays the same size on screen as the canvas zooms.");
+        var checkerFollowZoom = new CheckBox { Content = "Scale with zoom", IsChecked = init.CheckerFollowZoom };
+        ToolTip.SetTip(checkerFollowZoom, "Scales the squares with the zoom.");
+        var checkerFollowPan = new CheckBox { Content = "Follow pan", IsChecked = init.CheckerFollowPan };
+        ToolTip.SetTip(checkerFollowPan, "Moves the squares with the view when panning.");
 
         string? bgPath = init.BackgroundPath;
         // Browse opens in the shipped patterns folder the first time; afterward it follows the
@@ -3831,10 +3834,11 @@ public static partial class Dialogs
         // Rows are shown only for the styles they apply to; SyncBackground toggles them.
         var checkerColorRow = row("Checker color", Inline(checkerMode, checkerPicker.View));
         var checkerSizeRow = row("Checker size", checkerSize);
+        var checkerBoolRow = Inline(checkerFollowZoom, checkerFollowPan);
         var imageRow = row("Image", Inline(bgName, bgBrowse, bgClear));
         var offsetRow = row("Offset", Inline(Label("X"), offX, Label("Y"), offY));
         var opacityRow = row("Opacity %", Inline(opacity, opacityText));
-        var imageBoolRow = Inline(tile, followZoom, followPan);
+        var imageBoolRow = Inline(followZoom, followPan, tile);
 
         void SyncBackground()
         {
@@ -3843,7 +3847,7 @@ public static partial class Dialogs
             bool image = current == BackgroundStyle.Image;
 
             basePicker.View.IsEnabled = baseMode.SelectedIndex == 1;
-            checkerColorRow.IsVisible = checkerSizeRow.IsVisible = checker;
+            checkerColorRow.IsVisible = checkerSizeRow.IsVisible = checkerBoolRow.IsVisible = checker;
             checkerPicker.View.IsEnabled = checkerMode.SelectedIndex == 1;
 
             imageRow.IsVisible = offsetRow.IsVisible = opacityRow.IsVisible = imageBoolRow.IsVisible = image;
@@ -3871,6 +3875,8 @@ public static partial class Dialogs
         };
         checkerPicker.Changed += () => { checkerTouched = true; changed(); };
         checkerSize.ValueChanged += (_, _) => changed();
+        checkerFollowZoom.IsCheckedChanged += (_, _) => changed();
+        checkerFollowPan.IsCheckedChanged += (_, _) => changed();
         tile.IsCheckedChanged += (_, _) => changed();
         offX.ValueChanged += (_, _) => changed();
         offY.ValueChanged += (_, _) => changed();
@@ -3985,6 +3991,7 @@ public static partial class Dialogs
                 row("Base color", Inline(baseMode, basePicker.View)),
                 checkerColorRow,
                 checkerSizeRow,
+                checkerBoolRow,
                 imageRow,
                 offsetRow,
                 opacityRow,
@@ -4013,6 +4020,7 @@ public static partial class Dialogs
             baseMode.SelectedIndex == 1 ? Hex(basePicker.Color) : null,
             checkerMode.SelectedIndex == 1 ? Hex(checkerPicker.Color) : null,
             checkerSize.Value is { } cs ? (int)cs : init.CheckerSize,
+            checkerFollowZoom.IsChecked == true, checkerFollowPan.IsChecked == true,
             bgPath, tile.IsChecked == true,
             offX.Value is { } ox ? (int)ox : init.OffsetX,
             offY.Value is { } oy ? (int)oy : init.OffsetY,
@@ -4035,6 +4043,8 @@ public static partial class Dialogs
             checkerMode.SelectedIndex = v.CheckerColor is null ? 0 : 1;
             checkerPicker.Set(Parse(v.CheckerColor) ?? CanvasColors.CheckerFor(EffectiveBase()));
             checkerSize.Value = Math.Clamp(v.CheckerSize, Settings.CheckerSizeMin, Settings.CheckerSizeMax);
+            checkerFollowZoom.IsChecked = v.CheckerFollowZoom;
+            checkerFollowPan.IsChecked = v.CheckerFollowPan;
             bgPath = v.BackgroundPath;
             bgStartFolder = CanvasPatterns.Folder; // Reset to Defaults returns to the shipped patterns
             tile.IsChecked = v.Tile;

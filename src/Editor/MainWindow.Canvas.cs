@@ -64,6 +64,7 @@ public partial class MainWindow
         var style = s.Canvas.BackgroundStyle is null ? BackgroundStyle.Checkerboard
             : CheckedEnum(nameof(s.Canvas.BackgroundStyle), s.Canvas.BackgroundStyle, BackgroundStyle.Checkerboard);
         return new(style, s.Canvas.BaseColor, s.Canvas.CheckerColor, s.Canvas.CheckerSize,
+            s.Canvas.CheckerFollowZoom, s.Canvas.CheckerFollowPan,
             s.Canvas.BackgroundImagePath, s.Canvas.BackgroundTile, s.Canvas.BackgroundOffsetX, s.Canvas.BackgroundOffsetY, s.Canvas.BackgroundOpacityPercent,
             s.Canvas.BackgroundFollowZoom, s.Canvas.BackgroundFollowPan,
             string.Equals(s.Canvas.CrosshairMode, "Image", StringComparison.OrdinalIgnoreCase), s.Canvas.CrosshairColor,
@@ -78,6 +79,8 @@ public partial class MainWindow
         s.Canvas.BaseColor = c.BaseColor;
         s.Canvas.CheckerColor = c.CheckerColor;
         s.Canvas.CheckerSize = c.CheckerSize;
+        s.Canvas.CheckerFollowZoom = c.CheckerFollowZoom;
+        s.Canvas.CheckerFollowPan = c.CheckerFollowPan;
         s.Canvas.BackgroundImagePath = c.BackgroundPath;
         s.Canvas.BackgroundTile = c.Tile;
         s.Canvas.BackgroundOffsetX = c.OffsetX;
@@ -186,6 +189,8 @@ public partial class MainWindow
             c.CheckerDark = checkerBrush;
             c.Checkerboard = v.Style == BackgroundStyle.Checkerboard;
             c.CheckerSize = checkerSize;
+            c.CheckerFollowZoom = v.CheckerFollowZoom;
+            c.CheckerFollowPan = v.CheckerFollowPan;
             c.BackgroundImage = background;
             c.Crosshair = crosshair;
             c.InvalidateVisual();

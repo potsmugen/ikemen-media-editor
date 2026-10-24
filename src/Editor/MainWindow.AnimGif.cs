@@ -231,7 +231,7 @@ public partial class MainWindow
     }
 
     /// <summary>The Animations canvas background as it shows at zoom = scale with no pan: base color, then the
-    /// checkerboard (squares in output pixels, from the top-left) or the image. Always opaque.</summary>
+    /// checkerboard (from the axis when it follows zoom or pan, else from the top-left) or the image. Always opaque.</summary>
     private byte[] ExportBackground(int width, int height, int left, int top, int scale)
     {
         var dst = new byte[width * height * 4];
@@ -248,10 +248,13 @@ public partial class MainWindow
 
         if (AnimCanvas.Checkerboard && AnimCanvas.CheckerDark is ISolidColorBrush dark)
         {
-            int size = Math.Clamp(AnimCanvas.CheckerSize, 1, 512);
+            // As SpriteView at zoom = scale with no pan, where the canvas center is the axis.
+            bool follow = AnimCanvas.CheckerFollowZoom || AnimCanvas.CheckerFollowPan;
+            int size = Math.Clamp(AnimCanvas.CheckerSize, 1, 512) * (AnimCanvas.CheckerFollowZoom ? scale : 1);
+            int ax = follow ? -left * scale : 0, ay = follow ? -top * scale : 0;
             for (int y = 0; y < height; y++)
                 for (int x = 0; x < width; x++)
-                    if ((x / size + y / size) % 2 == 0)
+                    if (((int)Math.Floor((x - ax) / (double)size) + (int)Math.Floor((y - ay) / (double)size)) % 2 == 0)
                         Over((y * width + x) * 4, dark.Color.B, dark.Color.G, dark.Color.R, dark.Color.A / 255.0 * dark.Opacity);
         }
 

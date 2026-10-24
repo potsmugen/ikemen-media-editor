@@ -307,9 +307,12 @@ public sealed class Settings
         public string? BaseColor { get; set; }
         /// <summary>#RRGGBB second checker square; null = auto from the base.</summary>
         public string? CheckerColor { get; set; }
-        /// <summary>Transparency checkerboard square size, in screen pixels. The checkerboard
-        /// is drawn in screen space, so this does not change as the canvas zooms.</summary>
+        /// <summary>Transparency checkerboard square size, in screen pixels, or at 100% zoom
+        /// when CheckerFollowZoom is on.</summary>
         public int CheckerSize { get; set; } = DefaultCheckerSize;
+        /// <summary>Checker squares scale with zoom / start at the axis and move with pan.</summary>
+        public bool CheckerFollowZoom { get; set; }
+        public bool CheckerFollowPan { get; set; }
         public string? BackgroundImagePath { get; set; }
         /// <summary>Tiles the background image across the canvas instead of drawing it once, centered on the axis.</summary>
         public bool BackgroundTile { get; set; }

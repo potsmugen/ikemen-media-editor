@@ -351,8 +351,12 @@ public class SpriteView : Control
     public event Action<int, Point>? BoxContextRequested;
 
     public bool Checkerboard { get; set; } = true;
-    /// <summary>Transparency checkerboard square size, in screen pixels (settings.json CheckerSize).</summary>
+    /// <summary>Transparency checkerboard square size, in screen pixels (settings.json CheckerSize); at 100% zoom with CheckerFollowZoom.</summary>
     public int CheckerSize { get; set; } = Settings.DefaultCheckerSize;
+    /// <summary>Checker squares scale with the zoom.</summary>
+    public bool CheckerFollowZoom { get; set; }
+    /// <summary>Checker squares start at the axis and move with the pan.</summary>
+    public bool CheckerFollowPan { get; set; }
     public bool ShowBounds { get; set; }
     public bool FullCrosshair { get; set; }
     /// <summary>False hides the axis cross and the guides (palette preview).</summary>
@@ -895,6 +899,58 @@ public class SpriteView : Control
         return _checkerBrush;
     }
 
+    /// <summary>Above this many squares on screen, the following checkerboard uses a tiled brush instead of rectangles.</summary>
+    private const int MaxCheckerRects = 4096;
+
+    /// <summary>
+    /// The checkerboard when it follows zoom and/or pan: squares are CheckerSize at 100% zoom when following
+    /// zoom, and start at the axis when following pan (else the canvas center), so with both they line up with
+    /// sprite pixels. Square size rounds to whole device pixels, at least one.
+    /// </summary>
+    private void DrawFollowingChecker(DrawingContext ctx, int size, Rect full)
+    {
+        double scale = RenderScale;
+        double sq = Math.Max(1, Math.Round(size * (CheckerFollowZoom ? Zoom : 1) * scale)) / scale;
+        var anchor = CheckerFollowPan ? Origin : new Point(SnapToDevice(Bounds.Width / 2), SnapToDevice(Bounds.Height / 2));
+        int cols = (int)Math.Ceiling(full.Width / sq) + 1, rows = (int)Math.Ceiling(full.Height / sq) + 1;
+        if ((long)cols * rows > MaxCheckerRects)
+        {
+            // Small squares: a tiled brush whose tile starts on the anchor.
+            var tile = new DrawingGroup
+            {
+                Children =
+                {
+                    new GeometryDrawing { Brush = CheckerDark, Geometry = new RectangleGeometry(new Rect(0, 0, 1, 1)) },
+                    new GeometryDrawing { Brush = CheckerDark, Geometry = new RectangleGeometry(new Rect(1, 1, 1, 1)) },
+                },
+            };
+            ctx.FillRectangle(new DrawingBrush(tile)
+            {
+                TileMode = TileMode.Tile,
+                Stretch = Stretch.Fill,
+                DestinationRect = new RelativeRect(anchor.X, anchor.Y, sq * 2, sq * 2, RelativeUnit.Absolute),
+            }, full);
+            return;
+        }
+
+        // Large squares: the dark ones as rectangles, so no oversized brush tile gets rendered.
+        int i0 = (int)Math.Floor(-anchor.X / sq), j0 = (int)Math.Floor(-anchor.Y / sq);
+        var dark = new StreamGeometry();
+        using (var g = dark.Open())
+            for (int j = j0; j < j0 + rows; j++)
+                for (int i = i0 + ((i0 + j) % 2 + 2) % 2; i < i0 + cols; i += 2)
+                {
+                    double x = anchor.X + i * sq, y = anchor.Y + j * sq;
+                    g.BeginFigure(new Point(x, y), true);
+                    g.LineTo(new Point(x + sq, y));
+                    g.LineTo(new Point(x + sq, y + sq));
+                    g.LineTo(new Point(x, y + sq));
+                    g.EndFigure(true);
+                }
+        using (ctx.PushClip(full))
+            ctx.DrawGeometry(CheckerDark, null, dark);
+    }
+
     private void DrawCrosshair(DrawingContext ctx, Point o)
     {
         var ch = Crosshair;
@@ -927,9 +983,10 @@ public class SpriteView : Control
 
         if (Checkerboard)
         {
-            // Screen space, so the squares keep their size as the canvas zooms; clamp hand-edited values.
+            // Screen space from the top-left unless set to follow zoom or pan; clamp hand-edited values.
             int size = Math.Clamp(CheckerSize, 1, 512);
-            ctx.FillRectangle(CheckerBrush(size), full);
+            if (CheckerFollowZoom || CheckerFollowPan) DrawFollowingChecker(ctx, size, full);
+            else ctx.FillRectangle(CheckerBrush(size), full);
         }
 
         DrawBackgroundImage(ctx);

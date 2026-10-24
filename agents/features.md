@@ -202,7 +202,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   canvas background as it shows at zoom = scale with no pan, cropped to the animation bounds, and
   applies each frame's blend with the canvas's math (`RenderBlendedFrame` mirrors `DrawBlended`
   with Skia's Plus and Multiply), so Subtract keeps the canvas stand-in. The checkerboard is drawn
-  in output pixels from the top-left. The output is opaque.
+  in output pixels from the top-left, or from the axis when it follows zoom or pan (squares times
+  the scale with Scale with zoom). The output is opaque.
   - WebP is lossless: exact colors and 8-bit alpha, durations in ms. Skia's libwebp encodes each
     frame as a still (`EncodeWebPStill`, lossless at quality 100); `Sff.WebP` keeps its image chunks
     and writes the animation container. Frames after the first store only the changed rectangle
@@ -316,6 +317,12 @@ and constraints that are easy to miss when reading one code path in isolation.
   canvas, it draws and hit-tests at the pan snapped to whole device pixels.
 - **Canvas background images** follow the view pan when Follow pan is on, keeping their
   position relative to the sprite; tiled images keep the same phase.
+- **Checkerboard** has its own Scale with zoom and Follow pan (CheckerFollowZoom/Pan, both off:
+  screen space from the top-left). Scale with zoom makes Checker size count at 100% zoom;
+  Follow pan starts the squares at the axis, otherwise at the canvas center. With both, squares
+  line up with sprite pixels. Sizes round to whole device pixels (at least one); up to 4096
+  squares on screen are drawn as rectangles, more use a tiled brush. The Fit preview stays in
+  screen space.
 - **Image import** keeps palette and index order when possible; own-palette 8-bit imports
   pad to 256 entries with opaque black. True-color reduction uses frequency-weighted median
   cut weighted by occurrence, reserving index 0 for transparency. PNG, PCX and GIF are
