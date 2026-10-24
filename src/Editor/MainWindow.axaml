@@ -929,7 +929,7 @@
             <ScrollViewer Grid.Column="2" Grid.RowSpan="3" VerticalContentAlignment="Center">
             <StackPanel Spacing="6" VerticalAlignment="Center">
             <Border x:Name="ColorEditor" Background="{DynamicResource ThemePanelBg}" CornerRadius="3"
-                    Padding="{DynamicResource PanelContentPadding}" IsEnabled="False" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="300">
+                    Padding="{DynamicResource PanelContentPadding}" IsEnabled="False" HorizontalAlignment="Stretch" VerticalAlignment="Center" MaxWidth="320">
                 <StackPanel Spacing="8">
                   <TextBlock Text="Pending changes" Foreground="{DynamicResource ThemeMutedText}" />
                   <!-- Before = the color Reset restores; After = the live color. Filled by UpdateColorCompare. -->
@@ -958,7 +958,7 @@
                   </Grid>
                   <Separator />
                   <TextBlock Text="Color" Foreground="{DynamicResource ThemeMutedText}" />
-                  <Grid ColumnDefinitions="20,*,30" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+                  <Grid ColumnDefinitions="20,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="4">
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="R" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                     <Slider Grid.Row="0" Grid.Column="1" x:Name="RSlider" Minimum="0" Maximum="255" ValueChanged="OnColorChanged"
                             SmallChange="1" TickFrequency="1" IsSnapToTickEnabled="True">
@@ -968,7 +968,8 @@
                         <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
                       </Slider.Resources>
                     </Slider>
-                    <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Value, ElementName=RSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <NumericUpDown Grid.Row="0" Grid.Column="2" x:Name="RBox" Width="72" Margin="6,0,0,0" Increment="1" FormatString="0"
+                                   IsEnabled="{Binding IsEnabled, ElementName=RSlider}" />
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="G" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                     <Slider Grid.Row="1" Grid.Column="1" x:Name="GSlider" Minimum="0" Maximum="255" ValueChanged="OnColorChanged"
                             SmallChange="1" TickFrequency="1" IsSnapToTickEnabled="True">
@@ -978,7 +979,8 @@
                         <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
                       </Slider.Resources>
                     </Slider>
-                    <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Value, ElementName=GSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <NumericUpDown Grid.Row="1" Grid.Column="2" x:Name="GBox" Width="72" Margin="6,0,0,0" Increment="1" FormatString="0"
+                                   IsEnabled="{Binding IsEnabled, ElementName=GSlider}" />
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="B" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                     <Slider Grid.Row="2" Grid.Column="1" x:Name="BSlider" Minimum="0" Maximum="255" ValueChanged="OnColorChanged"
                             SmallChange="1" TickFrequency="1" IsSnapToTickEnabled="True">
@@ -988,7 +990,8 @@
                         <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
                       </Slider.Resources>
                     </Slider>
-                    <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Value, ElementName=BSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <NumericUpDown Grid.Row="2" Grid.Column="2" x:Name="BBox" Width="72" Margin="6,0,0,0" Increment="1" FormatString="0"
+                                   IsEnabled="{Binding IsEnabled, ElementName=BSlider}" />
                     <TextBlock Grid.Row="3" Grid.Column="0" Text="A" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                     <Slider Grid.Row="3" Grid.Column="1" x:Name="ASlider" Minimum="0" Maximum="255" ValueChanged="OnColorChanged"
                             SmallChange="1" TickFrequency="1" IsSnapToTickEnabled="True">
@@ -998,7 +1001,8 @@
                         <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
                       </Slider.Resources>
                     </Slider>
-                    <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding Value, ElementName=ASlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <NumericUpDown Grid.Row="3" Grid.Column="2" x:Name="ABox" Width="72" Margin="6,0,0,0" Increment="1" FormatString="0"
+                                   IsEnabled="{Binding IsEnabled, ElementName=ASlider}" />
                   </Grid>
                   <Button x:Name="PickColorButton" Content="Color Picker" Click="OnPickColor" HorizontalAlignment="Stretch"
                           HorizontalContentAlignment="Center"
@@ -1008,7 +1012,7 @@
                                 ToolTip.Tip="Copies the next color you click on a swatch, the reference image, or the sprite preview into the selected swatch." />
                   <Separator />
                   <TextBlock Text="Adjustments" Foreground="{DynamicResource ThemeMutedText}" />
-                  <Grid ColumnDefinitions="20,*,30" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
+                  <Grid ColumnDefinitions="20,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="4">
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="R" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                     <Slider Grid.Row="0" Grid.Column="1" x:Name="RAddSlider" Minimum="-255" Maximum="255" Value="0" ValueChanged="OnColorAdjustChanged">
                       <Slider.Resources>
@@ -1017,7 +1021,8 @@
                         <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
                       </Slider.Resources>
                     </Slider>
-                    <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Value, ElementName=RAddSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <NumericUpDown Grid.Row="0" Grid.Column="2" x:Name="RAddBox" Width="72" Margin="6,0,0,0" Increment="1" FormatString="0"
+                                   IsEnabled="{Binding IsEnabled, ElementName=RAddSlider}" />
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="G" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                     <Slider Grid.Row="1" Grid.Column="1" x:Name="GAddSlider" Minimum="-255" Maximum="255" Value="0" ValueChanged="OnColorAdjustChanged">
                       <Slider.Resources>
@@ -1026,7 +1031,8 @@
                         <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
                       </Slider.Resources>
                     </Slider>
-                    <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Value, ElementName=GAddSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <NumericUpDown Grid.Row="1" Grid.Column="2" x:Name="GAddBox" Width="72" Margin="6,0,0,0" Increment="1" FormatString="0"
+                                   IsEnabled="{Binding IsEnabled, ElementName=GAddSlider}" />
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="B" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                     <Slider Grid.Row="2" Grid.Column="1" x:Name="BAddSlider" Minimum="-255" Maximum="255" Value="0" ValueChanged="OnColorAdjustChanged">
                       <Slider.Resources>
@@ -1035,7 +1041,8 @@
                         <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
                       </Slider.Resources>
                     </Slider>
-                    <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Value, ElementName=BAddSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <NumericUpDown Grid.Row="2" Grid.Column="2" x:Name="BAddBox" Width="72" Margin="6,0,0,0" Increment="1" FormatString="0"
+                                   IsEnabled="{Binding IsEnabled, ElementName=BAddSlider}" />
                     <TextBlock Grid.Row="3" Grid.Column="0" Text="H" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" ToolTip.Tip="Hue" />
                     <Slider Grid.Row="3" Grid.Column="1" x:Name="HueSlider" Minimum="-180" Maximum="180" Value="0" ValueChanged="OnColorAdjustChanged">
                       <Slider.Resources>
@@ -1044,7 +1051,8 @@
                         <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
                       </Slider.Resources>
                     </Slider>
-                    <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding Value, ElementName=HueSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <NumericUpDown Grid.Row="3" Grid.Column="2" x:Name="HueBox" Width="72" Margin="6,0,0,0" Increment="1" FormatString="0"
+                                   IsEnabled="{Binding IsEnabled, ElementName=HueSlider}" />
                     <TextBlock Grid.Row="4" Grid.Column="0" Text="S" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" ToolTip.Tip="Saturation" />
                     <Slider Grid.Row="4" Grid.Column="1" x:Name="SaturationSlider" Minimum="-100" Maximum="100" Value="0" ValueChanged="OnColorAdjustChanged">
                       <Slider.Resources>
@@ -1053,7 +1061,8 @@
                         <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
                       </Slider.Resources>
                     </Slider>
-                    <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding Value, ElementName=SaturationSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <NumericUpDown Grid.Row="4" Grid.Column="2" x:Name="SaturationBox" Width="72" Margin="6,0,0,0" Increment="1" FormatString="0"
+                                   IsEnabled="{Binding IsEnabled, ElementName=SaturationSlider}" />
                     <TextBlock Grid.Row="5" Grid.Column="0" Text="L" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" ToolTip.Tip="Lighten" />
                     <Slider Grid.Row="5" Grid.Column="1" x:Name="LightenSlider" Minimum="-255" Maximum="255" Value="0" ValueChanged="OnColorAdjustChanged">
                       <Slider.Resources>
@@ -1062,7 +1071,8 @@
                         <x:Double x:Key="SliderHorizontalHeight">20</x:Double>
                       </Slider.Resources>
                     </Slider>
-                    <TextBlock Grid.Row="5" Grid.Column="2" Text="{Binding Value, ElementName=LightenSlider, StringFormat={}{0:0}}" FontSize="{DynamicResource UiFont11}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <NumericUpDown Grid.Row="5" Grid.Column="2" x:Name="LightenBox" Width="72" Margin="6,0,0,0" Increment="1" FormatString="0"
+                                   IsEnabled="{Binding IsEnabled, ElementName=LightenSlider}" />
                   </Grid>
                   <Separator />
                   <TextBlock Text="Color operations" Foreground="{DynamicResource ThemeMutedText}" />

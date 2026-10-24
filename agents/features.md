@@ -309,6 +309,10 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Palette hue and saturation** sliders use OKLCH by default, so a hue move keeps perceived
   lightness; settings.json `PalettePerceptualHue: false` restores HSV. Saturation is a
   percent of the most chroma sRGB allows. Lighten and RGB add to RGB directly.
+- **Palette slider boxes**: each Color and Adjustments slider has a number box
+  (`MainWindow.SliderBoxes.cs`). Typed values apply on Enter or focus loss, spinner and arrow
+  steps apply at once, and an empty box restores the slider value. The box follows the
+  slider's range and enabled state.
 - **Swap Colors** swaps exactly two selected colors, refusing index 0, with the same sprite
   update rules as Sort Colors.
 - **Single-color popups**: Create Gradient, Sort Colors and Swap Colors show a popup, not a

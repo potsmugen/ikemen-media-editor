@@ -100,6 +100,7 @@ public partial class MainWindow : Window
         WireSpritePaint();
         BuildReplaceSquares(); // after InitializeComponent: the rows it fills are XAML-named
         RefreshReplaceSquares();
+        WireSliderBoxes();
         // Sliders mirror the selected swatch, so they cover every write that bypasses SyncAdjustCommitButton.
         foreach (var slider in new[] { RSlider, GSlider, BSlider, ASlider })
             slider.ValueChanged += (_, _) => UpdateColorCompare();
