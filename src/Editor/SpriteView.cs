@@ -220,7 +220,7 @@ public class SpriteView : Control
     /// <summary>The lasso path in progress, in sprite pixel units; null when not drawing a lasso.</summary>
     private List<Point>? _lassoPoints;
     private bool[]? _outlineMask;
-    private List<(int X1, int Y1, int X2, int Y2)> _outlineRuns = [];
+    private List<(int X1, int Y1, int X2, int Y2, int Inward)> _outlineRuns = [];
 
     /// <summary>Press position for telling a Select click (clears) from a drag.</summary>
     private Point _selectPressPos;
@@ -658,7 +658,30 @@ public class SpriteView : Control
         InvalidateVisual();
     }
 
-    private Point Origin => new(Bounds.Width / 2 + _pan.X, Bounds.Height / 2 + _pan.Y);
+    // Snapped to whole device pixels so screen pixel centers never fall on sprite pixel borders.
+    private Point Origin => new(SnapToDevice(Bounds.Width / 2 + _pan.X), SnapToDevice(Bounds.Height / 2 + _pan.Y));
+
+    private double RenderScale => TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
+
+    private double SnapToDevice(double v)
+    {
+        double s = RenderScale;
+        return Math.Round(v * s) / s;
+    }
+
+    /// <summary>Half a device pixel when the pen covers an odd number of device pixels, else 0; shifting by it keeps the line sharp.</summary>
+    private double HalfPixelFor(double penWidth)
+    {
+        double s = RenderScale;
+        return ((long)Math.Round(penWidth * s) & 1) == 1 ? 0.5 / s : 0;
+    }
+
+    /// <summary>Moves a rectangle's outline onto the device pixels just inside its edges.</summary>
+    private Rect InsetFor(Rect r, double penWidth)
+    {
+        double h = HalfPixelFor(penWidth);
+        return h == 0 || r.Width < 2 * h || r.Height < 2 * h ? r : new Rect(r.X + h, r.Y + h, r.Width - 2 * h, r.Height - 2 * h);
+    }
 
     private Rect SpriteRect()
     {
@@ -877,11 +900,13 @@ public class SpriteView : Control
         var ch = Crosshair;
         double s = ch.ScaleWithZoom ? Zoom : 1;
         double t = ch.Thickness * s;
+        // Lines start at the axis border and run right/down, over sprite pixel 0,0.
+        double lx = o.X + t / 2, ly = o.Y + t / 2;
         if (FullCrosshair)
         {
             var guide = new Pen(new SolidColorBrush(ch.Color, GuideOpacity), t);
-            ctx.DrawLine(guide, new Point(0, o.Y), new Point(Bounds.Width, o.Y));
-            ctx.DrawLine(guide, new Point(o.X, 0), new Point(o.X, Bounds.Height));
+            ctx.DrawLine(guide, new Point(0, ly), new Point(Bounds.Width, ly));
+            ctx.DrawLine(guide, new Point(lx, 0), new Point(lx, Bounds.Height));
         }
         if (ch.Image is { } img)
         {
@@ -891,8 +916,8 @@ public class SpriteView : Control
         }
         var pen = new Pen(new SolidColorBrush(ch.Color), t);
         double a = ch.ArmLength * s;
-        ctx.DrawLine(pen, new Point(o.X - a, o.Y), new Point(o.X + a, o.Y));
-        ctx.DrawLine(pen, new Point(o.X, o.Y - a), new Point(o.X, o.Y + a));
+        ctx.DrawLine(pen, new Point(o.X - a, ly), new Point(o.X + a, ly));
+        ctx.DrawLine(pen, new Point(lx, o.Y - a), new Point(lx, o.Y + a));
     }
 
     public override void Render(DrawingContext ctx)
@@ -923,13 +948,13 @@ public class SpriteView : Control
             bool transformed = FlipH || FlipV || ElementScaleX != 1 || ElementScaleY != 1 || ElementAngle != 0;
             DrawBlended(ctx, transformed, src, dst);
 
-            if (ShowBounds) ctx.DrawRectangle(EdgePen, dst);
+            if (ShowBounds) ctx.DrawRectangle(EdgePen, InsetFor(dst, EdgePen.Thickness));
         }
 
         if (ShowOnionSkin)
             foreach (var g in _ghostBoxes)
                 ctx.DrawRectangle(new Pen(new SolidColorBrush(g.Color, OnionOpacityOverride ?? OnionOpacity), 1,
-                    new DashStyle([4, 3], 0)), ScreenRect(g));
+                    new DashStyle([4, 3], 0)), InsetFor(ScreenRect(g), 1));
 
         var o = Origin;
         for (int i = 0; i < Boxes.Count; i++)
@@ -940,12 +965,13 @@ public class SpriteView : Control
             bool active = i == SelectedBox;
 
             ctx.FillRectangle(new SolidColorBrush(box.Color, selected ? 0.38 : 0.22), r);
-            ctx.DrawRectangle(new Pen(new SolidColorBrush(box.Color), active ? 3 : selected ? 2 : 1), r);
+            int boxPen = active ? 3 : selected ? 2 : 1;
+            ctx.DrawRectangle(new Pen(new SolidColorBrush(box.Color), boxPen), InsetFor(r, boxPen));
             DrawIndexLabel(ctx, r, box.Index, box.Color);
 
             if (!active) continue;
             foreach (var h in Handles(r))
-                ctx.DrawRectangle(Brushes.White, new Pen(Brushes.Black), h);
+                ctx.DrawRectangle(Brushes.White, new Pen(Brushes.Black), InsetFor(h, 1));
         }
 
         if (ShowCrosshair) DrawCrosshair(ctx, o);
@@ -959,6 +985,7 @@ public class SpriteView : Control
             {
                 var rect = new Rect(sr.X + selection.X * Zoom, sr.Y + selection.Y * Zoom,
                     selection.Width * Zoom, selection.Height * Zoom);
+                rect = InsetFor(rect, 1);
                 ctx.DrawRectangle(white, rect);
                 ctx.DrawRectangle(black, rect);
             }
@@ -969,12 +996,15 @@ public class SpriteView : Control
                     _outlineRuns = OutlineRuns(selection);
                     _outlineMask = selection.Mask;
                 }
+                // Each run moves half a device pixel toward the selected side, like InsetFor.
+                double half = HalfPixelFor(1);
                 var outline = new StreamGeometry();
                 using (var g = outline.Open())
-                    foreach (var (x1, y1, x2, y2) in _outlineRuns)
+                    foreach (var (x1, y1, x2, y2, inward) in _outlineRuns)
                     {
-                        g.BeginFigure(new Point(sr.X + (selection.X + x1) * Zoom, sr.Y + (selection.Y + y1) * Zoom), false);
-                        g.LineTo(new Point(sr.X + (selection.X + x2) * Zoom, sr.Y + (selection.Y + y2) * Zoom));
+                        double dx = x1 == x2 ? inward * half : 0, dy = y1 == y2 ? inward * half : 0;
+                        g.BeginFigure(new Point(sr.X + (selection.X + x1) * Zoom + dx, sr.Y + (selection.Y + y1) * Zoom + dy), false);
+                        g.LineTo(new Point(sr.X + (selection.X + x2) * Zoom + dx, sr.Y + (selection.Y + y2) * Zoom + dy));
                         g.EndFigure(false);
                     }
                 ctx.DrawGeometry(null, white, outline);
@@ -989,7 +1019,7 @@ public class SpriteView : Control
             var sr = SpriteRect();
             double z = Zoom;
             int half = BrushSize / 2;
-            var rect = new Rect(sr.X + (hx - half) * z, sr.Y + (hy - half) * z, BrushSize * z, BrushSize * z);
+            var rect = InsetFor(new Rect(sr.X + (hx - half) * z, sr.Y + (hy - half) * z, BrushSize * z, BrushSize * z), 1);
             ctx.DrawRectangle(BrushOutlineBase, rect);
             bool inverse = ActiveTool == PaintTool.Replace && (_painting ? _inverseStroke : _inverseHeld);
             ctx.DrawRectangle(inverse ? InverseOutlineDash() : BrushOutlineDash, rect);
@@ -1702,28 +1732,33 @@ public class SpriteView : Control
         return new PixelSelection(minX, minY, w, h, mask);
     }
 
-    /// <summary>Edges between selected and unselected pixels, merged into straight runs, relative to the selection's X and Y.</summary>
-    private static List<(int X1, int Y1, int X2, int Y2)> OutlineRuns(PixelSelection s)
+    /// <summary>
+    /// Edges between selected and unselected pixels, merged into straight runs, relative to the selection's X and Y.
+    /// Inward is +1 when the selected side is right/below the edge, -1 when left/above.
+    /// </summary>
+    private static List<(int X1, int Y1, int X2, int Y2, int Inward)> OutlineRuns(PixelSelection s)
     {
-        var runs = new List<(int X1, int Y1, int X2, int Y2)>();
+        var runs = new List<(int X1, int Y1, int X2, int Y2, int Inward)>();
         for (int j = 0; j <= s.Height; j++)
         {
-            int start = -1;
+            int start = -1, side = 0;
             for (int x = 0; x <= s.Width; x++)
             {
-                bool edge = x < s.Width && s.Contains(x, j - 1) != s.Contains(x, j);
-                if (edge && start < 0) start = x;
-                else if (!edge && start >= 0) { runs.Add((start, j, x, j)); start = -1; }
+                int cur = x < s.Width && s.Contains(x, j - 1) != s.Contains(x, j) ? (s.Contains(x, j) ? 1 : -1) : 0;
+                if (cur == side) continue;
+                if (side != 0) runs.Add((start, j, x, j, side));
+                start = x; side = cur;
             }
         }
         for (int i = 0; i <= s.Width; i++)
         {
-            int start = -1;
+            int start = -1, side = 0;
             for (int y = 0; y <= s.Height; y++)
             {
-                bool edge = y < s.Height && s.Contains(i - 1, y) != s.Contains(i, y);
-                if (edge && start < 0) start = y;
-                else if (!edge && start >= 0) { runs.Add((i, start, i, y)); start = -1; }
+                int cur = y < s.Height && s.Contains(i - 1, y) != s.Contains(i, y) ? (s.Contains(i, y) ? 1 : -1) : 0;
+                if (cur == side) continue;
+                if (side != 0) runs.Add((i, start, i, y, side));
+                start = y; side = cur;
             }
         }
         return runs;

@@ -312,7 +312,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   update rules as Sort Colors.
 - **Single-color popups**: Create Gradient, Sort Colors and Swap Colors show a popup, not a
   status line, when fewer than two colors are selected.
-- **Reference image view** keeps its own zoom, independent of the canvas and preview.
+- **Reference image view** keeps its own zoom, independent of the canvas and preview. Like the
+  canvas, it draws and hit-tests at the pan snapped to whole device pixels.
 - **Canvas background images** follow the view pan when Follow pan is on, keeping their
   position relative to the sprite; tiled images keep the same phase.
 - **Image import** keeps palette and index order when possible; own-palette 8-bit imports
@@ -677,6 +678,11 @@ summaries; treat anything marked unverified as unknown.
 
 ### Avalonia and C#
 
+- **Canvas pixel snapping** (`SpriteView`): `Origin` (canvas center + pan) is rounded to whole
+  device pixels, so sprite pixels never straddle screen pixels; the pan itself stays fractional.
+  Odd-width outlines (boxes, bounds, selection, brush) shift half a device pixel onto the pixels
+  just inside their edges (`InsetFor`). The crosshair covers sprite pixel 0,0: its lines start
+  at the axis border and run right/down. Hardening for an unreproduced 1px-step report.
 - **GitHub release**: `.github/workflows/release.yml` builds on each push to main (not for
   `.md`/`agents/`-only changes) into one release per UTC commit date, tag `YYYY.MM.DD`;
   a same-day build replaces that date's release, older dates are kept. Only the newest date
@@ -697,8 +703,9 @@ summaries; treat anything marked unverified as unknown.
   `com.apple.quarantine`. The builds have only an ad-hoc signature, not a Developer ID
   or notarization, so macOS refuses to load the quarantined dylibs: `code signature ...
   not valid for use in process: library load disallowed by system policy` (seen in a
-  user's crash.log for `libAvaloniaNative.dylib`; quarantine as the cause is inferred,
-  not yet confirmed). Otherwise the user may have to approve each dylib in Privacy &
+  user's crash.log for `libAvaloniaNative.dylib`). Tested by the maintainer (2026-10-24): with
+  `ClearQuarantine`, a browser-downloaded build starts after Open Anyway on the exe.
+  Without it, the user may have to approve each dylib in Privacy &
   Security (unverified). The user approves the exe once. Then `Program.ClearQuarantine` (macOS only, in
   `UseLibFolder`, before any native load) calls `removexattr` on every file under lib/,
   same as `xattr -d com.apple.quarantine`. Files that weren't quarantined (ENOATTR) are

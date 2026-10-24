@@ -24,7 +24,7 @@ Character code and other INI-style files. The project is scoped to media files, 
 ## Platforms
 
 Windows, Linux and macOS.  
-Windows is fully tested, Linux partly, and macOS not yet. Reports are welcome.  
+All three are tested. Reports are welcome.  
 
 
 ## Installing

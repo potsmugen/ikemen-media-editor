@@ -77,10 +77,6 @@ before a release. Remove items once they're done or checked.
   contiguous or global undecided). It can reuse Fill's flood fill and the lasso's mask.
 - Add a low-pass filter for sounds (slope and dialog design undecided).
 - Add a high-pass filter for sounds (slope and dialog design undecided).
-- Finish testing on Linux. Smoke test passed in a Linux VM with the single-file
-  Release publish (`-r linux-x64`, built from Windows); not tested further.
-- Test on macOS. First confirm `Program.ClearQuarantine` lets a browser-downloaded build
-  start after Open Anyway on the exe alone (arm64 and x64); check trace.log for the count.
 - Import/export SprMaker 0.97 (.txt sprite list + PCX) formats; design undecided.
 - Import/export SprMaker 2.01 (.def with [Pal]/sprite lines + PCX/PNG) formats;
   design undecided.
@@ -152,6 +148,13 @@ before a release. Remove items once they're done or checked.
   export/import items, invalid settings values), so its name promises more than it delivers.
   Decide whether to split it into a crash dump file and an error log, and update the
   `AGENTS.md` logging rule if so.
+- Reported, not reproduced (2026-10-24): on the Sprites canvas at 16px per sprite pixel, a
+  user screenshot shows 1px steps partway along a sprite row (one row drawn at y 240-255 on
+  the left, 239-254 on the right). Plain DrawImage path, no transform or blend. The guide lines
+  suggest a half-pixel Origin (Bounds/2 + pan, unrounded). A Skia half-pixel test showed no
+  steps. Cause unknown; the maintainer can't reproduce it either. Origin is now snapped to
+  device pixels as hardening (features.md "Canvas pixel snapping"); checked by the maintainer.
+  Waiting for the reporter's feedback on the next build; close if it doesn't recur.
 
 ## Not yet checked in the app
 

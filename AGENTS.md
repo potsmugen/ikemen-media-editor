@@ -115,8 +115,7 @@ looping is Windows-only. Kernel32 calls in `Program.cs` return early off
 Windows. The editor is portable: everything it writes stays in its own folder
 (`AppPaths.Data` = `data/`, plus `logs/` and `themes/`), never AppData or Temp.
 Published native DLLs live in `lib/` (`Program.UseLibFolder`); on macOS the editor
-clears their download quarantine first (`Program.ClearQuarantine`, see features.md). Windows is fully tested, Linux partially, macOS not
-yet.
+clears their download quarantine first (`Program.ClearQuarantine`, see features.md). Windows, Linux and macOS are tested.
 
 ## Architecture
 

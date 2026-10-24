@@ -45,6 +45,16 @@ public class ScratchImageView : Control
     /// <summary>The scale that spreads the image across the panel — the default view, kept as a zoom state of its own.</summary>
     private double FitScale => _width > 0 && Bounds.Width > 0 ? Bounds.Width / _width : 1;
 
+    /// <summary>The pan snapped to whole device pixels, as SpriteView snaps its origin; draw and hit-test with this.</summary>
+    private Point ImageOrigin
+    {
+        get
+        {
+            double s = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
+            return new Point(Math.Round(_pan.X * s) / s, Math.Round(_pan.Y * s) / s);
+        }
+    }
+
     /// <summary>Backdrop color; kept in step with the app theme (see MainWindow.ApplyTheme).</summary>
     public IBrush Background { get; set; } = new SolidColorBrush(Color.FromRgb(0x2a, 0x2a, 0x2e));
 
@@ -150,7 +160,7 @@ public class ScratchImageView : Control
         if (_bitmap is null || _width == 0) return;
         double z = Zoom;
         ctx.DrawImage(_bitmap, new Rect(0, 0, _width, _height),
-            new Rect(_pan.X, _pan.Y, _width * z, _height * z));
+            new Rect(ImageOrigin, new Size(_width * z, _height * z)));
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -180,7 +190,8 @@ public class ScratchImageView : Control
         if (!p.Properties.IsLeftButtonPressed) return;
 
         double z = Zoom;
-        int x = (int)((p.Position.X - _pan.X) / z), y = (int)((p.Position.Y - _pan.Y) / z);
+        var o = ImageOrigin;
+        int x = (int)((p.Position.X - o.X) / z), y = (int)((p.Position.Y - o.Y) / z);
         if (x < 0 || x >= _width || y < 0 || y >= _height) return;
 
         int off = (y * _width + x) * 4;
