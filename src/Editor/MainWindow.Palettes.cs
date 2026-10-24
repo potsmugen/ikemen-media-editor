@@ -1919,7 +1919,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             && PaletteList.ItemsSource is IEnumerable<PaletteRow> rows
             && rows.ElementAtOrDefault(row) is { } target
             && palettes.IndexOf(target.Palette) is var index and >= 0)
-            to = index;
+            to = DropBoundary(e, item, index);
         MovePalette(from, to);
     }
 

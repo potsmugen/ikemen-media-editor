@@ -802,7 +802,7 @@ public partial class MainWindow
         if (e.Source is Visual v && v.FindAncestorOfType<ListBoxItem>(true) is { } item)
         {
             int row = SpriteList.IndexFromContainer(item);
-            if (row >= 0 && row < _visible.Count) to = _visible[row];
+            if (row >= 0 && row < _visible.Count) to = DropBoundary(e, item, _visible[row]);
         }
         MoveSprite(from, to);
     }

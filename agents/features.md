@@ -407,6 +407,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   Stop, Trim to Selection and Replace are disabled, and Downsample All works the same way.
 - **Duplicate** leaves the copies selected (single and multi-selection), like the sprite,
   action, frame and palette lists.
+- **Drag to reorder** (sprite, action and palette lists) drops before the hovered row on its
+  top half and after it on its bottom half, so moving one row up or down is symmetric.
 
 ### Reports and configuration
 

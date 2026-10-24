@@ -2161,6 +2161,10 @@ public partial class MainWindow
     private void OnActionListDragOver(object? sender, DragEventArgs e) =>
         e.DragEffects = e.Data.Contains(ActionDragFormat) ? DragDropEffects.Move : DragDropEffects.None;
 
+    /// <summary>Drop boundary for a hovered row: before it on its top half, after it on its bottom half.</summary>
+    private static int DropBoundary(DragEventArgs e, ListBoxItem item, int index) =>
+        e.GetPosition(item).Y > item.Bounds.Height / 2 ? index + 1 : index;
+
     private void OnActionListDrop(object? sender, DragEventArgs e)
     {
         if (_air is null || e.Data.Get(ActionDragFormat) is not int from) return;
@@ -2171,10 +2175,10 @@ public partial class MainWindow
         if (e.Source is Visual v && v.FindAncestorOfType<ListBoxItem>(true) is { } item)
         {
             int row = ActionList.IndexFromContainer(item);
-            if (row >= 0 && ActionList.ItemsSource is List<ActionRow> rows && row < rows.Count)
-                to = _air.Actions.IndexOf(rows[row].Action);
+            if (row >= 0 && ActionList.ItemsSource is List<ActionRow> rows && row < rows.Count
+                && _air.Actions.IndexOf(rows[row].Action) is var index and >= 0)
+                to = DropBoundary(e, item, index);
         }
-        if (to < 0) to = _air.Actions.Count;
         MoveAction(from, to);
     }
 
