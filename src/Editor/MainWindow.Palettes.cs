@@ -2105,10 +2105,10 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             : v1Ordinals.TryGetValue(p, out int sn) ? sn.ToString(CultureInfo.InvariantCulture)
             : p.Index.ToString(CultureInfo.InvariantCulture),
         GroupToolTip = p.Source == PaletteSource.External ? ExternalGroupToolTip
-            : v1 ? V1GroupToolTip : "Double-click to change this palette's group",
+            : v1 ? V1GroupToolTip : "Double-click to change this palette's group and index",
         IndexToolTip = p.Source == PaletteSource.External ? ExternalIndexToolTip
             : v1 ? carriers.TryGetValue(p, out var stored) ? $"Order within its group; stored in sprite {stored.Group},{stored.Index}" : ExternalIndexToolTip
-            : "Double-click to change this palette's index",
+            : "Double-click to change this palette's group and index",
         SourceText = p.Source == PaletteSource.External
             ? IsTempPalette(p) ? "temp" : "file"
             : v1 && carriers.ContainsKey(p) ? "sprite" : "sff",
@@ -2254,7 +2254,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     }
 
     /// <summary>
-    /// Double-clicking a palette's Grp or Idx cell prompts for the new value,
+    /// Double-clicking a palette's Grp or Idx cell prompts for both values,
     /// same convention as OnSpriteCellDoubleTapped. Group/Index are plain
     /// fields with no uniqueness enforced elsewhere (sprites reference a
     /// Palette object directly, not by group/index), but two palettes
@@ -2271,25 +2271,12 @@ private void ClearOtherSwatchSelections(PaletteView keep)
 
         try
         {
-            var result = await Dialogs.PromptText(this, isGroup ? "Change group" : "Change index",
-                isGroup ? "New group:" : "New index:",
-                (isGroup ? pal.Group : pal.Index).ToString(CultureInfo.InvariantCulture));
-            if (result is null) return;
-            if (!int.TryParse(result.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int val))
-            {
-                await Dialogs.ShowMessage(this, "Not a Number", "Type a whole number.");
-                return;
-            }
-            if (val < 0 || val > SpriteFieldMax)
-            {
-                StatusText.Text = _settings.General.DebugMode
-                    ? "Group and Index must be whole numbers of 0 or more."
-                    : "Group and Index must be whole numbers from 0 to 65535.";
-                return;
-            }
+            var values = await Dialogs.PromptNumberFields(this, "Change Group and Index",
+                ["Group", "Index"], [pal.Group, pal.Index], 0, SpriteFieldMax, isGroup ? 0 : 1);
+            if (values is null || _file is null) return;
 
-            int newGroup = isGroup ? val : pal.Group;
-            int newIndex = isGroup ? pal.Index : val;
+            int newGroup = values[0];
+            int newIndex = values[1];
             if (newGroup != pal.Group || newIndex != pal.Index)
             {
                 bool collides = _file.Palettes.Any(p => !ReferenceEquals(p, pal) && p.Group == newGroup && p.Index == newIndex);

@@ -222,34 +222,19 @@ public partial class MainWindow
                 return;
             }
 
+            // Group/Number and X/Y are edited as pairs; the clicked field gets focus.
             if (field is not ("Group" or "Number" or "X" or "Y")) return;
-            bool isGroup = field == "Group";
-            bool isNumber = field == "Number";
-            bool isX = field == "X";
-            string fieldName = isGroup ? "group" : isNumber ? "number" : isX ? "X offset" : "Y offset";
-            int currentValue = isGroup ? row.Sprite.Group : isNumber ? row.Sprite.Index : isX ? row.Sprite.AxisX : row.Sprite.AxisY;
-            var result = await Dialogs.PromptText(this, $"Change {fieldName}",
-                $"New {fieldName}:", currentValue.ToString(CultureInfo.InvariantCulture));
-            if (result is null || !ReferenceEquals(_file, file)) return;
-            if (!int.TryParse(result.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int val))
-            {
-                await Dialogs.ShowMessage(this, "Not a Number", "Type a whole number.");
-                return;
-            }
-            int minimum = isX || field == "Y" ? SpriteAxisMin : 0;
-            int maximum = isX || field == "Y" ? SpriteAxisMax : SpriteFieldMax;
-            if (val < minimum || val > maximum)
-            {
-                StatusText.Text = isX || field == "Y"
-                    ? _settings.General.DebugMode ? "Axis offsets must be whole numbers." : "Axis offsets must be whole numbers from -32768 to 32767."
-                    : _settings.General.DebugMode ? "Group and Number must be whole numbers of 0 or more." : "Group and Number must be whole numbers from 0 to 65535.";
-                return;
-            }
+            bool isAxis = field is "X" or "Y";
+            int minimum = isAxis ? SpriteAxisMin : 0;
+            int maximum = isAxis ? SpriteAxisMax : SpriteFieldMax;
+            var values = await Dialogs.PromptNumberFields(this,
+                isAxis ? "Change Axis Offsets" : "Change Group and Number",
+                isAxis ? ["X", "Y"] : ["Group", "Number"],
+                isAxis ? [row.Sprite.AxisX, row.Sprite.AxisY] : [row.Sprite.Group, row.Sprite.Index],
+                minimum, maximum, field is "Number" or "Y" ? 1 : 0);
+            if (values is null || !ReferenceEquals(_file, file)) return;
             CommitSpriteField(row.VisibleRow,
-                before => isGroup ? (val, before.N, before.X, before.Y)
-                    : isNumber ? (before.G, val, before.X, before.Y)
-                    : isX ? (before.G, before.N, val, before.Y)
-                    : (before.G, before.N, before.X, val));
+                before => isAxis ? (before.G, before.N, values[0], values[1]) : (values[0], values[1], before.X, before.Y));
         }
         catch (Exception ex)
         {

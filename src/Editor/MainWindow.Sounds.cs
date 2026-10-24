@@ -2164,7 +2164,7 @@ public partial class MainWindow
 
     /// <summary>
     /// One click only selects, like the action list; double-clicking a Group
-    /// or Number cell prompts for the new value and commits through the same
+    /// or Number cell prompts for both values and commits through the same
     /// undo path the old inline cells used. DoubleTapped lives on the cell
     /// Border, not the TextBlock (same hit-testing reason as the action
     /// list's template documents).
@@ -2177,16 +2177,10 @@ public partial class MainWindow
 
         try
         {
-            var result = await Dialogs.PromptText(this, isGroup ? "Change group" : "Change number",
-                isGroup ? "New group:" : "New number:",
-                (isGroup ? row.Sound.Group : row.Sound.Index).ToString(CultureInfo.InvariantCulture));
-            if (result is null) return;
-            if (!int.TryParse(result.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int val) || val < 0)
-            {
-                await Dialogs.ShowMessage(this, "Not a Number", "Type a whole number of 0 or more.");
-                return;
-            }
-            CommitSoundField(row, isGroup ? val : null, isGroup ? null : val);
+            var values = await Dialogs.PromptNumberFields(this, "Change Group and Number",
+                ["Group", "Number"], [row.Sound.Group, row.Sound.Index], 0, int.MaxValue, isGroup ? 0 : 1);
+            if (values is null) return;
+            CommitSoundField(row, values[0], values[1]);
         }
         catch (Exception ex)
         {

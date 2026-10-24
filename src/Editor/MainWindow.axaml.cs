@@ -852,7 +852,7 @@ public partial class MainWindow : Window
             ShowContextMenu(ActionList,
                 ("Duplicate Action", () => OnDuplicateAction(null, new RoutedEventArgs())),
                 MenuSeparator,
-                ("Renumber", () => OnRenumberActionMenu(null, new RoutedEventArgs())),
+                ("Number and Comment", () => OnRenumberActionMenu(null, new RoutedEventArgs())),
                 ("Sort Ascending", () => OnSortActionsAscending(null, new RoutedEventArgs())),
                 MenuSeparator,
                 ("Delete All Boxes", () => OnDeleteAllBoxesInAction(null, new RoutedEventArgs())));

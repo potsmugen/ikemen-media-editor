@@ -1517,6 +1517,163 @@ public static partial class Dialogs
         return result.Task;
     }
 
+    /// <summary>Asks for several whole numbers side by side, each limited to minimum..maximum.
+    /// focusIndex picks the box that gets focus. Returns null if canceled.</summary>
+    public static Task<int[]?> PromptNumberFields(Window owner, string title,
+        IReadOnlyList<string> labels, IReadOnlyList<int> initial, int minimum, int maximum, int focusIndex)
+    {
+        var result = new TaskCompletionSource<int[]?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var boxes = initial.Select(value => new NumericUpDown
+        {
+            Minimum = minimum, Maximum = maximum, Increment = 1, FormatString = "0",
+            Value = Math.Clamp(value, minimum, maximum), Width = 120,
+        }).ToArray();
+        var ok = new Button { Content = "OK", MinWidth = 90, IsDefault = true };
+        var cancel = new Button { Content = "Cancel", MinWidth = 90 };
+        var error = new TextBlock { Foreground = ThemeBrush("ThemeMutedText"), TextWrapping = Avalonia.Media.TextWrapping.Wrap, MaxWidth = 300 };
+        var fields = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions(string.Join(",8,", Enumerable.Repeat("*", boxes.Length))),
+            RowDefinitions = new RowDefinitions("Auto,4,Auto"),
+        };
+        for (int i = 0; i < boxes.Length; i++)
+        {
+            var label = new TextBlock { Text = labels[i] };
+            Grid.SetColumn(label, i * 2);
+            fields.Children.Add(label);
+            Grid.SetColumn(boxes[i], i * 2);
+            Grid.SetRow(boxes[i], 2);
+            fields.Children.Add(boxes[i]);
+        }
+
+        var dialog = new Window
+        {
+            Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
+            Title = title, SizeToContent = SizeToContent.WidthAndHeight,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
+            Content = new StackPanel
+            {
+                Margin = new Avalonia.Thickness(20), Spacing = 12,
+                Children =
+                {
+                    fields,
+                    error,
+                    new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
+                        Spacing = 8, Children = { ok, cancel },
+                    },
+                },
+            },
+        };
+
+        void Accept()
+        {
+            var values = new int[boxes.Length];
+            for (int i = 0; i < boxes.Length; i++)
+            {
+                if (boxes[i].Value is not { } value || value != decimal.Truncate(value))
+                {
+                    error.Text = $"Type a whole number for {labels[i]}.";
+                    boxes[i].Focus();
+                    return;
+                }
+                values[i] = (int)value;
+            }
+            result.TrySetResult(values);
+            dialog.Close();
+        }
+
+        ok.Click += (_, _) => Accept();
+        cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
+        dialog.Closed += (_, _) => result.TrySetResult(null);
+        dialog.Opened += (_, _) => boxes[Math.Clamp(focusIndex, 0, boxes.Length - 1)].Focus();
+        dialog.ShowModal(owner);
+        return result.Task;
+    }
+
+    /// <summary>Asks for an action's number and comment; validateNumber returns an error to show, or null.
+    /// Returns null if canceled.</summary>
+    public static Task<(int Number, string Comment)?> PromptActionEdit(Window owner, int initialNumber,
+        string initialComment, bool focusComment, Func<int, string?> validateNumber)
+    {
+        var result = new TaskCompletionSource<(int Number, string Comment)?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        // Ikemen keys actions by int32 and reserves -1 as Copy Action's "unset" sentinel.
+        var number = new NumericUpDown
+        {
+            Minimum = 0, Maximum = int.MaxValue, Increment = 1, FormatString = "0",
+            Value = Math.Max(initialNumber, 0), Width = 120,
+        };
+        var comment = new TextBox { Text = initialComment, MinWidth = 260 };
+        var ok = new Button { Content = "OK", MinWidth = 90, IsDefault = true };
+        var cancel = new Button { Content = "Cancel", MinWidth = 90 };
+        var error = new TextBlock { Foreground = ThemeBrush("ThemeMutedText"), TextWrapping = Avalonia.Media.TextWrapping.Wrap, MaxWidth = 360 };
+        // Labels left, boxes right; Number on the first row, Comment on the second.
+        var fields = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("Auto,8,*"),
+            RowDefinitions = new RowDefinitions("Auto,8,Auto"),
+        };
+        var numberLabel = new TextBlock { Text = "Number", VerticalAlignment = VerticalAlignment.Center };
+        fields.Children.Add(numberLabel);
+        number.HorizontalAlignment = HorizontalAlignment.Left;
+        Grid.SetColumn(number, 2);
+        fields.Children.Add(number);
+        var commentLabel = new TextBlock { Text = "Comment", VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetRow(commentLabel, 2);
+        fields.Children.Add(commentLabel);
+        Grid.SetColumn(comment, 2);
+        Grid.SetRow(comment, 2);
+        fields.Children.Add(comment);
+
+        var dialog = new Window
+        {
+            Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
+            Title = "Action Number and Comment", SizeToContent = SizeToContent.WidthAndHeight,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
+            Content = new StackPanel
+            {
+                Margin = new Avalonia.Thickness(20), Spacing = 12,
+                Children =
+                {
+                    fields,
+                    error,
+                    new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
+                        Spacing = 8, Children = { ok, cancel },
+                    },
+                },
+            },
+        };
+
+        void Accept()
+        {
+            if (number.Value is not { } raw || raw != decimal.Truncate(raw))
+            {
+                error.Text = "Type a whole number for Number.";
+                number.Focus();
+                return;
+            }
+            int value = (int)raw;
+            if (validateNumber(value) is { } message) { error.Text = message; number.Focus(); return; }
+            result.TrySetResult((value, comment.Text ?? ""));
+            dialog.Close();
+        }
+
+        ok.Click += (_, _) => Accept();
+        cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
+        dialog.Closed += (_, _) => result.TrySetResult(null);
+        dialog.Opened += (_, _) =>
+        {
+            if (!focusComment) { number.Focus(); return; }
+            comment.Focus();
+            comment.SelectAll();
+        };
+        dialog.ShowModal(owner);
+        return result.Task;
+    }
+
     public static Task<string?> PromptText(Window owner, string title, string label, string initial = "")
     {
         var result = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);

@@ -385,7 +385,7 @@
                                not the TextBlock, for reliable hit testing. -->
                           <Border Grid.Column="1" Width="{Binding Widths[1]}" Classes="cell" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
                                   Background="Transparent" Tag="Group" DoubleTapped="OnSpriteCellDoubleTapped"
-                                  ToolTip.Tip="Double-click to change this sprite's group">
+                                  ToolTip.Tip="Double-click to change this sprite's group and number">
                             <Grid>
                               <TextBlock Text="{Binding GroupText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                               <Border Classes="spritefillhandle" Tag="Group" PointerPressed="OnSpriteFillHandlePressed" />
@@ -393,7 +393,7 @@
                           </Border>
                           <Border Grid.Column="2" Width="{Binding Widths[2]}" Classes="cell" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
                                   Background="Transparent" Tag="Number" DoubleTapped="OnSpriteCellDoubleTapped"
-                                  ToolTip.Tip="Double-click to change this sprite's number">
+                                  ToolTip.Tip="Double-click to change this sprite's group and number">
                             <Grid>
                               <TextBlock Text="{Binding NumberText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                               <Border Classes="spritefillhandle" Tag="Number" PointerPressed="OnSpriteFillHandlePressed" />
@@ -401,7 +401,7 @@
                           </Border>
                           <Border Grid.Column="3" Width="{Binding Widths[3]}" Classes="cell" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
                                   Background="Transparent" Tag="X" DoubleTapped="OnSpriteCellDoubleTapped"
-                                  ToolTip.Tip="Double-click to change this sprite's X offset">
+                                  ToolTip.Tip="Double-click to change this sprite's X and Y offsets">
                             <Grid>
                               <TextBlock Text="{Binding XText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                               <Border Classes="spritefillhandle" Tag="X" PointerPressed="OnSpriteFillHandlePressed" />
@@ -409,7 +409,7 @@
                           </Border>
                           <Border Grid.Column="4" Width="{Binding Widths[4]}" Classes="cell" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
                                   Background="Transparent" Tag="Y" DoubleTapped="OnSpriteCellDoubleTapped"
-                                  ToolTip.Tip="Double-click to change this sprite's Y offset">
+                                  ToolTip.Tip="Double-click to change this sprite's X and Y offsets">
                             <Grid>
                               <TextBlock Text="{Binding YText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                               <Border Classes="spritefillhandle" Tag="Y" PointerPressed="OnSpriteFillHandlePressed" />
@@ -1224,14 +1224,14 @@
                                across its whole cell regardless of what the text says. -->
                           <Border Grid.Column="0" Width="{Binding NumberWidth}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
                                   Background="Transparent" DoubleTapped="OnActionNumberDoubleTapped"
-                                  ToolTip.Tip="Double-click to renumber this action">
+                                  ToolTip.Tip="Double-click to change this action's number and comment">
                             <TextBlock Text="{Binding NumberText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                           </Border>
                           <Border Grid.Column="1" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,0,1" Padding="4,1"
                                   Background="Transparent" DoubleTapped="OnActionCommentDoubleTapped"
-                                  ToolTip.Tip="Double-click to edit or add this action's comment">
+                                  ToolTip.Tip="Double-click to change this action's number and comment">
                             <!-- Keep virtualized action rows to one measured height;
-                                 double-click opens the full comment editor. -->
+                                 double-click opens the Action Number and Comment dialog. -->
                             <TextBlock Text="{Binding CommentText}" FontSize="{DynamicResource UiFont13}" TextAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                           </Border>
                         </Grid>
@@ -1817,12 +1817,12 @@
                              lists: DoubleTapped on the Border, not the TextBlock. -->
                         <Border Grid.Column="1" Width="{Binding Widths[1]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
                                 Background="Transparent" Tag="Group" DoubleTapped="OnSoundCellDoubleTapped"
-                                ToolTip.Tip="Double-click to change this sound's group">
+                                ToolTip.Tip="Double-click to change this sound's group and number">
                           <TextBlock Text="{Binding GroupText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <Border Grid.Column="2" Width="{Binding Widths[2]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
                                 Background="Transparent" Tag="Number" DoubleTapped="OnSoundCellDoubleTapped"
-                                ToolTip.Tip="Double-click to change this sound's number">
+                                ToolTip.Tip="Double-click to change this sound's group and number">
                           <TextBlock Text="{Binding NumberText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <Border Grid.Column="3" Width="{Binding Widths[3]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1">

@@ -143,6 +143,11 @@ before a release. Remove items once they're done or checked.
   6 tooltips (~2.5 ms per row measured); the frame table has 41 bindings per row.
   Build fill handles and tooltips on demand (e.g. one shared fill handle over the
   hovered cell). Time it the same way as the look-ahead fix.
+- Lists: consider editing sprite, sound, palette and action cells in place instead of the
+  pair dialogs, by generalizing the frame table's shared cell editor (`OpenFrameEditor`).
+  Double-click stays the trigger; Tab walks Group/Number/X/Y. Errors go to the status bar;
+  the palette group/index collision keeps its confirm. Loses the +/- spinners. The sprite
+  table comments mention "old inline cells"; find out why they were replaced first.
 
 - Logging: `crash.log` holds unhandled exceptions and non-exception errors alike (skipped
   export/import items, invalid settings values), so its name promises more than it delivers.

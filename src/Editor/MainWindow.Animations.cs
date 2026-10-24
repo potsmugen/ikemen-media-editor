@@ -586,20 +586,6 @@ public partial class MainWindow
     /// double-click and the "inject suggested name" path both go through the
     /// same undo and refresh logic.
     /// </summary>
-    private void SetActionComment(AnimationAction action, List<string> after)
-    {
-        var before = action.Comments.ToList();
-        if (before.SequenceEqual(after)) return;
-
-        void Apply(List<string> c)
-        {
-            action.Comments = [.. c];
-            RebuildActionList();
-        }
-        _undo.Do("action comment", () => Apply(after), () => Apply(before));
-        MarkAirDirty();
-    }
-
     private void RebuildFrameList()
     {
         if (_action is null) return;
@@ -2371,7 +2357,7 @@ public partial class MainWindow
         {
             e.Handled = true;
             if (sender is not Control c || c.DataContext is not ActionRow row) return;
-            await RenumberAction(row.Action);
+            await EditAction(row.Action, focusComment: false);
         }
         catch (Exception ex)
         {
@@ -2379,33 +2365,13 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>
-    /// Double-clicking the comment: if the action already has one, edit it;
-    /// otherwise, if a reserved name is showing as a bracketed suggestion,
-    /// offer to write that suggestion in as the real comment. Never overwrites
-    /// an existing comment — the suggestion only shows at all when there isn't one.
-    /// </summary>
     private async void OnActionCommentDoubleTapped(object? sender, TappedEventArgs e)
     {
         try
         {
             e.Handled = true;
             if (sender is not Control c || c.DataContext is not ActionRow row) return;
-            SelectAction(row.Action);
-
-            if (row.Action.Comments.Count == 0 && row.SuggestedName is { } suggestion)
-            {
-                if (await Dialogs.Confirm(this, "Add Suggested Name",
-                        $"Save \"{suggestion}\" as this action's comment?", "Add"))
-                    SetActionComment(row.Action, [suggestion]);
-                return;
-            }
-
-            var text = await Dialogs.PromptText(this, "Action Comment", "Comment for this action:",
-                row.Action.Comments.Count > 0 ? row.Action.Comments[0] : "");
-            if (text is null) return;
-            var trimmed = text.Trim();
-            SetActionComment(row.Action, trimmed.Length == 0 ? [] : [trimmed]);
+            await EditAction(row.Action, focusComment: true);
         }
         catch (Exception ex)
         {
@@ -2413,30 +2379,41 @@ public partial class MainWindow
         }
     }
 
-    private async Task RenumberAction(AnimationAction action)
+    /// <summary>
+    /// Edits an action's number and comment in one dialog and one undo step. With no comment,
+    /// the box starts with the reserved-name suggestion (if shown), so OK saves it.
+    /// </summary>
+    private async Task EditAction(AnimationAction action, bool focusComment)
     {
         if (_air is null) return;
+        var air = _air;
         SelectAction(action);
 
-        var result = await Dialogs.PromptText(this, "Renumber Action", "New action number:",
-            action.Number.ToString(CultureInfo.InvariantCulture));
-        if (result is null) return;
-        if (!int.TryParse(result.Trim(), out int number) || number < 0)
-        {
+        string initialComment = action.Comments.Count > 0 ? action.Comments[0] : SuggestedActionName(action.Number) ?? "";
+        var result = await Dialogs.PromptActionEdit(this, action.Number, initialComment, focusComment, number =>
             // Ikemen keys actions by int32 and reserves -1 as Copy Action's
             // "unset" sentinel, so negative numbers are out regardless of mode.
-            await Dialogs.ShowMessage(this, "Not a Number", "Type a whole number of 0 or more.");
-            return;
-        }
-        if (number != action.Number && _air.Find(number) is not null)
-        {
-            await Dialogs.ShowMessage(this, "Already Used", $"Action {number} already exists in this file.");
-            return;
-        }
+            number < 0 ? "Type a whole number of 0 or more."
+            : number != action.Number && air.Find(number) is not null ? $"Action {number} already exists in this file."
+            : null);
+        if (result is not { } edit || !ReferenceEquals(_air, air)) return;
 
-        int before = action.Number;
-        void Apply(int n) { action.Number = n; RebuildActionList(); SelectAction(action); }
-        _undo.Do("renumber action", () => Apply(number), () => Apply(before));
+        var beforeComments = action.Comments.ToList();
+        string trimmed = edit.Comment.Trim();
+        // An untouched existing comment keeps every comment line, not just the first.
+        var afterComments = action.Comments.Count > 0 && edit.Comment == initialComment ? beforeComments
+            : trimmed.Length == 0 ? [] : new List<string> { trimmed };
+        int beforeNumber = action.Number;
+        if (edit.Number == beforeNumber && beforeComments.SequenceEqual(afterComments)) return;
+
+        void Apply(int n, List<string> comments)
+        {
+            action.Number = n;
+            action.Comments = [.. comments];
+            RebuildActionList();
+            SelectAction(action);
+        }
+        _undo.Do("edit action", () => Apply(edit.Number, afterComments), () => Apply(beforeNumber, beforeComments));
         MarkAirDirty();
     }
 
@@ -2445,7 +2422,7 @@ public partial class MainWindow
         try
         {
             if (_action is not { } action) return;
-            await RenumberAction(action);
+            await EditAction(action, focusComment: false);
         }
         catch (Exception ex)
         {
