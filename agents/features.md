@@ -122,6 +122,13 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Select clicks**: a click (under settings.json `SelectionDragThresholdPixels`, default 3)
   clears the selection and settles a floating paste. Only a drag selects or moves, so there
   are no 1×1 selections; a drag off the sprite still pans.
+- **Wheel and pinch zoom**: the sprite, animation and palette-preview canvases and the
+  reference image step `ZoomLevels` once per wheel unit (`ZoomSteps`), so a notch is one
+  step and fractional touchpad deltas add up; reversing drops the leftover. A Windows touchpad
+  pinch arrives as wheel input. macOS pinch is `Gestures.PointerTouchPadGestureMagnifyEvent`
+  (`Delta.X` = magnification): one settings.json `PinchZoomStep` (default 0.25) is one step,
+  or one wheel notch's worth of the waveform's continuous zoom. Neither anchors to the pointer
+  on the canvases.
 - **Paint history**: the pending session has its own undo, one step per stroke, fill, paste,
   selection drag, layer operation or layer show/hide. Undo past the start closes the empty
   session and continues in the main history. If `PaintUndoLimit` (default 100) dropped steps

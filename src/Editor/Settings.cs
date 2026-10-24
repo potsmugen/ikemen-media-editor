@@ -68,7 +68,7 @@ public sealed class Settings
 
     // Canvas
     public static readonly double[] DefaultZoomLevels = [0.125, 0.25, 0.5, 1, 2, 3, 4, 6, 8, 12, 16];
-    public const double DefaultSelectionDragThresholdPixels = 3;
+    public const double DefaultSelectionDragThresholdPixels = 3, DefaultPinchZoomStep = 0.25;
     public const double DefaultCrosshairArmLength = 7, DefaultCrosshairThickness = 1,
         DefaultCrosshairArmMin = 1, DefaultCrosshairArmMax = 100,
         DefaultCrosshairThicknessMin = 1, DefaultCrosshairThicknessMax = 10,
@@ -297,6 +297,8 @@ public sealed class Settings
         public bool FullCrosshair { get; set; } = true;
         /// <summary>Sprite canvas zoom steps (1 = actual size; Actual Size picks the step nearest 1).</summary>
         public double[] ZoomLevels { get; set; } = DefaultZoomLevels;
+        /// <summary>Touchpad pinch (macOS) per zoom step or waveform wheel notch; smaller zooms faster.</summary>
+        public double PinchZoomStep { get; set; } = DefaultPinchZoomStep;
         /// <summary>How far the mouse must move with the Select tool before a press selects or moves instead of clearing the selection.</summary>
         public double SelectionDragThresholdPixels { get; set; } = DefaultSelectionDragThresholdPixels;
         /// <summary>Flat, Checkerboard or Image; null = not chosen yet (Checkerboard).</summary>

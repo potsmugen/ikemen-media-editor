@@ -28,6 +28,7 @@ public class ScratchImageView : Control
 
     /// <summary>Index into <see cref="SpriteView.ZoomLevels"/>, or <see cref="FitIndex"/> while fitted.</summary>
     private int _zoomIdx = FitIndex;
+    private readonly ZoomSteps _zoomSteps = new();
     private Point _pan;
     private bool _panning, _panMoved;
     private Point _panFrom;
@@ -55,6 +56,7 @@ public class ScratchImageView : Control
         // integer index rather than from the rendered pixels, so what matters is that
         // the pixel under the pointer is the pixel that gets picked.
         RenderOptions.SetBitmapInterpolationMode(this, BitmapInterpolationMode.None);
+        AddHandler(Gestures.PointerTouchPadGestureMagnifyEvent, OnPinch);
     }
 
     public void Load(byte[] bgra, int width, int height)
@@ -217,7 +219,16 @@ public class ScratchImageView : Control
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
     {
         base.OnPointerWheelChanged(e);
-        StepZoom(e.Delta.Y > 0 ? 1 : -1);
+        int steps = _zoomSteps.Add(e.Delta.Y); // fractional touchpad deltas add up to a step, as on the canvas
+        if (steps != 0) StepZoom(steps);
+        e.Handled = true;
+    }
+
+    /// <summary>macOS touchpad pinch, stepped like the wheel.</summary>
+    private void OnPinch(object? sender, PointerDeltaEventArgs e)
+    {
+        int steps = _zoomSteps.Add(e.Delta.X / SpriteView.PinchZoomStep);
+        if (steps != 0) StepZoom(steps);
         e.Handled = true;
     }
 }

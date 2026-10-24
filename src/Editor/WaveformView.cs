@@ -32,6 +32,15 @@ public class WaveformView : Control
     {
         MinHeight = 40;
         ClipToBounds = true;
+        AddHandler(Gestures.PointerTouchPadGestureMagnifyEvent, OnPinch);
+    }
+
+    /// <summary>macOS touchpad pinch: one PinchZoomStep zooms as much as one wheel notch.</summary>
+    private void OnPinch(object? sender, PointerDeltaEventArgs e)
+    {
+        if (_entry is null) return;
+        ZoomAt(Math.Pow(ZoomStep, e.Delta.X / SpriteView.PinchZoomStep), e.GetPosition(this).X);
+        e.Handled = true;
     }
 
     /// <summary>Backdrop color; kept in step with the app theme (see MainWindow.ApplyTheme).</summary>

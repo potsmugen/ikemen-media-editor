@@ -225,6 +225,9 @@ public class SpriteView : Control
     /// <summary>A press off the sprite that clears the selection on release unless it turns into a pan.</summary>
     private bool _clearSelectionOnClick;
 
+    /// <summary>Touchpad pinch magnification per zoom step (settings.json PinchZoomStep); shared by the reference image and waveform.</summary>
+    public static double PinchZoomStep { get; set; } = Settings.DefaultPinchZoomStep;
+
     /// <summary>Pixels the pointer must move before a Select press counts as a drag (settings.json SelectionDragThresholdPixels).</summary>
     public static double SelectDragThreshold { get; set; } = Settings.DefaultSelectionDragThresholdPixels;
 
@@ -286,6 +289,7 @@ public class SpriteView : Control
     private bool _onionGrayscale;
 
     private int _zoomIdx = ZoomOne;
+    private readonly ZoomSteps _zoomSteps = new();
     private Point _pan;
     private Point _dragFrom;
 
@@ -416,6 +420,7 @@ public class SpriteView : Control
         // Covers Avalonia's own first open as well as RestartTipTimer's.
         ToolTip.AddToolTipOpeningHandler(this, (_, e) => { if (!TipAllowedHere()) e.Cancel = true; });
         RenderOptions.SetBitmapInterpolationMode(this, BitmapInterpolationMode.None);
+        AddHandler(Gestures.PointerTouchPadGestureMagnifyEvent, OnPinch);
     }
 
     /// <summary>Shows a sprite, rebuilding the bitmap from the given palette.</summary>
@@ -1720,7 +1725,18 @@ public class SpriteView : Control
     {
         base.OnPointerWheelChanged(e);
         _cursorPosition = e.GetPosition(this);
-        StepZoom(e.Delta.Y > 0 ? 1 : -1); // StepZoom already raises ZoomChanged
+        // A notch is 1; touchpads (and a Windows pinch) send fractions that add up to a step.
+        int steps = _zoomSteps.Add(e.Delta.Y);
+        if (steps != 0) StepZoom(steps); // StepZoom already raises ZoomChanged
+        e.Handled = true;
+    }
+
+    /// <summary>macOS touchpad pinch, stepped through the same zoom levels as the wheel.</summary>
+    private void OnPinch(object? sender, PointerDeltaEventArgs e)
+    {
+        _cursorPosition = e.GetPosition(this);
+        int steps = _zoomSteps.Add(e.Delta.X / PinchZoomStep);
+        if (steps != 0) StepZoom(steps);
         e.Handled = true;
     }
 

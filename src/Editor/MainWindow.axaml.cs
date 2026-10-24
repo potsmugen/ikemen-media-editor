@@ -208,6 +208,8 @@ public partial class MainWindow : Window
             Settings.DefaultOnionOpacity, v => v is >= 0 and <= 1);
         SpriteView.SelectDragThreshold = Settings.Checked(nameof(s.Canvas.SelectionDragThresholdPixels), s.Canvas.SelectionDragThresholdPixels,
             Settings.DefaultSelectionDragThresholdPixels, v => double.IsFinite(v) && v >= 0);
+        SpriteView.PinchZoomStep = Settings.Checked(nameof(s.Canvas.PinchZoomStep), s.Canvas.PinchZoomStep,
+            Settings.DefaultPinchZoomStep, v => double.IsFinite(v) && v > 0);
         var zoom = s.Canvas.ZoomLevels ?? [];
         if (zoom.Length > 0 && zoom.All(v => double.IsFinite(v) && v > 0))
             SpriteView.ZoomLevels = zoom.Distinct().Order().ToArray();
