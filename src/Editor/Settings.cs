@@ -96,7 +96,7 @@ public sealed class Settings
     public const int DefaultAutoBoxes = 3, DefaultAutoBoxesAlphaThreshold = 32, DefaultTextViewRespanMilliseconds = 250;
     public const double DefaultTimelineMaxPixelsPerTick = 16, DefaultTimelineZoomStep = 1.5, DefaultTimelineScrollStep = 0.1,
         DefaultTimelineDragThresholdPixels = 3, DefaultTimelineTickMarkMinPixels = 4;
-    public const int DefaultGifScale = 1, DefaultGifScaleMax = 8, DefaultGifMaxSide = 4096;
+    public const int DefaultAnimExportScale = 1, DefaultAnimExportScaleMax = 8, DefaultAnimExportMaxSide = 4096;
 
     // Sounds
     public const double DefaultPitchMaxSemitones = 24, DefaultRateMinPercent = 25, DefaultRateMaxPercent = 400;
@@ -424,12 +424,12 @@ public sealed class Settings
         public double AnimOnionOpacity { get; set; } = DefaultOnionOpacity;
         /// <summary>Delay before the frame text view re-syncs the caret to a frame after typing.</summary>
         public int TextViewRespanMilliseconds { get; set; } = DefaultTextViewRespanMilliseconds;
-        /// <summary>Export GIF's pre-filled scale.</summary>
-        public int GifScale { get; set; } = DefaultGifScale;
-        /// <summary>Highest scale Export GIF offers.</summary>
-        public int GifScaleMax { get; set; } = DefaultGifScaleMax;
-        /// <summary>Largest GIF Export GIF writes, in pixels a side (after scaling).</summary>
-        public int GifMaxSide { get; set; } = DefaultGifMaxSide;
+        /// <summary>Export Animation's pre-filled scale.</summary>
+        public int AnimExportScale { get; set; } = DefaultAnimExportScale;
+        /// <summary>Highest scale Export Animation offers.</summary>
+        public int AnimExportScaleMax { get; set; } = DefaultAnimExportScaleMax;
+        /// <summary>Largest image Export Animation writes, in pixels a side (after scaling). WebP stops at 16384.</summary>
+        public int AnimExportMaxSide { get; set; } = DefaultAnimExportMaxSide;
     }
 
     public sealed class SoundsSection

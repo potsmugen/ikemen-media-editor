@@ -146,8 +146,11 @@ public class SpriteView : Control
     private WriteableBitmap? _invertedBitmap;
     /// <summary>Solid-black copy of _bitmap, alpha untouched — masks the Add/Sub dest pre-scale to the sprite's own opaque pixels.</summary>
     private WriteableBitmap? _silhouetteBitmap;
+    /// <summary>Grayscale (RGB average, as the engine's gray uniform) then inverted copy — SubAdd's subtract pass.</summary>
+    private WriteableBitmap? _grayInvertedBitmap;
     /// <summary>Built on first use: only Add/Sub/SubAdd frames need them.</summary>
     private WriteableBitmap InvertedBitmap => _invertedBitmap ??= MakeBitmap(_sprite!, Invert(_sprite!.ToBgra(_palette, _showMask)));
+    private WriteableBitmap GrayInvertedBitmap => _grayInvertedBitmap ??= MakeBitmap(_sprite!, Invert(Gray(_sprite!.ToBgra(_palette, _showMask))));
     private WriteableBitmap SilhouetteBitmap => _silhouetteBitmap ??= MakeBitmap(_sprite!, Blacken(_sprite!.ToBgra(_palette, _showMask)));
     private Palette? _palette;
     private bool _showMask;
@@ -454,7 +457,8 @@ public class SpriteView : Control
         if (!_bitmapCached) _bitmap?.Dispose();
         _invertedBitmap?.Dispose();
         _silhouetteBitmap?.Dispose();
-        _bitmap = _invertedBitmap = _silhouetteBitmap = null;
+        _grayInvertedBitmap?.Dispose();
+        _bitmap = _invertedBitmap = _silhouetteBitmap = _grayInvertedBitmap = null;
         _bitmapCached = false;
         if (_sprite is not { Width: > 0, Height: > 0 } || !_sprite.HasPixels) return;
 
@@ -467,6 +471,14 @@ public class SpriteView : Control
             return;
         }
         _bitmap = MakeBitmap(_sprite, _sprite.ToBgra(_palette, _showMask));
+    }
+
+    /// <summary>Sets RGB to their average in place, keeping alpha as-is.</summary>
+    private static byte[] Gray(byte[] bgra)
+    {
+        for (int i = 0; i + 3 < bgra.Length; i += 4)
+            bgra[i] = bgra[i + 1] = bgra[i + 2] = (byte)((bgra[i] + bgra[i + 1] + bgra[i + 2]) / 3);
+        return bgra;
     }
 
     /// <summary>Flips RGB to their complements in place, keeping alpha as-is.</summary>
@@ -775,16 +787,12 @@ public class SpriteView : Control
                 break;
 
             case BlendMode.SubAdd:
-                // Rough approximation only. The real SubAdd does a grayscale-
-                // tinted subtract pass at dst weight, then an additive pass in
-                // full color at src weight. Reproduced here without the
-                // grayscale conversion or the dst-side silhouette pre-scale —
-                // both dropped for this placeholder. The subtract half uses the
-                // same inverted-color Multiply stand-in as plain Subtract, for
-                // the same reason (see that case's comment).
+                // render.go: a grayscale subtract pass at dst weight, then a full-color
+                // additive pass at src weight, with no silhouette pre-scale. The subtract
+                // half is the same Multiply stand-in as plain Subtract, on a grayscale copy.
                 using (ctx.PushRenderOptions(default(RenderOptions) with { BitmapBlendingMode = BitmapBlendingMode.Multiply }))
                 using (ctx.PushOpacity(dstW))
-                    DrawBitmap(InvertedBitmap);
+                    DrawBitmap(GrayInvertedBitmap);
                 using (ctx.PushRenderOptions(default(RenderOptions) with { BitmapBlendingMode = BitmapBlendingMode.Plus }))
                 using (ctx.PushOpacity(srcW))
                     DrawSprite();

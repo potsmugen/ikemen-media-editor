@@ -195,9 +195,21 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **List look-ahead** scrolls the next row fully into view after an arrow, Page, Home or End
   step, since Avalonia rebuilds every visible row when `ScrollIntoView` targets an unrealized
   one (measured ~50 ms per step on a 12k-sprite SFF).
-- **GIF export** splits playback into runs of identical drawn state so Interpolate shows, and
-  uses the configured dwell for -1 holds. Delays round to centiseconds with a 2-centisecond
-  minimum; alpha below 128 is transparent.
+- **Export Animation** writes one looping pass of the action as WebP (default) or GIF; the format
+  carries over within the session. Playback splits into runs of identical drawn state so Interpolate
+  shows, and -1 holds use the configured dwell. Without a background, blends draw as normal on a
+  transparent canvas. Include background (carries over within the session) draws the Animations
+  canvas background as it shows at zoom = scale with no pan, cropped to the animation bounds, and
+  applies each frame's blend with the canvas's math (`RenderBlendedFrame` mirrors `DrawBlended`
+  with Skia's Plus and Multiply), so Subtract keeps the canvas stand-in. The checkerboard is drawn
+  in output pixels from the top-left. The output is opaque.
+  - WebP is lossless: exact colors and 8-bit alpha, durations in ms. Skia's libwebp encodes each
+    frame as a still (`EncodeWebPStill`, lossless at quality 100); `Sff.WebP` keeps its image chunks
+    and writes the animation container. Frames after the first store only the changed rectangle
+    (corner rounded to even), replacing it without blending. Fully transparent pixels are handed to
+    the encoder as transparent black. Frames are at most 16384 a side. Discord and browsers play it.
+  - GIF delays round to centiseconds with a 2-centisecond minimum; alpha below 128 is transparent,
+    and frames past 255 colors fall back to a fixed color cube.
 
 ### Sprites and palettes
 

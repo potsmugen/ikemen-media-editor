@@ -115,6 +115,17 @@ before a release. Remove items once they're done or checked.
 - Decide whether to use a change event on the undo stack instead of polling for dirty state.
 - Loading is much slower than saving for large SFFs. Find out why.
 - Improve the Export Palette dialog (what to change is undecided).
+- Dialogs can be minimized (Windows): Avalonia 11.3.2 creates every window with WS_OVERLAPPEDWINDOW,
+  which includes the minimize box, and has no CanMinimize property; CanResize = false only drops
+  maximize. Modal dialogs normally have only Close, and minimizing one leaves the main window
+  disabled. Option: clear WS_MINIMIZEBOX in one shared helper for all ShowModal calls
+  (Windows-only, guarded), or wait for an Avalonia version with CanMinimize.
+- Canvas and Export Animation: true arithmetic Subtract (render.go's reverse subtract) instead of
+  the Multiply stand-in, also for SubAdd's subtract pass. Needs reading back the drawn background
+  (e.g. an offscreen render under the sprite), so it was left out of the easy fixes.
+- WebP import: decode with Skia's SKCodec (still and animated, lossy and lossless) in src/Editor,
+  then the existing image import, like JPG/BMP. Export already encodes frames with Skia's libwebp,
+  so both directions use one library.
 - Multiple sprite export, one file per sprite: offer the shared-canvas option Export All has
   ("Pad every sprite to the same canvas size").
 - Add a tool to split palettes, the counterpart of Combine Into New and Merge and Update Sprites

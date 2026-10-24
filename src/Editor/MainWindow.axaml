@@ -1308,8 +1308,8 @@
                 <Button Content="&lt;" Click="OnPrevFrame" Width="44" />
                 <Button Content="&gt;" Click="OnNextFrame" Width="44" />
                 <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
-                <Button Content="Export GIF" Click="OnExportGif"
-                        ToolTip.Tip="Saves this action as a looping GIF." />
+                <Button Content="Export Animation" Click="OnExportAnimation"
+                        ToolTip.Tip="Saves this action as a looping WebP or GIF." />
                 <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
                 <TextBlock x:Name="FrameInfo" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
               </StackPanel>

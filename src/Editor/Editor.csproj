@@ -24,6 +24,8 @@
     <PackageReference Include="Avalonia.Desktop" Version="11.3.2" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.2" />
     <PackageReference Include="Avalonia.Diagnostics" Version="11.3.2" Condition="'$(Configuration)' == 'Debug'" />
+    <!-- Avalonia's own Skia version, referenced directly for WebP frame encoding (MainWindow.AnimGif.cs). -->
+    <PackageReference Include="SkiaSharp" Version="2.88.9" />
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\app.ico" />

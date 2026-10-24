@@ -1,20 +1,25 @@
 using Air;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using Sff;
+using SkiaSharp;
 
 namespace Editor;
 
-/// <summary>Export GIF on the Animations playback bar: one pass of the current action as a looping animated GIF.</summary>
+/// <summary>Export Animation on the Animations playback bar: one pass of the current action as a looping animated WebP or GIF.</summary>
 public partial class MainWindow
 {
     private static readonly FilePickerFileType GifType = new("GIF images") { Patterns = ["*.gif"] };
+    private static readonly FilePickerFileType WebPType = new("WebP images") { Patterns = ["*.webp"] };
+    private Dialogs.AnimationExportFormat _lastAnimExportFormat = Dialogs.AnimationExportFormat.WebP;
+    private bool _lastAnimExportBackground;
 
     /// <summary>One sprite placed on the GIF canvas: world = M·(pixel − axis) + offset, M = [A C; B D].</summary>
     private readonly record struct GifPlacement(Sprite Sprite, byte[] Bgra, double A, double B, double C, double D, double Ox, double Oy);
 
-    private async void OnExportGif(object? sender, RoutedEventArgs e)
+    private async void OnExportAnimation(object? sender, RoutedEventArgs e)
     {
         try
         {
@@ -24,10 +29,14 @@ public partial class MainWindow
                 return;
             }
 
-            int scaleMax = Settings.Checked(nameof(Settings.AnimationsSection.GifScaleMax), _settings.Animations.GifScaleMax, Settings.DefaultGifScaleMax, v => v >= 1);
-            int scaleDefault = Settings.Checked(nameof(Settings.AnimationsSection.GifScale), _settings.Animations.GifScale, Settings.DefaultGifScale, v => v >= 1 && v <= scaleMax);
-            int maxSide = Settings.Checked(nameof(Settings.AnimationsSection.GifMaxSide), _settings.Animations.GifMaxSide, Settings.DefaultGifMaxSide, v => v is >= 1 and <= 65535);
-            if (await Dialogs.PromptGifExport(this, scaleDefault, scaleMax) is not { } choice) return;
+            int scaleMax = Settings.Checked(nameof(Settings.AnimationsSection.AnimExportScaleMax), _settings.Animations.AnimExportScaleMax, Settings.DefaultAnimExportScaleMax, v => v >= 1);
+            int scaleDefault = Settings.Checked(nameof(Settings.AnimationsSection.AnimExportScale), _settings.Animations.AnimExportScale, Settings.DefaultAnimExportScale, v => v >= 1 && v <= scaleMax);
+            int maxSide = Settings.Checked(nameof(Settings.AnimationsSection.AnimExportMaxSide), _settings.Animations.AnimExportMaxSide, Settings.DefaultAnimExportMaxSide, v => v is >= 1 and <= 65535);
+            if (await Dialogs.PromptAnimationExport(this, _lastAnimExportFormat, _lastAnimExportBackground, scaleDefault, scaleMax) is not { } choice) return;
+            _lastAnimExportFormat = choice.Format;
+            _lastAnimExportBackground = choice.Background;
+            bool webp = choice.Format == Dialogs.AnimationExportFormat.WebP;
+            if (webp) maxSide = Math.Min(maxSide, WebP.MaxSide);
             int scale = Math.Clamp(choice.Scale, 1, scaleMax);
 
             var runs = GifRuns(action);
@@ -65,44 +74,66 @@ public partial class MainWindow
             long width = (long)worldW * scale, height = (long)worldH * scale;
             if (width > maxSide || height > maxSide)
             {
-                StatusText.Text = $"Can't export: the GIF would be {width}x{height} pixels (up to {maxSide} a side).";
+                StatusText.Text = $"Can't export: the {(webp ? "WebP" : "GIF")} would be {width}x{height} pixels (up to {maxSide} a side).";
                 return;
             }
 
             var file = await PickSave(new FilePickerSaveOptions
             {
-                Title = "Export Animation as GIF",
-                SuggestedFileName = $"action{action.Number}.gif",
-                DefaultExtension = "gif",
-                FileTypeChoices = [GifType],
+                Title = webp ? "Export Animation as WebP" : "Export Animation as GIF",
+                SuggestedFileName = $"action{action.Number}.{(webp ? "webp" : "gif")}",
+                DefaultExtension = webp ? "webp" : "gif",
+                FileTypeChoices = [webp ? WebPType : GifType],
             });
             if (file?.TryGetLocalPath() is not { } path) return;
 
-            // 60 ticks a second; GIF delays are in 1/100 s and players stretch anything under 2,
-            // so each delay is at least 2 and later ones catch up to keep the total time right.
-            var frames = new List<GifFrame>();
+            // 60 ticks a second. WebP durations are in ms; GIF delays are in 1/100 s and players
+            // stretch anything under 2, so GIF delays are at least 2. Later ones catch up to keep the total time right.
+            int unitsPerSecond = webp ? 1000 : 100, minDelay = webp ? 1 : 2;
+            var background = choice.Background ? ExportBackground((int)width, (int)height, left, top, scale) : null;
+            var pixels = new List<byte[]>();
+            var delays = new List<int>();
             double target = 0;
             int emitted = 0;
             for (int i = 0; i < runs.Count; i++)
             {
-                target += runs[i].Ticks * 100.0 / 60;
-                int delay = Math.Max(2, (int)Math.Round(target - emitted));
+                target += runs[i].Ticks * (double)unitsPerSecond / 60;
+                int delay = Math.Max(minDelay, (int)Math.Round(target - emitted));
                 emitted += delay;
-                var pixels = RenderGifFrame(placements[i], left, top, (int)width, (int)height, scale);
-                DrawGifBoxes(pixels, boxes[i], left, top, (int)width, (int)height, scale);
-                frames.Add(new GifFrame(pixels, delay));
+                var frame = background is null
+                    ? RenderGifFrame(placements[i], left, top, (int)width, (int)height, scale)
+                    : RenderBlendedFrame(background, placements[i], runs[i].State.Blend, left, top, (int)width, (int)height, scale);
+                DrawGifBoxes(frame, boxes[i], left, top, (int)width, (int)height, scale);
+                pixels.Add(frame);
+                delays.Add(delay);
             }
 
-            var bytes = await Task.Run(() => Gif.Encode((int)width, (int)height, frames));
+            var bytes = await Task.Run(() => webp
+                ? WebP.Encode((int)width, (int)height, pixels.Select((p, i) => new WebPFrame(p, delays[i])).ToList(), EncodeWebPStill)
+                : Gif.Encode((int)width, (int)height, pixels.Select((p, i) => new GifFrame(p, delays[i])).ToList()));
             Backups.Make(path, _settings.Files.BackupCount);
             await File.WriteAllBytesAsync(path, bytes);
-            CrashLog.Trace($"[anim] gif action {action.Number}: {frames.Count} frames, {width}x{height}, x{scale}, boxes {choice.Boxes}, {emitted} cs");
-            StatusText.Text = $"Wrote {Path.GetFileName(path)}: {frames.Count} frames, {width}x{height}, {emitted / 100.0:0.##}s.";
+            CrashLog.Trace($"[anim] {(webp ? "webp" : "gif")} action {action.Number}: {pixels.Count} frames, {width}x{height}, x{scale}, boxes {choice.Boxes}, background {choice.Background}, {emitted}/{unitsPerSecond} s, {bytes.Length} bytes");
+            StatusText.Text = $"Wrote {Path.GetFileName(path)}: {pixels.Count} frames, {width}x{height}, {emitted / (double)unitsPerSecond:0.##}s.";
         }
         catch (Exception ex)
         {
-            await Failed("OnExportGif", ex);
+            await Failed("OnExportAnimation", ex);
         }
+    }
+
+    /// <summary>One lossless still WebP from straight BGRA, by libwebp inside Skia; Sff.WebP wraps the frames.</summary>
+    private static byte[] EncodeWebPStill(byte[] bgra, int width, int height)
+    {
+        var info = new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Unpremul);
+        var pin = System.Runtime.InteropServices.GCHandle.Alloc(bgra, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try
+        {
+            using var pixmap = new SKPixmap(info, pin.AddrOfPinnedObject(), width * 4);
+            using var data = pixmap.Encode(new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossless, 100));
+            return data?.ToArray() ?? throw new InvalidOperationException($"Skia couldn't encode a {width}x{height} WebP frame.");
+        }
+        finally { pin.Free(); }
     }
 
     /// <summary>One pass of the action as runs of identical drawn frames; a final hold (-1) gets the playback dwell.</summary>
@@ -141,11 +172,9 @@ public partial class MainWindow
         return (p.A * lx + p.C * ly + p.Ox, p.B * lx + p.D * ly + p.Oy);
     }
 
-    /// <summary>Draws one frame onto a transparent canvas, nearest-neighbor, scale output pixels per world pixel. Blends draw as normal: a GIF has no additive mode.</summary>
-    private static byte[] RenderGifFrame(GifPlacement? placement, int left, int top, int width, int height, int scale)
+    /// <summary>Calls draw(output pixel, sprite pixel) for each output pixel the sprite covers, nearest-neighbor, scale output pixels per world pixel.</summary>
+    private static void ForEachSpritePixel(GifPlacement p, int left, int top, int width, int height, int scale, Action<int, int> draw)
     {
-        var dst = new byte[width * height * 4];
-        if (placement is not { } p) return dst;
         double det = p.A * p.D - p.C * p.B;
         int w = p.Sprite.Width, h = p.Sprite.Height;
         for (int y = 0; y < height; y++)
@@ -155,8 +184,99 @@ public partial class MainWindow
                 int px = (int)Math.Floor((p.D * dx - p.C * dy) / det + p.Sprite.AxisX);
                 int py = (int)Math.Floor((-p.B * dx + p.A * dy) / det + p.Sprite.AxisY);
                 if (px < 0 || py < 0 || px >= w || py >= h) continue;
-                Array.Copy(p.Bgra, (py * w + px) * 4, dst, (y * width + x) * 4, 4);
+                draw(y * width + x, py * w + px);
             }
+    }
+
+    /// <summary>Draws one frame onto a transparent canvas. Blends draw as normal: there's no backdrop to blend with.</summary>
+    private static byte[] RenderGifFrame(GifPlacement? placement, int left, int top, int width, int height, int scale)
+    {
+        var dst = new byte[width * height * 4];
+        if (placement is { } p)
+            ForEachSpritePixel(p, left, top, width, height, scale, (o, s) => Array.Copy(p.Bgra, s * 4, dst, o * 4, 4));
+        return dst;
+    }
+
+    /// <summary>Draws one frame over the opaque background with the canvas's blend math (SpriteView.DrawBlended
+    /// with Skia's Plus and Multiply), so the export looks like the canvas. Subtract stays the canvas's stand-in.</summary>
+    private static byte[] RenderBlendedFrame(byte[] background, GifPlacement? placement, Blend blend, int left, int top, int width, int height, int scale)
+    {
+        var dst = (byte[])background.Clone();
+        if (placement is not { } p) return dst;
+        double srcW = Math.Clamp(blend.Source / 255.0, 0, 1), dstW = Math.Clamp(blend.Destination / 255.0, 0, 1);
+        var mode = blend.Mode;
+        var src = p.Bgra;
+        ForEachSpritePixel(p, left, top, width, height, scale, (o, s) =>
+        {
+            double a = src[s * 4 + 3] / 255.0;
+            if (a == 0) return;
+            double gray = (src[s * 4] + src[s * 4 + 1] + src[s * 4 + 2]) / 3 / 255.0; // integer average, as SpriteView.Gray
+            for (int k = 0; k < 3; k++)
+            {
+                double d = dst[o * 4 + k], c = src[s * 4 + k];
+                d = mode switch
+                {
+                    // Silhouette pre-scale d*(1 - a*(1-D)), then Plus adds c*a*S.
+                    BlendMode.Add => d * (1 - a * (1 - dstW)) + c * a * srcW,
+                    // Same pre-scale, then Multiply by the inverted color at a*S: d*(1 - a*S*c).
+                    BlendMode.Subtract => d * (1 - a * (1 - dstW)) * (1 - a * srcW * c / 255),
+                    // Multiply by the gray inverted copy at a*D, then Plus adds c*a*S.
+                    BlendMode.SubAdd => d * (1 - a * dstW * gray) + c * a * srcW,
+                    _ => c * a + d * (1 - a),
+                };
+                dst[o * 4 + k] = (byte)Math.Clamp(Math.Round(d), 0, 255);
+            }
+        });
+        return dst;
+    }
+
+    /// <summary>The Animations canvas background as it shows at zoom = scale with no pan: base color, then the
+    /// checkerboard (squares in output pixels, from the top-left) or the image. Always opaque.</summary>
+    private byte[] ExportBackground(int width, int height, int left, int top, int scale)
+    {
+        var dst = new byte[width * height * 4];
+        void Over(int i, byte b, byte g, byte r, double a)
+        {
+            dst[i] = (byte)Math.Round(b * a + dst[i] * (1 - a));
+            dst[i + 1] = (byte)Math.Round(g * a + dst[i + 1] * (1 - a));
+            dst[i + 2] = (byte)Math.Round(r * a + dst[i + 2] * (1 - a));
+        }
+
+        var baseColor = (AnimCanvas.Background as ISolidColorBrush)?.Color ?? Colors.Black;
+        for (int i = 0; i < dst.Length; i += 4)
+            (dst[i], dst[i + 1], dst[i + 2], dst[i + 3]) = (baseColor.B, baseColor.G, baseColor.R, 255);
+
+        if (AnimCanvas.Checkerboard && AnimCanvas.CheckerDark is ISolidColorBrush dark)
+        {
+            int size = Math.Clamp(AnimCanvas.CheckerSize, 1, 512);
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                    if ((x / size + y / size) % 2 == 0)
+                        Over((y * width + x) * 4, dark.Color.B, dark.Color.G, dark.Color.R, dark.Color.A / 255.0 * dark.Opacity);
+        }
+
+        if (AnimCanvas.BackgroundImage is { Image: WriteableBitmap img } bg)
+        {
+            int iw = img.PixelSize.Width, ih = img.PixelSize.Height;
+            var pixels = new byte[iw * ih * 4];
+            using (var fb = img.Lock())
+                for (int y = 0; y < ih; y++)
+                    System.Runtime.InteropServices.Marshal.Copy(fb.Address + y * fb.RowBytes, pixels, y * iw * 4, iw * 4);
+
+            // Same layout as SpriteView.DrawBackgroundImage: centered on the axis, offset at 100%, then zoomed.
+            double z = bg.FollowZoom ? scale : 1;
+            double rx = -left * scale + (bg.Offset.X - Math.Floor(iw / 2.0)) * z;
+            double ry = -top * scale + (bg.Offset.Y - Math.Floor(ih / 2.0)) * z;
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                {
+                    int u = (int)Math.Floor((x + 0.5 - rx) / z), v = (int)Math.Floor((y + 0.5 - ry) / z);
+                    if (bg.Tile) { u = ((u % iw) + iw) % iw; v = ((v % ih) + ih) % ih; }
+                    else if (u < 0 || v < 0 || u >= iw || v >= ih) continue;
+                    int s = (v * iw + u) * 4;
+                    Over((y * width + x) * 4, pixels[s], pixels[s + 1], pixels[s + 2], pixels[s + 3] / 255.0 * bg.Opacity);
+                }
+        }
         return dst;
     }
 

@@ -16,7 +16,7 @@ SkiaSharp 2.88.9 and HarfBuzzSharp 8.3.1.1 (graphics and text; libSkiaSharp, lib
   MIT. Copyright Xamarin, Inc. and Microsoft Corporation.
   https://github.com/mono/SkiaSharp
   SkiaSharp-HarfBuzzSharp-LICENSE.txt
-  Their native libraries include Skia, HarfBuzz, libpng, zlib and other components:
+  Their native libraries include other third-party components, listed in:
   SkiaSharp-HarfBuzzSharp-THIRD-PARTY-NOTICES.txt
 
 MicroCom.Runtime 0.11.0

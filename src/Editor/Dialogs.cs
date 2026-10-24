@@ -2745,25 +2745,36 @@ public static partial class Dialogs
         return result.Task;
     }
 
-    /// <summary>Export GIF's choices: whole-number scale and whether Clsn boxes are drawn.</summary>
-    public readonly record struct GifExportChoices(int Scale, bool Boxes);
+    public enum AnimationExportFormat { WebP, Gif }
 
-    /// <summary>Asks Export GIF's scale (1 to maxScale) and whether to draw Clsn boxes. Null if canceled.</summary>
-    public static Task<GifExportChoices?> PromptGifExport(Window owner, int initialScale, int maxScale)
+    /// <summary>Export Animation's choices: file format, whole-number scale, and whether Clsn boxes and the canvas background are drawn.</summary>
+    public readonly record struct AnimationExportChoices(AnimationExportFormat Format, int Scale, bool Boxes, bool Background);
+
+    /// <summary>Asks Export Animation's format, scale (1 to maxScale), Clsn boxes and background. Null if canceled.</summary>
+    public static Task<AnimationExportChoices?> PromptAnimationExport(Window owner, AnimationExportFormat initialFormat, bool initialBackground, int initialScale, int maxScale)
     {
-        var result = new TaskCompletionSource<GifExportChoices?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var result = new TaskCompletionSource<AnimationExportChoices?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var format = new ComboBox
+        {
+            Width = 120,
+            ItemsSource = new[] { "WebP", "GIF" },
+            SelectedIndex = initialFormat == AnimationExportFormat.Gif ? 1 : 0,
+        };
+        ToolTip.SetTip(format, "WebP keeps every color and partial transparency. GIF has up to 256 colors a frame and on/off transparency.");
         var scale = new NumericUpDown
         {
             Value = Math.Clamp(initialScale, 1, maxScale), Minimum = 1, Maximum = maxScale, Increment = 1,
             FormatString = "0", Width = 120,
         };
-        var boxes = new CheckBox { Content = "Draw Clsn boxes", IsChecked = false };
+        var boxes = new CheckBox { IsChecked = false };
+        var background = new CheckBox { IsChecked = initialBackground };
+        ToolTip.SetTip(background, "Draws the Animations canvas background under each frame and applies the frame's blend to it.");
 
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"),
             Foreground = ThemeBrush("ThemeText"),
-            Title = "Export GIF",
+            Title = "Export Animation",
             SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             CanResize = false,
@@ -2771,14 +2782,36 @@ public static partial class Dialogs
         };
 
         var ok = new Button { Content = "Export", MinWidth = 90, IsDefault = true };
-        var cancel = new Button { Content = "Cancel", MinWidth = 90 };
+        var cancel = new Button { Content = "Cancel", MinWidth = 90, IsCancel = true };
         ok.Click += (_, _) =>
         {
             int s = scale.Value is { } v ? (int)v : Math.Clamp(initialScale, 1, maxScale);
-            result.TrySetResult(new GifExportChoices(s, boxes.IsChecked == true));
+            var f = format.SelectedIndex == 1 ? AnimationExportFormat.Gif : AnimationExportFormat.WebP;
+            result.TrySetResult(new AnimationExportChoices(f, s, boxes.IsChecked == true, background.IsChecked == true));
             dialog.Close();
         };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
+
+        // Labels on the left, choices on the right; both fields share one width.
+        var fields = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("Auto,Auto"),
+            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto"),
+            ColumnSpacing = 12, RowSpacing = 8,
+        };
+        void Add(string label, Control choice, int row)
+        {
+            var text = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center, Background = Brushes.Transparent };
+            if (choice is CheckBox check) text.Tapped += (_, _) => check.IsChecked = check.IsChecked != true; // label toggles too
+            Grid.SetRow(text, row);
+            Grid.SetRow(choice, row); Grid.SetColumn(choice, 1);
+            fields.Children.Add(text);
+            fields.Children.Add(choice);
+        }
+        Add("Format", format, 0);
+        Add("Scale", scale, 1);
+        Add("Clsn boxes", boxes, 2);
+        Add("Background", background, 3);
 
         dialog.Content = new StackPanel
         {
@@ -2786,12 +2819,7 @@ public static partial class Dialogs
             Spacing = 8,
             Children =
             {
-                new StackPanel
-                {
-                    Orientation = Orientation.Horizontal, Spacing = 8,
-                    Children = { new TextBlock { Text = $"Scale (1-{maxScale})", VerticalAlignment = VerticalAlignment.Center }, scale },
-                },
-                boxes,
+                fields,
                 new StackPanel
                 {
                     Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
