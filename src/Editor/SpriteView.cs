@@ -1553,7 +1553,8 @@ public class SpriteView : Control
             _sprite.AxisY -= dy;
             AxisChanged?.Invoke();
         }
-        _dragFrom = p;
+        // Advance only by applied pixels so a slow axis keeps its sub-pixel remainder.
+        _dragFrom = new Point(_dragFrom.X + dx * Zoom, _dragFrom.Y + dy * Zoom);
         InvalidateVisual();
     }
 
