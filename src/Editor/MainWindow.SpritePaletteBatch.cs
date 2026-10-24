@@ -53,7 +53,7 @@ public partial class MainWindow
                 }
 
                 bool changesColors = v1 && current is not null;
-                bool canRemap = CanRemapSpriteIndexes(file, sprite, current);
+                bool canRemap = CanRemapSpriteIndexes(sprite, current);
                 plans.Add(new(sprite, current, current, changesColors, canRemap));
             }
             else
@@ -96,7 +96,7 @@ public partial class MainWindow
             foreach (var plan in plans.Where(plan => !plan.CanRemap).ToList())
             {
                 skipped.Add(SkipPaletteSprite(plan.Sprite,
-                    "cannot remap linked or borrowed pixels, or an indexed sprite with no palette"));
+                    "cannot remap a linked sprite's pixels, or an indexed sprite with no palette"));
                 plans.Remove(plan);
             }
         }
@@ -114,6 +114,21 @@ public partial class MainWindow
             ReportPaletteBatch("Use preview palette", 0, unchanged, skipped);
             return false;
         }
+        if (mapping == ImportIndexChoice.Nearest
+            && (!await ConfirmLinkedSpritesChange(file, plans.Select(plan => plan.Sprite)) || !ReferenceEquals(_file, file)))
+            return false;
+
+        // SFFv2: one new palette for every sprite, prefilled with the first sprite's (file order) group.
+        (int Group, int Index) newKey = default;
+        if (!v1 && chosen.Source == PaletteSource.External)
+        {
+            if (await PromptNewPaletteKeyFor(file, FirstInFileOrder(file, plans).Sprite.Group, move ? chosen : null) is not { } key)
+                return false;
+            newKey = key;
+        }
+        Palette? copy = !v1 && chosen.Source == PaletteSource.External && !move
+            ? NewPaletteForSprite(file, newKey.Group, newKey.Index, targetColors, [], plans[0])
+            : null;
 
         if (!TryBeginBusy()) return false;
         try
@@ -132,23 +147,18 @@ public partial class MainWindow
                         if (!remapped.AsSpan().SequenceEqual(indexes)) plan.AfterIndexes = remapped;
                     }
                 }
-                plan.AfterPalette = move
-                    ? chosen
-                    : chosen.Source == PaletteSource.External && !v1
-                    ? NewPaletteForSprite(file, plan.Sprite.Group, 0, targetColors, plans, plan)
-                    : plan.ChangesColors ? plan.BeforePalette : chosen;
+                plan.AfterPalette = move ? chosen : copy ?? (plan.ChangesColors ? plan.BeforePalette : chosen);
             }
         }
         finally { EndBusy(); }
 
-        var added = plans.Where(plan => chosen.Source == PaletteSource.External && !v1 && !move)
-            .Select(plan => plan.AfterPalette!).ToList();
+        List<Palette> added = copy is null ? [] : [copy];
         var colorChanges = BuildPaletteColorChanges(plans, targetColors, dirtyExternalPalettes: v1);
         // A temp palette never stays behind: SFFv2 moves it in, SFFv1 drops it after copying its colors.
         Action moveIn, moveOut;
         if (move)
         {
-            var steps = MoveTempPaletteIntoSff(file, chosen, targetColors, plans[0].Sprite.Group);
+            var steps = MoveTempPaletteIntoSff(chosen, targetColors, newKey.Group, newKey.Index);
             (moveIn, moveOut) = (steps.MoveIn, steps.MoveOut);
         }
         else (moveIn, moveOut) = TempPaletteLeavesList(file, chosen);
@@ -184,7 +194,7 @@ public partial class MainWindow
                 continue;
             }
 
-            bool canRemap = CanRemapSpriteIndexes(file, sprite, current);
+            bool canRemap = CanRemapSpriteIndexes(sprite, current);
             plans.Add(new(sprite, current, current, changesColors: v1, canRemap));
         }
 
@@ -241,7 +251,7 @@ public partial class MainWindow
             foreach (var plan in plans.Where(plan => !plan.CanRemap).ToList())
             {
                 skipped.Add(SkipPaletteSprite(plan.Sprite,
-                    "cannot remap linked or borrowed pixels, or an indexed sprite with no palette"));
+                    "cannot remap a linked sprite's pixels, or an indexed sprite with no palette"));
                 plans.Remove(plan);
             }
         }
@@ -259,15 +269,16 @@ public partial class MainWindow
             ReportPaletteBatch("Import Palette into Sprite", 0, 0, skipped);
             return;
         }
+        if (mapping == ImportIndexChoice.Nearest
+            && (!await ConfirmLinkedSpritesChange(file, plans.Select(plan => plan.Sprite)) || !ReferenceEquals(_file, file)))
+            return;
 
-        int directGroup = 0;
-        int directIndex = 0;
-        if (plans.Any(plan => plan.IsDirect))
+        // SFFv2: one new palette for every sprite, prefilled with the first sprite's (file order) group.
+        Palette? shared = null;
+        if (!v1)
         {
-            var first = plans.First(plan => plan.IsDirect);
-            var key = await Dialogs.PromptNewPaletteKey(this, first.Sprite.Group, NextFreePaletteIndex(first.Sprite.Group), SpriteFieldMax);
-            if (key is null || !ReferenceEquals(_file, file)) return;
-            (directGroup, directIndex) = key.Value;
+            if (await PromptNewPaletteKeyFor(file, FirstInFileOrder(file, plans).Sprite.Group) is not { } key) return;
+            shared = NewPaletteForSprite(file, key.Group, key.Index, targetColors, [], plans[0]);
         }
 
         if (!TryBeginBusy()) return;
@@ -287,27 +298,36 @@ public partial class MainWindow
                         if (!remapped.AsSpan().SequenceEqual(indexes)) plan.AfterIndexes = remapped;
                     }
                 }
-                if (v1)
-                    plan.AfterPalette = plan.BeforePalette;
-                else if (plan.IsDirect)
-                    plan.AfterPalette = NewPaletteForSprite(file, directGroup, directIndex, targetColors, plans, plan);
-                else
-                    plan.AfterPalette = NewPaletteForSprite(file, plan.BeforePalette!.Group, 0, targetColors, plans, plan);
+                plan.AfterPalette = shared ?? plan.BeforePalette;
             }
         }
         finally { EndBusy(); }
 
-        List<Palette> added = v1 ? [] : plans.Select(plan => plan.AfterPalette!).ToList();
+        List<Palette> added = shared is null ? [] : [shared];
         var colorChanges = BuildPaletteColorChanges(plans, targetColors, dirtyExternalPalettes: false);
         ApplySpritePaletteBatch(file, plans, colorChanges, added,
             "Import Palette into Sprite", selected, skipped, unchanged: 0,
             droppedAlpha ? " without alpha" : "", Path.GetFileName(path));
     }
 
-    private bool CanRemapSpriteIndexes(SffFile file, Sprite sprite, Palette? current) =>
+    private static SpritePaletteBatchPlan FirstInFileOrder(SffFile file, List<SpritePaletteBatchPlan> plans) =>
+        plans.MinBy(plan => file.PositionOf(plan.Sprite))!;
+
+    private static bool CanRemapSpriteIndexes(Sprite sprite, Palette? current) =>
         sprite.SharesWith is null
-        && !file.Sprites.Any(other => ReferenceEquals(other.SharesWith, sprite))
         && (sprite.Direct is not null || (sprite.Indexed is not null && current is not null));
+
+    /// <summary>Remapping a sprite's pixels also changes the sprites linked to it; confirm when there are any.</summary>
+    private async Task<bool> ConfirmLinkedSpritesChange(SffFile file, IEnumerable<Sprite> remapped)
+    {
+        var set = remapped.ToHashSet();
+        int linked = file.Sprites.Count(s => s.SharesWith is { } t && set.Contains(t) && !set.Contains(s));
+        if (linked == 0) return true;
+        string whose = set.Count == 1 ? "the sprite's" : "the selected sprites'";
+        return await Dialogs.Confirm(this, "Linked Sprites Will Change",
+            $"Matching nearest color will alter {whose} pixels, which will also be reflected in {linked} linked sprite{(linked == 1 ? "" : "s")}.",
+            "Continue");
+    }
 
     private static Sprite SpriteNeedingMostColors(IEnumerable<Sprite> sprites) =>
         sprites.OrderByDescending(sprite => sprite.Indexed is { Length: > 0 } indexes

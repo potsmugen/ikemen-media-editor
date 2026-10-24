@@ -314,8 +314,12 @@ and constraints that are easy to miss when reading one code path in isolation.
   Touching sprites stay merged, and a minimum size filters specks. Palettes over 255 colors
   need true color or reduction.
 - **Applying palettes** preserves indexes by default. Nearest-color conversion is unavailable
-  for linked sprites and sprites with borrowers, and converting true color to indexed is
-  lossy. In v1, changing a shared palette changes every sprite using it.
+  for linked sprites; on a sprite with borrowers it asks to confirm first, since the
+  borrowers share the remapped pixels (paint does not ask: editing pixels is its intent). Converting true color to indexed is lossy. In v1,
+  changing a shared palette changes every sprite using it. In v2, importing a palette file
+  or applying an external/temp preview palette adds one palette all the sprites use, keyed
+  by the first sprite's group (file order) and its next free index; both ask to confirm the
+  prefilled key, so the user sees where the new palette lands.
 - **Bulk import/export** uses a key-based manifest; duplicate keys are rejected before
   mutation, matching keys overwrite after confirmation, others append. Unexpected failures
   roll back the batch, per-entry failures don't. Palette PNGs keep RGBA; external character

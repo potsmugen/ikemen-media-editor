@@ -757,17 +757,14 @@ public partial class MainWindow
     private async Task<PixelMapping>
         PromptPaletteIndexMapping(Sprite sprite, Palette? sourcePalette, Rgba[] targetColors, bool v1, Palette? sharedPalette)
     {
-        bool hasBorrowers = _file?.Sprites.Any(other => ReferenceEquals(other.SharesWith, sprite)) == true;
         bool direct = sprite.Indexed is null && sprite.Direct is not null;
         string? disabledReason = sprite.SharesWith is not null
             ? "Unlink this sprite before remapping its pixels."
-            : hasBorrowers
-                ? "Unlink sprites that borrow from this one before remapping its pixels."
-                : sprite.Indexed is null && sprite.Direct is null
-                    ? "This sprite has no pixels to remap."
-                    : sprite.Indexed is not null && sourcePalette is null
-                        ? "This sprite has no current palette to map from."
-                        : null;
+            : sprite.Indexed is null && sprite.Direct is null
+                ? "This sprite has no pixels to remap."
+                : sprite.Indexed is not null && sourcePalette is null
+                    ? "This sprite has no current palette to map from."
+                    : null;
         string? notice = null;
         if (v1 && sharedPalette is not null && _file is { } file
             && file.Sprites.Any(other => !ReferenceEquals(other, sprite) && ReferenceEquals(other.Palette, sharedPalette)))
@@ -779,6 +776,7 @@ public partial class MainWindow
             allowKeep: allowKeep, keepDisabledReason: allowKeep ? null : "This sprite has no indexes to keep.");
         if (choice is null) return PixelMapping.Canceled(sprite);
         if (choice != ImportIndexChoice.Nearest) return PixelMapping.Unchanged(sprite);
+        if (_file is { } owner && !await ConfirmLinkedSpritesChange(owner, [sprite])) return PixelMapping.Canceled(sprite);
 
         if (direct)
             return new PixelMapping(true, null, sprite.Direct,
@@ -881,19 +879,8 @@ public partial class MainWindow
             }
             else
             {
-                int group;
-                int index;
-                if (current is null)
-                {
-                    var key = await Dialogs.PromptNewPaletteKey(this, sprite.Group, NextFreePaletteIndex(sprite.Group), SpriteFieldMax);
-                    if (key is null) return;
-                    (group, index) = key.Value;
-                }
-                else
-                {
-                    group = current.Group;
-                    index = NextFreePaletteIndex(group);
-                }
+                if (await PromptNewPaletteKeyFor(file, sprite.Group) is not { } newKey) return;
+                var (group, index) = newKey;
                 var added = new Palette
                 {
                     Group = group,
@@ -983,7 +970,8 @@ public partial class MainWindow
             if (MovesIntoSff(file, chosen))
             {
                 string label = PaletteDisplayName(file, chosen);
-                var (moveIn, moveOut, movedIndex) = MoveTempPaletteIntoSff(file, chosen, prepared.Value.Colors, sprite.Group);
+                if (await PromptNewPaletteKeyFor(file, sprite.Group, chosen) is not { } tempKey) return false;
+                var (moveIn, moveOut, movedIndex) = MoveTempPaletteIntoSff(chosen, prepared.Value.Colors, tempKey.Group, tempKey.Index);
                 Edit("move temp palette into sff",
                     () =>
                     {
@@ -1000,11 +988,13 @@ public partial class MainWindow
                 StatusText.Text = $"Moved {label} into the SFF as palette {chosen.Group},{movedIndex} for sprite {sprite.Group},{sprite.Index}{(prepared.Value.DroppedAlpha ? " without alpha" : "")}.";
                 return true;
             }
-            int group = sprite.Group; // like a new own palette; the file palette's group is 1, the character palettes
+            // Prefilled like a new own palette; the file palette's group is 1, the character palettes.
+            if (await PromptNewPaletteKeyFor(file, sprite.Group) is not { } newKey) return false;
+            int group = newKey.Group;
             var embedded = new Palette
             {
                 Group = group,
-                Index = NextFreePaletteIndex(group),
+                Index = newKey.Index,
                 Colors = prepared.Value.Colors,
                 Source = PaletteSource.Embedded,
             };
@@ -2034,11 +2024,8 @@ public partial class MainWindow
 
     /// <summary>Turns a temp palette into an embedded one at the next free index of <paramref name="group"/>
     /// (the sprite's group, not 1, the character palettes); returns apply/undo steps.</summary>
-    private static (Action MoveIn, Action MoveOut, int Index) MoveTempPaletteIntoSff(SffFile file, Palette palette, Rgba[] colors, int group)
+    private static (Action MoveIn, Action MoveOut, int Index) MoveTempPaletteIntoSff(Palette palette, Rgba[] colors, int group, int index)
     {
-        var used = file.Palettes.Where(p => p.Group == group && !ReferenceEquals(p, palette)).Select(p => p.Index).ToHashSet();
-        int index = 0;
-        while (used.Contains(index)) index++;
         var before = (palette.Group, palette.Index, palette.Colors, palette.Dirty);
         return (() =>
         {
@@ -2056,6 +2043,17 @@ public partial class MainWindow
 
     /// <summary>Same idea as NextFreeIndex, but over the file's palettes rather than its sprites —
     /// the default Index offered for a brand-new "own palette".</summary>
+    /// <summary>Asks for a new palette's key, prefilled with the group's next free index;
+    /// a taken key steps to the next free index. Null when canceled.</summary>
+    private async Task<(int Group, int Index)?> PromptNewPaletteKeyFor(SffFile file, int group, Palette? ignore = null)
+    {
+        var key = await Dialogs.PromptNewPaletteKey(this, group, NextFreePaletteIndex(group), SpriteFieldMax);
+        if (key is null || !ReferenceEquals(_file, file)) return null;
+        var (g, i) = key.Value;
+        while (file.Palettes.Any(p => !ReferenceEquals(p, ignore) && p.Group == g && p.Index == i)) i++;
+        return (g, i);
+    }
+
     private int NextFreePaletteIndex(int group)
     {
         if (_file is null) return 0;

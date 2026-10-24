@@ -9,6 +9,9 @@ and keep them current. Open, unchecked work is in `agents/todo.md`.
 - US spelling throughout: source, tests, UI text, XAML and these docs alike
   ("color", "behavior", "centered", "canceled", "normalize"). Framework names
   are US anyway (Color, SolidColorBrush, Alignment.Center).
+- Predictable behavior over special cases: the same action follows the same rules
+  whether it runs on one item or many, and from every entry point. Don't add
+  one-off exceptions; when a path differs, align it or ask.
 - Ask before implementing when wording is ambiguous, when there is more than
   one reasonable solution, or when a change is a redesign, wide, silent, or
   hard to undo. Don't build unasked features.
@@ -81,6 +84,11 @@ and keep them current. Open, unchecked work is in `agents/todo.md`.
   While an animation interpolates, the line under the canvas shows the current
   offset, scale, angle and alpha, and now also shows the time.
   ```
+- Line endings follow the GitHub convention: the repo stores LF, and the Windows
+  checkout has CRLF (Git autocrlf). Keep each file's existing line endings when
+  editing (read and write in binary/newline-preserving mode), never convert a
+  whole file. The device shell's git lacks the Windows autocrlf setting, so compare
+  with `git diff --ignore-cr-at-eol`; a CRLF working file is not a change.
 - After each XAML edit, check well-formedness and brace balance. The
   maintainer compiles; dotnet isn't available on the device shell.
 
