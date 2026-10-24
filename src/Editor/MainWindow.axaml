@@ -79,6 +79,8 @@
                   ToolTip.Tip="Gives every linked sprite its own pixels. Makes the file bigger." />
         <MenuItem Header="Import from S_heet" Click="OnAddSpriteSheet"
                   ToolTip.Tip="Finds the sprites in one image and adds each as its own sprite, cropped tight." />
+        <MenuItem Header="Create Palette _Template" Click="OnCreatePaletteTemplate"
+                  ToolTip.Tip="Exports a sheet of sprites showing every color a palette's sprites use, with its swatch grid, as one indexed PNG." />
 
       </MenuItem>
 

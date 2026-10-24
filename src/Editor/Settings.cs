@@ -85,6 +85,8 @@ public sealed class Settings
     public const int DefaultColorReplacePairs = 10;
     public const int DefaultNearestColorAlphaThreshold = Sff.ImageImport.DefaultTransparentAlphaThreshold;
     public const int DefaultSheetMinimumSizePixels = Sff.SheetImport.DefaultMinimumSize;
+    public const int DefaultPaletteTemplateSprites = 12, DefaultPaletteTemplatePaddingPixels = 4,
+        DefaultPaletteTemplateSwatchSize = 8;
 
     // Palettes
     public const double DefaultPaletteCellMin = 6, DefaultPaletteCellMax = 64;
@@ -387,6 +389,11 @@ public sealed class Settings
         /// rather than imported, since a sheet's stray pixels are indistinguishable from small
         /// sprites. 0 keeps them all.</summary>
         public int SheetMinimumSizePixels { get; set; } = DefaultSheetMinimumSizePixels;
+        /// <summary>Create Palette Template: the dialog's initial sprite count (1-1000) and spacing in pixels (0-256).</summary>
+        public int PaletteTemplateSprites { get; set; } = DefaultPaletteTemplateSprites;
+        public int PaletteTemplatePaddingPixels { get; set; } = DefaultPaletteTemplatePaddingPixels;
+        /// <summary>Create Palette Template: the dialog's initial pixels per swatch cell (1-64); the grid is 16 cells wide.</summary>
+        public int PaletteTemplateSwatchSize { get; set; } = DefaultPaletteTemplateSwatchSize;
     }
 
     public sealed class PalettesSection

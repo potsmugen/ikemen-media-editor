@@ -405,6 +405,17 @@ and constraints that are easy to miss when reading one code path in isolation.
   user of a palette removes it. In v2, deleting the last direct users of an embedded
   non-group-1 palette asks a second time whether to delete those palettes too, and doing so
   unlinks dependents while keeping their colors. Each deletion is one undo step.
+- **Create Palette Template** (Sprites menu) exports one PNG indexed to a chosen palette:
+  the palette PNG export's 16×16 swatch grid at the top left, then sprites trimmed to their
+  visible pixels, packed in rows tallest first after it (sprite 0,0 first when picked), on index 0. Sprites are those whose palette is the chosen
+  one or shares its colors by link, one per bitmap, indexed and decoded only; a palette no
+  sprite uses (external, temp, unused alt) shows on the sprites of 1,1 (v1: S1). The picks
+  are a greedy cover of every nonzero index used (random ties), then random fill up to the
+  count; sprite 0,0 is always taken first when it is among them. The dialog previews it,
+  sets the spacing (gap between sprites, rows and edges) and swatch size, Shuffle rerolls, and it reports
+  indexes covered. settings.json `PaletteTemplateSprites`,
+  `PaletteTemplatePaddingPixels` and `PaletteTemplateSwatchSize` (default 8) set the count,
+  spacing and swatch cell. Logic is in `Sff/PaletteTemplate.cs`.
 - **Find Duplicate Palettes** shows a clickable report, then the usual Merge/Link/Cancel
   choice.
 
