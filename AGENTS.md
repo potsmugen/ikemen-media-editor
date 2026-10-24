@@ -24,6 +24,9 @@ and keep them current. Open, unchecked work is in `agents/todo.md`.
 - Preserve data as read. Don't copy another parser's quirks or invent fixups.
   If a save changes data the user didn't edit, warn on load, list it in the
   Media Health Report, ask Save/Cancel before saving, and report what changed.
+- Give honest opinions, not agreeable ones. When asked "what do you think", pick
+  one option and say why; don't drift toward the latest suggestion or defend work
+  already done. Disagree plainly when a request seems worse than an alternative.
 - Verify a control's cause before working around it. Keep controls consistent
   with their siblings; ask before changing shared behavior.
 - Do not hardcode theme-dependent colors or behavior in code; define them in the

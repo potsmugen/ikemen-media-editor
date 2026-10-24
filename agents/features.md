@@ -160,6 +160,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   declared on a frame counts as its own. Editing another frame creates own boxes; deleting a
   frame's last own box returns it to the default, and deleting a default's last box removes
   the declaration. Loaded zero-box declarations are kept; the editor never creates them.
+- **Clsn look** (Preferences > Clsn): colors for own Clsn1/Clsn2 and inherited defaults, fill
+  opacity (plain/selected) and outline thickness (plain/selected/active). The timeline
+  uses the colors; onion boxes and Export Animation use the plain thickness, export in output
+  pixels and in the own Clsn1/Clsn2 colors. Changes preview live; Cancel reverts.
 - **Onion skins** use the ghost sprite's own palette while the active palette stays selected
   for editing. Each panel has its own Show toggle. Copying Clsn from an onion frame copies
   the shown boxes as owned boxes.
@@ -288,8 +292,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   selects the row under the pointer first, unless it is part of a multi-selection, so every
   entry acts on the palette that was clicked.
 - **Palette selection** follows the palette object; a preview can show the active sprite
-  without changing the edited palette. Dirty palettes show `*`. Embedded v2 palettes convert
-  among 1–8 bits, shrinking only when every sprite using them is decoded and its indexes fit;
+  without changing the edited palette. Dirty palettes show `*`. The Palettes tab shows `*`
+  only when SFF palette tables (set, order, keys, links, colors) differ from the last
+  load/save, or external/standalone palettes are dirty; sprite-only edits mark Sprites only.
+  Embedded v2 palettes convert among 1–8 bits, shrinking only when every sprite using them is decoded and its indexes fit;
   growing fills with opaque black. Depth changes undo and keep indexes and colors.
 - **Pending color edits** apply live, form one undoable session, and compose with prior
   edits; Reset restores the baseline and Commit records the result. One swatch grid is

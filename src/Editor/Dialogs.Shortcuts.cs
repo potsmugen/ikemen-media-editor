@@ -62,7 +62,7 @@ public static partial class Dialogs
     /// Edits go to <paramref name="bindings"/>, which the caller keeps on OK. Sized to the other pages,
     /// so the window doesn't grow with the command count; the list scrolls.
     /// </summary>
-    private static Control ShortcutsPage(Window dialog, Dictionary<string, Chord?> bindings, IReadOnlyDictionary<Key, string> menuKeys,
+    private static (Control Page, Action Reset) ShortcutsPage(Window dialog, Dictionary<string, Chord?> bindings, IReadOnlyDictionary<Key, string> menuKeys,
         double width, double height)
     {
         var rows = Shortcuts.All.Select(c => new ShortcutRow(c)).OrderBy(r => r.Command.Scope).ToList(); // stable: table order within a scope
@@ -240,22 +240,20 @@ public static partial class Dialogs
 
         list.ItemsSource = rows;
 
-        var resetAll = new Button { Content = "Reset to Defaults", Margin = new Thickness(0, 10, 0, 0) };
-        ToolTip.SetTip(resetAll, "Puts this tab back to its defaults.");
-        resetAll.Click += (_, _) =>
+        // Run by the dialog's Reset to Defaults while this tab shows.
+        void ResetAll()
         {
             capturing = null;
             foreach (var c in Shortcuts.All) bindings[c.Id] = c.DefaultChord;
             foreach (var r in rows) Refresh(r);
-        };
+        }
 
-        var page = new Grid { RowDefinitions = new RowDefinitions("Auto,*,Auto"), Width = width, Height = height };
+        var page = new Grid { RowDefinitions = new RowDefinitions("Auto,*") };
         Grid.SetRow(header, 0);
         Grid.SetRow(list, 1);
-        Grid.SetRow(resetAll, 2);
         page.Children.Add(header);
         page.Children.Add(list);
-        page.Children.Add(resetAll);
-        return page;
+        // Same top gap as the other Preferences pages; the size includes it, as theirs does.
+        return (new Border { Padding = new Thickness(0, PreferencesPageTop, 0, 0), Width = width, Height = height, Child = page }, ResetAll);
     }
 }

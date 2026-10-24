@@ -3437,7 +3437,12 @@ public static partial class Dialogs
     public sealed record PreferencesValues(bool SwitchTabOnOpen, bool SyncSprite, string ThemeName, int BackupCount,
         double InfiniteAnimationTimeout, double SilenceThreshold, bool DebugMode,
         double FontScalePercent, double ButtonScalePercent, double ButtonGap, double PanelSeparatorWidth,
-        double PanelContentInset, CanvasValues Canvas);
+        double PanelContentInset, CanvasValues Canvas, ClsnValues Clsn);
+
+    /// <summary>Preferences > Clsn. Colors are #RRGGBB, opacities 0-100, thicknesses in pixels.</summary>
+    public sealed record ClsnValues(string Clsn1, string Clsn2, string Clsn1Default, string Clsn2Default,
+        double FillOpacityPercent, double SelectedFillOpacityPercent,
+        int LineThickness, int SelectedLineThickness, int ActiveLineThickness);
 
     /// <summary>Preferences > Canvas. Colors are #RRGGBB; null BaseColor = theme, null CheckerColor = auto from the base.</summary>
     public sealed record CanvasValues(BackgroundStyle Style, string? BaseColor, string? CheckerColor,
@@ -3471,7 +3476,7 @@ public static partial class Dialogs
         var theme = new ComboBox
         {
             ItemsSource = themeNames.Select(n => n == Themes.Fallback.Name ? n + " (default)" : n).ToList(),
-            MinWidth = 180,
+            MinWidth = FieldWidth,
         };
         int themeAt = themeNames.ToList().FindIndex(n => n.Equals(initial.ThemeName, StringComparison.OrdinalIgnoreCase));
         theme.SelectedIndex = themeAt >= 0 ? themeAt : Math.Max(0, themeNames.ToList().IndexOf(Themes.Fallback.Name));
@@ -3481,7 +3486,7 @@ public static partial class Dialogs
             var n = new NumericUpDown
             {
                 Value = (decimal)value, Minimum = (decimal)min, Increment = (decimal)increment,
-                FormatString = format, Width = 120,
+                FormatString = format, Width = FieldWidth,
             };
             if (max is { } m) n.Maximum = (decimal)m;
             return n;
@@ -3531,12 +3536,16 @@ public static partial class Dialogs
 
         // Pre-assigned: Changed (and so Current) is handed to BuildCanvasTabs before it returns.
         Func<CanvasValues> canvasValues = () => initial.Canvas;
+        Func<ClsnValues> clsnValues = () => initial.Clsn;
         Control backgroundTab;
         Control crosshairTab;
         Action<CanvasValues> setBackground;
         Action<CanvasValues> setCrosshair;
         (backgroundTab, crosshairTab, canvasValues, setBackground, setCrosshair) = BuildCanvasTabs(
             dialog, initial.Canvas, limits, pickImage, themeCanvasColor, Changed, Number, Section, Row);
+        Control clsnTab;
+        Action<ClsnValues> setClsn;
+        (clsnTab, clsnValues, setClsn) = BuildClsnTab(initial.Clsn, Changed, Number, Section);
 
         PreferencesValues Current()
         {
@@ -3556,7 +3565,8 @@ public static partial class Dialogs
                 buttonGap.Value is { } bg ? (double)bg : initial.ButtonGap,
                 panelSeparatorWidth.Value is { } psm ? (double)psm : initial.PanelSeparatorWidth,
                 panelContentInset.Value is { } pci ? (double)pci : initial.PanelContentInset,
-                canvasValues());
+                canvasValues(),
+                clsnValues());
         }
 
         theme.SelectionChanged += (_, _) => Changed();
@@ -3579,14 +3589,7 @@ public static partial class Dialogs
             finally { ready = true; }
             Changed();
         }
-        Button ResetButton(Action fill)
-        {
-            var b = new Button { Content = "Reset to Defaults", Margin = new Avalonia.Thickness(0, 10, 0, 0) };
-            ToolTip.SetTip(b, "Puts this tab back to its defaults.");
-            b.Click += (_, _) => ResetTab(fill);
-            return b;
-        }
-        var resetGeneral = ResetButton(() =>
+        Action resetGeneral = () => ResetTab(() =>
         {
             var d = defaults;
             switchTab.IsChecked = d.SwitchTabOnOpen;
@@ -3594,7 +3597,7 @@ public static partial class Dialogs
             backupCount.Value = d.BackupCount;
             debug.IsChecked = d.DebugMode;
         });
-        var resetAppearance = ResetButton(() =>
+        Action resetAppearance = () => ResetTab(() =>
         {
             var d = defaults;
             int at = themeNames.ToList().FindIndex(n => n.Equals(d.ThemeName, StringComparison.OrdinalIgnoreCase));
@@ -3605,8 +3608,9 @@ public static partial class Dialogs
             panelSeparatorWidth.Value = (decimal)Math.Clamp(d.PanelSeparatorWidth, 1, Settings.DefaultPanelSeparatorWidthMax);
             panelContentInset.Value = (decimal)Math.Clamp(d.PanelContentInset, 0, Settings.DefaultPanelContentInsetMax);
         });
-        var resetBackground = ResetButton(() => setBackground(defaults.Canvas));
-        var resetCrosshair = ResetButton(() => setCrosshair(defaults.Canvas));
+        Action resetBackground = () => ResetTab(() => setBackground(defaults.Canvas));
+        Action resetCrosshair = () => ResetTab(() => setCrosshair(defaults.Canvas));
+        Action resetClsn = () => ResetTab(() => setClsn(defaults.Clsn));
 
         var general = new StackPanel
         {
@@ -3620,7 +3624,6 @@ public static partial class Dialogs
                 Row($"Backup versions (0-{Settings.DefaultBackupCountMax})", backupCount),
                 Section("Debug"),
                 debug,
-                resetGeneral,
             },
         };
         var appearance = new StackPanel
@@ -3635,7 +3638,6 @@ public static partial class Dialogs
                 Row($"Button gap (0-{Settings.DefaultButtonGapMax:0})", buttonGap),
                 Row($"Panel separator width (1-{Settings.DefaultPanelSeparatorWidthMax:0})", panelSeparatorWidth),
                 Row($"Panel content inset (0-{Settings.DefaultPanelContentInsetMax:0})", panelContentInset),
-                resetAppearance,
             },
         };
 
@@ -3645,9 +3647,13 @@ public static partial class Dialogs
             return t;
         }
 
-        var backgroundPage = new StackPanel { Children = { backgroundTab, resetBackground } };
-        var crosshairPage = new StackPanel { Children = { crosshairTab, resetCrosshair } };
-        var pages = new Control[] { general, appearance, backgroundPage, crosshairPage };
+        Control Page(Control content) => new Border { Padding = new Avalonia.Thickness(0, PreferencesPageTop, 0, 0), Child = content };
+        var generalPage = Page(general);
+        var appearancePage = Page(appearance);
+        var backgroundPage = Page(backgroundTab);
+        var crosshairPage = Page(crosshairTab);
+        var clsnPage = Page(clsnTab);
+        var pages = new Control[] { generalPage, appearancePage, backgroundPage, crosshairPage, clsnPage };
         // Size every tab to the largest. The pages must be measured in the dialog's
         // visual tree: on their own their control templates and styles are not
         // applied, so they report a smaller size and the tabs clip. A Grid stacks
@@ -3665,41 +3671,68 @@ public static partial class Dialogs
             page.Height = pageHeight;
         }
         // Left out of the measuring above: it takes the other pages' size and scrolls, however many commands there are.
-        var shortcutsPage = ShortcutsPage(dialog, shortcuts, menuKeys, pageWidth, pageHeight);
+        var (shortcutsPage, resetShortcuts) = ShortcutsPage(dialog, shortcuts, menuKeys, pageWidth, pageHeight);
         var preferenceTabs = new TabControl
         {
             MinWidth = pageWidth,
             Items =
             {
-                Tab("General", general),
-                Tab("Appearance", appearance),
+                Tab("General", generalPage),
+                Tab("Appearance", appearancePage),
                 Tab("Background", backgroundPage),
                 Tab("Crosshair", crosshairPage),
+                Tab("Clsn", clsnPage),
                 Tab("Shortcuts", shortcutsPage),
             },
         };
         if (startTab is not null)
             preferenceTabs.SelectedItem = preferenceTabs.Items.OfType<TabItem>().FirstOrDefault(t => Equals(t.Header, startTab));
 
+        // One Reset to Defaults beside OK/Cancel; it resets the tab that's showing.
+        var resets = new Dictionary<Control, Action>
+        {
+            [generalPage] = resetGeneral, [appearancePage] = resetAppearance, [backgroundPage] = resetBackground,
+            [crosshairPage] = resetCrosshair, [clsnPage] = resetClsn, [shortcutsPage] = resetShortcuts,
+        };
+        var reset = new Button { Content = "Reset to Defaults" };
+        ToolTip.SetTip(reset, "Puts this tab back to its defaults.");
+        reset.Click += (_, _) =>
+        {
+            if (preferenceTabs.SelectedItem is TabItem { Content: Control page } && resets.TryGetValue(page, out var fill)) fill();
+        };
+        var buttons = new DockPanel { Margin = new Avalonia.Thickness(0, 10, 0, 0) };
+        DockPanel.SetDock(reset, Dock.Left);
+        buttons.Children.Add(reset);
+        buttons.Children.Add(new StackPanel
+        {
+            Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8, Children = { ok, cancel },
+        });
+
         dialog.Content = new StackPanel
         {
             Margin = new Avalonia.Thickness(20),
             Spacing = 8,
-            Children =
-            {
-                preferenceTabs,
-                new StackPanel
-                {
-                    Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
-                    Spacing = 8, Margin = new Avalonia.Thickness(0, 10, 0, 0), Children = { ok, cancel },
-                },
-            },
+            Children = { preferenceTabs, buttons },
         };
         dialog.Closed += (_, _) => result.TrySetResult(null);
 
         ready = true;
         dialog.ShowModal(owner);
         return result.Task;
+    }
+
+    /// <summary>Shared width of the Preferences value fields, so their edges line up.</summary>
+    private const double FieldWidth = 140;
+    /// <summary>Gap between the Preferences tab strip and each page.</summary>
+    private const double PreferencesPageTop = 8;
+
+    /// <summary>Drops the slider's default margins and height, as the Palettes sliders do, so a paired box keeps its normal height.</summary>
+    private static void CompactSlider(Slider s)
+    {
+        s.Resources["SliderPreContentMargin"] = new GridLength(0);
+        s.Resources["SliderPostContentMargin"] = new GridLength(0);
+        s.Resources["SliderHorizontalHeight"] = 20.0;
+        s.VerticalAlignment = VerticalAlignment.Center;
     }
 
     /// <summary>A #RRGGBB box and a swatch button that opens the color picker. An invalid hex keeps the last good color.</summary>
@@ -3773,8 +3806,9 @@ public static partial class Dialogs
         Func<string, TextBlock> section, Func<string, Control, Grid> row)
     {
         Color? Parse(string? s) => s is not null && Color.TryParse(s, out var c) ? Color.FromRgb(c.R, c.G, c.B) : null;
-        TextBlock NameBlock() => new() { VerticalAlignment = VerticalAlignment.Center, MinWidth = 140, MaxWidth = 220, TextTrimming = TextTrimming.CharacterEllipsis };
-        TextBlock Label(string text) => new() { Text = text, VerticalAlignment = VerticalAlignment.Center, Margin = new Avalonia.Thickness(6, 0, 0, 0) };
+        TextBlock NameBlock() => new() { VerticalAlignment = VerticalAlignment.Center, MinWidth = FieldWidth, MaxWidth = 220, TextTrimming = TextTrimming.CharacterEllipsis };
+        // A leading label starts flush with the value column; later ones get a gap from the box before.
+        TextBlock Label(string text, bool lead = false) => new() { Text = text, VerticalAlignment = VerticalAlignment.Center, Margin = new Avalonia.Thickness(lead ? 0 : 6, 0, 0, 0) };
         StackPanel Inline(params Control[] cs)
         {
             var p = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
@@ -3792,12 +3826,12 @@ public static partial class Dialogs
             : checkerR.IsChecked == true ? BackgroundStyle.Checkerboard
             : BackgroundStyle.Flat;
 
-        var baseMode = new ComboBox { ItemsSource = new[] { "Theme", "Custom" }, SelectedIndex = init.BaseColor is null ? 0 : 1, MinWidth = 100 };
+        var baseMode = new ComboBox { ItemsSource = new[] { "Theme", "Custom" }, SelectedIndex = init.BaseColor is null ? 0 : 1, Width = FieldWidth };
         var basePicker = new ColorPicker(Parse(init.BaseColor) ?? themeColor());
         bool baseTouched = init.BaseColor is not null;
         Color EffectiveBase() => baseMode.SelectedIndex == 1 ? basePicker.Color : themeColor();
 
-        var checkerMode = new ComboBox { ItemsSource = new[] { "Auto", "Custom" }, SelectedIndex = init.CheckerColor is null ? 0 : 1, MinWidth = 100 };
+        var checkerMode = new ComboBox { ItemsSource = new[] { "Auto", "Custom" }, SelectedIndex = init.CheckerColor is null ? 0 : 1, Width = FieldWidth };
         var checkerPicker = new ColorPicker(Parse(init.CheckerColor) ?? CanvasColors.CheckerFor(EffectiveBase()));
         bool checkerTouched = init.CheckerColor is not null;
         var checkerSize = number(Math.Clamp(init.CheckerSize, Settings.CheckerSizeMin, Settings.CheckerSizeMax),
@@ -3825,7 +3859,9 @@ public static partial class Dialogs
             Minimum = 0, Maximum = 100, Value = Math.Clamp(init.OpacityPercent, 0, 100),
             SmallChange = 1, LargeChange = 10, TickFrequency = 1, IsSnapToTickEnabled = true, Width = 160,
         };
-        var opacityText = new TextBlock { VerticalAlignment = VerticalAlignment.Center, MinWidth = 30, Text = $"{opacity.Value:0}" };
+        var opacityBox = new NumericUpDown { Width = 72, Increment = 1, FormatString = "0", VerticalAlignment = VerticalAlignment.Center };
+        CompactSlider(opacity);
+        MainWindow.PairSliderBox(opacity, opacityBox);
         var followZoom = new CheckBox { Content = "Scale with zoom", IsChecked = init.FollowZoom };
         ToolTip.SetTip(followZoom, "Scales the image with the zoom.");
         var followPan = new CheckBox { Content = "Follow pan", IsChecked = init.FollowPan };
@@ -3836,8 +3872,8 @@ public static partial class Dialogs
         var checkerSizeRow = row("Checker size", checkerSize);
         var checkerBoolRow = Inline(checkerFollowZoom, checkerFollowPan);
         var imageRow = row("Image", Inline(bgName, bgBrowse, bgClear));
-        var offsetRow = row("Offset", Inline(Label("X"), offX, Label("Y"), offY));
-        var opacityRow = row("Opacity %", Inline(opacity, opacityText));
+        var offsetRow = row("Offset", Inline(Label("X", lead: true), offX, Label("Y"), offY));
+        var opacityRow = row("Opacity %", Inline(opacity, opacityBox));
         var imageBoolRow = Inline(followZoom, followPan, tile);
 
         void SyncBackground()
@@ -3855,7 +3891,7 @@ public static partial class Dialogs
             ToolTip.SetTip(bgName, bgPath);
             bgClear.IsEnabled = bgPath is not null;
             bool live = bgPath is not null;
-            foreach (var c in new Control[] { tile, offX, offY, opacity, opacityText, followZoom, followPan }) c.IsEnabled = live;
+            foreach (var c in new Control[] { tile, offX, offY, opacity, opacityBox, followZoom, followPan }) c.IsEnabled = live;
         }
 
         flatR.IsCheckedChanged += (_, _) => { SyncBackground(); changed(); };
@@ -3883,7 +3919,6 @@ public static partial class Dialogs
         opacity.PropertyChanged += (_, e) =>
         {
             if (e.Property != Slider.ValueProperty) return;
-            opacityText.Text = $"{opacity.Value:0}";
             changed();
         };
         followZoom.IsCheckedChanged += (_, _) => changed();
@@ -4005,12 +4040,12 @@ public static partial class Dialogs
             {
                 section("Style"),
                 Inline(chLines, chImage),
-                section("Crosshair"),
+                section("Settings"),
                 row("Color", chPicker.View),
-                row($"Arm length ({limits.ArmMin:0.##}-{limits.ArmMax:0.##})",
-                    Inline(arm, Label($"Thickness ({limits.ThicknessMin:0.##}-{limits.ThicknessMax:0.##})"), thick)),
+                row($"Arm length ({limits.ArmMin:0.##}-{limits.ArmMax:0.##})", arm),
+                row($"Thickness ({limits.ThicknessMin:0.##}-{limits.ThicknessMax:0.##})", thick),
                 row("Image", Inline(chName, chBrowse, chClear)),
-                row("Hotspot", Inline(Label("X"), hotX, Label("Y"), hotY)),
+                row("Hotspot", Inline(Label("X", lead: true), hotX, Label("Y"), hotY)),
                 scale,
             },
         };
@@ -4071,6 +4106,111 @@ public static partial class Dialogs
         }
 
         return (backgroundTab, crosshairTab, Values, SetBackground, SetCrosshair);
+    }
+
+    /// <summary>Preferences > Clsn: box colors, fill opacities and outline thicknesses, laid out in one grid
+    /// so the Own/Default and Plain/Selected/Active columns line up.</summary>
+    private static (Control Tab, Func<ClsnValues> Values, Action<ClsnValues> Set) BuildClsnTab(ClsnValues init, Action changed,
+        Func<double, double, double, string, double?, NumericUpDown> number, Func<string, TextBlock> section)
+    {
+        var d = new ClsnStyle();
+        Color Parse(string? s, Color fallback) => s is not null && Color.TryParse(s, out var c) ? Color.FromRgb(c.R, c.G, c.B) : fallback;
+        StackPanel Inline(params Control[] cs)
+        {
+            var p = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+            foreach (var c in cs) p.Children.Add(c);
+            return p;
+        }
+        TextBlock Header(string text)
+        {
+            var t = new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Bottom };
+            t.Bind(TextBlock.ForegroundProperty, t.GetResourceObservable("ThemeMutedText")); // follows the theme preview
+            return t;
+        }
+
+        var c1 = new ColorPicker(Parse(init.Clsn1, d.Clsn1));
+        var c2 = new ColorPicker(Parse(init.Clsn2, d.Clsn2));
+        var c1d = new ColorPicker(Parse(init.Clsn1Default, d.Clsn1Default));
+        var c2d = new ColorPicker(Parse(init.Clsn2Default, d.Clsn2Default));
+        ToolTip.SetTip(c1.View, "Also used by the timeline and Export Animation.");
+        ToolTip.SetTip(c2.View, "Also used by the timeline and Export Animation.");
+        ToolTip.SetTip(c1d.View, "Boxes a frame inherits from Clsn1Default.");
+        ToolTip.SetTip(c2d.View, "Boxes a frame inherits from Clsn2Default.");
+        foreach (var p in new[] { c1, c2, c1d, c2d }) p.Changed += changed;
+
+        (Slider Slider, StackPanel View) OpacitySlider(double value)
+        {
+            var s = new Slider
+            {
+                Minimum = 0, Maximum = 100, Value = Math.Clamp(value, 0, 100),
+                SmallChange = 1, LargeChange = 10, TickFrequency = 1, IsSnapToTickEnabled = true, Width = 100,
+            };
+            var box = new NumericUpDown { Width = 72, Increment = 1, FormatString = "0", VerticalAlignment = VerticalAlignment.Center };
+            CompactSlider(s);
+            MainWindow.PairSliderBox(s, box);
+            s.PropertyChanged += (_, e) => { if (e.Property == Slider.ValueProperty) changed(); };
+            return (s, Inline(s, box));
+        }
+        var fill = OpacitySlider(init.FillOpacityPercent);
+        var selectedFill = OpacitySlider(init.SelectedFillOpacityPercent);
+
+        int max = Settings.DefaultClsnLineThicknessMax;
+        NumericUpDown ThicknessBox(int value)
+        {
+            var n = number(Math.Clamp(value, 1, max), 1, 1, "0", max);
+            n.Width = 72;
+            n.HorizontalAlignment = HorizontalAlignment.Left;
+            n.ValueChanged += (_, _) => changed();
+            return n;
+        }
+        var line = ThicknessBox(init.LineThickness);
+        var selectedLine = ThicknessBox(init.SelectedLineThickness);
+        var activeLine = ThicknessBox(init.ActiveLineThickness);
+        ToolTip.SetTip(line, "Also used by onion skin boxes and Export Animation.");
+        ToolTip.SetTip(activeLine, "The box with resize handles.");
+
+        // Same 230 label column as the other tabs' rows.
+        var tab = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("230,Auto,Auto,Auto"),
+            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto,Auto,Auto"),
+            ColumnSpacing = 12, RowSpacing = 8,
+        };
+        void Put(Control c, int r, int col)
+        {
+            Grid.SetRow(c, r);
+            Grid.SetColumn(c, col);
+            tab.Children.Add(c);
+        }
+        TextBlock Name(string text) => new() { Text = text, VerticalAlignment = VerticalAlignment.Center };
+        Put(section("Colors"), 0, 0); Put(Header("Own"), 0, 1); Put(Header("Default"), 0, 2);
+        Put(Name("Clsn1"), 1, 0); Put(c1.View, 1, 1); Put(c1d.View, 1, 2);
+        Put(Name("Clsn2"), 2, 0); Put(c2.View, 2, 1); Put(c2d.View, 2, 2);
+        Put(section("Boxes"), 3, 0); Put(Header("Plain"), 3, 1); Put(Header("Selected"), 3, 2); Put(Header("Active"), 3, 3);
+        Put(Name("Fill opacity %"), 4, 0); Put(fill.View, 4, 1); Put(selectedFill.View, 4, 2);
+        Put(Name($"Line thickness (1-{max})"), 5, 0); Put(line, 5, 1); Put(selectedLine, 5, 2); Put(activeLine, 5, 3);
+
+        ClsnValues Values() => new(
+            Hex(c1.Color), Hex(c2.Color), Hex(c1d.Color), Hex(c2d.Color),
+            fill.Slider.Value, selectedFill.Slider.Value,
+            line.Value is { } l ? (int)l : init.LineThickness,
+            selectedLine.Value is { } sl ? (int)sl : init.SelectedLineThickness,
+            activeLine.Value is { } al ? (int)al : init.ActiveLineThickness);
+
+        void Set(ClsnValues v)
+        {
+            c1.Set(Parse(v.Clsn1, d.Clsn1));
+            c2.Set(Parse(v.Clsn2, d.Clsn2));
+            c1d.Set(Parse(v.Clsn1Default, d.Clsn1Default));
+            c2d.Set(Parse(v.Clsn2Default, d.Clsn2Default));
+            fill.Slider.Value = Math.Clamp(v.FillOpacityPercent, 0, 100);
+            selectedFill.Slider.Value = Math.Clamp(v.SelectedFillOpacityPercent, 0, 100);
+            line.Value = Math.Clamp(v.LineThickness, 1, max);
+            selectedLine.Value = Math.Clamp(v.SelectedLineThickness, 1, max);
+            activeLine.Value = Math.Clamp(v.ActiveLineThickness, 1, max);
+        }
+
+        return (tab, Values, Set);
     }
 
     private static Task<T> Show<T>(Window owner, string title, string message,

@@ -151,6 +151,7 @@ public partial class MainWindow : Window
 
         ApplyTheme(_settings.General.ThemeName);
         ApplyCanvasDecor(CanvasValuesFromSettings());
+        ApplyClsnStyle(ClsnValuesFromSettings());
         StatusBar.IsVisible = _settings.General.ShowStatusBar;
         ApplyEditorLimits();
         RebuildRecentMenu();
@@ -334,7 +335,7 @@ public partial class MainWindow : Window
             Math.Clamp(s.Appearance.ButtonGap, 0, Settings.DefaultButtonGapMax),
             Math.Clamp(s.Appearance.PanelSeparatorWidth, 1, Settings.DefaultPanelSeparatorWidthMax),
             Math.Clamp(s.Appearance.PanelContentInset, 0, Settings.DefaultPanelContentInsetMax),
-            _appliedCanvas ?? CanvasValuesFromSettings());
+            _appliedCanvas ?? CanvasValuesFromSettings(), _appliedClsn ?? ClsnValuesFromSettings());
         var d = new Settings();
         var defaults = new Dialogs.PreferencesValues(d.General.SwitchTabOnOpen, d.General.SyncSpriteAcrossTabs, d.General.ThemeName, d.Files.BackupCount,
             d.Animations.InfiniteAnimationTimeout, d.Sounds.SilenceThreshold, d.General.DebugMode,
@@ -342,7 +343,7 @@ public partial class MainWindow : Window
             Math.Clamp(d.Appearance.ButtonGap, 0, Settings.DefaultButtonGapMax),
             Math.Clamp(d.Appearance.PanelSeparatorWidth, 1, Settings.DefaultPanelSeparatorWidthMax),
             Math.Clamp(d.Appearance.PanelContentInset, 0, Settings.DefaultPanelContentInsetMax),
-            CanvasValuesFromSettings(d));
+            CanvasValuesFromSettings(d), ClsnValuesFromSettings(d));
         string previewTheme = s.General.ThemeName;
         var previewUiScale = (Font: initial.FontScalePercent, Button: initial.ButtonScalePercent,
             Gap: initial.ButtonGap, Separator: initial.PanelSeparatorWidth, Inset: initial.PanelContentInset);
@@ -363,6 +364,7 @@ public partial class MainWindow : Window
                     ApplyUiScale(v.FontScalePercent, v.ButtonScalePercent, v.ButtonGap, v.PanelSeparatorWidth, v.PanelContentInset);
                 }
                 ApplyCanvasDecor(v.Canvas);
+                ApplyClsnStyle(v.Clsn);
             }
             catch (Exception ex)
             {
@@ -391,6 +393,7 @@ public partial class MainWindow : Window
         s.Appearance.PanelContentInset = Settings.Checked(nameof(Settings.AppearanceSection.PanelContentInset), p.PanelContentInset,
             Settings.DefaultPanelContentInset, v => v >= 0 && v <= Settings.DefaultPanelContentInsetMax);
         StoreCanvasValues(p.Canvas);
+        StoreClsnValues(p.Clsn);
         s.General.ThemeName = p.ThemeName;
         s.Shortcuts = Shortcuts.Changed(shortcuts);
         s.Save();
@@ -401,6 +404,7 @@ public partial class MainWindow : Window
         ApplyUiScale();
         CrashLog.Trace("[prefs] saved");
         StatusText.Text = "Preferences saved.";
+        ApplyClsnStyle(p.Clsn);
         ApplyCanvasDecor(p.Canvas); // after, so an image problem replaces "saved" in the status bar
     }
 

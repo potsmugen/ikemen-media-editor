@@ -287,11 +287,11 @@ public partial class MainWindow
     private static List<BoxOverlay> GifBoxes(AnimationElement element)
     {
         var boxes = BoxesFor(element);
-        foreach (var b in boxes) b.Color = b.Tag is ClsnKind.Attack ? AttackColor : HurtColor;
+        foreach (var b in boxes) b.Color = ClsnStyle.Current.For(b.Tag is ClsnKind.Attack ? ClsnKind.Attack : ClsnKind.Hurt, own: true);
         return boxes;
     }
 
-    /// <summary>Draws each box as a 1 px outline in its canvas color, in list order (Clsn2 then Clsn1 on top).</summary>
+    /// <summary>Draws each box as an outline of the Clsn line thickness inside its edges, in list order (Clsn2 then Clsn1 on top).</summary>
     private static void DrawGifBoxes(byte[] dst, List<BoxOverlay> boxes, int left, int top, int width, int height, int scale)
     {
         void Put(int x, int y, Color c)
@@ -300,13 +300,18 @@ public partial class MainWindow
             int i = (y * width + x) * 4;
             (dst[i], dst[i + 1], dst[i + 2], dst[i + 3]) = (c.B, c.G, c.R, 255);
         }
+        int thickness = ClsnStyle.Current.LineThickness;
         foreach (var b in boxes)
         {
             int x1 = (Math.Min(b.X1, b.X2) - left) * scale, x2 = (Math.Max(b.X1, b.X2) - left) * scale - 1;
             int y1 = (Math.Min(b.Y1, b.Y2) - top) * scale, y2 = (Math.Max(b.Y1, b.Y2) - top) * scale - 1;
             if (x2 < x1 || y2 < y1) continue;
-            for (int x = x1; x <= x2; x++) { Put(x, y1, b.Color); Put(x, y2, b.Color); }
-            for (int y = y1; y <= y2; y++) { Put(x1, y, b.Color); Put(x2, y, b.Color); }
+            // Each pass is one pixel further in, stopping where the sides meet.
+            for (int k = 0; k < thickness && x1 + k <= x2 - k && y1 + k <= y2 - k; k++)
+            {
+                for (int x = x1 + k; x <= x2 - k; x++) { Put(x, y1 + k, b.Color); Put(x, y2 - k, b.Color); }
+                for (int y = y1 + k; y <= y2 - k; y++) { Put(x1 + k, y, b.Color); Put(x2 - k, y, b.Color); }
+            }
         }
     }
 }

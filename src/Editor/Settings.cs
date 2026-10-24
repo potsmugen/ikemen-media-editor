@@ -97,6 +97,11 @@ public sealed class Settings
     public const double DefaultTimelineMaxPixelsPerTick = 16, DefaultTimelineZoomStep = 1.5, DefaultTimelineScrollStep = 0.1,
         DefaultTimelineDragThresholdPixels = 3, DefaultTimelineTickMarkMinPixels = 4;
     public const int DefaultAnimExportScale = 1, DefaultAnimExportScaleMax = 8, DefaultAnimExportMaxSide = 4096;
+    public const string DefaultClsn1Color = "#D83030", DefaultClsn2Color = "#2060F0",
+        DefaultClsn1DefaultColor = "#E09020", DefaultClsn2DefaultColor = "#008A8A";
+    public const double DefaultClsnFillOpacityPercent = 25, DefaultClsnSelectedFillOpacityPercent = 38;
+    public const int DefaultClsnLineThickness = 1, DefaultClsnSelectedLineThickness = 2,
+        DefaultClsnActiveLineThickness = 3, DefaultClsnLineThicknessMax = 10;
 
     // Sounds
     public const double DefaultPitchMaxSemitones = 24, DefaultRateMinPercent = 25, DefaultRateMaxPercent = 400;
@@ -433,6 +438,20 @@ public sealed class Settings
         public int AnimExportScaleMax { get; set; } = DefaultAnimExportScaleMax;
         /// <summary>Largest image Export Animation writes, in pixels a side (after scaling). WebP stops at 16384.</summary>
         public int AnimExportMaxSide { get; set; } = DefaultAnimExportMaxSide;
+        /// <summary>#RRGGBB colors of a frame's own Clsn1/Clsn2 boxes (also the timeline and Export Animation).</summary>
+        public string Clsn1Color { get; set; } = DefaultClsn1Color;
+        public string Clsn2Color { get; set; } = DefaultClsn2Color;
+        /// <summary>#RRGGBB colors of boxes inherited from Clsn1Default/Clsn2Default.</summary>
+        public string Clsn1DefaultColor { get; set; } = DefaultClsn1DefaultColor;
+        public string Clsn2DefaultColor { get; set; } = DefaultClsn2DefaultColor;
+        /// <summary>Clsn box fill opacity, 0-100, for unselected and selected boxes.</summary>
+        public double ClsnFillOpacityPercent { get; set; } = DefaultClsnFillOpacityPercent;
+        public double ClsnSelectedFillOpacityPercent { get; set; } = DefaultClsnSelectedFillOpacityPercent;
+        /// <summary>Clsn outline width in screen pixels (1-10); the plain one is also used by onion boxes and export.</summary>
+        public int ClsnLineThickness { get; set; } = DefaultClsnLineThickness;
+        public int ClsnSelectedLineThickness { get; set; } = DefaultClsnSelectedLineThickness;
+        /// <summary>The active box: the one with resize handles.</summary>
+        public int ClsnActiveLineThickness { get; set; } = DefaultClsnActiveLineThickness;
     }
 
     public sealed class SoundsSection

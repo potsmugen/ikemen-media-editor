@@ -53,6 +53,30 @@ public sealed class CrosshairStyle
     public bool ScaleWithZoom { get; init; }
 }
 
+/// <summary>How Clsn boxes look on the Animations canvas, timeline and Export Animation (Preferences > Clsn).</summary>
+public sealed class ClsnStyle
+{
+    /// <summary>The look in use; MainWindow.ApplyClsnStyle sets it.</summary>
+    public static ClsnStyle Current { get; set; } = new();
+
+    public Color Clsn1 { get; init; } = Color.Parse(Settings.DefaultClsn1Color);
+    public Color Clsn2 { get; init; } = Color.Parse(Settings.DefaultClsn2Color);
+    public Color Clsn1Default { get; init; } = Color.Parse(Settings.DefaultClsn1DefaultColor);
+    public Color Clsn2Default { get; init; } = Color.Parse(Settings.DefaultClsn2DefaultColor);
+    /// <summary>Fill opacities, 0-1.</summary>
+    public double FillOpacity { get; init; } = Settings.DefaultClsnFillOpacityPercent / 100;
+    public double SelectedFillOpacity { get; init; } = Settings.DefaultClsnSelectedFillOpacityPercent / 100;
+    public int LineThickness { get; init; } = Settings.DefaultClsnLineThickness;
+    public int SelectedLineThickness { get; init; } = Settings.DefaultClsnSelectedLineThickness;
+    /// <summary>The box with resize handles.</summary>
+    public int ActiveLineThickness { get; init; } = Settings.DefaultClsnActiveLineThickness;
+
+    /// <summary>A box's color: own boxes in the Clsn color, inherited ones in the default color.</summary>
+    public Color For(Air.ClsnKind kind, bool own) => kind == Air.ClsnKind.Attack
+        ? (own ? Clsn1 : Clsn1Default)
+        : (own ? Clsn2 : Clsn2Default);
+}
+
 /// <summary>Where the example canvas backgrounds ship beside the exe (see the copy rule in Editor.csproj). Browsing for one starts here.</summary>
 public static class CanvasPatterns
 {

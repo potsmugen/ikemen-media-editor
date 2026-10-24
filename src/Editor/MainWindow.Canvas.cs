@@ -1,3 +1,4 @@
+using Air;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -96,6 +97,72 @@ public partial class MainWindow
         s.Canvas.CrosshairHotspotX = c.HotspotX;
         s.Canvas.CrosshairHotspotY = c.HotspotY;
         s.Canvas.CrosshairScaleWithZoom = c.ScaleWithZoom;
+    }
+
+    private Dialogs.ClsnValues ClsnValuesFromSettings(Settings? from = null)
+    {
+        var a = (from ?? _settings).Animations;
+        return new(a.Clsn1Color, a.Clsn2Color, a.Clsn1DefaultColor, a.Clsn2DefaultColor,
+            a.ClsnFillOpacityPercent, a.ClsnSelectedFillOpacityPercent,
+            a.ClsnLineThickness, a.ClsnSelectedLineThickness, a.ClsnActiveLineThickness);
+    }
+
+    private void StoreClsnValues(Dialogs.ClsnValues c)
+    {
+        var a = _settings.Animations;
+        a.Clsn1Color = c.Clsn1;
+        a.Clsn2Color = c.Clsn2;
+        a.Clsn1DefaultColor = c.Clsn1Default;
+        a.Clsn2DefaultColor = c.Clsn2Default;
+        a.ClsnFillOpacityPercent = c.FillOpacityPercent;
+        a.ClsnSelectedFillOpacityPercent = c.SelectedFillOpacityPercent;
+        a.ClsnLineThickness = c.LineThickness;
+        a.ClsnSelectedLineThickness = c.SelectedLineThickness;
+        a.ClsnActiveLineThickness = c.ActiveLineThickness;
+    }
+
+    /// <summary>What the Animations tab currently shows; Preferences opens on it.</summary>
+    private Dialogs.ClsnValues? _appliedClsn;
+
+    /// <summary>Sets the Clsn look and redraws the shown boxes and timeline in it. Bad values fall back to defaults, logged.</summary>
+    private void ApplyClsnStyle(Dialogs.ClsnValues v)
+    {
+        _appliedClsn = v;
+        var d = new ClsnStyle();
+        double CheckedOpacity(string name, double value, double fallback) =>
+            Settings.Checked(name, value, fallback, o => o is >= 0 and <= 100) / 100;
+        int CheckedThickness(string name, int value, int fallback) =>
+            Settings.Checked(name, value, fallback, t => t is >= 1 and <= Settings.DefaultClsnLineThicknessMax);
+        ClsnStyle.Current = new ClsnStyle
+        {
+            Clsn1 = CheckedColor(nameof(Settings.AnimationsSection.Clsn1Color), v.Clsn1) ?? d.Clsn1,
+            Clsn2 = CheckedColor(nameof(Settings.AnimationsSection.Clsn2Color), v.Clsn2) ?? d.Clsn2,
+            Clsn1Default = CheckedColor(nameof(Settings.AnimationsSection.Clsn1DefaultColor), v.Clsn1Default) ?? d.Clsn1Default,
+            Clsn2Default = CheckedColor(nameof(Settings.AnimationsSection.Clsn2DefaultColor), v.Clsn2Default) ?? d.Clsn2Default,
+            FillOpacity = CheckedOpacity(nameof(Settings.AnimationsSection.ClsnFillOpacityPercent), v.FillOpacityPercent,
+                Settings.DefaultClsnFillOpacityPercent),
+            SelectedFillOpacity = CheckedOpacity(nameof(Settings.AnimationsSection.ClsnSelectedFillOpacityPercent), v.SelectedFillOpacityPercent,
+                Settings.DefaultClsnSelectedFillOpacityPercent),
+            LineThickness = CheckedThickness(nameof(Settings.AnimationsSection.ClsnLineThickness), v.LineThickness,
+                Settings.DefaultClsnLineThickness),
+            SelectedLineThickness = CheckedThickness(nameof(Settings.AnimationsSection.ClsnSelectedLineThickness), v.SelectedLineThickness,
+                Settings.DefaultClsnSelectedLineThickness),
+            ActiveLineThickness = CheckedThickness(nameof(Settings.AnimationsSection.ClsnActiveLineThickness), v.ActiveLineThickness,
+                Settings.DefaultClsnActiveLineThickness),
+        };
+
+        // Recolor in place rather than ShowFrame, which would drop the box selection.
+        if (AnimCanvas is null || _action is null) return;
+        if (CurrentElement is { } element)
+            foreach (var b in AnimCanvas.Boxes)
+            {
+                bool attack = b.Tag is ClsnKind.Attack;
+                b.Color = ClsnStyle.Current.For(attack ? ClsnKind.Attack : ClsnKind.Hurt,
+                    attack ? element.OwnAttackBoxes : element.OwnHurtBoxes);
+            }
+        ShowAnimOnion();
+        UpdateTimeline();
+        AnimCanvas.InvalidateVisual();
     }
 
     /// <summary>Image picker for the Preferences dialog, parented to it. When it exists, <paramref name="startFolder"/> opens the picker there.</summary>

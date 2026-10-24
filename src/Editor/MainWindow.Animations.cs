@@ -41,16 +41,6 @@ public partial class MainWindow
 
     private int InfiniteAnimationTimeoutTicks => Math.Max(1, (int)Math.Round(_settings.Animations.InfiniteAnimationTimeout / TickLength.TotalSeconds));
 
-    // The convention this project follows: red for a frame's own Clsn1, blue
-    // for its own Clsn2. Default-sourced boxes get their own color per kind
-    // now (orange for Clsn1Default, teal for Clsn2Default) rather than sharing
-    // one shade — the selected-box info line and the Make Default button's
-    // label still say Clsn1 or Clsn2 when it matters.
-    private static readonly Color AttackColor = Color.FromRgb(0xd8, 0x30, 0x30);
-    private static readonly Color HurtColor = Color.FromRgb(0x20, 0x60, 0xf0);
-    private static readonly Color Clsn1DefaultColor = Color.FromRgb(0xe0, 0x90, 0x20);
-    private static readonly Color Clsn2DefaultColor = Color.FromRgb(0x00, 0x8a, 0x8a);
-
     private DispatcherTimer? _clock;
     /// <summary>Playback time base: ticks due are counted from real elapsed time, not timer events.</summary>
     private readonly Stopwatch _playWatch = new();
@@ -713,8 +703,8 @@ public partial class MainWindow
 
     private static List<BoxOverlay> BoxesFor(AnimationElement element)
     {
-        var hurtColor = element.OwnHurtBoxes ? HurtColor : Clsn2DefaultColor;
-        var attackColor = element.OwnAttackBoxes ? AttackColor : Clsn1DefaultColor;
+        var hurtColor = ClsnStyle.Current.For(ClsnKind.Hurt, element.OwnHurtBoxes);
+        var attackColor = ClsnStyle.Current.For(ClsnKind.Attack, element.OwnAttackBoxes);
 
         var boxes = new List<BoxOverlay>();
         for (int i = 0; i < element.Hurt.Count; i++)
@@ -783,9 +773,9 @@ public partial class MainWindow
         var frames = action.Elements.Select((el, i) => new Timeline.Frame(
             el.Duration,
             AttackColor: (el.OwnAttackBoxes ? el.Attack.Count : action.AttackSegmentAt(i)?.Boxes.Count ?? 0) > 0
-                ? (el.OwnAttackBoxes ? AttackColor : Clsn1DefaultColor) : null,
+                ? ClsnStyle.Current.For(ClsnKind.Attack, el.OwnAttackBoxes) : null,
             HurtColor: (el.OwnHurtBoxes ? el.Hurt.Count : action.HurtSegmentAt(i)?.Boxes.Count ?? 0) > 0
-                ? (el.OwnHurtBoxes ? HurtColor : Clsn2DefaultColor) : null,
+                ? ClsnStyle.Current.For(ClsnKind.Hurt, el.OwnHurtBoxes) : null,
             Loop: i == loopAt)).ToList();
         TimelineView.Show(frames, FrameList.SelectedIndex);
 

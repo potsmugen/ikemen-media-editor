@@ -1008,10 +1008,11 @@ public class SpriteView : Control
             if (ShowBounds) ctx.DrawRectangle(EdgePen, InsetFor(dst, EdgePen.Thickness));
         }
 
+        var clsn = ClsnStyle.Current;
         if (ShowOnionSkin)
             foreach (var g in _ghostBoxes)
-                ctx.DrawRectangle(new Pen(new SolidColorBrush(g.Color, OnionOpacityOverride ?? OnionOpacity), 1,
-                    new DashStyle([4, 3], 0)), InsetFor(ScreenRect(g), 1));
+                ctx.DrawRectangle(new Pen(new SolidColorBrush(g.Color, OnionOpacityOverride ?? OnionOpacity), clsn.LineThickness,
+                    new DashStyle([4, 3], 0)), InsetFor(ScreenRect(g), clsn.LineThickness));
 
         var o = Origin;
         for (int i = 0; i < Boxes.Count; i++)
@@ -1021,8 +1022,8 @@ public class SpriteView : Control
             bool selected = _selectedBoxes.Contains(i);
             bool active = i == SelectedBox;
 
-            ctx.FillRectangle(new SolidColorBrush(box.Color, selected ? 0.38 : 0.22), r);
-            int boxPen = active ? 3 : selected ? 2 : 1;
+            ctx.FillRectangle(new SolidColorBrush(box.Color, selected ? clsn.SelectedFillOpacity : clsn.FillOpacity), r);
+            int boxPen = active ? clsn.ActiveLineThickness : selected ? clsn.SelectedLineThickness : clsn.LineThickness;
             ctx.DrawRectangle(new Pen(new SolidColorBrush(box.Color), boxPen), InsetFor(r, boxPen));
             DrawIndexLabel(ctx, r, box.Index, box.Color);
 
