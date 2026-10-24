@@ -752,6 +752,7 @@ public partial class MainWindow : Window
                     : Color.Parse("#ff9090"));
 
         AttachThemeResources(res);
+        ApplySliderChannelColors(theme);
 
         // Same deal for the other hand-drawn controls: palette swatches, the
         // reference-image view, the waveform, and the animation timeline all

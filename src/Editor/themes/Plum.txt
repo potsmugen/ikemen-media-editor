@@ -19,6 +19,8 @@
 # Selection   selected table rows
 # Active      checked toggle button background
 # ActiveText  checked toggle button text
+# SliderRed, SliderGreen, SliderBlue  filled tracks of the palette R, G and B sliders
+# SliderNeutral  filled tracks of the palette H, S, L and A sliders
 # Variant     Dark or Light; also sets the color of native window chrome
 
 Panel   = #29252f
@@ -34,4 +36,8 @@ Accent  = #ad8bd0
 Selection = #49394f
 Active    = #7b6290
 ActiveText = #ffffff
+SliderRed   = #e5534b
+SliderGreen = #57ab5a
+SliderBlue  = #4a8fe8
+SliderNeutral = #c0c0c0
 Variant = Dark

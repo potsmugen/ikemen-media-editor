@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Threading;
 
 namespace Editor;
@@ -15,6 +16,24 @@ public partial class MainWindow
         PairSliderBox(RAddSlider, RAddBox); PairSliderBox(GAddSlider, GAddBox);
         PairSliderBox(BAddSlider, BAddBox); PairSliderBox(HueSlider, HueBox);
         PairSliderBox(SaturationSlider, SaturationBox); PairSliderBox(LightenSlider, LightenBox);
+    }
+
+    /// <summary>Fills each palette channel slider's track with its theme channel color.</summary>
+    private void ApplySliderChannelColors(ThemeDef theme)
+    {
+        var red = new SolidColorBrush(Color.Parse(theme.SliderRed));
+        var green = new SolidColorBrush(Color.Parse(theme.SliderGreen));
+        var blue = new SolidColorBrush(Color.Parse(theme.SliderBlue));
+        var neutral = new SolidColorBrush(Color.Parse(theme.SliderNeutral));
+        foreach (var (slider, brush) in new[] { (RSlider, red), (GSlider, green), (BSlider, blue), (ASlider, neutral),
+                     (RAddSlider, red), (GAddSlider, green), (BAddSlider, blue),
+                     (HueSlider, neutral), (SaturationSlider, neutral), (LightenSlider, neutral) })
+        {
+            // Local keys shadow the app-wide Accent fill; disabled keeps the theme's Dim.
+            slider.Resources["SliderTrackValueFill"] = brush;
+            slider.Resources["SliderTrackValueFillPointerOver"] = brush;
+            slider.Resources["SliderTrackValueFillPressed"] = brush;
+        }
     }
 
     /// <summary>Box mirrors the slider; typed values apply on Enter or focus loss, spins at once.</summary>

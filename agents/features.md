@@ -313,6 +313,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   (`MainWindow.SliderBoxes.cs`). Typed values apply on Enter or focus loss, spinner and arrow
   steps apply at once, and an empty box restores the slider value. The box follows the
   slider's range and enabled state.
+- **Channel slider colors**: the palette R/G/B sliders in Color and Adjustments fill their
+  track with the theme's `SliderRed`/`SliderGreen`/`SliderBlue` keys; H, S, L and A use
+  `SliderNeutral`. `ApplySliderChannelColors` sets them as local slider resources on each theme apply.
 - **Swap Colors** swaps exactly two selected colors, refusing index 0, with the same sprite
   update rules as Sort Colors.
 - **Single-color popups**: Create Gradient, Sort Colors and Swap Colors show a popup, not a
