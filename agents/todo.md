@@ -32,10 +32,6 @@ before a release. Remove items once they're done or checked.
 - Customizable shortcuts: see features.md "Keyboard shortcuts". It compiles, and column widths
   measure at the largest of the dialog, window and tab font sizes. Left:
   - Check the "Animations tab" command fits at large font scales.
-  - Later: more commands (shift sprite axis with arrows on the focused canvas, paint tools, Commit).
-  - Requested (Discord): previous/next sprite (e.g. Left/Right), shift axis by 1 (e.g. Shift+arrows),
-    previous/next sound (e.g. Ctrl+Left/Right) and play sound (e.g. Ctrl+Enter). Sprite commands
-    should also work while the sprite list has focus, not only the canvas.
 - Review the save and load warnings (forward links, Links to Later
   Palettes): they're too verbose. Their status suffix also gets cut off by the Cursor field
   ("1 link to later pa…" at 1280 wide).
@@ -54,6 +50,9 @@ before a release. Remove items once they're done or checked.
   - Saving SFF drops header comment text (v1 bytes 36-511, v2 after byte 67), e.g.
     "Made in VirtuallTek / Powered by Fighter Factory" in working/kfm-v1.sff and kfm-v2.sff.
     Also happens on a Save All where only a temp palette was added and removed.
+- Import Palette into Sprite on several SFFv1 sprites writes the colors into each one's own
+  palette, giving N identical copies. Could look at sharing one palette across runs of
+  consecutive selected sprites (and stop skipping same-palette sprites), like v2.
 - There's another app that opens large SFF's faster than ours. Means we could improve that
 - Test and revisit the nearest-color alpha threshold: pixels below
   NearestColorAlphaThreshold (settings.json, default 32) map to index 0. Check

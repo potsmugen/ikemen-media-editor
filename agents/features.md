@@ -362,7 +362,8 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Arrow pad** moves the selected sprites like a canvas drag,
   so the axis goes the other way. settings.json `SpriteNudgePixels` (1) and `SpriteNudgeShiftPixels`
   (10, Shift+click) set the step. A step that would put any axis out of range does nothing and says
-  so in the status line. Clicks in a row on the same sprites merge into one undo step.
+  so in the status line. Clicks in a row on the same sprites merge into one undo step. Arrow keys
+  (Shift for the bigger step) do the same while the sprite canvas has focus.
 - **Sprite import palette help** counts how many images each palette reproduces exactly
   (full RGBA) or by index or nearest color, with index 0 excluded. The specific-palette
   dropdown opens on a palette matching every image, else the previous sprite's. A square

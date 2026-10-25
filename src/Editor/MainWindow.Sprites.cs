@@ -637,22 +637,32 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Arrow pad: moves the selected sprites as a canvas drag does, so the axis goes the other way.
-    /// Clicks in a row on the same sprites are one undo step.</summary>
     private void OnNudgeSprite(object? sender, RoutedEventArgs e)
     {
         bool big = _nudgeShift;
         _nudgeShift = false;
+        if (sender is not Button button) return;
+        NudgeSprites(button == NudgeLeftButton ? Key.Left : button == NudgeRightButton ? Key.Right
+            : button == NudgeUpButton ? Key.Up : Key.Down, big);
+    }
+
+    /// <summary>Arrow pad and arrow keys on the canvas: moves the selected sprites as a canvas drag does, so the
+    /// axis goes the other way. Nudges in a row on the same sprites are one undo step.</summary>
+    private void NudgeSprites(Key arrow, bool big)
+    {
         try
         {
-            if (_file is null || sender is not Button button) return;
+            if (_file is null) return;
             var selected = SelectedSpriteTargets();
             if (selected.Count == 0) return;
             int step = big ? _nudgeShiftPixels : _nudgePixels;
-            var (dx, dy, direction) = button == NudgeLeftButton ? (step, 0, "left")
-                : button == NudgeRightButton ? (-step, 0, "right")
-                : button == NudgeUpButton ? (0, step, "up")
-                : (0, -step, "down");
+            var (dx, dy, direction) = arrow switch
+            {
+                Key.Left => (step, 0, "left"),
+                Key.Right => (-step, 0, "right"),
+                Key.Up => (0, step, "up"),
+                _ => (0, -step, "down"),
+            };
             if (selected.Any(s => (long)s.AxisX + dx < SpriteAxisMin || (long)s.AxisX + dx > SpriteAxisMax
                 || (long)s.AxisY + dy < SpriteAxisMin || (long)s.AxisY + dy > SpriteAxisMax))
             {
@@ -669,7 +679,7 @@ public partial class MainWindow
         }
         catch (Exception ex)
         {
-            CrashLog.Write("OnNudgeSprite", ex);
+            CrashLog.Write("NudgeSprites", ex);
         }
     }
 

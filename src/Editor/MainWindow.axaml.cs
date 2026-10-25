@@ -2122,6 +2122,15 @@ public partial class MainWindow : Window
             return;
         }
 
+        // Focused sprite canvas: arrows move the selected sprites like the arrow pad (Shift for the bigger step).
+        if (Tabs?.SelectedIndex == 0 && SpriteCanvas.IsFocused && e.Key is Key.Left or Key.Right or Key.Up or Key.Down
+            && (e.KeyModifiers & ~KeyModifiers.Shift) == KeyModifiers.None)
+        {
+            NudgeSprites(e.Key, e.KeyModifiers.HasFlag(KeyModifiers.Shift));
+            e.Handled = true;
+            return;
+        }
+
         if (Tabs?.SelectedIndex == 2 && AnimCanvas.IsFocused
             && AnimCanvas.SelectedBoxes.Count > 0)
         {

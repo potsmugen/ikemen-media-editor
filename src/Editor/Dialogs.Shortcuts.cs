@@ -44,7 +44,7 @@ public static partial class Dialogs
         if (c.Modifiers == KeyModifiers.Alt && menuKeys.TryGetValue(c.Key, out var menu)) return $"opening the {menu} menu";
         return c.Modifiers != KeyModifiers.None ? null : c.Key switch
         {
-            Key.Left or Key.Right or Key.Up or Key.Down => "moving through lists and nudging boxes",
+            Key.Left or Key.Right or Key.Up or Key.Down => "moving through lists and nudging boxes and sprites",
             Key.PageUp or Key.PageDown or Key.Home or Key.End => "moving through lists",
             Key.Delete => "deleting items",
             Key.Enter or Key.Tab => "editing table cells",
