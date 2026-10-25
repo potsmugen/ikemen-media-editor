@@ -794,6 +794,39 @@ public class AirTests
     }
 
     [Fact]
+    public void CopyActionDropsItsFramesButKeepsTheirComments()
+    {
+        const string text = """
+            [Begin Action 0]
+            ; above frame
+            Clsn2Default: 1
+             Clsn2[1] = 10, 0, -10, -79
+            Loopstart
+            0,0, 0,0, 5 ; on frame
+            Copy Action 200 ; on copy
+            Interpolate Offset
+            0,1, 0,0, 5
+            Copy Action 300
+            ; tail
+            """;
+        var a = AirParser.Parse(text).Actions[0];
+        Assert.Equal(300, a.CopyAction);
+        Assert.Empty(a.Elements);
+        Assert.Empty(a.DefaultHurtSegments);
+        // Clsn2Default + box, Loopstart, two frames, Interpolate, first Copy Action
+        Assert.Equal(7, a.DroppedLines);
+        Assert.Equal(new[] { " above frame", " on frame", " on copy", " tail" }, a.TrailingComments); // file order
+        Assert.Equal(2, a.MovedComments); // on frame, on copy
+        Assert.Equal(0, a.SwappedBoxCorners);
+        Assert.Equal(0, a.MisnumberedClsnLines);
+
+        var again = AirParser.Parse(AirWriter.WriteAction(a)).Actions[0];
+        Assert.Equal(0, again.DroppedLines); // stable after one save
+        Assert.Equal(0, again.MovedComments);
+        Assert.Equal(a.TrailingComments, again.TrailingComments);
+    }
+
+    [Fact]
     public void SavingWritesLf()
     {
         var crlf = AirParser.Parse("[Begin Action 0]\r\n0,0, 0,0, 5\r\n");

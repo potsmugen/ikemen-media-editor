@@ -212,7 +212,8 @@ public sealed class AnimationAction
     /// default), which saving moves past them, since a frame's comments are written above all its lines.</summary>
     public int ReorderedComments;
     /// <summary>Lines saving drops because nothing uses them: Loopstart or Interpolate with no frame after it,
-    /// an extra Loopstart or repeated Interpolate, a Clsn block with no frame, unreadable lines.</summary>
+    /// an extra Loopstart or repeated Interpolate, a Clsn block with no frame, unreadable lines, and everything
+    /// in a Copy Action action but its Copy Action line.</summary>
     public int DroppedLines;
     /// <summary>Box lines whose corners weren't top-left first; boxes are stored, and written, that way.</summary>
     public int SwappedBoxCorners;

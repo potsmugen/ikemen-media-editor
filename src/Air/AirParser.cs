@@ -48,6 +48,7 @@ public static class AirParser
         }
         void ResetRun() { own = 0; ownAtFirstPrefix = ownAtLastKept = -1; }
         var withLoopstart = new HashSet<AnimationAction>();
+        var contentLines = new Dictionary<AnimationAction, int>(); // non-comment lines in each action, header excluded
         // Ends the action: comments left over sit after its last frame.
         void Close(bool dropName)
         {
@@ -146,6 +147,7 @@ public static class AirParser
             if (action is null) continue;
 
             var lower = line.ToLowerInvariant();
+            contentLines[action] = contentLines.GetValueOrDefault(action) + 1;
 
             if (lower.StartsWith("copy action "))
             {
@@ -173,8 +175,11 @@ public static class AirParser
             {
                 Prefix(keptAtEnd: lower.Contains("default"));
                 if (rawComment is not null) Moved(rawComment);
+                int declaration = i;
                 ReadClsn(lines, ref i, lower, action, ref currentAttack, ref currentHurt,
                     ref useDefaultAttack, ref useDefaultHurt, (c, ownLine) => { if (ownLine) { pending.Add(c); own++; } else Moved(c); });
+                for (int k = declaration + 1; k <= i; k++)
+                    if (StripComment(lines[k]).Line.Length > 0) contentLines[action]++; // box lines
                 continue;
             }
 
@@ -209,8 +214,30 @@ public static class AirParser
             if (a.LoopStart == 0 && withLoopstart.Contains(a)) a.DroppedLines++; // at the start or past the end: not written
             foreach (var set in new[] { a.InterpolateOffset, a.InterpolateScale, a.InterpolateAngle, a.InterpolateBlend })
                 if (set.Contains(a.Elements.Count)) a.DroppedLines++; // no frame to interpolate to
+            if (a.CopyAction is not null) DropCopiedFrames(a, contentLines.GetValueOrDefault(a));
         }
         return file;
+    }
+
+    /// <summary>A Copy Action action saves only its Copy Action line, so every other line in it is dropped.
+    /// The frames' comments are kept as trailing comments, in file order.</summary>
+    private static void DropCopiedFrames(AnimationAction a, int contentLines)
+    {
+        var comments = new List<string>();
+        foreach (var e in a.Elements)
+        {
+            comments.AddRange(e.Comments);
+            if (e.EndComment is { } c) { comments.Add(c); a.MovedComments++; }
+        }
+        a.TrailingComments.InsertRange(0, comments);
+        a.Elements.Clear();
+        a.DefaultAttackSegments.Clear();
+        a.DefaultHurtSegments.Clear();
+        foreach (var set in new[] { a.InterpolateOffset, a.InterpolateScale, a.InterpolateAngle, a.InterpolateBlend }) set.Clear();
+        a.LoopStart = 0;
+        a.DroppedLines = contentLines - 1; // all but the one Copy Action line written
+        // Those lines are dropped, not rewritten, and the comments stay in file order.
+        a.ReorderedComments = a.SwappedBoxCorners = a.MisnumberedClsnLines = a.MismatchedClsnCounts = 0;
     }
 
     private static bool IsActionHeader(string line)

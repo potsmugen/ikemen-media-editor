@@ -693,7 +693,8 @@ summaries; treat anything marked unverified as unknown.
   (`ReorderedComments`), and are reported the same way. Lines nothing uses are dropped
   and counted (`DroppedLines`): Loopstart or Interpolate with no frame after it, Loopstart
   before the first frame, an extra Loopstart or repeated Interpolate, a Clsn block with
-  no frame after it, and unreadable lines. Boxes are stored top-left corner first, so a
+  no frame after it, unreadable lines, and every line in a Copy Action action but its
+  Copy Action line (that action's frame comments are kept as trailing comments). Boxes are stored top-left corner first, so a
   box line written otherwise is rewritten and counted (`SwappedBoxCorners`). A standalone
   .air is saved with LF line endings (`AirFile.CrLineEndings`); a .def keeps its own.
   Swapped corners and CRLF are in nearly every old file, so they're listed only in the

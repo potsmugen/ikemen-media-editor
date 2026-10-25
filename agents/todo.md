@@ -39,6 +39,11 @@ before a release. Remove items once they're done or checked.
 - Review the save and load warnings (forward links, Links to Later
   Palettes): they're too verbose. Their status suffix also gets cut off by the Cursor field
   ("1 link to later pa…" at 1280 wide).
+- AIR save changes after Recover: a recovery snapshot is written already converted (LF, UTF-8,
+  Clsn lint fixed), so the recovered file shows no save-change notes or Health Report entries.
+  Fixing it means storing the original format and counts with the snapshot.
+- The AIR save status note ("Adjusted N actions you didn't edit.") may be cut off by the Cursor
+  field, like the status suffixes in the save and load warnings item above.
 - Audit for Sprites-only assumptions left from when SFF was the only format (Ctrl+O, Ctrl+F and
   Escape-in-a-text-box were three, fixed with the shortcuts).
 - Saves that change a file the user didn't edit, like the Global Shared Palette popup;
