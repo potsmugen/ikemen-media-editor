@@ -599,21 +599,77 @@ public partial class MainWindow
 
             var before = selected.Select(sprite => (Sprite: sprite, X: sprite.AxisX, Y: sprite.AxisY)).ToList();
             var after = before.Select(item => (item.Sprite, X: item.X + shift.X, Y: item.Y + shift.Y)).ToList();
-            void ApplyAxes(List<(Sprite Sprite, int X, int Y)> axes)
-            {
-                foreach (var item in axes) (item.Sprite.AxisX, item.Sprite.AxisY) = (item.X, item.Y);
-                UpdateSpriteTableAxes(selected);
-                SpriteCanvas.InvalidateVisual();
-                UpdateStatus();
-            }
             _undo.Do($"shift offsets for {selected.Count} sprites",
-                () => ApplyAxes(after), () => ApplyAxes(before));
+                () => ApplySpriteAxes(after), () => ApplySpriteAxes(before));
             MarkDirty();
             StatusText.Text = $"Shifted {selected.Count} sprite(s) by X {shift.X}, Y {shift.Y}.";
         }
         catch (Exception ex)
         {
             await Failed("OnShiftSpriteOffsets", ex);
+        }
+    }
+
+    /// <summary>Sets each sprite's axis and refreshes the table and canvas; the apply step of axis undo entries.</summary>
+    private void ApplySpriteAxes(List<(Sprite Sprite, int X, int Y)> axes)
+    {
+        foreach (var item in axes) (item.Sprite.AxisX, item.Sprite.AxisY) = (item.X, item.Y);
+        UpdateSpriteTableAxes(axes.Select(item => item.Sprite));
+        SpriteCanvas.InvalidateVisual();
+        UpdateStatus();
+    }
+
+    private int _nudgePixels = Settings.DefaultSpriteNudgePixels, _nudgeShiftPixels = Settings.DefaultSpriteNudgeShiftPixels;
+    private bool _nudgeShift; // Shift was held when the pad button was pressed
+
+    private void SetupNudgePad()
+    {
+        var s = _settings.Sprites;
+        _nudgePixels = Settings.Checked(nameof(s.SpriteNudgePixels), s.SpriteNudgePixels,
+            Settings.DefaultSpriteNudgePixels, v => v is >= 1 and <= 1000);
+        _nudgeShiftPixels = Settings.Checked(nameof(s.SpriteNudgeShiftPixels), s.SpriteNudgeShiftPixels,
+            Settings.DefaultSpriteNudgeShiftPixels, v => v is >= 1 and <= 1000);
+        foreach (var (button, direction) in new[] { (NudgeUpButton, "up"), (NudgeLeftButton, "left"), (NudgeRightButton, "right"), (NudgeDownButton, "down") })
+        {
+            ToolTip.SetTip(button, $"Move sprite {direction} (Shift+click: {_nudgeShiftPixels} px)");
+            // Click carries no modifiers, so Shift is read when the press starts.
+            button.AddHandler(PointerPressedEvent, (_, e) => _nudgeShift = e.KeyModifiers.HasFlag(KeyModifiers.Shift), RoutingStrategies.Tunnel);
+        }
+    }
+
+    /// <summary>Arrow pad: moves the selected sprites as a canvas drag does, so the axis goes the other way.
+    /// Clicks in a row on the same sprites are one undo step.</summary>
+    private void OnNudgeSprite(object? sender, RoutedEventArgs e)
+    {
+        bool big = _nudgeShift;
+        _nudgeShift = false;
+        try
+        {
+            if (_file is null || sender is not Button button) return;
+            var selected = SelectedSpriteTargets();
+            if (selected.Count == 0) return;
+            int step = big ? _nudgeShiftPixels : _nudgePixels;
+            var (dx, dy, direction) = button == NudgeLeftButton ? (step, 0, "left")
+                : button == NudgeRightButton ? (-step, 0, "right")
+                : button == NudgeUpButton ? (0, step, "up")
+                : (0, -step, "down");
+            if (selected.Any(s => (long)s.AxisX + dx < SpriteAxisMin || (long)s.AxisX + dx > SpriteAxisMax
+                || (long)s.AxisY + dy < SpriteAxisMin || (long)s.AxisY + dy > SpriteAxisMax))
+            {
+                StatusText.Text = $"The selected sprites can't move further {direction}.";
+                return;
+            }
+
+            var before = selected.Select(s => (Sprite: s, X: s.AxisX, Y: s.AxisY)).ToList();
+            var after = before.Select(item => (item.Sprite, X: item.X + dx, Y: item.Y + dy)).ToList();
+            string mergeKey = "nudge-axis:" + string.Join(",", selected.Select(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode));
+            _undo.Do(selected.Count == 1 ? "move sprite" : $"move {selected.Count} sprites",
+                () => ApplySpriteAxes(after), () => ApplySpriteAxes(before), mergeKey);
+            MarkDirty();
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("OnNudgeSprite", ex);
         }
     }
 

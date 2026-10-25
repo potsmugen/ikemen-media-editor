@@ -671,11 +671,33 @@
                 </Grid.RowDefinitions>
                 <Border Grid.Row="0" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
                   <StackPanel Spacing="6">
-                    <TextBlock Text="Sprite" Foreground="{DynamicResource ThemeMutedText}" />
+                    <TextBlock Text="Axis" Foreground="{DynamicResource ThemeMutedText}" />
                     <!-- The button rows get their own stack so the gap between them is the
                          setting, like every other tab. The outer 6 is only the label's gap
                          down to the group, which is panel rhythm rather than button spacing;
                          merging the two stacks would tie that to the button gap too. -->
+                    <StackPanel Spacing="{DynamicResource UiButtonGap}">
+                      <!-- Arrow pad: moves the selected sprites like a canvas drag. Tooltips are set in code (SetupNudgePad). -->
+                      <Grid ColumnDefinitions="Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto" HorizontalAlignment="Center">
+                        <Button x:Name="NudgeUpButton" Grid.Row="0" Grid.Column="1" Content="&#8593;" Width="22" Height="22" Padding="0"
+                                HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="OnNudgeSprite" />
+                        <Button x:Name="NudgeLeftButton" Grid.Row="1" Grid.Column="0" Content="&#8592;" Width="22" Height="22" Padding="0"
+                                HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="OnNudgeSprite" />
+                        <Button x:Name="NudgeRightButton" Grid.Row="1" Grid.Column="2" Content="&#8594;" Width="22" Height="22" Padding="0"
+                                HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="OnNudgeSprite" />
+                        <Button x:Name="NudgeDownButton" Grid.Row="2" Grid.Column="1" Content="&#8595;" Width="22" Height="22" Padding="0"
+                                HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="OnNudgeSprite" />
+                      </Grid>
+                      <Grid ColumnDefinitions="*,Auto,*">
+                        <Button Grid.Column="0" Content="Set Axis" HorizontalAlignment="Stretch" Click="OnSetSpriteAxis"
+                                ToolTip.Tip="Places each selected sprite's axis at the chosen canvas position." />
+                        <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                        <Button Grid.Column="2" Content="Shift Offset" HorizontalAlignment="Stretch" Click="OnShiftSpriteOffsets"
+                                ToolTip.Tip="Shifts the selected sprites' axes by the same X/Y amount." />
+                      </Grid>
+                    </StackPanel>
+                    <Border Height="1" Background="{DynamicResource ThemeLine}" Margin="0,4" />
+                    <TextBlock Text="Transform" Foreground="{DynamicResource ThemeMutedText}" />
                     <StackPanel Spacing="{DynamicResource UiButtonGap}">
                       <Grid ColumnDefinitions="*,Auto,*">
                         <Button Grid.Column="0" Content="Crop" HorizontalAlignment="Stretch" Click="OnCropSprite"
@@ -683,13 +705,6 @@
                         <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
                         <Button Grid.Column="2" Content="Resize Canvas" HorizontalAlignment="Stretch" Click="OnResizeSpriteCanvas"
                                 ToolTip.Tip="Grows or shrinks each selected sprite's canvas around its pixels." />
-                      </Grid>
-                      <Grid ColumnDefinitions="*,Auto,*">
-                        <Button Grid.Column="0" Content="Shift Offset" HorizontalAlignment="Stretch" Click="OnShiftSpriteOffsets"
-                                ToolTip.Tip="Shifts the selected sprites' axes by the same X/Y amount." />
-                        <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                        <Button Grid.Column="2" Content="Set Axis" HorizontalAlignment="Stretch" Click="OnSetSpriteAxis"
-                                ToolTip.Tip="Places each selected sprite's axis at the chosen canvas position." />
                       </Grid>
                       <Button Content="Resize" HorizontalAlignment="Stretch" Click="OnResizeSpritePixels"
                               ToolTip.Tip="Scales each selected sprite's pixels to a new size." />
@@ -700,8 +715,6 @@
                         <Button Grid.Column="2" Content="Rotate" HorizontalAlignment="Stretch" Click="OnRotateSprite"
                                 ToolTip.Tip="Rotates each selected sprite by the chosen angle." />
                       </Grid>
-                      <Button Content="Find Similar" HorizontalAlignment="Stretch" Click="OnFindSimilarSprites"
-                              ToolTip.Tip="Lists the sprites closest to the current one, without changing anything." />
                     </StackPanel>
                   </StackPanel>
                 </Border>

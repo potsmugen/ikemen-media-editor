@@ -2882,7 +2882,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         if (_file is null && !await SettlePendingColorAdjust()) return;
         var file = _file;
         // The selected palette's group, from the first free number after it; 1,1 up when none is selected.
-        var selected = file is not null && PaletteList?.SelectedItem is PaletteRow { Palette: var sel } && file.Palettes.Contains(sel) ? sel : null;
+        var selected = file is not null && PaletteList.SelectedItem is PaletteRow { Palette: var sel } && file.Palettes.Contains(sel) ? sel : null;
         int group = selected?.Group ?? 1, after = selected?.Index ?? 0;
         var taken = file?.Palettes.Where(p => p.Group == group).Select(p => p.Index).ToHashSet() ?? [];
         var added = new List<Palette>();

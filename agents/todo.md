@@ -59,7 +59,6 @@ before a release. Remove items once they're done or checked.
   NearestColorAlphaThreshold (settings.json, default 32) map to index 0. Check
   against real sprites and the official tools.
 
-- Sprites tab: add arrow buttons to nudge the axis quickly.
 - Paint Mode: add a Polygonal Lasso to Select. It can reuse the lasso's mask and outline code.
   - Click corner points; double-click, Enter, or a click near the first point closes it. The snap
     radius is a settings.json value in screen pixels; a double-click adds no duplicate point.

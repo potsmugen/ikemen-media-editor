@@ -354,6 +354,13 @@ and constraints that are easy to miss when reading one code path in isolation.
   use the selected item's group and the first free number after its number, wrapping to the
   lowest free one (`NextFreeNumber`). Add from Image also copies the selected sprite's axis.
   Palettes > Import follows the selected palette the same way, or 1,1 up when none is selected.
+- **Sprite Tools** has an Axis section (arrow pad, Set Axis, Shift Offset) and, under a hairline, a
+  Transform section (Crop, Resize Canvas, Resize, Flip, Rotate). Find Similar Sprites is in the
+  canvas right-click menu, since it compares the shown sprite's pixels.
+- **Arrow pad** moves the selected sprites like a canvas drag,
+  so the axis goes the other way. settings.json `SpriteNudgePixels` (1) and `SpriteNudgeShiftPixels`
+  (10, Shift+click) set the step. A step that would put any axis out of range does nothing and says
+  so in the status line. Clicks in a row on the same sprites merge into one undo step.
 - **Sprite import palette help** counts how many images each palette reproduces exactly
   (full RGBA) or by index or nearest color, with index 0 excluded. The specific-palette
   dropdown opens on a palette matching every image, else the previous sprite's. A square

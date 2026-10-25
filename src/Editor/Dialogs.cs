@@ -607,15 +607,12 @@ public static partial class Dialogs
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
         var body = new StackPanel { Spacing = 8, Margin = new Avalonia.Thickness(16) };
         body.Children.Add(new TextBlock { Text = "Shift every selected sprite by the same amount." });
-        body.Children.Add(new StackPanel
-        {
-            Orientation = Orientation.Horizontal, Spacing = 8,
-            Children =
+        foreach (var (label, box) in new[] { ("X", x), ("Y", y) })
+            body.Children.Add(new StackPanel
             {
-                new TextBlock { Text = "X", VerticalAlignment = VerticalAlignment.Center, Width = 55 }, x,
-                new TextBlock { Text = "Y", VerticalAlignment = VerticalAlignment.Center, Width = 55 }, y,
-            },
-        });
+                Orientation = Orientation.Horizontal, Spacing = 8,
+                Children = { new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center, Width = 55 }, box },
+            });
         var row = new StackPanel
         {
             Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8,

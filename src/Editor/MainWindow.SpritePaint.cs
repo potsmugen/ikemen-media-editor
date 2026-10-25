@@ -170,6 +170,7 @@ public partial class MainWindow
             ShowContextMenu(SpriteCanvas,
                 ("Center Image in Canvas", SpriteCanvas.CenterImage),
                 MenuSeparator,
+                ("Find Similar Sprites", () => OnFindSimilarSprites(null, new RoutedEventArgs())),
                 ("Pin onion skin to this sprite", PinSpriteAsOnion));
             return;
         }
@@ -178,6 +179,7 @@ public partial class MainWindow
             MenuSeparator,
             ("Eyedropper: Pick Color Here", () => SpriteCanvas.PickColorAt(pos)),
             MenuSeparator,
+            ("Find Similar Sprites", () => OnFindSimilarSprites(null, new RoutedEventArgs())),
             ("Pin onion skin to this sprite", PinSpriteAsOnion));
     }
 
