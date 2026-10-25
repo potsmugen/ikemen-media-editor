@@ -256,7 +256,7 @@ public partial class MainWindow
         foreach (var a in _air.Actions.Where(a => a.ChangesOnSave))
             CrashLog.Trace($"[air] action {a.Number}: changes on save: {a.MisnumberedClsnLines} Clsn lines misnumbered, "
                 + $"{a.MismatchedClsnCounts} Clsn counts not matching their lines, {a.MovedComments} end-of-line comments to move onto their own line, "
-                + $"{a.ReorderedComments} comment lines to move past Clsn, Loopstart or Interpolate lines");
+                + $"{a.ReorderedComments} comment lines to move past Clsn, Loopstart or Interpolate lines, {a.DroppedLines} unused lines to drop");
         foreach (var a in _air.Actions)
             if (a.FramesWithDefaultAndOwnClsn() is { Count: > 0 } both)
                 CrashLog.Trace($"[air] action {a.Number}: default and own Clsn on frame {string.Join(", ", both.Select(i => i + 1))}");
@@ -384,15 +384,15 @@ public partial class MainWindow
     private static string Plural(int n, string one, string many) => $"{n} {(n == 1 ? one : many)}";
 
     /// <summary>Actions a save would write differently without the user editing them, taken just before a save (which clears it).</summary>
-    private List<(int Number, int Misnumbered, int Mismatched, int Moved, int Reordered)> LintedActions() => _air is null ? []
+    private List<(int Number, int Misnumbered, int Mismatched, int Moved, int Reordered, int Dropped)> LintedActions() => _air is null ? []
         : _air.Actions.Where(a => a.ChangesOnSave)
-            .Select(a => (a.Number, a.MisnumberedClsnLines, a.MismatchedClsnCounts, a.MovedComments, a.ReorderedComments)).ToList();
+            .Select(a => (a.Number, a.MisnumberedClsnLines, a.MismatchedClsnCounts, a.MovedComments, a.ReorderedComments, a.DroppedLines)).ToList();
 
     /// <summary>What a save changes that nobody edited, as sentence parts; past tense for the after-save report.</summary>
-    private static List<string> SaveChangeParts(List<(int Number, int Misnumbered, int Mismatched, int Moved, int Reordered)> linted, bool done)
+    private static List<string> SaveChangeParts(List<(int Number, int Misnumbered, int Mismatched, int Moved, int Reordered, int Dropped)> linted, bool done)
     {
         int mis = linted.Sum(x => x.Misnumbered), cnt = linted.Sum(x => x.Mismatched), moved = linted.Sum(x => x.Moved);
-        int reordered = linted.Sum(x => x.Reordered);
+        int reordered = linted.Sum(x => x.Reordered), dropped = linted.Sum(x => x.Dropped);
         var parts = new List<string>();
         if (mis > 0) parts.Add(done ? $"{Plural(mis, "Clsn line was", "Clsn lines were")} renumbered from 0"
             : $"renumber {Plural(mis, "Clsn line", "Clsn lines")} from 0");
@@ -402,6 +402,8 @@ public partial class MainWindow
             : $"move {Plural(moved, "end-of-line comment", "end-of-line comments")} onto their own line");
         if (reordered > 0) parts.Add(done ? $"{Plural(reordered, "comment line was", "comment lines were")} moved past Clsn, Loopstart or Interpolate lines"
             : $"move {Plural(reordered, "comment line", "comment lines")} past Clsn, Loopstart or Interpolate lines");
+        if (dropped > 0) parts.Add(done ? $"{Plural(dropped, "unused line was", "unused lines were")} dropped"
+            : $"drop {Plural(dropped, "unused line", "unused lines")}");
         return parts;
     }
 
@@ -453,7 +455,7 @@ public partial class MainWindow
         if (_air is null) return;
         foreach (var a in _air.Actions)
         {
-            a.MisnumberedClsnLines = a.MismatchedClsnCounts = a.MovedComments = a.ReorderedComments = 0; // comments are where they're written now
+            a.MisnumberedClsnLines = a.MismatchedClsnCounts = a.MovedComments = a.ReorderedComments = a.DroppedLines = 0; // comments are where they're written now
         }
     }
 

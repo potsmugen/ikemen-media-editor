@@ -46,9 +46,13 @@ public static class AirParser
             if (keptAtEnd) ownAtLastKept = own;
         }
         void ResetRun() { own = 0; ownAtFirstPrefix = ownAtLastKept = -1; }
+        var withLoopstart = new HashSet<AnimationAction>();
         // Ends the action: comments left over sit after its last frame.
         void Close(bool dropName)
         {
+            // A frame's own Clsn block with no frame after it is never written.
+            if (action is not null && !useDefaultAttack) action.DroppedLines += 1 + currentAttack.Count;
+            if (action is not null && !useDefaultHurt) action.DroppedLines += 1 + currentHurt.Count;
             // Trailing comments are written after the trailing defaults, so those above one move.
             if (action is not null && ownAtLastKept > 0) action.ReorderedComments += ownAtLastKept;
             ResetRun();
@@ -151,6 +155,7 @@ public static class AirParser
             }
             if (lower.StartsWith("loopstart"))
             {
+                if (!withLoopstart.Add(action)) action.DroppedLines++; // only the last one is written
                 action.LoopStart = action.Elements.Count;
                 Prefix(keptAtEnd: false);
                 if (rawComment is not null) Moved(rawComment);
@@ -158,7 +163,7 @@ public static class AirParser
             }
             if (lower.StartsWith("interpolate "))
             {
-                Interpolation(action, lower)?.Add(action.Elements.Count);
+                if (Interpolation(action, lower)?.Add(action.Elements.Count) != true) action.DroppedLines++; // unknown or repeated
                 Prefix(keptAtEnd: false);
                 if (rawComment is not null) Moved(rawComment);
                 continue;
@@ -175,6 +180,7 @@ public static class AirParser
             // Anything else is an element, but only if it starts like a number.
             if (line[0] is not ('-' or >= '0' and <= '9') || ParseElement(line) is not { } element)
             {
+                action.DroppedLines++;
                 if (rawComment is not null) Moved(rawComment); // an unreadable line is dropped, its comment kept
                 continue;
             }
@@ -197,7 +203,12 @@ public static class AirParser
         Close(false);
 
         foreach (var a in file.Actions)
+        {
             if (a.LoopStart >= a.Elements.Count) a.LoopStart = 0; // a loop point past the end is meaningless
+            if (a.LoopStart == 0 && withLoopstart.Contains(a)) a.DroppedLines++; // at the start or past the end: not written
+            foreach (var set in new[] { a.InterpolateOffset, a.InterpolateScale, a.InterpolateAngle, a.InterpolateBlend })
+                if (set.Contains(a.Elements.Count)) a.DroppedLines++; // no frame to interpolate to
+        }
         return file;
     }
 
@@ -249,13 +260,16 @@ public static class AirParser
         ref bool useDefaultAttack, ref bool useDefaultHurt, Action<string, bool> keepComment)
     {
         int colon = lower.IndexOf(':');
-        if (colon < 0 || lower.Length < 5) return;
+        if (colon < 0 || lower.Length < 5) { action.DroppedLines++; return; }
 
         bool attack = lower[4] == '1';
-        if (!attack && lower[4] != '2') return;
+        if (!attack && lower[4] != '2') { action.DroppedLines++; return; }
 
-        if (!int.TryParse(lower[(colon + 1)..].Trim(), out int count) || count < 0) return;
+        if (!int.TryParse(lower[(colon + 1)..].Trim(), out int count) || count < 0) { action.DroppedLines++; return; }
         bool isDefault = lower.Contains("default");
+        // A second own block before the frame replaces the first, which is never written.
+        if (!isDefault && !(attack ? useDefaultAttack : useDefaultHurt))
+            action.DroppedLines += 1 + (attack ? currentAttack : currentHurt).Count;
 
         var boxes = new List<ClsnBox>();
         if (isDefault)

@@ -211,9 +211,12 @@ public sealed class AnimationAction
     /// <summary>Comment lines below a frame's Clsn, Loopstart or Interpolate lines (or above a trailing Clsn
     /// default), which saving moves past them, since a frame's comments are written above all its lines.</summary>
     public int ReorderedComments;
+    /// <summary>Lines saving drops because nothing uses them: Loopstart or Interpolate with no frame after it,
+    /// an extra Loopstart or repeated Interpolate, a Clsn block with no frame, unreadable lines.</summary>
+    public int DroppedLines;
 
     /// <summary>Saving would write something the user didn't edit differently from the file.</summary>
-    public bool ChangesOnSave => HasClsnLint || MovedComments > 0 || ReorderedComments > 0;
+    public bool ChangesOnSave => HasClsnLint || MovedComments > 0 || ReorderedComments > 0 || DroppedLines > 0;
 
     /// <summary>
     /// The action's Clsn1Default / Clsn2Default segments, in file order (see

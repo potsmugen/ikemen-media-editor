@@ -765,6 +765,35 @@ public class AirTests
     }
 
     [Fact]
+    public void UnusedLinesCountAsDropped()
+    {
+        const string text = """
+            [Begin Action 0]
+            Loopstart
+            Clsn2: 1
+             Clsn2[0] = 1, 2, 3, 4
+            Clsn2: 1
+             Clsn2[0] = 5, 6, 7, 8
+            Interpolate Offset
+            Interpolate Offset
+            0,0, 0,0, 5
+            junk
+            0,1, 0,0, 5
+            Loopstart
+            Interpolate Scale
+            Clsn1: 1
+             Clsn1[0] = 1, 2, 3, 4
+            """;
+        var a = AirParser.Parse(text).Actions[0];
+        // overridden Loopstart, replaced Clsn2 block (2), repeated Interpolate, junk,
+        // Loopstart and Interpolate past the end, trailing Clsn1 block (2)
+        Assert.Equal(9, a.DroppedLines);
+        Assert.Equal(0, a.LoopStart);
+        Assert.True(a.ChangesOnSave);
+        Assert.Equal(0, AirParser.Parse(AirWriter.WriteAction(a)).Actions[0].DroppedLines); // stable after one save
+    }
+
+    [Fact]
     public void CommentedOutLinesRoundTripInPlace()
     {
         const string text = """

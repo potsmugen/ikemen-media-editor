@@ -372,6 +372,7 @@ public partial class MainWindow
                 lines.Add(($"  Clsn counts not matching their box lines: {lint.Sum(a => a.MismatchedClsnCounts)}", null));
                 lines.Add(($"  End-of-line comments on Clsn, Loopstart, Interpolate or Copy Action lines (moved onto their own line on save): {lint.Sum(a => a.MovedComments)}", null));
                 lines.Add(($"  Comment lines below a frame's Clsn, Loopstart or Interpolate lines (moved past them on save): {lint.Sum(a => a.ReorderedComments)}", null));
+                lines.Add(($"  Unused lines, like Loopstart after the last frame or a Clsn block with no frame (dropped on save): {lint.Sum(a => a.DroppedLines)}", null));
                 var both = air.Actions.SelectMany(a => a.FramesWithDefaultAndOwnClsn().Select(i => (Action: a, Frame: i))).ToList();
                 lines.Add(($"  Frames with both a Clsn default and their own Clsn (invalid): {both.Count}", null));
 
@@ -385,6 +386,7 @@ public partial class MainWindow
                     a.MismatchedClsnCounts > 0 ? $"{a.MismatchedClsnCounts} Clsn counts off" : null,
                     a.MovedComments > 0 ? $"{a.MovedComments} end-of-line comments moved" : null,
                     a.ReorderedComments > 0 ? $"{a.ReorderedComments} comment lines moved" : null,
+                    a.DroppedLines > 0 ? $"{a.DroppedLines} unused lines dropped" : null,
                 }.Where(p => p is not null)), (Action)(() => JumpToAction(a)))));
             }
             if (_snd is { } snd)
