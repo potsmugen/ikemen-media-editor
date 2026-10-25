@@ -19,7 +19,8 @@ public static class AirWriter
         foreach (var l in file.Header) sb.AppendLine(l); // header lines exactly as read, blank ones included
 
         foreach (var action in file.Actions) WriteAction(sb, action);
-        return sb.ToString();
+        var text = sb.ToString();
+        return Environment.NewLine == "\n" ? text : text.Replace(Environment.NewLine, "\n"); // always LF
     }
 
     /// <summary>Writes one action, usable on its own for the "edit as text" view.</summary>

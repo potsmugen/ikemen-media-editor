@@ -688,7 +688,12 @@ summaries; treat anything marked unverified as unknown.
   (`ReorderedComments`), and are reported the same way. Lines nothing uses are dropped
   and counted (`DroppedLines`): Loopstart or Interpolate with no frame after it, Loopstart
   before the first frame, an extra Loopstart or repeated Interpolate, a Clsn block with
-  no frame after it, and unreadable lines.
+  no frame after it, and unreadable lines. Boxes are stored top-left corner first, so a
+  box line written otherwise is rewritten and counted (`SwappedBoxCorners`). A standalone
+  .air is saved with LF line endings (`AirFile.CrLineEndings`); a .def keeps its own.
+  Swapped corners and CRLF are in nearly every old file, so they're listed only in the
+  Media Health Report; the rest (`WarnsOnSave`) get one popup before saving that counts the actions
+  and points to the report; afterwards only the status bar notes it.
   Reserved character-action names are suggested for standalone AIR files, not
   embedded .def actions, which may use those numbers for unrelated animations.
   Save-time differences (Clsn recount/renumber, comment movement, UTF-8) are

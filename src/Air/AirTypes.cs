@@ -214,9 +214,13 @@ public sealed class AnimationAction
     /// <summary>Lines saving drops because nothing uses them: Loopstart or Interpolate with no frame after it,
     /// an extra Loopstart or repeated Interpolate, a Clsn block with no frame, unreadable lines.</summary>
     public int DroppedLines;
+    /// <summary>Box lines whose corners weren't top-left first; boxes are stored, and written, that way.</summary>
+    public int SwappedBoxCorners;
 
     /// <summary>Saving would write something the user didn't edit differently from the file.</summary>
-    public bool ChangesOnSave => HasClsnLint || MovedComments > 0 || ReorderedComments > 0 || DroppedLines > 0;
+    public bool ChangesOnSave => WarnsOnSave || SwappedBoxCorners > 0;
+    /// <summary>A save change worth a popup; swapped corners are common in old files, so they're only listed in reports.</summary>
+    public bool WarnsOnSave => HasClsnLint || MovedComments > 0 || ReorderedComments > 0 || DroppedLines > 0;
 
     /// <summary>
     /// The action's Clsn1Default / Clsn2Default segments, in file order (see
@@ -545,6 +549,8 @@ public sealed class AirFile
     public AirEncoding TextEncoding = AirEncoding.Utf8;
     /// <summary>The guessed encoding of a Legacy file ("Windows-1252", "Shift-JIS"), for the warnings.</summary>
     public string? LegacyEncodingName;
+    /// <summary>The file had CR line endings (CRLF or a lone CR); saving writes LF.</summary>
+    public bool CrLineEndings;
 
     private static readonly byte[] Utf8Bom = [0xEF, 0xBB, 0xBF];
 
@@ -561,6 +567,7 @@ public sealed class AirFile
     {
         AtomicFile.WriteAllBytes(path, Encode(AirWriter.Write(this), TextEncoding));
         if (TextEncoding == AirEncoding.Legacy) (TextEncoding, LegacyEncodingName) = (AirEncoding.Utf8, null); // it's UTF-8 now
+        CrLineEndings = false; // and LF
     }
 
     /// <summary>UTF-8 (with or without a byte-order mark) when the bytes are valid UTF-8. Otherwise an old

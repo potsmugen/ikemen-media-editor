@@ -18,6 +18,7 @@ public static class AirParser
     public static AirFile Parse(string text)
     {
         var file = new AirFile();
+        file.CrLineEndings = text.Contains('\r');
         AnimationAction? action = null;
         var headerLines = new List<string>();
         // The previous line's comment, but only when that line was nothing but
@@ -288,6 +289,7 @@ public static class AirParser
         {
             // The [n] is ignored (boxes go in file order); count lines where it's off or missing.
             if (found.Number != boxes.Count) action.MisnumberedClsnLines++;
+            if (found.Swapped) action.SwappedBoxCorners++;
             boxes.Add(found.Box);
             // The main loop never sees these lines, so their comments are kept here (and whether on a line of their own).
             for (int k = i + 1; k <= found.Line; k++)
@@ -299,7 +301,7 @@ public static class AirParser
 
     /// <summary>The next box line after line i, skipping blank ones, without consuming anything; null if none.
     /// Number is its [n], or -1 when missing or unreadable.</summary>
-    private static (int Line, ClsnBox Box, int Number)? NextBoxLine(string[] lines, int i)
+    private static (int Line, ClsnBox Box, int Number, bool Swapped)? NextBoxLine(string[] lines, int i)
     {
         for (int j = i + 1; j < lines.Length; j++)
         {
@@ -307,26 +309,27 @@ public static class AirParser
             if (next.Length == 0) continue;
             if (!next.StartsWith("Clsn", StringComparison.OrdinalIgnoreCase)) return null;
             int eq = next.IndexOf('=');
-            if (eq < 0 || ParseBox(next[(eq + 1)..]) is not { } box) return null;
+            if (eq < 0 || ParseBox(next[(eq + 1)..]) is not { } parsed) return null;
             int open = next.IndexOf('['), close = next.IndexOf(']');
             int n = open >= 0 && close > open && close < eq
                 && int.TryParse(next[(open + 1)..close].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int v) ? v : -1;
-            return (j, box, n);
+            return (j, parsed.Box, n, parsed.Swapped);
         }
         return null;
     }
 
     /// <summary>Reads four numbers and orders them so x1,y1 is the top left.</summary>
-    private static ClsnBox? ParseBox(string values)
+    private static (ClsnBox Box, bool Swapped)? ParseBox(string values)
     {
         var parts = Split(values);
         if (parts.Length < 4) return null;
         if (!TryInt(parts[0], out int x1) || !TryInt(parts[1], out int y1) ||
             !TryInt(parts[2], out int x2) || !TryInt(parts[3], out int y2)) return null;
 
+        bool swapped = x1 > x2 || y1 > y2;
         if (x1 > x2) (x1, x2) = (x2, x1);
         if (y1 > y2) (y1, y2) = (y2, y1);
-        return new ClsnBox(x1, y1, x2, y2);
+        return (new ClsnBox(x1, y1, x2, y2), swapped);
     }
 
     /// <summary>

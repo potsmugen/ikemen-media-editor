@@ -794,6 +794,32 @@ public class AirTests
     }
 
     [Fact]
+    public void SavingWritesLf()
+    {
+        var crlf = AirParser.Parse("[Begin Action 0]\r\n0,0, 0,0, 5\r\n");
+        Assert.True(crlf.CrLineEndings);
+        Assert.DoesNotContain("\r", AirWriter.Write(crlf));
+        Assert.False(AirParser.Parse("[Begin Action 0]\n0,0, 0,0, 5\n").CrLineEndings);
+    }
+
+    [Fact]
+    public void BoxCornersNotTopLeftFirstCountAsSwapped()
+    {
+        var a = AirParser.Parse("""
+            [Begin Action 20]
+            Clsn2: 2
+             Clsn2[0] = -10,0, 10,-80
+             Clsn2[1] = -10, -80, 10, 0
+            20,0, 0,0, 5
+            """).Actions[0];
+        Assert.Equal(1, a.SwappedBoxCorners);
+        Assert.True(a.ChangesOnSave);
+        var written = AirWriter.WriteAction(a);
+        Assert.Contains("Clsn2[0] = -10, -80, 10, 0", written);
+        Assert.Equal(0, AirParser.Parse(written).Actions[0].SwappedBoxCorners); // stable after one save
+    }
+
+    [Fact]
     public void CommentedOutLinesRoundTripInPlace()
     {
         const string text = """
@@ -860,7 +886,7 @@ public class AirTests
         Assert.Equal([""], air.Actions[0].Comments); // the empty ";" right above the header is an empty name
         Assert.Equal(3, air.Header.Count);            // the ¯ line included; the empty one is the action's name now
         var written = AirWriter.Write(air);
-        Assert.StartsWith(string.Join(Environment.NewLine, text.Split('\n').Take(5).Select(l => l.TrimEnd('\r'))), written); // exactly as before
+        Assert.StartsWith(string.Join("\n", text.Split('\n').Take(5).Select(l => l.TrimEnd('\r'))), written); // exactly as before
     }
 
     [Fact]
@@ -888,7 +914,7 @@ public class AirTests
         Assert.Empty(air.Actions[0].TrailingComments);
         Assert.Equal(0, air.Actions[1].MovedComments);            // nothing moved, so nothing to warn about
         var written = AirWriter.Write(air);
-        var expected = string.Join(Environment.NewLine,
+        var expected = string.Join("\n",
             "[Begin Action 4999]", "5000,0, 0,0, 4", "", ";", "[Begin Action 5000]");
         Assert.Contains(expected, written); // the ";" still sits above the header, not below the blank line
     }

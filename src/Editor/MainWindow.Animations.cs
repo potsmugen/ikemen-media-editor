@@ -256,7 +256,7 @@ public partial class MainWindow
         foreach (var a in _air.Actions.Where(a => a.ChangesOnSave))
             CrashLog.Trace($"[air] action {a.Number}: changes on save: {a.MisnumberedClsnLines} Clsn lines misnumbered, "
                 + $"{a.MismatchedClsnCounts} Clsn counts not matching their lines, {a.MovedComments} end-of-line comments to move onto their own line, "
-                + $"{a.ReorderedComments} comment lines to move past Clsn, Loopstart or Interpolate lines, {a.DroppedLines} unused lines to drop");
+                + $"{a.ReorderedComments} comment lines to move past Clsn, Loopstart or Interpolate lines, {a.DroppedLines} unused lines to drop, {a.SwappedBoxCorners} Clsn boxes to write top-left corner first");
         foreach (var a in _air.Actions)
             if (a.FramesWithDefaultAndOwnClsn() is { Count: > 0 } both)
                 CrashLog.Trace($"[air] action {a.Number}: default and own Clsn on frame {string.Join(", ", both.Select(i => i + 1))}");
@@ -367,7 +367,7 @@ public partial class MainWindow
             if (await SaveAirTo(path))
             {
                 StatusText.Text = $"Saved {Path.GetFileName(_airPath!)}";
-                await ReportClsnRewrite(linted, encoding);
+                ReportClsnRewrite(linted, encoding);
             }
             else if (_airError is not null)
                 await Dialogs.ShowMessage(this, _airEmbeddedInDef ? "Could not save the definition" : "Could not save the animation file", _airError);
@@ -379,45 +379,29 @@ public partial class MainWindow
     }
 
     /// <summary>How many actions a save would write differently from the file without the user editing them.</summary>
-    private int ActionsChangingOnSave() => _air?.Actions.Count(a => a.ChangesOnSave) ?? 0;
+    private int ActionsChangingOnSave() => _air?.Actions.Count(a => a.WarnsOnSave) ?? 0;
 
     private static string Plural(int n, string one, string many) => $"{n} {(n == 1 ? one : many)}";
 
     /// <summary>Actions a save would write differently without the user editing them, taken just before a save (which clears it).</summary>
     private List<(int Number, int Misnumbered, int Mismatched, int Moved, int Reordered, int Dropped)> LintedActions() => _air is null ? []
-        : _air.Actions.Where(a => a.ChangesOnSave)
-            .Select(a => (a.Number, a.MisnumberedClsnLines, a.MismatchedClsnCounts, a.MovedComments, a.ReorderedComments, a.DroppedLines)).ToList();
+        : _air.Actions.Where(a => a.WarnsOnSave)
+            .Select(a => (a.Number, a.MisnumberedClsnLines, a.MismatchedClsnCounts, a.MovedComments, a.ReorderedComments,
+                a.DroppedLines)).ToList();
 
-    /// <summary>What a save changes that nobody edited, as sentence parts; past tense for the after-save report.</summary>
-    private static List<string> SaveChangeParts(List<(int Number, int Misnumbered, int Mismatched, int Moved, int Reordered, int Dropped)> linted, bool done)
-    {
-        int mis = linted.Sum(x => x.Misnumbered), cnt = linted.Sum(x => x.Mismatched), moved = linted.Sum(x => x.Moved);
-        int reordered = linted.Sum(x => x.Reordered), dropped = linted.Sum(x => x.Dropped);
-        var parts = new List<string>();
-        if (mis > 0) parts.Add(done ? $"{Plural(mis, "Clsn line was", "Clsn lines were")} renumbered from 0"
-            : $"renumber {Plural(mis, "Clsn line", "Clsn lines")} from 0");
-        if (cnt > 0) parts.Add(done ? $"{Plural(cnt, "Clsn count was", "Clsn counts were")} rewritten to match the boxes"
-            : $"rewrite {Plural(cnt, "Clsn count", "Clsn counts")} to match the boxes");
-        if (moved > 0) parts.Add(done ? $"{Plural(moved, "end-of-line comment was", "end-of-line comments were")} moved onto their own line"
-            : $"move {Plural(moved, "end-of-line comment", "end-of-line comments")} onto their own line");
-        if (reordered > 0) parts.Add(done ? $"{Plural(reordered, "comment line was", "comment lines were")} moved past Clsn, Loopstart or Interpolate lines"
-            : $"move {Plural(reordered, "comment line", "comment lines")} past Clsn, Loopstart or Interpolate lines");
-        if (dropped > 0) parts.Add(done ? $"{Plural(dropped, "unused line was", "unused lines were")} dropped"
-            : $"drop {Plural(dropped, "unused line", "unused lines")}");
-        return parts;
-    }
-
-    /// <summary>For an old-encoding file: what saving converts, with a sample line to check the guess. Null otherwise.</summary>
+    /// <summary>For an old-encoding file: what saving converts, with a sample line to check the guess. Null otherwise.
+    /// CRLF to LF isn't mentioned: nearly every old file has CRLF, so it's only in the Media Health Report.</summary>
     private string? EncodingChangeNote(bool done)
     {
         if (_airEmbeddedInDef || _air is not { TextEncoding: AirEncoding.Legacy } air) return null;
-        var sample = AirWriter.Write(air).Split('\n').Select(l => l.TrimEnd('\r')).FirstOrDefault(l => l.Any(c => c > '\u007F'));
+        var sample = AirWriter.Write(air).Split('\n').FirstOrDefault(l => l.Any(c => c > '\u007F'));
         return (done ? $"The file was converted from {air.LegacyEncodingName} (guessed) to UTF-8."
                      : $"This file isn't UTF-8; it was read as {air.LegacyEncodingName} (a guess). Saving converts it to UTF-8.")
             + (sample is null ? "" : $"{Environment.NewLine}Check this line reads right: {sample.Trim()}");
     }
 
-    /// <summary>Warns before a save that will write things nobody edited differently from the file; false = canceled.</summary>
+    /// <summary>Warns before a save that will write things nobody edited differently from the file; false = canceled.
+    /// The details are in the Media Health Report.</summary>
     private async Task<bool> ConfirmClsnRewrite()
     {
         var linted = LintedActions();
@@ -425,28 +409,24 @@ public partial class MainWindow
         if (linted.Count == 0 && encoding is null) return true;
         var text = new List<string>();
         if (linted.Count > 0)
-            text.Add($"Saving will {string.Join(", ", SaveChangeParts(linted, done: false))} in {Plural(linted.Count, "action", "actions")} "
-                + $"({string.Join(", ", linted.Select(x => x.Number))}).");
+            text.Add($"Saving will adjust {Plural(linted.Count, "action", "actions")} you didn't edit. "
+                + "File > Media Health Report lists what changes.");
         if (encoding is not null) text.Add(encoding);
-        text.Add("Nothing else changes.");
         return await Dialogs.Confirm(this, "Saving Will Change the File", string.Join(Environment.NewLine + Environment.NewLine, text), "Save");
     }
 
-    /// <summary>Tells, right after a save, what it wrote differently from the file without being edited.
+    /// <summary>Right after a save: logs what it wrote differently without being edited and notes it in the status bar.
     /// Pass the encoding note taken before the save (the save makes the file UTF-8).</summary>
-    private async Task ReportClsnRewrite(List<(int Number, int Misnumbered, int Mismatched, int Moved)> linted, string? encoding)
+    private void ReportClsnRewrite(List<(int Number, int Misnumbered, int Mismatched, int Moved, int Reordered, int Dropped)> linted,
+        string? encoding)
     {
         if (linted.Count == 0 && encoding is null) return;
         foreach (var x in linted)
-            CrashLog.Trace($"[air] saved action {x.Number}: {x.Misnumbered} Clsn lines renumbered, {x.Mismatched} Clsn counts rewritten, {x.Moved} comments moved");
+            CrashLog.Trace($"[air] saved action {x.Number}: {x.Misnumbered} Clsn lines renumbered, {x.Mismatched} Clsn counts rewritten, "
+                + $"{x.Moved} end-of-line comments moved, {x.Reordered} comment lines moved, {x.Dropped} unused lines dropped");
         if (encoding is not null) CrashLog.Trace($"[air] {encoding}");
-        var text = new List<string>();
-        if (linted.Count > 0)
-            text.Add($"In {Plural(linted.Count, "action", "actions")} ({string.Join(", ", linted.Select(x => x.Number))}), "
-                + $"{string.Join(", ", SaveChangeParts(linted, done: true))}.");
-        if (encoding is not null) text.Add(encoding);
-        text.Add("Nothing else changed.");
-        await Dialogs.ShowMessage(this, "Saved with Changes", string.Join(Environment.NewLine + Environment.NewLine, text));
+        if (linted.Count > 0) StatusText.Text += $" Adjusted {Plural(linted.Count, "action", "actions")} you didn't edit.";
+        if (encoding is not null) StatusText.Text += " Converted to UTF-8.";
     }
 
     /// <summary>Forgets the Clsn lint (after a save wrote the file clean).</summary>
@@ -455,7 +435,7 @@ public partial class MainWindow
         if (_air is null) return;
         foreach (var a in _air.Actions)
         {
-            a.MisnumberedClsnLines = a.MismatchedClsnCounts = a.MovedComments = a.ReorderedComments = a.DroppedLines = 0; // comments are where they're written now
+            a.MisnumberedClsnLines = a.MismatchedClsnCounts = a.MovedComments = a.ReorderedComments = a.DroppedLines = a.SwappedBoxCorners = 0; // comments are where they're written now
         }
     }
 

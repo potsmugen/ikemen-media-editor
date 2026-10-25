@@ -366,6 +366,8 @@ public partial class MainWindow
                     Air.AirEncoding.Legacy => $"not UTF-8, read as {air.LegacyEncodingName} (a guess); saving converts it to UTF-8",
                     _ => "UTF-8",
                 }, null));
+                if (!_airEmbeddedInDef)
+                    lines.Add(("  Line endings: " + (air.CrLineEndings ? "CRLF; saving converts them to LF" : "LF"), null));
                 if (_file is not null) lines.Add(($"  Missing sprite references: {missing.Count}", null)); // needs the .sff open
                 var lint = air.Actions.Where(a => a.ChangesOnSave).ToList();
                 lines.Add(($"  Clsn lines numbered out of order: {lint.Sum(a => a.MisnumberedClsnLines)}", null));
@@ -373,6 +375,7 @@ public partial class MainWindow
                 lines.Add(($"  End-of-line comments on Clsn, Loopstart, Interpolate or Copy Action lines (moved onto their own line on save): {lint.Sum(a => a.MovedComments)}", null));
                 lines.Add(($"  Comment lines below a frame's Clsn, Loopstart or Interpolate lines (moved past them on save): {lint.Sum(a => a.ReorderedComments)}", null));
                 lines.Add(($"  Unused lines, like Loopstart after the last frame or a Clsn block with no frame (dropped on save): {lint.Sum(a => a.DroppedLines)}", null));
+                lines.Add(($"  Clsn boxes not written top-left corner first (rewritten on save): {lint.Sum(a => a.SwappedBoxCorners)}", null));
                 var both = air.Actions.SelectMany(a => a.FramesWithDefaultAndOwnClsn().Select(i => (Action: a, Frame: i))).ToList();
                 lines.Add(($"  Frames with both a Clsn default and their own Clsn (invalid): {both.Count}", null));
 
@@ -387,6 +390,7 @@ public partial class MainWindow
                     a.MovedComments > 0 ? $"{a.MovedComments} end-of-line comments moved" : null,
                     a.ReorderedComments > 0 ? $"{a.ReorderedComments} comment lines moved" : null,
                     a.DroppedLines > 0 ? $"{a.DroppedLines} unused lines dropped" : null,
+                    a.SwappedBoxCorners > 0 ? $"{a.SwappedBoxCorners} Clsn boxes reordered" : null,
                 }.Where(p => p is not null)), (Action)(() => JumpToAction(a)))));
             }
             if (_snd is { } snd)
@@ -1004,7 +1008,7 @@ public partial class MainWindow
             : $" {temps} temp palette{(temps == 1 ? "" : "s")} not saved; save or export {(temps == 1 ? "it" : "them")} to keep {(temps == 1 ? "it" : "them")}.";
         StatusText.Text = (saved.Count == 0 ? "Nothing to save." : $"Saved {string.Join(", ", saved)}.") + tempNote;
         SyncSaveMenu();
-        if (airSaved) await ReportClsnRewrite(linted, encoding);
+        if (airSaved) ReportClsnRewrite(linted, encoding);
     }
 
     /// <summary>Grays out the saves that would do nothing.</summary>

@@ -12,11 +12,6 @@ before a release. Remove items once they're done or checked.
   - Linux default font at the 1100x700 default window: "Resize Canvas" and "Shift Offset" are
     cut off in Sprite Tools.
   - Question: sorting or deleting a sprite marks Palettes* dirty too (v1 Donald, v2 kfm).
-  - Saving a standalone .air turns CRLF into LF and rewrites untouched boxes: action 20's
-    "Clsn2[0] = -10,0, 10,-80" became "-10, -80, 10, 0". No warning (Preserve data as read).
-    Verified in code: AirWriter ends lines with Environment.NewLine (LF on Linux, CRLF on
-    Windows, whatever the file had). Unverified cause for the boxes: ApplyOwnState normalizes
-    every box of a frame when one is edited.
   - Found in the release review (2026-10-23), by reading code; unverified in the app:
     - Delete These Palettes counts sprite use only; a .cns RemapPal can target palettes outside
       group 1. Question: should the confirm say so?
@@ -42,7 +37,7 @@ before a release. Remove items once they're done or checked.
   - Requested (Discord): previous/next sprite (e.g. Left/Right), shift axis by 1 (e.g. Shift+arrows),
     previous/next sound (e.g. Ctrl+Left/Right) and play sound (e.g. Ctrl+Enter). Sprite commands
     should also work while the sprite list has focus, not only the canvas.
-- Review the save and load warnings (forward links, Saving Will Change the File, Links to Later
+- Review the save and load warnings (forward links, Links to Later
   Palettes): they're too verbose. Their status suffix also gets cut off by the Cursor field
   ("1 link to later pa…" at 1280 wide).
 - Audit for Sprites-only assumptions left from when SFF was the only format (Ctrl+O, Ctrl+F and
