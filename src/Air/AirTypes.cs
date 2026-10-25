@@ -208,9 +208,12 @@ public sealed class AnimationAction
     /// <summary>End-of-line comments on lines other than a frame or the header (Clsn, Loopstart, Interpolate,
     /// Copy Action), which saving moves onto a line of their own.</summary>
     public int MovedComments;
+    /// <summary>Comment lines below a frame's Clsn, Loopstart or Interpolate lines (or above a trailing Clsn
+    /// default), which saving moves past them, since a frame's comments are written above all its lines.</summary>
+    public int ReorderedComments;
 
     /// <summary>Saving would write something the user didn't edit differently from the file.</summary>
-    public bool ChangesOnSave => HasClsnLint || MovedComments > 0;
+    public bool ChangesOnSave => HasClsnLint || MovedComments > 0 || ReorderedComments > 0;
 
     /// <summary>
     /// The action's Clsn1Default / Clsn2Default segments, in file order (see

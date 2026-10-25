@@ -37,9 +37,21 @@ public static class AirParser
         var pending = new List<string>();
         bool lastIsName = false;
         void Moved(string c) { pending.Add(c); action!.MovedComments++; }
+        // Comment-only lines in pending, and how many were there at the run's first Clsn/Loopstart/Interpolate
+        // line and at its last line written before trailing comments (Clsn default, Copy Action); -1 if none.
+        int own = 0, ownAtFirstPrefix = -1, ownAtLastKept = -1;
+        void Prefix(bool keptAtEnd)
+        {
+            if (ownAtFirstPrefix < 0) ownAtFirstPrefix = own;
+            if (keptAtEnd) ownAtLastKept = own;
+        }
+        void ResetRun() { own = 0; ownAtFirstPrefix = ownAtLastKept = -1; }
         // Ends the action: comments left over sit after its last frame.
         void Close(bool dropName)
         {
+            // Trailing comments are written after the trailing defaults, so those above one move.
+            if (action is not null && ownAtLastKept > 0) action.ReorderedComments += ownAtLastKept;
+            ResetRun();
             if (dropName) pending.RemoveAt(pending.Count - 1);
             action?.TrailingComments.AddRange(pending);
             pending.Clear();
@@ -73,6 +85,7 @@ public static class AirParser
             if (action is not null && rawComment is not null && line.Length == 0)
             {
                 pending.Add(rawComment);
+                own++;
                 lastIsName = true;
             }
 
@@ -132,26 +145,30 @@ public static class AirParser
             if (lower.StartsWith("copy action "))
             {
                 action.CopyAction = int.TryParse(line[12..].Trim(), out int n) ? n : -1;
+                Prefix(keptAtEnd: true);
                 if (rawComment is not null) Moved(rawComment);
                 continue;
             }
             if (lower.StartsWith("loopstart"))
             {
                 action.LoopStart = action.Elements.Count;
+                Prefix(keptAtEnd: false);
                 if (rawComment is not null) Moved(rawComment);
                 continue;
             }
             if (lower.StartsWith("interpolate "))
             {
                 Interpolation(action, lower)?.Add(action.Elements.Count);
+                Prefix(keptAtEnd: false);
                 if (rawComment is not null) Moved(rawComment);
                 continue;
             }
             if (lower.StartsWith("clsn"))
             {
+                Prefix(keptAtEnd: lower.Contains("default"));
                 if (rawComment is not null) Moved(rawComment);
                 ReadClsn(lines, ref i, lower, action, ref currentAttack, ref currentHurt,
-                    ref useDefaultAttack, ref useDefaultHurt, (c, ownLine) => { if (ownLine) pending.Add(c); else Moved(c); });
+                    ref useDefaultAttack, ref useDefaultHurt, (c, ownLine) => { if (ownLine) { pending.Add(c); own++; } else Moved(c); });
                 continue;
             }
 
@@ -171,6 +188,9 @@ public static class AirParser
             element.Comments = [.. pending];
             element.EndComment = rawComment;
             pending.Clear();
+            // The frame's comments are written above all its lines, so those below its first one move up.
+            if (ownAtFirstPrefix >= 0) action.ReorderedComments += own - ownAtFirstPrefix;
+            ResetRun();
 
             action.Elements.Add(element);
         }

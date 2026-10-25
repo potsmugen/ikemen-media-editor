@@ -20,8 +20,6 @@ before a release. Remove items once they're done or checked.
   - Found in the release review (2026-10-23), by reading code; unverified in the app:
     - Delete These Palettes counts sprite use only; a .cns RemapPal can target palettes outside
       group 1. Question: should the confirm say so?
-    - AIR: comment-only lines inside a Clsn block move above the block on save but don't count
-      in ChangesOnSave, so there's no warning.
   - Questions: after Recover, the command-line file is skipped silently (by design per
     App.axaml.cs, but nothing tells the user). A recovered changed-source file opens from
     data/recovery/recovered/ under a GUID name, so plain Save writes into the app folder.

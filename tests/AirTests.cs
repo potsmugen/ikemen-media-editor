@@ -736,6 +736,35 @@ public class AirTests
     }
 
     [Fact]
+    public void CommentLinesBelowClsnLinesCountAsReordered()
+    {
+        const string text = """
+            [Begin Action 0]
+            ; above
+            Clsn2: 2
+             Clsn2[0] = 1, 2, 3, 4
+            ; inside
+             Clsn2[1] = 5, 6, 7, 8
+            ; after
+            0,0, 0,0, 5
+            ; before default
+            Clsn2Default: 1
+             Clsn2[0] = 1, 2, 3, 4
+            ; tail
+            """;
+        var a = AirParser.Parse(text).Actions[0];
+        Assert.Equal(0, a.MovedComments);
+        Assert.Equal(3, a.ReorderedComments); // inside, after, before default
+        Assert.True(a.ChangesOnSave);
+        Assert.Equal(new[] { " above", " inside", " after" }, a.Elements[0].Comments);
+
+        var again = AirParser.Parse(AirWriter.WriteAction(a)).Actions[0];
+        Assert.Equal(0, again.ReorderedComments); // stable after one save
+        Assert.Equal(a.Elements[0].Comments, again.Elements[0].Comments);
+        Assert.Equal(new[] { " before default", " tail" }, again.TrailingComments);
+    }
+
+    [Fact]
     public void CommentedOutLinesRoundTripInPlace()
     {
         const string text = """

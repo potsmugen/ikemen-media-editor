@@ -683,7 +683,9 @@ summaries; treat anything marked unverified as unknown.
   is `HeaderComment`. Comments after the last frame, and in a Copy Action, are
   `TrailingComments`. End-of-line comments on Clsn, Loopstart, Interpolate or Copy
   Action lines have no place and are written on their own line with the frame's
-  comments (`MovedComments`).
+  comments (`MovedComments`). Comment-only lines below a frame's Clsn, Loopstart or
+  Interpolate lines (or above a trailing Clsn default) move with them too
+  (`ReorderedComments`), and are reported the same way.
   Reserved character-action names are suggested for standalone AIR files, not
   embedded .def actions, which may use those numbers for unrelated animations.
   Save-time differences (Clsn recount/renumber, comment movement, UTF-8) are
