@@ -128,6 +128,8 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Select clicks**: a click (under settings.json `SelectionDragThresholdPixels`, default 3)
   clears the selection and settles a floating paste. Only a drag selects or moves, so there
   are no 1×1 selections; a drag off the sprite still pans.
+- **Sprite drag** (Sprites axis, Animations offset) starts only on a visible pixel (alpha above 0 as
+  drawn, every pixel with Show Mask); a transparent pixel pans like empty canvas.
 - **Wheel and pinch zoom**: the sprite, animation and palette-preview canvases and the
   reference image step `ZoomLevels` once per wheel unit (`ZoomSteps`), so a notch is one
   step and fractional touchpad deltas add up; reversing drops the leftover. A Windows touchpad

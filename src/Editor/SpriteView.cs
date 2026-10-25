@@ -704,6 +704,23 @@ public class SpriteView : Control
         return LocalSpriteRect().Contains(ElementTransform().Invert().Transform(point));
     }
 
+    /// <summary>Whether a visible sprite pixel is under a screen point: drawn with alpha above 0, as ToBgra decides.</summary>
+    private bool SpriteVisibleAt(Point point)
+    {
+        if (!SpriteContains(point) || _sprite is not { } sp) return false;
+        var r = DragChangesOffset ? LocalSpriteRect() : SpriteRect();
+        var local = DragChangesOffset ? ElementTransform().Invert().Transform(point) : point;
+        int x = (int)((local.X - r.X) / Zoom), y = (int)((local.Y - r.Y) / Zoom);
+        if (x < 0 || x >= sp.Width || y < 0 || y >= sp.Height) return false;
+        if (_showMask) return true;
+        int i = y * sp.Width + x;
+        if (sp.Direct is { } bgra) return i * 4 + 3 < bgra.Length && bgra[i * 4 + 3] > 0;
+        if (sp.Indexed is not { } indexed || i >= indexed.Length) return false;
+        int c = indexed[i];
+        var colors = _palette?.Colors ?? [];
+        return c != Sprite.TransparentIndex && c < colors.Length && colors[c].A > 0;
+    }
+
     /// <summary>SpriteRect() without the element offset, for the transformed draw path.</summary>
     private Rect LocalSpriteRect()
     {
@@ -1350,7 +1367,7 @@ public class SpriteView : Control
             return inSelection ? MoveCursor : CrossCursor;
         }
         if (PaintMode && onSprite) return CrossCursor;
-        if (onSprite && (!DragChangesOffset || OffsetDraggingEnabled)) return MoveCursor;
+        if (onSprite && SpriteVisibleAt(p) && (!DragChangesOffset || OffsetDraggingEnabled)) return MoveCursor;
         // Empty canvas pans, but keeps the arrow until pressed, as in other image editors.
         return Cursor.Default;
     }
@@ -1512,8 +1529,10 @@ public class SpriteView : Control
             return;
         }
 
-        _draggingSprite = onSprite && (!DragChangesOffset || OffsetDraggingEnabled);
-        _panning = !onSprite || (DragChangesOffset && !OffsetDraggingEnabled);
+        // Only visible pixels grab the sprite; a transparent one pans like empty canvas.
+        bool grab = onSprite && SpriteVisibleAt(p.Position);
+        _draggingSprite = grab && (!DragChangesOffset || OffsetDraggingEnabled);
+        _panning = !grab || (DragChangesOffset && !OffsetDraggingEnabled);
         _clearSelectionOnClick = _panning && !onSprite && PaintMode && ActiveTool == PaintTool.Selection && _selection is not null;
         _selectPressPos = p.Position;
         if (_draggingSprite)
