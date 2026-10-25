@@ -1603,18 +1603,16 @@ public partial class MainWindow
         try
         {
             if (!await ResolvePendingSoundEditsBeforeSwitch()) return;
+            if (_snd is not { } file) return;
             if (await Dialogs.PromptText(this, "Downsample All",
                     "Lower every sound above this rate to it (Hz; common: 44100, 22050, 11025):",
                     Settings.Checked(nameof(Settings.SoundsSection.DownsampleAllRate), _settings.Sounds.DownsampleAllRate, Settings.DefaultDownsampleAllRate,
-                        v => v >= SndEdit.MinSampleRate && v <= SndEdit.MaxSampleRate).ToString(CultureInfo.InvariantCulture)) is not { } text) return;
-            if (ParseSampleRate(text, out int rate) is { } error)
-            {
-                StatusText.Text = error;
-                return;
-            }
-            if (_snd is not { } file) return;
+                        v => v >= SndEdit.MinSampleRate && v <= SndEdit.MaxSampleRate).ToString(CultureInfo.InvariantCulture),
+                    t => ParseSampleRate(t, out int r) is { } error ? error
+                        : file.Sounds.Any(x => x.Problem is null && x.SampleRate > r) ? null : $"No sounds above {r} Hz.") is not { } text) return;
+            if (!ReferenceEquals(_snd, file)) return;
+            ParseSampleRate(text, out int rate);
             var targets = file.Sounds.Where(x => x.Problem is null && x.SampleRate > rate).ToList();
-            if (targets.Count == 0) { StatusText.Text = $"No sounds above {rate} Hz."; return; }
 
             CrashLog.Trace($"[bulk] downsample {targets.Count} sounds to {rate} Hz");
             await EditSounds(targets, "Downsampling", $"downsample to {rate} Hz", n => $"Downsampled {n} sound(s) to {rate} Hz", s =>

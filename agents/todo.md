@@ -49,8 +49,6 @@ before a release. Remove items once they're done or checked.
   ("1 link to later pa…" at 1280 wide).
 - Audit for Sprites-only assumptions left from when SFF was the only format (Ctrl+O, Ctrl+F and
   Escape-in-a-text-box were three, fixed with the shortcuts).
-- Frame-insert group number and sound amount errors belong inside their prompts; today they
-  are only reported after the prompt closes.
 - Saves that change a file the user didn't edit, like the Global Shared Palette popup;
   decide per case whether to keep the bytes or tell the user (verified on real files):
   - Plain Save of SFFv1 re-encodes every PCX (`SffV1Writer`), dropping PCX header

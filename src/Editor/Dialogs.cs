@@ -1674,10 +1674,17 @@ public static partial class Dialogs
         return result.Task;
     }
 
-    public static Task<string?> PromptText(Window owner, string title, string label, string initial = "")
+    /// <summary>validate returns an error for unusable text, or null; OK with an error keeps the dialog open.</summary>
+    public static Task<string?> PromptText(Window owner, string title, string label, string initial = "",
+        Func<string, string?>? validate = null)
     {
         var result = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var box = new TextBox { Text = initial, MinWidth = 260 };
+        var error = new TextBlock
+        {
+            Foreground = ThemeBrush("ThemeWarn"), TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 420, IsVisible = false,
+        };
 
         var dialog = new Window
         {
@@ -1690,11 +1697,22 @@ public static partial class Dialogs
             ShowInTaskbar = false,
         };
 
+        void Accept()
+        {
+            string text = box.Text ?? "";
+            string? message = validate?.Invoke(text);
+            error.Text = message ?? "";
+            error.IsVisible = message is not null;
+            if (message is not null) return;
+            result.TrySetResult(text);
+            dialog.Close();
+        }
+
         var ok = new Button { Content = "OK", MinWidth = 90, IsDefault = true };
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
-        ok.Click += (_, _) => { result.TrySetResult(box.Text); dialog.Close(); };
+        ok.Click += (_, _) => Accept();
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
-        box.KeyDown += (_, e) => { if (e.Key == Avalonia.Input.Key.Enter) { result.TrySetResult(box.Text); dialog.Close(); } };
+        box.KeyDown += (_, e) => { if (e.Key == Avalonia.Input.Key.Enter) Accept(); };
 
         dialog.Content = new StackPanel
         {
@@ -1704,6 +1722,7 @@ public static partial class Dialogs
             {
                 new TextBlock { Text = label },
                 box,
+                error,
                 new StackPanel
                 {
                     Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,

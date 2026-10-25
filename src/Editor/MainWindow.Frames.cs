@@ -219,21 +219,15 @@ public partial class MainWindow
             if (_action is null) { StatusText.Text = "Open or create an action first."; return; }
             if (_file is null) { StatusText.Text = "No sprite file loaded to insert from."; return; }
 
+            var file = _file;
             var text = await Dialogs.PromptText(this, "Insert Sprite Group",
-                "Sprite group number — every sprite in that group is appended as its own frame, in index order.", "");
-            if (text is null) return;
-            if (!int.TryParse(text.Trim(), out int group))
-            {
-                StatusText.Text = "Couldn't parse that as a group number.";
-                return;
-            }
+                "Sprite group number — every sprite in that group is appended as its own frame, in index order.", "",
+                t => !int.TryParse(t.Trim(), out int g) ? "Couldn't parse that as a group number."
+                    : file.Sprites.Any(s => s.Group == g) ? null : $"No sprites found in group {g}.");
+            if (text is null || !ReferenceEquals(_file, file) || _action is null) return;
+            int group = int.Parse(text.Trim());
 
-            var sprites = _file.Sprites.Where(s => s.Group == group).OrderBy(s => s.Index).ToList();
-            if (sprites.Count == 0)
-            {
-                StatusText.Text = $"No sprites found in group {group}.";
-                return;
-            }
+            var sprites = file.Sprites.Where(s => s.Group == group).OrderBy(s => s.Index).ToList();
 
             int at = FrameInsertPoint();
             EditFrameList($"insert sprite group {group}", () =>
