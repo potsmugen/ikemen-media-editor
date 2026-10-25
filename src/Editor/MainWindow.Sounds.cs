@@ -1162,7 +1162,7 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// Duplicate: a copy as it sounds now (pending edits included), same group, next free
+    /// Duplicate: a copy as it sounds now (pending edits included), same group, first free
     /// number, right after the original; one undo step. The copy stays selected. The
     /// WAV bytes are shared: edits always replace Data with a new array, never mutate it.
     /// </summary>
@@ -1171,7 +1171,7 @@ public partial class MainWindow
         if (MultiSelection() is { } many) { DuplicateSoundsMany(many); return; }
         if (_snd is null || CurrentSound is not { } s) return;
         var copy = new SoundEntry { Group = s.Group, Data = s.Data };
-        copy.Index = NextFreeSoundIndex(copy.Group);
+        copy.Index = NextFreeSoundIndex(copy.Group, s.Index);
         SndReader.Describe(copy);
 
         var file = _snd;
@@ -1199,7 +1199,7 @@ public partial class MainWindow
                 Data = wav.Bytes,
                 Group = CurrentSound?.Group ?? 0,
             };
-            entry.Index = NextFreeSoundIndex(entry.Group);
+            entry.Index = NextFreeSoundIndex(entry.Group, CurrentSound?.Index ?? -1);
             SndReader.Describe(entry);
 
             var file = _snd;
@@ -2355,12 +2355,10 @@ public partial class MainWindow
         }
     }
 
-    private int NextFreeSoundIndex(int group)
+    /// <summary>The first free sound number in group after <paramref name="after"/>, as for sprites.</summary>
+    private int NextFreeSoundIndex(int group, int after = -1)
     {
         if (_snd is null) return 0;
-        var used = _snd.Sounds.Where(s => s.Group == group).Select(s => s.Index).ToHashSet();
-        int n = 0;
-        while (used.Contains(n)) n++;
-        return n;
+        return NextFreeNumber(_snd.Sounds.Where(s => s.Group == group).Select(s => s.Index).ToHashSet(), after);
     }
 }

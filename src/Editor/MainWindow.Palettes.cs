@@ -2881,7 +2881,10 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     {
         if (_file is null && !await SettlePendingColorAdjust()) return;
         var file = _file;
-        var taken = file?.Palettes.Where(p => p.Group == 1).Select(p => p.Index).ToHashSet() ?? [];
+        // The selected palette's group, from the first free number after it; 1,1 up when none is selected.
+        var selected = file is not null && PaletteList?.SelectedItem is PaletteRow { Palette: var sel } && file.Palettes.Contains(sel) ? sel : null;
+        int group = selected?.Group ?? 1, after = selected?.Index ?? 0;
+        var taken = file?.Palettes.Where(p => p.Group == group).Select(p => p.Index).ToHashSet() ?? [];
         var added = new List<Palette>();
         var errors = new List<string>();
         int selectedExisting = -1;
@@ -2904,10 +2907,10 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 var pal = PaletteFileImport.Read(path);
                 pal.SourcePath = path;
                 pal.Source = PaletteSource.External;
-                pal.Group = 1;
+                pal.Group = group;
                 if (file is not null)
                 {
-                    pal.Index = Enumerable.Range(1, int.MaxValue - 1).First(i => !taken.Contains(i));
+                    pal.Index = NextFreeNumber(taken, after);
                     taken.Add(pal.Index);
                 }
                 else pal.Index = _standalonePalettes.Count + added.Count + 1;

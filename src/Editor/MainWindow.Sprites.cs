@@ -1416,7 +1416,7 @@ public partial class MainWindow
 
             var file = _file;
             int group = _current?.Group ?? 0;
-            int number = NextFreeIndex(group);
+            int number = NextFreeIndex(group, _current?.Index ?? -1);
             var previous = file.PaletteBefore(_current is null ? file.Sprites.Count - 1 : file.PositionOf(_current));
             var source = new PickedSource(name, bytes, null);
 
@@ -1471,7 +1471,7 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Duplicates the sprite to the next free number in its own group, just after it.
+    /// <summary>Duplicates the sprite to the first free number after its own in its group, just after it.
     /// The copy owns its pixels rather than linking them, so it can be painted or turned
     /// without touching the original; the palette stays shared, as the format intends.
     /// </summary>
@@ -1489,7 +1489,7 @@ public partial class MainWindow
             }
 
             int group = source.Group;
-            int index = NextFreeIndex(group);
+            int index = NextFreeIndex(group, source.Index);
             if (index > 65535)
             {
                 await Dialogs.ShowMessage(this, "Duplicate Sprite", $"Group {group} has no free number left.");
@@ -1525,7 +1525,7 @@ public partial class MainWindow
 
     /// <summary>
     /// Several sprites: per group, the copies go in one block right after that group's last
-    /// selected sprite, in file order, numbered from the group's next free index. One undo
+    /// selected sprite, in file order, each numbered from the first free number after its original. One undo
     /// step; the copies end up selected. Sprites without pixels are skipped and named.
     /// </summary>
     private async Task DuplicateSprites(SffFile file, List<Sprite> selected)
@@ -1540,10 +1540,9 @@ public partial class MainWindow
         {
             var used = file.Sprites.Where(s => s.Group == group.Key).Select(s => s.Index).ToHashSet();
             var copies = new List<Sprite>();
-            int next = 0;
             foreach (var source in group)
             {
-                while (used.Contains(next)) next++;
+                int next = NextFreeNumber(used, source.Index);
                 if (next > 65535)
                 {
                     await Dialogs.ShowMessage(this, "Duplicate Sprites", $"Group {group.Key} has no free number left for every copy.");
@@ -1589,8 +1588,9 @@ public partial class MainWindow
             int count = sources.Sum(s => s.Count);
 
             var file = _file;
+            var axisFrom = _current;
             int group = _current?.Group ?? 0;
-            int number = NextFreeIndex(group);
+            int number = NextFreeIndex(group, _current?.Index ?? -1);
             var previous = file.PaletteBefore(_current is null ? file.Sprites.Count - 1 : file.PositionOf(_current));
 
             if (await PromptImport($"Add Sprite from Image{(count == 1 ? "" : "s")}", sources, count, file, previous,
@@ -1633,6 +1633,8 @@ public partial class MainWindow
                 if (made.Note.Length > 0) notes.Add(made.Note);
             }
 
+            if (axisFrom is not null) // the selected sprite's axis, so frames of one move line up
+                foreach (var (s, _) in built) (s.AxisX, s.AxisY) = (axisFrom.AxisX, axisFrom.AxisY);
             if (!await AddBuiltBatch(built, choices, plan, sources[0].Name, "images")) return;
             if (notes.Count > 0) StatusText.Text += " " + string.Join(" ", notes);
         }
@@ -2001,13 +2003,19 @@ public partial class MainWindow
     }
 
 
-    private int NextFreeIndex(int group)
+    /// <summary>The first free sprite number in group after <paramref name="after"/> (see NextFreeNumber).</summary>
+    private int NextFreeIndex(int group, int after = -1)
     {
         if (_file is null) return 0;
-        var used = _file.Sprites.Where(s => s.Group == group).Select(s => s.Index).ToHashSet();
-        int n = 0;
-        while (used.Contains(n)) n++;
-        return n;
+        return NextFreeNumber(_file.Sprites.Where(s => s.Group == group).Select(s => s.Index).ToHashSet(), after);
+    }
+
+    /// <summary>The first number above after that isn't used, else the lowest free one; 65536 when all are taken.</summary>
+    private static int NextFreeNumber(HashSet<int> used, int after)
+    {
+        for (int n = Math.Max(0, after + 1); n <= 65535; n++) if (!used.Contains(n)) return n;
+        for (int n = 0; n <= Math.Min(after, 65535); n++) if (!used.Contains(n)) return n;
+        return 65536;
     }
 
     /// <summary>In SFFv2 a temp palette moves into the SFF when applied, so no duplicate is left behind.</summary>

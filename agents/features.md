@@ -350,6 +350,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   pad to 256 entries with opaque black. True-color reduction uses frequency-weighted median
   cut weighted by occurrence, reserving index 0 for transparency. PNG, PCX and GIF are
   supported; true-color sprites can't be exported as PCX.
+- **New sprite and sound numbers**: Add from Image, Import from Sheet, Add Sound and Duplicate
+  use the selected item's group and the first free number after its number, wrapping to the
+  lowest free one (`NextFreeNumber`). Add from Image also copies the selected sprite's axis.
+  Palettes > Import follows the selected palette the same way, or 1,1 up when none is selected.
 - **Sprite import palette help** counts how many images each palette reproduces exactly
   (full RGBA) or by index or nearest color, with index 0 excluded. The specific-palette
   dropdown opens on a palette matching every image, else the previous sprite's. A square

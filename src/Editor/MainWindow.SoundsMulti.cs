@@ -434,7 +434,7 @@ public partial class MainWindow
         StatusText.Text = $"Exported {files.Count} sounds to {dir}";
     }
 
-    /// <summary>Copies each selected sound right after its original (same group, next free number); one undo step.
+    /// <summary>Copies each selected sound right after its original (same group, first free number after it); one undo step.
     /// The copies stay selected.</summary>
     private void DuplicateSoundsMany(List<SoundEntry> many)
     {
@@ -445,7 +445,7 @@ public partial class MainWindow
         foreach (var s in many.OrderBy(file.Sounds.IndexOf).ToList())
         {
             var copy = new SoundEntry { Group = s.Group, Data = s.Data };
-            copy.Index = NextFreeSoundIndex(copy.Group);
+            copy.Index = NextFreeSoundIndex(copy.Group, s.Index);
             SndReader.Describe(copy);
             file.Sounds.Insert(file.Sounds.IndexOf(s) + 1, copy);
             copies.Add(copy);
