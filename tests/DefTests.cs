@@ -98,6 +98,21 @@ public class DefTests
     }
 
     [Fact]
+    public void ReadsLeadingZeroPaletteKeysPreferringThePlainOne()
+    {
+        var def = DefFile.Parse("""
+            [Files]
+            pal01 = a1.act
+            pal1 = b1.act
+            pal02 = a2.act
+            pal010 = a10.act
+            """, "/kfm");
+
+        Assert.Equal([(1, Path.Combine("/kfm", "b1.act")), (2, Path.Combine("/kfm", "a2.act")), (10, Path.Combine("/kfm", "a10.act"))],
+            def.Palettes);
+    }
+
+    [Fact]
     public void ParsesAStageDef()
     {
         var def = DefFile.Parse(StageDef, "/stages");

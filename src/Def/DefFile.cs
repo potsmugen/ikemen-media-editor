@@ -59,7 +59,7 @@ public sealed class DefFile
     /// </summary>
     public string? StoryboardSpritePath;
 
-    /// <summary>pal1 to pal12, in order, with the ones that were absent left out.</summary>
+    /// <summary>Every palN key (pal0 and up), sorted by number, with the ones that were absent left out.</summary>
     public List<(int Number, string Path)> Palettes = [];
 
     /// <summary>References found only by ignoring letter case (Linux/macOS): as written, and the file used.</summary>
@@ -134,9 +134,16 @@ public sealed class DefFile
         LifebarSpritePath = Resolve(files, "sff");
         LifebarSoundPath = Resolve(files, "snd");
 
-        for (int i = 1; i <= 12; i++)
-            if (Resolve(files, $"pal{i}") is { } p)
-                Palettes.Add((i, p));
+        // Any palN key, pal0 included. Leading zeros (pal01) mean the same palette; pal1 wins over pal01.
+        var palKeys = new Dictionary<int, string>();
+        foreach (var key in files.Keys)
+            if (key.Length > 3 && key.StartsWith("pal", StringComparison.OrdinalIgnoreCase)
+                && key[3..].All(char.IsAsciiDigit) && int.TryParse(key[3..], out int n)
+                && (!palKeys.TryGetValue(n, out var seen) || key.Length < seen.Length))
+                palKeys[n] = key;
+        foreach (var (n, key) in palKeys)
+            if (Resolve(files, key) is { } p) Palettes.Add((n, p));
+        Palettes.Sort((a, b) => a.Number.CompareTo(b.Number));
     }
 
     /// <summary>

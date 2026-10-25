@@ -29,6 +29,7 @@ before a release. Remove items once they're done or checked.
   - Found in the second sandbox pass (2026-10-23):
     Report text: a drag across two lines selects nothing; double-click selects within a line.
   - Unverified (sandbox has no window manager): Escape doesn't close the Alt+F4 refusal popup.
+- Some way to increase/decrease values faster with the mouse (Shift+wheel?); design undecided.
 - Customizable shortcuts: see features.md "Keyboard shortcuts". It compiles, and column widths
   measure at the largest of the dialog, window and tab font sizes. Left:
   - Check the "Animations tab" command fits at large font scales.
