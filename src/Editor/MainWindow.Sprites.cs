@@ -631,7 +631,7 @@ public partial class MainWindow
             Settings.DefaultSpriteNudgeShiftPixels, v => v is >= 1 and <= 1000);
         foreach (var (button, direction) in new[] { (NudgeUpButton, "up"), (NudgeLeftButton, "left"), (NudgeRightButton, "right"), (NudgeDownButton, "down") })
         {
-            ToolTip.SetTip(button, $"Move sprite {direction} (Shift+click: {_nudgeShiftPixels} px)");
+            ToolTip.SetTip(button, $"Move sprite {direction} (Shift+click: {_nudgeShiftPixels} px; arrow keys on the canvas)");
             // Click carries no modifiers, so Shift is read when the press starts.
             button.AddHandler(PointerPressedEvent, (_, e) => _nudgeShift = e.KeyModifiers.HasFlag(KeyModifiers.Shift), RoutingStrategies.Tunnel);
         }

@@ -488,6 +488,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   all as one undo step; palettes that link to one keep their current colors.
 - **Skipped items** from bulk import/export and multi-sound edits are listed in a popup: the
   first 10 entries, then "…and N more (see crash.log)". The status line keeps the count.
+- **Separators**: draggable ones are `PanelSeparatorWidth` bars in `ThemeSeparator`; fixed ones are
+  1px `ThemeLine` hairlines, except the menu, tab-strip and status-bar lines, which match the tab
+  outlines. The Paint panel resizes like the other side panels (settings.json `SpritesPaintWidth`;
+  null fits its contents).
 - **Themes**: user themes live under the platform's application-data directory. Dark is
   generated from `Themes.Fallback` when missing, shipped themes are refreshed at startup, and
   custom ones are never overwritten. Every key is required, missing ones are not defaulted,

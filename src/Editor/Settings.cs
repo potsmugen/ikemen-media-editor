@@ -267,6 +267,8 @@ public sealed class Settings
         // Side panel widths. Null means fit the panel to its contents on its tab's first layout.
         public double? SpritesListWidth { get; set; }
         public double? SpritesPaletteWidth { get; set; }
+        /// <summary>Paint panel width; null keeps it sized to its contents.</summary>
+        public double? SpritesPaintWidth { get; set; }
         public double? PalettesListWidth { get; set; }
         public double? AnimActionsWidth { get; set; }
         public double? AnimFramePanelWidth { get; set; }

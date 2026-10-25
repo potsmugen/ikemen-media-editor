@@ -459,7 +459,7 @@
           <GridSplitter x:Name="SpritesLeftSplitter" Grid.Column="1" Width="{DynamicResource PanelSeparatorWidth}" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" ResizeDirection="Columns" />
 
           <!-- Canvas, then the Paint panel on its right; SpritesGrid columns stay as they were. -->
-          <Grid Grid.Column="2">
+          <Grid Grid.Column="2" x:Name="SpriteCenterGrid">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" />
               <ColumnDefinition Width="{DynamicResource PanelSeparatorTrack}" />
@@ -484,7 +484,7 @@
                 <Border Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
                   <StackPanel Orientation="Horizontal" Spacing="10">
                     <ToggleButton x:Name="OnionEnabledBox" Content="Show" Click="OnToggleOnion" />
-                    <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                    <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
                     <StackPanel x:Name="OnionOptionsPanel" Orientation="Horizontal" Spacing="10">
                     <TextBlock Text="Pin sprite" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center"
                                ToolTip.Tip="Always onion-skin this sprite." />
@@ -494,7 +494,7 @@
                                    FormatString="0" Watermark="Number" ValueChanged="OnOnionFieldChanged" />
                     <Button Content="Auto" Click="OnOnionUseAuto"
                             ToolTip.Tip="Unpin: follow the previous sprite." />
-                    <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                    <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
                     <TextBlock Text="Opacity" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                     <Slider x:Name="OnionOpacitySlider" Minimum="0" Maximum="100" Width="100" VerticalAlignment="Center"
                             SmallChange="1" LargeChange="10" TickFrequency="1" IsSnapToTickEnabled="True"
@@ -514,10 +514,11 @@
                 </Border>
               </Grid>
 
-              <Border Grid.Row="2" Height="{DynamicResource PanelSeparatorWidth}" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+              <Border Grid.Row="2" Height="1" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
               <local:SpriteView Grid.Row="3" x:Name="SpriteCanvas" />
             </Grid>
             <Border Grid.Column="1" x:Name="PaintPanelSeparator" Width="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+            <GridSplitter x:Name="PaintPanelSplitter" Grid.Column="1" Width="{DynamicResource PanelSeparatorWidth}" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" ResizeDirection="Columns" />
             <Border Grid.Column="2" x:Name="PaintPanelHost" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
               <Grid RowDefinitions="Auto,*">
                 <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*" Margin="0,0,0,4">
@@ -538,7 +539,7 @@
                       <Button Grid.Column="2" x:Name="PaintResetButton" Content="Reset" Click="OnResetPaint" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                               ToolTip.Tip="Drops the pending paint changes." />
                     </Grid>
-                    <Border Height="{DynamicResource PanelSeparatorWidth}" Margin="{DynamicResource PanelRuleBleed}" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                    <Border Height="1" Background="{DynamicResource ThemeLine}" Margin="0,4" IsHitTestVisible="False" />
                     <TextBlock Text="Tools" Foreground="{DynamicResource ThemeMutedText}" />
                     <Grid ColumnDefinitions="*,Auto,*">
                       <ToggleButton Grid.Column="0" x:Name="PencilToolButton" Content="Pencil" Tag="Pencil" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
@@ -559,7 +560,7 @@
                     </Grid>
                     <!-- Shown only when the active tool has options (UpdateToolPanels). -->
                     <StackPanel x:Name="ToolOptionsSection" IsVisible="False" Spacing="{DynamicResource UiButtonGap}">
-                      <Border Height="{DynamicResource PanelSeparatorWidth}" Margin="{DynamicResource PanelRuleBleed}" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                      <Border Height="1" Background="{DynamicResource ThemeLine}" Margin="0,4" IsHitTestVisible="False" />
                       <TextBlock Text="Tool Options" Foreground="{DynamicResource ThemeMutedText}" />
                       <Border x:Name="BrushPanel" IsVisible="False">
                         <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}" HorizontalAlignment="Center">
@@ -618,7 +619,7 @@
                         </StackPanel>
                       </Border>
                     </StackPanel>
-                    <Border Height="{DynamicResource PanelSeparatorWidth}" Margin="{DynamicResource PanelRuleBleed}" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                    <Border Height="1" Background="{DynamicResource ThemeLine}" Margin="0,4" IsHitTestVisible="False" />
                     <TextBlock Text="Layers" Foreground="{DynamicResource ThemeMutedText}" />
                     <ToggleButton x:Name="LayersToggle" Content="Layers" Click="OnToggleLayers" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
                     <Border x:Name="LayerPanel" IsVisible="False">
@@ -696,7 +697,7 @@
                                 ToolTip.Tip="Shifts the selected sprites' axes by the same X/Y amount." />
                       </Grid>
                     </StackPanel>
-                    <Border Height="1" Background="{DynamicResource ThemeLine}" Margin="0,4" />
+                    <Border Height="1" Background="{DynamicResource ThemeLine}" Margin="0,4" IsHitTestVisible="False" />
                     <TextBlock Text="Transform" Foreground="{DynamicResource ThemeMutedText}" />
                     <StackPanel Spacing="{DynamicResource UiButtonGap}">
                       <Grid ColumnDefinitions="*,Auto,*">
@@ -1283,7 +1284,7 @@
             <Border Grid.Row="1" x:Name="AnimOnionPanelBody" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
               <StackPanel Orientation="Horizontal" Spacing="10">
                 <ToggleButton x:Name="AnimOnionEnabledBox" Content="Show" Click="OnToggleAnimOnion" />
-                <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
                 <StackPanel x:Name="AnimOnionOptionsPanel" Orientation="Horizontal" Spacing="10">
                 <TextBlock Text="Pin frame" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center"
                            ToolTip.Tip="Always onion-skin this frame." />
@@ -1293,7 +1294,7 @@
                                FormatString="0" Watermark="Frame" ValueChanged="OnAnimOnionFieldChanged" />
                 <Button Content="Auto" Click="OnAnimOnionUseAuto"
                         ToolTip.Tip="Unpin: follow the previous frame." />
-                <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
                 <TextBlock Text="Opacity" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                 <Slider x:Name="AnimOnionOpacitySlider" Minimum="0" Maximum="100" Width="100" VerticalAlignment="Center"
                         SmallChange="1" LargeChange="10" TickFrequency="1" IsSnapToTickEnabled="True"
@@ -1312,11 +1313,11 @@
                 </StackPanel>
               </StackPanel>
             </Border>
-            <Border Grid.Row="2" Height="{DynamicResource PanelSeparatorWidth}" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+            <Border Grid.Row="2" Height="1" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
             <local:SpriteView Grid.Row="3" x:Name="AnimCanvas" />
           </Grid>
 
-          <Border Grid.Column="2" Grid.Row="1" Height="{DynamicResource PanelSeparatorWidth}" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+          <Border Grid.Column="2" Grid.Row="1" Height="1" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
 
           <!-- Playback bar and timeline sit under the canvas, spanning the same column. -->
           <Border Grid.Column="2" Grid.Row="2" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
@@ -1328,14 +1329,14 @@
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
                 <ToggleButton x:Name="PlayButton" Content="Play" Click="OnPlayPause" Width="80" />
-                <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
                 <Button Content="|&lt;" Click="OnFirstFrame" Width="44" />
                 <Button Content="&lt;" Click="OnPrevFrame" Width="44" />
                 <Button Content="&gt;" Click="OnNextFrame" Width="44" />
-                <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
                 <Button Content="Export Animation" Click="OnExportAnimation"
                         ToolTip.Tip="Saves this action as a looping WebP or GIF." />
-                <Border Width="{DynamicResource PanelSeparatorWidth}" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
+                <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
                 <TextBlock x:Name="FrameInfo" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
               </StackPanel>
             </StackPanel>

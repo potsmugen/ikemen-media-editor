@@ -284,7 +284,6 @@ public partial class MainWindow : Window
         r["PanelContentHeaderPadding"] = new Thickness(contentInset, contentInset, contentInset, 0);
         r["PanelContentBleed"] = new Thickness(-contentInset, 0, -contentInset, 0);
         r["PanelContentSides"] = new Thickness(contentInset, 0, contentInset, 0);
-        r["PanelRuleBleed"] = new Thickness(-contentInset, 4, -contentInset, 4); // section rules reaching the panel's sides
         r["PanelContentMargin"] = new Thickness(contentInset);
         r["PanelSeparatorWidth"] = separatorTrackWidth;
         r["PanelSeparatorTrack"] = new GridLength(separatorTrackWidth);
@@ -1812,6 +1811,10 @@ public partial class MainWindow : Window
                 SpritePaletteBody.RowDefinitions[2].Height = star;
                 SpriteCanvasArea.RowDefinitions[1].Height = GridLength.Auto;
                 PaintPanelBody.IsVisible = PaintPanelLabel.IsVisible = true;
+                SpriteCenterGrid.ColumnDefinitions[2].Width = GridLength.Auto;
+                PaintPanelSplitter.IsEnabled = true;
+                _preCollapseWidths.Remove(PaintPanelBody);
+                _settings.Layout.SpritesPaintWidth = null;
                 OnionPanelBody.IsVisible = true;
                 PaintPanelToggle.Content = "▶";
                 OnionPanelToggle.Content = "▲";
@@ -1937,6 +1940,8 @@ public partial class MainWindow : Window
         }
         Restore(SpritesGrid, 0, _settings.Layout.SpritesListWidth);
         Restore(SpritesGrid, 4, _settings.Layout.SpritesPaletteWidth);
+        // The Paint column fits its contents (Auto) until dragged, so it has nothing to fit.
+        if (_settings.Layout.SpritesPaintWidth is { } paint) SpriteCenterGrid.ColumnDefinitions[2].Width = new GridLength(paint);
         Restore(PalettesGrid, 0, _settings.Layout.PalettesListWidth);
         // PalettesGrid's right column is star-sized (the preview shares width
         // equally with the swatches and color editor), so it has no pixel
@@ -1954,6 +1959,10 @@ public partial class MainWindow : Window
         double? Width(Grid grid, int column) => _pendingPanelFit.Contains((grid, column)) ? null : DockedWidth(grid, column);
         _settings.Layout.SpritesListWidth = Width(SpritesGrid, 0);
         _settings.Layout.SpritesPaletteWidth = Width(SpritesGrid, 4);
+        var paintColumn = SpriteCenterGrid.ColumnDefinitions[2];
+        var paintWidth = FloatPanels.SelectMany(p => p.Columns).Where(c => ReferenceEquals(c.Column, paintColumn))
+            .Select(c => (GridLength?)c.Width).FirstOrDefault() ?? paintColumn.Width; // docked width while floating
+        _settings.Layout.SpritesPaintWidth = paintWidth.IsAbsolute ? paintWidth.Value : null;
         _settings.Layout.PalettesListWidth = Width(PalettesGrid, 0);
         _settings.Layout.AnimActionsWidth = Width(AnimationsGrid, 0);
         _settings.Layout.AnimFramePanelWidth = Width(AnimationsGrid, 4);
@@ -2039,14 +2048,9 @@ public partial class MainWindow : Window
     private void OnToggleSoundListPanel(object? sender, RoutedEventArgs e) =>
         ToggleSidePanel(SoundsGrid, 0, SoundListBody, SoundListToggle, SoundsSplitter, SoundListLabel, "\u25C0", "\u25B6", new GridLength(280));
 
-    /// <summary>The Paint column is sized to its content, so collapsing just hides the body and label.</summary>
-    private void OnTogglePaintPanel(object? sender, RoutedEventArgs e)
-    {
-        bool show = !PaintPanelBody.IsVisible;
-        PaintPanelBody.IsVisible = PaintPanelLabel.IsVisible = show;
-        PaintPanelToggle.Content = show ? "\u25B6" : "\u25C0";
-        SyncFloatButtons();
-    }
+    /// <summary>The Paint column starts sized to its content (Auto) until its splitter is dragged.</summary>
+    private void OnTogglePaintPanel(object? sender, RoutedEventArgs e) =>
+        ToggleSidePanel(SpriteCenterGrid, 2, PaintPanelBody, PaintPanelToggle, PaintPanelSplitter, PaintPanelLabel, "\u25B6", "\u25C0", GridLength.Auto);
 
     private void OnToggleOnionPanel(object? sender, RoutedEventArgs e) =>
         ToggleTopPanel(SpriteCanvasArea, 1, OnionPanelBody, OnionPanelToggle, "\u25B2", "\u25BC");
