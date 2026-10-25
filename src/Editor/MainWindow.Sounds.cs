@@ -423,6 +423,112 @@ public partial class MainWindow
         StatusText.Text = "Sounds sorted by group and number.";
     }
 
+    // ---- drag to reorder ---------------------------------------------------
+    // Same press/move-armed drag as the palette list, carrying the dragged sounds
+    // (the selection, see MainWindow.ListDrag.cs). Sounds are found by group and
+    // number, so only the saved order changes.
+
+    private const string SoundDragFormat = "ime/sound-entries";
+    private bool _soundDragArmed;
+    private SoundEntry? _soundDragPressed;
+    // Sound a plain press on a multi-selection narrows to on release, unless it became a drag.
+    private SoundEntry? _soundCollapsePending;
+    private Point _soundDragPressPoint;
+
+    private void OnSoundRowPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (_snd is null || sender is not Control c || c.DataContext is not SoundRow row) return;
+        var p = e.GetCurrentPoint(c);
+        if (!p.Properties.IsLeftButtonPressed) return;
+        _soundCollapsePending = null;
+        if (e.ClickCount >= 2) { _soundDragArmed = false; return; }
+        var selected = GetSelectedSounds();
+        if (selected.Count > 1 && selected.Contains(row.Sound)
+            && !e.KeyModifiers.HasFlag(KeyModifiers.Control) && !e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        {
+            // Keep the selection so a drag carries all of it; a plain click narrows it on release.
+            e.Handled = true;
+            _soundCollapsePending = row.Sound;
+        }
+        _soundDragPressed = row.Sound;
+        _soundDragPressPoint = p.Position;
+        _soundDragArmed = _snd.Sounds.Contains(row.Sound);
+    }
+
+    /// <summary>Past a small threshold, turns an armed press into a real drag.</summary>
+    private async void OnSoundRowPointerMoved(object? sender, PointerEventArgs e)
+    {
+        try
+        {
+            if (!_soundDragArmed || _soundDragPressed is not { } pressed || sender is not Control c) return;
+            var p = e.GetPosition(c);
+            double dx = p.X - _soundDragPressPoint.X, dy = p.Y - _soundDragPressPoint.Y;
+            if (dx * dx + dy * dy < 36) return; // 6px, squared
+            _soundDragArmed = false;
+            _soundCollapsePending = null;
+
+            var data = new DataObject();
+            data.Set(SoundDragFormat, DraggedItems(GetSelectedSounds(), pressed));
+            await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
+        }
+        catch (Exception ex)
+        {
+            await Failed("OnSoundRowPointerMoved", ex);
+        }
+    }
+
+    private void OnSoundRowPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        var collapse = _soundCollapsePending;
+        _soundDragArmed = false;
+        _soundCollapsePending = null;
+        // What the list would have done on the press: select only this row, through OnSoundSelected.
+        if (collapse is not null && _snd is not null
+            && _visibleSounds.IndexOf(_snd.Sounds.IndexOf(collapse)) is var row and >= 0)
+            SoundList.SelectedIndex = row;
+    }
+
+    private void OnSoundListDragOver(object? sender, DragEventArgs e) =>
+        e.DragEffects = e.Data.Contains(SoundDragFormat) ? DragDropEffects.Move : DragDropEffects.None;
+
+    private async void OnSoundListDrop(object? sender, DragEventArgs e)
+    {
+        try
+        {
+            if (_snd is null || e.Data.Get(SoundDragFormat) is not SoundEntry[] moving) return;
+            // A visible row maps straight to an absolute _snd.Sounds index, as in the sprite list.
+            int to = _snd.Sounds.Count;
+            if (e.Source is Visual v && v.FindAncestorOfType<ListBoxItem>(true) is { } item)
+            {
+                int row = SoundList.IndexFromContainer(item);
+                if (row >= 0 && row < _visibleSounds.Count) to = DropBoundary(e, item, _visibleSounds[row]);
+            }
+            MoveSounds(moving, to);
+        }
+        catch (Exception ex)
+        {
+            await Failed("OnSoundListDrop", ex);
+        }
+    }
+
+    /// <summary>Moves sounds as one block to a drop boundary, in one undo step.</summary>
+    private void MoveSounds(IReadOnlyList<SoundEntry> moving, int to)
+    {
+        if (_snd is null) return;
+        var file = _snd;
+        var before = file.Sounds.ToList();
+        if (MovedAsBlock(before, moving, to) is not { } after) return;
+
+        void Apply(List<SoundEntry> order)
+        {
+            ApplyListOrder(file.Sounds, order, "sounds");
+            AfterSoundEdit();
+        }
+
+        _undo.Do("reorder sounds", () => Apply(after), () => Apply(before));
+        MarkSndDirty();
+    }
+
     // ---- list -------------------------------------------------------------
 
     private void ApplySoundFilter()

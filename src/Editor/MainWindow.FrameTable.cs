@@ -195,6 +195,119 @@ public partial class MainWindow
     private void OnFrameTableReleased(object? sender, PointerReleasedEventArgs e) =>
         Dispatcher.UIThread.Post(() => _framePressRow = -1);
 
+    // ---- drag to reorder (number column) ------------------------------------
+    // The # cell is the grip, since the other cells click to edit. A frame moves with its whole
+    // text block (Clsn, Interpolate, Loopstart, comments), as Move Up/Down does.
+
+    private const string FrameDragFormat = "ime/frames";
+    private bool _frameDragArmed;
+    private int _frameDragPressed = -1;
+    // Row a plain press on a multi-selection narrows to on release, unless it became a drag.
+    private int _frameCollapsePending = -1;
+    private Point _frameDragPressPoint;
+    private AnimationAction? _frameDragAction;
+
+    private void OnFrameGripPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (_action is null || sender is not Control c || c.DataContext is not FrameTableRow row) return;
+        var p = e.GetCurrentPoint(c);
+        if (!p.Properties.IsLeftButtonPressed) return;
+        _frameCollapsePending = -1;
+        if (e.ClickCount >= 2) { _frameDragArmed = false; return; }
+        var selected = SelectedFrameRows();
+        if (selected.Count > 1 && selected.Contains(row.FrameRow)
+            && !e.KeyModifiers.HasFlag(KeyModifiers.Control) && !e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        {
+            // Keep the selection so a drag carries all of it; a plain click narrows it on release.
+            e.Handled = true;
+            _frameCollapsePending = row.FrameRow;
+        }
+        _frameDragPressed = row.FrameRow;
+        _frameDragPressPoint = p.Position;
+        _frameDragArmed = row.FrameRow < _action.Elements.Count;
+    }
+
+    /// <summary>Past a small threshold, turns an armed press into a real drag carrying the dragged frames.</summary>
+    private async void OnFrameGripMoved(object? sender, PointerEventArgs e)
+    {
+        try
+        {
+            if (!_frameDragArmed || _action is not { } action || sender is not Control c) return;
+            var p = e.GetPosition(c);
+            double dx = p.X - _frameDragPressPoint.X, dy = p.Y - _frameDragPressPoint.Y;
+            if (dx * dx + dy * dy < 36) return; // 6px, squared
+            _frameDragArmed = false;
+            _frameCollapsePending = -1;
+            if (_frameDragPressed < 0 || _frameDragPressed >= action.Elements.Count) return;
+
+            var selected = SelectedFrameRows().Where(r => r < action.Elements.Count).ToList();
+            List<int> rows = selected.Contains(_frameDragPressed) ? selected : [_frameDragPressed];
+            _frameDragAction = action;
+            var data = new DataObject();
+            data.Set(FrameDragFormat, rows.Select(r => action.Elements[r]).ToArray());
+            await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
+        }
+        catch (Exception ex)
+        {
+            await Failed("OnFrameGripMoved", ex);
+        }
+    }
+
+    private void OnFrameGripReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        int collapse = _frameCollapsePending;
+        _frameDragArmed = false;
+        _frameCollapsePending = -1;
+        // What the list would have done on the press: select only this row, through OnFrameTableSelected.
+        if (collapse >= 0 && collapse < _frameTableRows.Count) FrameTableList.SelectedIndex = collapse;
+    }
+
+    private void OnFrameTableDragOver(object? sender, DragEventArgs e) =>
+        e.DragEffects = e.Data.Contains(FrameDragFormat) ? DragDropEffects.Move : DragDropEffects.None;
+
+    private async void OnFrameTableDrop(object? sender, DragEventArgs e)
+    {
+        try
+        {
+            if (_action is not { } action || !ReferenceEquals(action, _frameDragAction)
+                || e.Data.Get(FrameDragFormat) is not AnimationElement[] moving) return;
+            int to = action.Elements.Count;
+            if (e.Source is Visual v && v.FindAncestorOfType<ListBoxItem>(true) is { DataContext: FrameTableRow row } item
+                && row.FrameRow < action.Elements.Count)
+                to = DropBoundary(e, item, row.FrameRow);
+            MoveFrames(moving, to);
+        }
+        catch (Exception ex)
+        {
+            await Failed("OnFrameTableDrop", ex);
+        }
+    }
+
+    /// <summary>Moves frames as one block to a drop boundary, each with its text block, in one undo step.</summary>
+    private void MoveFrames(IReadOnlyList<AnimationElement> moving, int to)
+    {
+        if (_action is not { } action || MovedAsBlock(action.Elements, moving, to) is not { } order) return;
+        int currentRow = FrameList.SelectedIndex;
+        var current = currentRow >= 0 && currentRow < action.Elements.Count ? action.Elements[currentRow] : null;
+        var moved = new HashSet<AnimationElement>(moving, ReferenceEqualityComparer.Instance);
+
+        EditFrameList(moving.Count == 1 ? "move frame" : "move frames", () =>
+        {
+            // Adjacent swaps, as Move Up/Down does, so each frame's lines go with it.
+            for (int target = 0; target < order.Count; target++)
+            {
+                for (int at = action.Elements.IndexOf(order[target]); at > target; at--)
+                {
+                    (action.Elements[at - 1], action.Elements[at]) = (action.Elements[at], action.Elements[at - 1]);
+                    action.SwapFrameLines(at - 1, at);
+                }
+            }
+            var selected = Enumerable.Range(0, action.Elements.Count).Where(i => moved.Contains(action.Elements[i])).ToList();
+            int row = current is null ? selected[0] : action.Elements.IndexOf(current);
+            return (row, selected);
+        });
+    }
+
     /// <summary>Focuses the selected row once layout settles, if focus is still with the table: nowhere,
     /// the (now hidden) cell editor, or a row. Focus moved to another control is left alone.</summary>
     private void FocusFrameTableRow()

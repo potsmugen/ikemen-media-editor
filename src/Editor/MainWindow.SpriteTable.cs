@@ -676,16 +676,18 @@ public partial class MainWindow
 
     // ---- drag to reorder ---------------------------------------------------
     // Same press/move/release-armed drag as the action list (MainWindow.Animations.cs),
-    // carrying the source's absolute position in _file.Sprites (not a filtered row
-    // index) as the drag payload. Reordering never touches pixel sharing: SharesWith
+    // carrying the dragged sprites themselves (the selection, see MainWindow.ListDrag.cs)
+    // as the drag payload. Reordering never touches pixel sharing: SharesWith
     // is an object reference, and positions are only computed fresh at write time
     // (SffWriter), so moving a sprite around the list re-links everything that shares
     // with it (or with anything else) automatically — nothing here needs to "fix up"
     // a link, unlike a format where sharing is stored as a raw index.
 
-    private const string SpriteDragFormat = "ime/sprite-index";
+    private const string SpriteDragFormat = "ime/sprites";
     private bool _spriteDragArmed;
-    private int _spriteDragFromIndex = -1;
+    private Sprite? _spriteDragPressed;
+    // Row a plain press on a multi-selection narrows to on release, unless it became a drag.
+    private int _spriteCollapsePending = -1;
     private int _spritePointerPressToken;
     private Point _spriteDragPressPoint;
 
@@ -697,6 +699,7 @@ public partial class MainWindow
         e.Handled = true;
         if (e.ClickCount >= 2) { _spriteDragArmed = false; return; }
         int pressToken = ++_spritePointerPressToken;
+        _spriteCollapsePending = -1;
         e.Pointer.Capture(c);
 
         try
@@ -727,6 +730,11 @@ public partial class MainWindow
                 if (!selected.Add(row.VisibleRow)) selected.Remove(row.VisibleRow);
                 _spriteSelectionAnchor = row.VisibleRow;
             }
+            else if (selected.Count > 1 && selected.Contains(row.VisibleRow))
+            {
+                // Keep the selection so a drag carries all of it; a plain click narrows it on release.
+                _spriteCollapsePending = row.VisibleRow;
+            }
             else
             {
                 selected.Clear();
@@ -736,9 +744,9 @@ public partial class MainWindow
 
             ApplySpriteRowSelection(selected, suppressEvents: true);
             RefreshAssignPaletteButton();
-            _spriteDragFromIndex = _file.PositionOf(row.Sprite);
+            _spriteDragPressed = row.Sprite;
             _spriteDragPressPoint = p.Position;
-            _spriteDragArmed = _spriteDragFromIndex >= 0;
+            _spriteDragArmed = _file.PositionOf(row.Sprite) >= 0;
         }
         catch (Exception ex)
         {
@@ -746,19 +754,20 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Past a small threshold, turns an armed press into a real drag carrying the source's absolute position.</summary>
+    /// <summary>Past a small threshold, turns an armed press into a real drag carrying the dragged sprites.</summary>
     private async void OnSpriteRowPointerMoved(object? sender, PointerEventArgs e)
     {
         try
         {
-            if (!_spriteDragArmed || sender is not Control c) return;
+            if (!_spriteDragArmed || _spriteDragPressed is not { } pressed || sender is not Control c) return;
             var p = e.GetPosition(c);
             double dx = p.X - _spriteDragPressPoint.X, dy = p.Y - _spriteDragPressPoint.Y;
             if (dx * dx + dy * dy < 36) return; // 6px, squared
             _spriteDragArmed = false;
+            _spriteCollapsePending = -1;
 
             var data = new DataObject();
-            data.Set(SpriteDragFormat, _spriteDragFromIndex);
+            data.Set(SpriteDragFormat, DraggedItems(SelectedSpriteTargets(), pressed));
             await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
         }
         catch (Exception ex)
@@ -769,8 +778,13 @@ public partial class MainWindow
 
     private void OnSpriteRowPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        int collapse = _spriteCollapsePending;
         _spriteDragArmed = false;
+        _spriteCollapsePending = -1;
         _spritePointerPressToken++;
+        if (collapse < 0 || collapse >= _visible.Count) return;
+        SelectOnlySpriteRow(collapse, suppressEvents: true);
+        RefreshAssignPaletteButton();
     }
 
     private void OnSpriteListDragOver(object? sender, DragEventArgs e) =>
@@ -778,7 +792,7 @@ public partial class MainWindow
 
     private void OnSpriteListDrop(object? sender, DragEventArgs e)
     {
-        if (_file is null || e.Data.Get(SpriteDragFormat) is not int from) return;
+        if (_file is null || e.Data.Get(SpriteDragFormat) is not Sprite[] moving) return;
         // IndexFromContainer is a position in the (possibly filtered) ItemsSource;
         // _visible already maps that straight to an absolute _file.Sprites index,
         // so — unlike the action list — there's no need to go through object
@@ -789,33 +803,22 @@ public partial class MainWindow
             int row = SpriteList.IndexFromContainer(item);
             if (row >= 0 && row < _visible.Count) to = DropBoundary(e, item, _visible[row]);
         }
-        MoveSprite(from, to);
+        MoveSprites(moving, to);
     }
 
-    private void MoveSprite(int from, int to)
+    /// <summary>Moves sprites as one block to a drop boundary; undo and redo restore whole-list snapshots.</summary>
+    private void MoveSprites(IReadOnlyList<Sprite> moving, int to)
     {
-        if (_file is null || from < 0 || from >= _file.Sprites.Count) return;
-        to = Math.Clamp(to, 0, _file.Sprites.Count);
-        if (to == from || to == from + 1) return; // no real move
-
+        if (_file is null) return;
         var file = _file;
-        var sprite = file.Sprites[from];
-
-        // `to` is a drop boundary, so moving down inserts one slot before it.
-        // Undo and redo use final list positions instead; find the sprite by
-        // identity each time so a prior move cannot make a captured index stale.
-        int destination = to > from ? to - 1 : to;
-        void ApplyAt(int target)
+        var before = file.Sprites.ToList();
+        if (MovedAsBlock(before, moving, to) is not { } after) return;
+        void Apply(List<Sprite> order)
         {
-            int oldPosition = file.Sprites.IndexOf(sprite);
-            CrashLog.Trace($"[sprite reorder] apply: group={sprite.Group}, number={sprite.Index}, target={target}, actual={oldPosition}, count={file.Sprites.Count}");
-            if (oldPosition < 0) throw new InvalidOperationException("The sprite being reordered is no longer in the file.");
-            file.Sprites.RemoveAt(oldPosition);
-            file.Sprites.Insert(Math.Clamp(target, 0, file.Sprites.Count), sprite);
-            int occurrences = file.Sprites.Count(s => ReferenceEquals(s, sprite));
-            CrashLog.Trace($"[sprite reorder] applied: group={sprite.Group}, number={sprite.Index}, position={file.Sprites.IndexOf(sprite)}, occurrences={occurrences}, count={file.Sprites.Count}");
+            CrashLog.Trace($"[sprite reorder] apply: moving={moving.Count}, first={moving[0].Group},{moving[0].Index}, to={to}, count={file.Sprites.Count}");
+            ApplyListOrder(file.Sprites, order, "sprites");
         }
-        Edit("reorder sprites", () => ApplyAt(destination), () => ApplyAt(from));
+        Edit("reorder sprites", () => Apply(after), () => Apply(before));
     }
 
     // ---- sort ----------------------------------------------------------------

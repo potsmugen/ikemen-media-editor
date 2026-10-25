@@ -267,6 +267,7 @@ public partial class MainWindow
     {
         if (_air is null) return;
         var current = ActionList.SelectedItem as ActionRow;
+        var keep = SelectedActionsInOrder();
         var text = (ActionFilterBox?.Text ?? "").Trim();
 
         double numberWidth = ActionNumberWidth();
@@ -288,9 +289,24 @@ public partial class MainWindow
         if (current is not null)
         {
             int idx = rows.FindIndex(r => ReferenceEquals(r.Action, current.Action));
-            if (idx >= 0) ActionList.SelectedIndex = idx;
+            if (idx >= 0)
+            {
+                ActionList.SelectedIndex = idx;
+                // The rest of a multi-selection, by identity too.
+                if (ActionList.SelectedItems is { } selectedItems)
+                    foreach (var row in rows)
+                        if (!ReferenceEquals(row.Action, current.Action) && keep.Contains(row.Action)) selectedItems.Add(row);
+            }
         }
         _suppressEvents = false;
+    }
+
+    /// <summary>Actions selected in the list, in file order.</summary>
+    private List<AnimationAction> SelectedActionsInOrder()
+    {
+        if (_air is null || ActionList?.SelectedItems is not { } items) return [];
+        var chosen = new HashSet<AnimationAction>(items.OfType<ActionRow>().Select(r => r.Action), ReferenceEqualityComparer.Instance);
+        return _air.Actions.Where(chosen.Contains).ToList();
     }
 
     /// <summary>
@@ -564,6 +580,9 @@ public partial class MainWindow
     private void OnActionSelected(object? sender, SelectionChangedEventArgs e)
     {
         if (_suppressEvents || _air is null || ActionList.SelectedItem is not ActionRow row) return;
+        // Adding or dropping other rows keeps the current action and its playback.
+        if (ReferenceEquals(row.Action, _action)
+            && (ActionList.SelectedItems?.Count > 1 || (e.AddedItems.Count == 0 && e.RemovedItems.Count > 0))) return;
         _action = row.Action;
         _tick = 0;
         ResetPlaybackCaches(); // keeps the bitmap cache to one action's sprites
@@ -2088,9 +2107,11 @@ public partial class MainWindow
 
     // ---- action management ----------------------------------------------------
 
-    private const string ActionDragFormat = "ime/action-index";
+    private const string ActionDragFormat = "ime/actions";
     private bool _actionDragArmed;
-    private int _actionDragFromIndex = -1;
+    private AnimationAction? _actionDragPressed;
+    // Action a plain press on a multi-selection narrows to on release, unless it became a drag.
+    private AnimationAction? _actionCollapsePending;
     private Point _actionDragPressPoint;
 
     /// <summary>
@@ -2105,25 +2126,35 @@ public partial class MainWindow
         if (_air is null || sender is not Control c || c.DataContext is not ActionRow row) return;
         var p = e.GetCurrentPoint(c);
         if (!p.Properties.IsLeftButtonPressed) return;
+        _actionCollapsePending = null;
         if (e.ClickCount >= 2) { _actionDragArmed = false; return; }
-        _actionDragFromIndex = _air.Actions.IndexOf(row.Action);
+        var selected = SelectedActionsInOrder();
+        if (selected.Count > 1 && selected.Contains(row.Action)
+            && !e.KeyModifiers.HasFlag(KeyModifiers.Control) && !e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        {
+            // Keep the selection so a drag carries all of it; a plain click narrows it on release.
+            e.Handled = true;
+            _actionCollapsePending = row.Action;
+        }
+        _actionDragPressed = row.Action;
         _actionDragPressPoint = p.Position;
-        _actionDragArmed = _actionDragFromIndex >= 0;
+        _actionDragArmed = _air.Actions.Contains(row.Action);
     }
 
-    /// <summary>Past a small threshold, turns an armed press into a real drag carrying the source index.</summary>
+    /// <summary>Past a small threshold, turns an armed press into a real drag carrying the dragged actions.</summary>
     private async void OnActionRowPointerMoved(object? sender, PointerEventArgs e)
     {
         try
         {
-            if (!_actionDragArmed || sender is not Control c) return;
+            if (!_actionDragArmed || _actionDragPressed is not { } pressed || sender is not Control c) return;
             var p = e.GetPosition(c);
             double dx = p.X - _actionDragPressPoint.X, dy = p.Y - _actionDragPressPoint.Y;
             if (dx * dx + dy * dy < 36) return; // 6px, squared
             _actionDragArmed = false;
+            _actionCollapsePending = null;
 
             var data = new DataObject();
-            data.Set(ActionDragFormat, _actionDragFromIndex);
+            data.Set(ActionDragFormat, DraggedItems(SelectedActionsInOrder(), pressed));
             await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
         }
         catch (Exception ex)
@@ -2132,7 +2163,16 @@ public partial class MainWindow
         }
     }
 
-    private void OnActionRowPointerReleased(object? sender, PointerReleasedEventArgs e) => _actionDragArmed = false;
+    private void OnActionRowPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        var collapse = _actionCollapsePending;
+        _actionDragArmed = false;
+        _actionCollapsePending = null;
+        // What the list would have done on the press: select only this row, through OnActionSelected.
+        if (collapse is not null && ActionList.ItemsSource is List<ActionRow> rows
+            && rows.FindIndex(r => ReferenceEquals(r.Action, collapse)) is var index and >= 0)
+            ActionList.SelectedIndex = index;
+    }
 
     private void OnActionListDragOver(object? sender, DragEventArgs e) =>
         e.DragEffects = e.Data.Contains(ActionDragFormat) ? DragDropEffects.Move : DragDropEffects.None;
@@ -2143,7 +2183,7 @@ public partial class MainWindow
 
     private void OnActionListDrop(object? sender, DragEventArgs e)
     {
-        if (_air is null || e.Data.Get(ActionDragFormat) is not int from) return;
+        if (_air is null || e.Data.Get(ActionDragFormat) is not AnimationAction[] moving) return;
         // IndexFromContainer is a position in the (possibly filtered) ItemsSource,
         // not in _air.Actions — translate through the row's own action identity,
         // the same way _actionDragFromIndex already does for the drag source.
@@ -2155,31 +2195,23 @@ public partial class MainWindow
                 && _air.Actions.IndexOf(rows[row].Action) is var index and >= 0)
                 to = DropBoundary(e, item, index);
         }
-        MoveAction(from, to);
+        MoveActions(moving, to);
     }
 
-    /// <summary>
-    /// Moves the action at `from` so it lands just before whatever was at `to`
-    /// (in the list's indices before the move) — the usual drag-and-drop-list
-    /// convention. `to == _air.Actions.Count` means "drop at the very end".
-    /// </summary>
-    private void MoveAction(int from, int to)
+    /// <summary>Moves actions as one block to a drop boundary; `_air.Actions.Count` means the very end.</summary>
+    private void MoveActions(IReadOnlyList<AnimationAction> moving, int to)
     {
-        if (_air is null || from < 0 || from >= _air.Actions.Count) return;
-        to = Math.Clamp(to, 0, _air.Actions.Count);
-        if (to == from || to == from + 1) return; // no real move
-
+        if (_air is null) return;
         var air = _air;
-        var action = air.Actions[from];
+        var before = air.Actions.ToList();
+        if (MovedAsBlock(before, moving, to) is not { } after) return;
 
-        void Apply(int f, int t)
+        void Apply(List<AnimationAction> order)
         {
-            air.Actions.RemoveAt(f);
-            air.Actions.Insert(t > f ? t - 1 : t, action);
-            RebuildActionList();
-            SelectAction(action);
+            air.Actions = [.. order];
+            RebuildActionList(); // keeps the selection by identity
         }
-        _undo.Do("reorder actions", () => Apply(from, to), () => Apply(to, from));
+        _undo.Do("reorder actions", () => Apply(after), () => Apply(before));
         MarkAirDirty();
     }
 
@@ -2271,22 +2303,37 @@ public partial class MainWindow
     {
         try
         {
-            if (_air is null || _action is null) return;
-            var action = _action;
-            var name = SuggestedActionName(action.Number) is { } n ? $"{action.Number} ({n})" : $"{action.Number}";
-            if (!await Dialogs.Confirm(this, "Delete Action", $"Delete action {name}?", "Delete")) return;
-
+            if (_air is null || _action is not { } currentAction) return;
             var air = _air;
-            int at = air.Actions.IndexOf(action);
-            _undo.Record("delete action",
-                () => { air.Actions.Insert(Math.Min(at, air.Actions.Count), action); RebuildActionList(); SelectAction(action); },
-                () => { air.Actions.Remove(action); RebuildActionList(); });
-            air.Actions.Remove(action);
-            _action = null;
-            RebuildActionList();
-            if (air.Actions.Count > 0) SelectAction(air.Actions[Math.Min(at, air.Actions.Count - 1)]);
-            else UpdateFrameButtons();
+            var targets = SelectedActionsInOrder();
+            if (!targets.Contains(currentAction)) targets = [currentAction];
+            bool many = targets.Count > 1;
+            var first = targets[0];
+            var name = SuggestedActionName(first.Number) is { } n ? $"{first.Number} ({n})" : $"{first.Number}";
+            if (!await Dialogs.Confirm(this, many ? "Delete Actions" : "Delete Action",
+                    many ? $"Delete {targets.Count} actions?" : $"Delete action {name}?", "Delete")) return;
+            if (!ReferenceEquals(_air, air)) return;
+
+            var before = air.Actions.ToList();
+            var after = before.Where(a => !targets.Contains(a)).ToList();
+            int at = before.IndexOf(first);
+            void Remove()
+            {
+                air.Actions = [.. after];
+                _action = null;
+                RebuildActionList();
+                if (after.Count > 0) SelectAction(after[Math.Min(at, after.Count - 1)]);
+                else UpdateFrameButtons();
+            }
+            void Restore()
+            {
+                air.Actions = [.. before];
+                RebuildActionList();
+                SelectActions(targets);
+            }
+            _undo.Do(many ? "delete actions" : "delete action", Remove, Restore);
             MarkAirDirty();
+            if (many) StatusText.Text = $"Deleted {targets.Count} actions.";
         }
         catch (Exception ex)
         {
@@ -2310,6 +2357,22 @@ public partial class MainWindow
         int idx = ((List<ActionRow>)ActionList.ItemsSource!).IndexOf(row);
         ActionList.SelectedIndex = idx;
         ActionList.ScrollIntoView(idx);
+    }
+
+    /// <summary>Selects these actions, the first as the current one.</summary>
+    private void SelectActions(IReadOnlyList<AnimationAction> actions)
+    {
+        if (actions.Count == 0) return;
+        SelectAction(actions[0]);
+        if (ActionList.ItemsSource is not List<ActionRow> rows || ActionList.SelectedItems is not { } items) return;
+        bool wasSuppressed = _suppressEvents;
+        _suppressEvents = true;
+        try
+        {
+            foreach (var action in actions.Skip(1))
+                if (rows.Find(r => ReferenceEquals(r.Action, action)) is { } row) items.Add(row);
+        }
+        finally { _suppressEvents = wasSuppressed; }
     }
 
     private ActionRow? FindActionRow(AnimationAction action) =>

@@ -111,6 +111,11 @@ file editor for Ikemen GO binary formats: SFF, palettes, AIR, and SND. It
 reads but never writes plain-text .def/.cns/.cmd files. It has no game or
 rendering engine.
 
+An AIR frame is the whole block of text that ends in its main line: the main line
+plus every line above it that belongs to it (Clsn defaults and boxes, Interpolate
+flags, Loopstart, comments). Any operation on a frame (move, drag, copy, duplicate,
+remove, insert) carries that whole block, as moving the text would. Don't ask.
+
 Supported platforms are Windows, Linux, and macOS. Guard Windows-only code
 with `OperatingSystem.IsWindows()` and provide a fallback. Sound uses
 `WinSound` (winmm `PlaySound`) on Windows and `afplay` (macOS), then `paplay`/`aplay` (Linux);

@@ -145,6 +145,10 @@ and constraints that are easy to miss when reading one code path in isolation.
 
 ### Animation editing
 
+- **Action multi-selection**: Ctrl/Shift click selects several actions, mainly to drag them.
+  Delete (button and key) removes every selected action in one undo step; the preview, frame
+  table, Duplicate and Number and Comment follow the list's current action, and Ctrl/Shift
+  clicks that keep it don't restart playback.
 - **Duplicate Action** copies Copy Action, interpolation markers, comments, collision
   defaults, loop start and cloned frames. Frame text edits reparse on commit as one step.
 - **Frame comments** belong to the frame below them and move with it through insert, remove,
@@ -445,8 +449,14 @@ and constraints that are easy to miss when reading one code path in isolation.
   Stop, Trim to Selection and Replace are disabled, and Downsample All works the same way.
 - **Duplicate** leaves the copies selected (single and multi-selection), like the sprite,
   action, frame and palette lists.
-- **Drag to reorder** (sprite, action and palette lists) drops before the hovered row on its
-  top half and after it on its bottom half, so moving one row up or down is symmetric.
+- **Drag to reorder** (sprite, action, palette and sound lists, and the frame table by its #
+  column) drops before the hovered row on its top half and after it on its bottom half, so
+  moving one row up or down is symmetric. A dragged frame carries its whole text block, as
+  Move Up/Down does.
+  Dragging a selected row carries the whole selection, gathered as one block in list order
+  at the drop point, in one undo step. A plain press on a multi-selection keeps it until
+  release, so a click without a drag still narrows to that row. Shared code is in
+  `MainWindow.ListDrag.cs`.
 
 ### Reports and configuration
 

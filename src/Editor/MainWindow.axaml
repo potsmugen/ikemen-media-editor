@@ -1201,7 +1201,7 @@
                       <TextBlock Text="Comment" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
                     </Border>
                   </Grid>
-                  <ListBox Grid.Row="2" x:Name="ActionList" SelectionChanged="OnActionSelected" Background="{DynamicResource ThemeListBg}">
+                  <ListBox Grid.Row="2" x:Name="ActionList" SelectionMode="Multiple" SelectionChanged="OnActionSelected" Background="{DynamicResource ThemeListBg}">
                     <ListBox.Styles>
                       <Style Selector="ListBoxItem">
                         <Setter Property="Padding" Value="0" />
@@ -1535,7 +1535,8 @@
                                                         <ColumnDefinition Width="Auto" />
                                                       </Grid.ColumnDefinitions>
                             <Border Grid.Column="0" Width="{Binding Widths[0]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"
-                                    Background="Transparent" ToolTip.Tip="{Binding CommentTip}">
+                                    Background="Transparent" ToolTip.Tip="{Binding CommentTip}"
+                                    PointerPressed="OnFrameGripPressed" PointerMoved="OnFrameGripMoved" PointerReleased="OnFrameGripReleased">
                               <Panel>
                                 <TextBlock Text="{Binding Number}" Foreground="{DynamicResource ThemeMutedText}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -1801,7 +1802,8 @@
                   </ListBox.Styles>
                   <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="local:SoundRow" x:CompileBindings="True">
-                      <Grid>
+                      <Grid PointerPressed="OnSoundRowPointerPressed" PointerMoved="OnSoundRowPointerMoved"
+                            PointerReleased="OnSoundRowPointerReleased">
                         <Grid.ColumnDefinitions>
                           <ColumnDefinition Width="Auto" />
                           <ColumnDefinition Width="Auto" />

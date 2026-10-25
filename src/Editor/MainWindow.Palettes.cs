@@ -1864,14 +1864,16 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     }
 
     // ---- drag to reorder ---------------------------------------------------
-    // Same press/move-armed drag as the action list, carrying the palette's
-    // absolute index in _file.Palettes (or the standalone list). Nothing in the
+    // Same press/move-armed drag as the action list, carrying the dragged palettes
+    // (the selection, see MainWindow.ListDrag.cs). Nothing in the
     // session references a palette by position; the writer recomputes palette
     // indices at save, and only the visible order and labels change.
 
-    private const string PaletteDragFormat = "ime/palette-index";
+    private const string PaletteDragFormat = "ime/palettes";
     private bool _paletteDragArmed;
-    private int _paletteDragFromIndex = -1;
+    private Palette? _paletteDragPressed;
+    // Palette a plain press on a multi-selection narrows to on release, unless it became a drag.
+    private Palette? _paletteCollapsePending;
     private Point _paletteDragPressPoint;
 
     private List<Palette> OrderedPalettes => _file?.Palettes ?? _standalonePalettes;
@@ -1881,10 +1883,19 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         if (sender is not Control c || c.DataContext is not PaletteRow row) return;
         var p = e.GetCurrentPoint(c);
         if (!p.Properties.IsLeftButtonPressed) return;
+        _paletteCollapsePending = null;
         if (e.ClickCount >= 2) { _paletteDragArmed = false; return; }
-        _paletteDragFromIndex = OrderedPalettes.IndexOf(row.Palette);
+        var selected = SelectedPalettesInOrder();
+        if (selected.Count > 1 && selected.Contains(row.Palette)
+            && !e.KeyModifiers.HasFlag(KeyModifiers.Control) && !e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        {
+            // Keep the selection so a drag carries all of it; a plain click narrows it on release.
+            e.Handled = true;
+            _paletteCollapsePending = row.Palette;
+        }
+        _paletteDragPressed = row.Palette;
         _paletteDragPressPoint = p.Position;
-        _paletteDragArmed = _paletteDragFromIndex >= 0;
+        _paletteDragArmed = OrderedPalettes.Contains(row.Palette);
     }
 
     /// <summary>Past a small threshold, turns an armed press into a real drag.</summary>
@@ -1892,14 +1903,15 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     {
         try
         {
-            if (!_paletteDragArmed || sender is not Control c) return;
+            if (!_paletteDragArmed || _paletteDragPressed is not { } pressed || sender is not Control c) return;
             var p = e.GetPosition(c);
             double dx = p.X - _paletteDragPressPoint.X, dy = p.Y - _paletteDragPressPoint.Y;
             if (dx * dx + dy * dy < 36) return; // 6px, squared
             _paletteDragArmed = false;
+            _paletteCollapsePending = null;
 
             var data = new DataObject();
-            data.Set(PaletteDragFormat, _paletteDragFromIndex);
+            data.Set(PaletteDragFormat, DraggedItems(SelectedPalettesInOrder(), pressed));
             await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
         }
         catch (Exception ex)
@@ -1908,14 +1920,23 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         }
     }
 
-    private void OnPaletteRowPointerReleased(object? sender, PointerReleasedEventArgs e) => _paletteDragArmed = false;
+    private void OnPaletteRowPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        var collapse = _paletteCollapsePending;
+        _paletteDragArmed = false;
+        _paletteCollapsePending = null;
+        // What the list would have done on the press: select only this row, through OnPaletteListSelected.
+        if (collapse is not null && PaletteList.ItemsSource is IList<PaletteRow> rows
+            && rows.ToList().FindIndex(r => ReferenceEquals(r.Palette, collapse)) is var index and >= 0)
+            PaletteList.SelectedIndex = index;
+    }
 
     private void OnPaletteListDragOver(object? sender, DragEventArgs e) =>
         e.DragEffects = e.Data.Contains(PaletteDragFormat) ? DragDropEffects.Move : DragDropEffects.None;
 
     private void OnPaletteListDrop(object? sender, DragEventArgs e)
     {
-        if (e.Data.Get(PaletteDragFormat) is not int from) return;
+        if (e.Data.Get(PaletteDragFormat) is not Palette[] moving) return;
         var palettes = OrderedPalettes;
         int to = palettes.Count;
         if (e.Source is Visual v && v.FindAncestorOfType<ListBoxItem>(true) is { } item
@@ -1924,43 +1945,58 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             && rows.ElementAtOrDefault(row) is { } target
             && palettes.IndexOf(target.Palette) is var index and >= 0)
             to = DropBoundary(e, item, index);
-        MovePalette(from, to);
+        MovePalettes(moving, to);
     }
 
-    /// <summary>Moves a palette to a drop boundary; dropping past the last row means the end.</summary>
-    private void MovePalette(int from, int to)
+    /// <summary>Moves palettes as one block to a drop boundary; dropping past the last row means the end.</summary>
+    private void MovePalettes(IReadOnlyList<Palette> moving, int to)
     {
         var palettes = OrderedPalettes;
-        if (from < 0 || from >= palettes.Count) return;
-        to = Math.Clamp(to, 0, palettes.Count);
-        if (to == from || to == from + 1) return; // no real move
-
-        var palette = palettes[from];
-        int destination = to > from ? to - 1 : to; // `to` is a boundary, not a slot
+        var before = palettes.ToList();
+        if (MovedAsBlock(before, moving, to) is not { } after) return;
         // Keep the editor on the same palette object, not the same position.
         var active = _file is not null
             ? (_paletteOverride >= 0 && _paletteOverride < palettes.Count ? palettes[_paletteOverride] : null)
             : (_standalonePaletteOverride >= 0 && _standalonePaletteOverride < palettes.Count ? palettes[_standalonePaletteOverride] : null);
-        void ApplyAt(int target)
+        var selected = SelectedPalettesInOrder();
+        void Apply(List<Palette> order)
         {
             // Read the list fresh: Save As may replace _file.Palettes before an undo runs.
             var list = OrderedPalettes;
-            int oldPosition = list.IndexOf(palette);
-            if (oldPosition < 0) throw new InvalidOperationException("The palette being reordered is no longer in the list.");
-            list.RemoveAt(oldPosition);
-            list.Insert(Math.Clamp(target, 0, list.Count), palette);
+            ApplyListOrder(list, order, "palettes");
             if (_file is not null) _paletteOverride = active is null ? -1 : list.IndexOf(active);
             else _standalonePaletteOverride = active is null ? -1 : list.IndexOf(active);
+            // The new order replaces the rows; put the multi-selection back on them.
+            RebuildPaletteList();
+            SelectPaletteRows(selected, active);
         }
 
         if (_file is not null)
         {
-            Edit("reorder palettes", () => ApplyAt(destination), () => ApplyAt(from));
+            Edit("reorder palettes", () => Apply(after), () => Apply(before));
             return;
         }
         _undo.Do("reorder palettes",
-            () => { ApplyAt(destination); RebuildPaletteList(); RefreshPaletteTab(); UpdateTitle(); },
-            () => { ApplyAt(from); RebuildPaletteList(); RefreshPaletteTab(); UpdateTitle(); });
+            () => { Apply(after); RefreshPaletteTab(); UpdateTitle(); },
+            () => { Apply(before); RefreshPaletteTab(); UpdateTitle(); });
+    }
+
+    /// <summary>Selects these palettes' visible rows quietly, keeping `current` as the list's selected item.</summary>
+    private void SelectPaletteRows(IReadOnlyCollection<Palette> palettes, Palette? current)
+    {
+        if (current is null || PaletteList.ItemsSource is not IList<PaletteRow> rows
+            || PaletteList.SelectedItems is not { } items) return;
+        int currentRow = rows.ToList().FindIndex(r => ReferenceEquals(r.Palette, current));
+        if (currentRow < 0) return;
+        bool wasSuppressed = _suppressEvents;
+        _suppressEvents = true;
+        try
+        {
+            PaletteList.SelectedIndex = currentRow;
+            foreach (var row in rows)
+                if (!ReferenceEquals(row.Palette, current) && palettes.Contains(row.Palette)) items.Add(row);
+        }
+        finally { _suppressEvents = wasSuppressed; }
     }
 
     private void SelectPalette(Palette pal)
