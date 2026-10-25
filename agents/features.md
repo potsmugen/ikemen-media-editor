@@ -254,9 +254,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   mask** (indexed images) sends pixels at the image's index 0 to 0 whatever their color, so a
   black mask and black outlines stay apart. Otherwise the mask comes from alpha, or in images
   with no transparency from an exact match of the palette's index 0 RGB.
-- **Palette export/import** writes a lossless `.rgba` text palette (exact count, order and
-  RGBA) plus a chosen ACT, JASC-PAL or indexed PNG companion, and palette PNG export keeps
-  RGBA as indexed pixels. Without an SFF, imported palettes are standalone documents that
+- **Palette export** writes one chosen format: ACT in either order, JASC-PAL, indexed PNG
+  (keeps RGBA as indexed pixels) or the lossless `.rgba` text palette (exact count, order and
+  RGBA, read only by this editor). A format that drops alpha or colors warns first. Without an SFF, imported palettes are standalone documents that
   save to their source format; indexed PNG and PCX saves replace the palette and ask before
   dropping unrepresentable alpha or entries. Opening an SFF offers to keep standalone
   palettes as external SFF palettes, discard them, or cancel.

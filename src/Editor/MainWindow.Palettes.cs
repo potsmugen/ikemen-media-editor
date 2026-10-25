@@ -3042,7 +3042,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             if (alphaLoss) warnings.Add("Alpha is not stored in this format; index 0 reopens transparent and other entries reopen opaque.");
         }
         if (extension == ".act" && palette.Colors.Length != 256 && !(actTrailer && palette.Colors.Length < 256))
-            warnings.Add("ACT always stores 256 colors; the palette will be padded or truncated.");
+            warnings.Add(actTrailer ? "ACT stores at most 256 colors; the palette will be truncated."
+                : "A classic ACT always stores 256 colors; the palette will be padded or truncated.");
         if (extension == ".pal" && palette.Colors.Length > 256)
             warnings.Add("JASC-PAL stores at most 256 colors.");
         if (extension == ".pcx" && sourceBytes is not null)
@@ -3201,7 +3202,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     /// <summary>Last Export Palette companion format this session; pre-selected next time.</summary>
     private Dialogs.PaletteExportFormat _lastExportFormat = Dialogs.PaletteExportFormat.Act;
 
-    /// <summary>Exports the active palette as .rgba and a chosen ACT, JASC-PAL or indexed PNG companion.</summary>
+    /// <summary>Exports the active palette in one chosen format, warning first when it can't hold everything.</summary>
     private async void OnExportPalette(object? sender, RoutedEventArgs e)
     {
         if (ActivePalette() is not { } pal)
@@ -3220,6 +3221,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             {
                 Dialogs.PaletteExportFormat.Pal => ("pal", JascPalType),
                 Dialogs.PaletteExportFormat.Png => ("png", PalettePngType),
+                Dialogs.PaletteExportFormat.Rgba => ("rgba", RgbaType),
                 _ => ("act", ActType),
             };
 
@@ -3231,18 +3233,18 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 FileTypeChoices = [type],
             });
             if (file?.TryGetLocalPath() is not { } path) return;
+            path = Path.ChangeExtension(path, ext);
 
-            string rgbaPath = Path.ChangeExtension(path, ".rgba");
-            if (File.Exists(rgbaPath)
-                && !await Dialogs.Confirm(this, "Replace RGBA Palette?",
-                    $"{Path.GetFileName(rgbaPath)} already exists and will be replaced.", "Replace"))
+            if (StandalonePaletteLoss(pal, path, null, actTrailer: format == Dialogs.PaletteExportFormat.ActForward) is { } loss
+                && !await Dialogs.Confirm(this, "Palette Export Loses Information", loss + " RGBA keeps everything.", "Export"))
                 return;
 
-            Backups.Make(rgbaPath, _settings.Files.BackupCount);
             Backups.Make(path, _settings.Files.BackupCount);
-            PaletteRgbaFile.Save(pal, rgbaPath);
             switch (format)
             {
+                case Dialogs.PaletteExportFormat.Rgba:
+                    PaletteRgbaFile.Save(pal, path);
+                    break;
                 case Dialogs.PaletteExportFormat.Pal:
                     JascPalFile.Save(pal, path);
                     break;
@@ -3258,7 +3260,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                     ActFile.Save(pal, path);
                     break;
             }
-            StatusText.Text = $"Wrote {Path.GetFileName(rgbaPath)} and {Path.GetFileName(path)}.";
+            StatusText.Text = $"Wrote {Path.GetFileName(path)}.";
         }
         catch (Exception ex)
         {

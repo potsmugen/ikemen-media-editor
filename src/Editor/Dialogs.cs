@@ -3498,16 +3498,15 @@ public static partial class Dialogs
         return result.Task;
     }
 
-    public enum PaletteExportFormat { Act, ActForward, Pal, Png }
+    public enum PaletteExportFormat { Act, ActForward, Pal, Png, Rgba }
 
     /// <summary>Color order for saving an .act: true = MUGEN (index 255 first, 768 bytes), false = Photoshop/Aseprite
     /// (index 0 first, with the color count). Null = canceled.</summary>
     public static Task<bool?> PromptActOrder(Window owner, bool mugen)
     {
         var result = new TaskCompletionSource<bool?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var mugenOrder = new RadioButton { GroupName = "ActOrder", Content = "MUGEN order", IsChecked = mugen };
-        var forward = new RadioButton { GroupName = "ActOrder", Content = "Photoshop/Aseprite order", IsChecked = !mugen };
-        ToolTip.SetTip(forward, "Index 0 first, with the color count. MUGEN and Ikemen GO read these colors reversed.");
+        var mugenOrder = new RadioButton { GroupName = "ActOrder", Content = "Classic (M.U.G.E.N / Ikemen GO)", IsChecked = mugen };
+        var forward = new RadioButton { GroupName = "ActOrder", Content = "Modern (Photoshop, Aseprite)", IsChecked = !mugen };
 
         var dialog = new Window
         {
@@ -3531,7 +3530,7 @@ public static partial class Dialogs
             Spacing = 8,
             Children =
             {
-                new TextBlock { Text = "Color order:" },
+                new TextBlock { Text = "ACT format:" },
                 mugenOrder, forward,
                 new StackPanel
                 {
@@ -3546,16 +3545,16 @@ public static partial class Dialogs
         return result.Task;
     }
 
-    /// <summary>Companion format for Export Palette; .rgba is always written. Null = canceled.</summary>
+    /// <summary>The format Export Palette writes. Null = canceled.</summary>
     public static Task<PaletteExportFormat?> PromptPaletteFormat(Window owner, PaletteExportFormat initial)
     {
         var result = new TaskCompletionSource<PaletteExportFormat?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        var act = new RadioButton { GroupName = "PalFormat", Content = ".act (MUGEN order)", IsChecked = initial == PaletteExportFormat.Act };
-        var actForward = new RadioButton { GroupName = "PalFormat", Content = ".act (Photoshop/Aseprite order)", IsChecked = initial == PaletteExportFormat.ActForward };
-        ToolTip.SetTip(actForward, "Index 0 first, with the color count. MUGEN and Ikemen GO read these colors reversed.");
+        var act = new RadioButton { GroupName = "PalFormat", Content = ".act (classic: M.U.G.E.N / Ikemen GO)", IsChecked = initial == PaletteExportFormat.Act };
+        var actForward = new RadioButton { GroupName = "PalFormat", Content = ".act (modern: Photoshop, Aseprite)", IsChecked = initial == PaletteExportFormat.ActForward };
         var pal = new RadioButton { GroupName = "PalFormat", Content = ".pal (JASC-PAL)", IsChecked = initial == PaletteExportFormat.Pal };
         var png = new RadioButton { GroupName = "PalFormat", Content = ".png (indexed, visual reference)", IsChecked = initial == PaletteExportFormat.Png };
+        var rgba = new RadioButton { GroupName = "PalFormat", Content = ".rgba (lossless, for this editor)", IsChecked = initial == PaletteExportFormat.Rgba };
 
         var dialog = new Window
         {
@@ -3572,7 +3571,8 @@ public static partial class Dialogs
         var cancel = new Button { Content = "Cancel", MinWidth = 90, IsCancel = true };
         ok.Click += (_, _) =>
         {
-            result.TrySetResult(png.IsChecked == true ? PaletteExportFormat.Png
+            result.TrySetResult(rgba.IsChecked == true ? PaletteExportFormat.Rgba
+                : png.IsChecked == true ? PaletteExportFormat.Png
                 : pal.IsChecked == true ? PaletteExportFormat.Pal
                 : actForward.IsChecked == true ? PaletteExportFormat.ActForward : PaletteExportFormat.Act);
             dialog.Close();
@@ -3585,8 +3585,8 @@ public static partial class Dialogs
             Spacing = 8,
             Children =
             {
-                new TextBlock { Text = "Also export as:" },
-                act, actForward, pal, png,
+                new TextBlock { Text = "Export as:" },
+                act, actForward, pal, png, rgba,
                 new StackPanel
                 {
                     Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
