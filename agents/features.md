@@ -619,7 +619,12 @@ summaries; treat anything marked unverified as unknown.
   ones is unverified.
 - ACT palette entries are read in reverse (ACT 255 = SFF index 0). The format
   stores RGB only, so no alpha is written; on read, index 0 is given zero alpha
-  to match how SFF palettes behave. SprMaker 2.01 links sprites with the same
+  to match how SFF palettes behave. A 772-byte ACT (Photoshop, Aseprite) ends in a
+  big-endian color count and transparent index and is written index 0 first: palette
+  import reads it forward with that many colors, and Save writes it back that way.
+  Character palettes ignore it, as Ikemen GO reads only the first 768 bytes in reverse.
+  Save As .act asks for the order (preselecting the one read; MUGEN otherwise), and
+  Export Palette offers both orders. SprMaker 2.01 links sprites with the same
   source filename even when duplicate detection is disabled, and also links
   their auto palettes.
   Per-sprite `usepal = g,i` behavior was inconclusive in testing; do not rely

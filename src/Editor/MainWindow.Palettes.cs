@@ -3030,7 +3030,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         }
     }
 
-    private static string? StandalonePaletteLoss(Palette palette, string path, byte[]? sourceBytes)
+    /// <summary>actTrailer: an ACT save writes the count trailer (saving over a 772-byte source).</summary>
+    private static string? StandalonePaletteLoss(Palette palette, string path, byte[]? sourceBytes, bool actTrailer = false)
     {
         string extension = Path.GetExtension(path).ToLowerInvariant();
         var warnings = new List<string>();
@@ -3040,7 +3041,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 || palette.Colors.Skip(1).Any(c => c.A != 255));
             if (alphaLoss) warnings.Add("Alpha is not stored in this format; index 0 reopens transparent and other entries reopen opaque.");
         }
-        if (extension == ".act" && palette.Colors.Length != 256)
+        if (extension == ".act" && palette.Colors.Length != 256 && !(actTrailer && palette.Colors.Length < 256))
             warnings.Add("ACT always stores 256 colors; the palette will be padded or truncated.");
         if (extension == ".pal" && palette.Colors.Length > 256)
             warnings.Add("JASC-PAL stores at most 256 colors.");
@@ -3089,14 +3090,20 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         string path = Path.ChangeExtension(chosenPath, ext);
         byte[]? sourceBytes = Path.GetExtension(path).Equals(Path.GetExtension(palette.SourcePath), StringComparison.OrdinalIgnoreCase)
             ? palette.SourceData : null;
-        string? loss = StandalonePaletteLoss(palette, path, sourceBytes);
+        bool actMugen = true; // preselected as read: MUGEN unless it came from a Photoshop/Aseprite ACT
+        if (ext == "act")
+        {
+            if (await Dialogs.PromptActOrder(this, palette.SourceActReversed) is not { } mugen) return;
+            actMugen = mugen;
+        }
+        string? loss = StandalonePaletteLoss(palette, path, sourceBytes, actTrailer: !actMugen);
         if (loss is not null && !await Dialogs.Confirm(this, "Palette Save Loses Information", loss, "Save")) return;
         try
         {
             string targetExtension = Path.GetExtension(path).ToLowerInvariant();
             byte[] output = targetExtension switch
             {
-                ".act" => ActFile.Write(palette, palette.SourceActReversed),
+                ".act" => ActFile.Write(palette, actMugen, actMugen ? null : palette.SourceActTransparent ?? 0),
                 ".pal" => System.Text.Encoding.UTF8.GetBytes(JascPalFile.Write(palette)),
                 ".png" when sourceBytes is not null => PngExport.ReplacePalette(sourceBytes, palette),
                 ".pcx" when sourceBytes is not null => PcxExport.ReplacePalette(sourceBytes, palette),
@@ -3109,7 +3116,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             palette.SourcePath = path;
             if (targetExtension is not (".png" or ".pcx")) palette.SourceData = null;
             else palette.SourceData = output;
-            if (targetExtension == ".act") palette.SourceActReversed = true;
+            if (targetExtension == ".act")
+                (palette.SourceActReversed, palette.SourceActTransparent) = (actMugen, actMugen ? null : palette.SourceActTransparent ?? 0);
             palette.Dirty = false;
             _undo.MarkSaved(StandalonePaletteKindFor(palette));
             RebuildPaletteList();
@@ -3135,7 +3143,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         try
         {
             byte[]? sourceBytes = palette.SourceData is null ? null : (byte[])palette.SourceData.Clone();
-            string? loss = StandalonePaletteLoss(palette, path, sourceBytes);
+            string? loss = StandalonePaletteLoss(palette, path, sourceBytes, actTrailer: palette.SourceActTransparent is not null);
             if (loss is not null && !await Dialogs.Confirm(this, "Palette Save Loses Information", loss, "Save")) return false;
             if (!await ConfirmRecoveredSourceWrite(path)) return false;
             if ((Path.GetExtension(path).Equals(".png", StringComparison.OrdinalIgnoreCase)
@@ -3144,7 +3152,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             Backups.Make(path, _settings.Files.BackupCount);
             switch (Path.GetExtension(path).ToLowerInvariant())
             {
-                case ".act": ActFile.Save(palette, path, palette.SourceActReversed); break;
+                case ".act": ActFile.Save(palette, path, palette.SourceActReversed, palette.SourceActTransparent); break;
                 case ".pal": JascPalFile.Save(palette, path); break;
                 case ".rgba": PaletteRgbaFile.Save(palette, path); break;
                 case ".png":
@@ -3242,6 +3250,9 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                     int cell = Settings.Checked(nameof(_settings.Palettes.PalettePngSwatchSize), _settings.Palettes.PalettePngSwatchSize,
                         Settings.DefaultPalettePngSwatchSize, v => v is >= 1 and <= 64);
                     PalettePngFile.Save(pal, path, cell);
+                    break;
+                case Dialogs.PaletteExportFormat.ActForward:
+                    ActFile.Save(pal, path, reversed: false, transparent: 0);
                     break;
                 default:
                     ActFile.Save(pal, path);

@@ -28,7 +28,6 @@ before a release. Remove items once they're done or checked.
     float/collapse icons render as other glyphs.
   - Found in the second sandbox pass (2026-10-23):
     Report text: a drag across two lines selects nothing; double-click selects within a line.
-    - Question: an .act with a 20-color count trailer imports as 256 colors; JASC-PAL with 20 gives 20.
   - Unverified (sandbox has no window manager): Escape doesn't close the Alt+F4 refusal popup.
 - Customizable shortcuts: see features.md "Keyboard shortcuts". It compiles, and column widths
   measure at the largest of the dialog, window and tab font sizes. Left:

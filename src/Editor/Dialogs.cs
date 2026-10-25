@@ -3498,7 +3498,53 @@ public static partial class Dialogs
         return result.Task;
     }
 
-    public enum PaletteExportFormat { Act, Pal, Png }
+    public enum PaletteExportFormat { Act, ActForward, Pal, Png }
+
+    /// <summary>Color order for saving an .act: true = MUGEN (index 255 first, 768 bytes), false = Photoshop/Aseprite
+    /// (index 0 first, with the color count). Null = canceled.</summary>
+    public static Task<bool?> PromptActOrder(Window owner, bool mugen)
+    {
+        var result = new TaskCompletionSource<bool?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var mugenOrder = new RadioButton { GroupName = "ActOrder", Content = "MUGEN order", IsChecked = mugen };
+        var forward = new RadioButton { GroupName = "ActOrder", Content = "Photoshop/Aseprite order", IsChecked = !mugen };
+        ToolTip.SetTip(forward, "Index 0 first, with the color count. MUGEN and Ikemen GO read these colors reversed.");
+
+        var dialog = new Window
+        {
+            Background = ThemeBrush("ThemePanelBg"),
+            Foreground = ThemeBrush("ThemeText"),
+            Title = "Save ACT Palette",
+            SizeToContent = SizeToContent.WidthAndHeight,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+            ShowInTaskbar = false,
+        };
+
+        var ok = new Button { Content = "Save", MinWidth = 90, IsDefault = true };
+        var cancel = new Button { Content = "Cancel", MinWidth = 90, IsCancel = true };
+        ok.Click += (_, _) => { result.TrySetResult(mugenOrder.IsChecked == true); dialog.Close(); };
+        cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
+
+        dialog.Content = new StackPanel
+        {
+            Margin = new Avalonia.Thickness(20),
+            Spacing = 8,
+            Children =
+            {
+                new TextBlock { Text = "Color order:" },
+                mugenOrder, forward,
+                new StackPanel
+                {
+                    Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
+                    Spacing = 8, Margin = new Avalonia.Thickness(0, 8, 0, 0), Children = { ok, cancel },
+                },
+            },
+        };
+        dialog.Closed += (_, _) => result.TrySetResult(null);
+
+        dialog.ShowModal(owner);
+        return result.Task;
+    }
 
     /// <summary>Companion format for Export Palette; .rgba is always written. Null = canceled.</summary>
     public static Task<PaletteExportFormat?> PromptPaletteFormat(Window owner, PaletteExportFormat initial)
@@ -3506,6 +3552,8 @@ public static partial class Dialogs
         var result = new TaskCompletionSource<PaletteExportFormat?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var act = new RadioButton { GroupName = "PalFormat", Content = ".act (MUGEN order)", IsChecked = initial == PaletteExportFormat.Act };
+        var actForward = new RadioButton { GroupName = "PalFormat", Content = ".act (Photoshop/Aseprite order)", IsChecked = initial == PaletteExportFormat.ActForward };
+        ToolTip.SetTip(actForward, "Index 0 first, with the color count. MUGEN and Ikemen GO read these colors reversed.");
         var pal = new RadioButton { GroupName = "PalFormat", Content = ".pal (JASC-PAL)", IsChecked = initial == PaletteExportFormat.Pal };
         var png = new RadioButton { GroupName = "PalFormat", Content = ".png (indexed, visual reference)", IsChecked = initial == PaletteExportFormat.Png };
 
@@ -3525,7 +3573,8 @@ public static partial class Dialogs
         ok.Click += (_, _) =>
         {
             result.TrySetResult(png.IsChecked == true ? PaletteExportFormat.Png
-                : pal.IsChecked == true ? PaletteExportFormat.Pal : PaletteExportFormat.Act);
+                : pal.IsChecked == true ? PaletteExportFormat.Pal
+                : actForward.IsChecked == true ? PaletteExportFormat.ActForward : PaletteExportFormat.Act);
             dialog.Close();
         };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
@@ -3537,7 +3586,7 @@ public static partial class Dialogs
             Children =
             {
                 new TextBlock { Text = "Also export as:" },
-                act, pal, png,
+                act, actForward, pal, png,
                 new StackPanel
                 {
                     Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,

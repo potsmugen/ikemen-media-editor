@@ -53,6 +53,29 @@ public class ActTests
     }
 
     [Fact]
+    public void ACountTrailerIsReadForwardWithThatManyColors()
+    {
+        var data = new byte[ActFile.Size + ActFile.TrailerSize];
+        for (int i = 0; i < 20; i++) data[i * 3] = (byte)(i + 1); // Aseprite: index 0 first
+        data[ActFile.Size + 1] = 20;
+        var pal = PaletteFileImport.Read("aseprite.act", data);
+        Assert.Equal(20, pal.Colors.Length);
+        Assert.Equal(5, pal.Colors[4].R);
+        Assert.False(pal.SourceActReversed);
+        Assert.Equal((ushort)0, pal.SourceActTransparent);
+        Assert.Equal(data, ActFile.Write(pal, pal.SourceActReversed, pal.SourceActTransparent)); // saved back as read
+    }
+
+    [Fact]
+    public void APlainActHasNoTrailer()
+    {
+        var data = MakeAct(i => ((byte)i, 0, 0), reversed: true);
+        Assert.Null(ActFile.TrailerCount(data));
+        Assert.Null(PaletteFileImport.Read("mugen.act", data).SourceActTransparent);
+        Assert.Equal(ActFile.Size, ActFile.Write(ActFile.Read(data)).Length);
+    }
+
+    [Fact]
     public void RefusesAFileOfTheWrongSize()
     {
         Assert.Throws<InvalidDataException>(() => ActFile.Read(new byte[100]));

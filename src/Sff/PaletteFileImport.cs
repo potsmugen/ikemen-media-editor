@@ -14,8 +14,9 @@ public static class PaletteFileImport
 
     public static Palette Read(string path, byte[] data)
     {
-        bool actReversed = !Path.GetExtension(path).Equals(".act", StringComparison.OrdinalIgnoreCase)
-            || ActFile.LooksReversed(data);
+        bool act = Path.GetExtension(path).Equals(".act", StringComparison.OrdinalIgnoreCase);
+        // A count trailer means Photoshop or Aseprite, which both write index 0 first.
+        bool actReversed = !act || (ActFile.TrailerCount(data) is null && ActFile.LooksReversed(data));
         Palette palette = Path.GetExtension(path).ToLowerInvariant() switch
         {
             ".act" => ActFile.Read(data, actReversed),
@@ -28,6 +29,7 @@ public static class PaletteFileImport
         palette.Source = PaletteSource.Embedded;
         palette.SourcePath = null;
         palette.SourceActReversed = actReversed;
+        palette.SourceActTransparent = act ? ActFile.TrailerTransparent(data) : null;
         if (Path.GetExtension(path).Equals(".png", StringComparison.OrdinalIgnoreCase)
             || Path.GetExtension(path).Equals(".pcx", StringComparison.OrdinalIgnoreCase))
             palette.SourceData = (byte[])data.Clone();

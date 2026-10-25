@@ -103,6 +103,9 @@ public sealed class Palette
 
     public byte[]? SourceData;
     public bool SourceActReversed = true;
+    /// <summary>The transparent-index field of a 772-byte ACT (Photoshop/Aseprite), written back with the color
+    /// count when saved as ACT; null for a plain 768-byte one.</summary>
+    public ushort? SourceActTransparent;
 
     /// <summary>
     /// Editor bookkeeping: set once the colors have been changed since the
