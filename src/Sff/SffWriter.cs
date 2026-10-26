@@ -3,7 +3,7 @@ using System.Buffers.Binary;
 namespace Sff;
 
 /// <summary>
-/// Writes SFFv2. A sprite nobody has repainted is written back with its original
+/// Writes SFF v2. A sprite nobody has repainted is written back with its original
 /// compressed bytes, so re-saving an untouched file reproduces its pixels exactly
 /// (a file read from tdata is normalized to ldata on an ordinary save).
 /// Repainted sprites are re-encoded; edited true-color sprites use the
@@ -30,7 +30,7 @@ public static class SffWriter
     public static List<Sprite> V1LinksLosingPalette(IReadOnlyList<Sprite> order) =>
         SffV1Writer.LinksLosingPaletteSprites(order, int.MaxValue);
 
-    /// <summary>Whether SFFv1 can hold every sprite (all 8-bit and decoded).</summary>
+    /// <summary>Whether SFF v1 can hold every sprite (all 8-bit and decoded).</summary>
     public static bool FitsV1(SffFile f) => SffV1Writer.Unsupported(f, 1).Count == 0;
 
     /// <summary>Links read pointing at a later sprite that a save in the current order still turns

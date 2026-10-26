@@ -2,7 +2,7 @@ using System.Buffers.Binary;
 
 namespace Sff;
 
-/// <summary>Reads SFFv2 files. Layout constants come from the SFFv2 specification.</summary>
+/// <summary>Reads SFF v2 files. Layout constants come from the SFF v2 specification.</summary>
 public static class SffReader
 {
     internal const int HeaderSize = 512;
@@ -17,7 +17,7 @@ public static class SffReader
         uint LdataOffset, uint LdataLen, uint TdataOffset, uint TdataLen);
 
     /// <summary>
-    /// Parses an in-memory SFFv2 file. Structural problems throw; a sprite whose
+    /// Parses an in-memory SFF v2 file. Structural problems throw; a sprite whose
     /// pixel data fails to decode is kept with DecodeError set, so one bad sprite
     /// does not stop the rest of the file from loading.
     /// </summary>

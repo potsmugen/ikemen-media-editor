@@ -7,7 +7,7 @@ before a release. Remove items once they're done or checked.
 
 - Found in Linux sandbox testing (2026-10-23), verified unless noted:
   - Sprite list scrolls half a row after Sort or Duplicate (row 1 half hidden).
-  - Shortcuts table: the selected row shows a blue block past the last column; "Select all
+  - Shortcuts table: remove the blue block the selected row shows past the last column; "Select all
     sprites, sounds, frames or p..." is cut off.
   - Linux default font at the 1100x700 default window: "Resize Canvas" and "Shift Offset" are
     cut off in Sprite Tools.
@@ -15,8 +15,6 @@ before a release. Remove items once they're done or checked.
   - Questions: after Recover, the command-line file is skipped silently (by design per
     App.axaml.cs, but nothing tells the user). A recovered changed-source file opens from
     data/recovery/recovered/ under a GUID name, so plain Save writes into the app folder.
-  - Sound list narrows in a tab that also has an SFF (New Sound File there): the Rate column is
-    cut off ("8kH", "22.1k").
   - At 200% font and button scale (window 1580x960) fixed-width buttons and fields clip:
     Paint Tools (Commit, Reset, Pencil, Eraser, Eyedropper, Replace, Select), Resize Canvas,
     Shift Offset, onion-skin Group/Number and Pin frame boxes, Palettes Commit, Scratch label,
@@ -42,10 +40,10 @@ before a release. Remove items once they're done or checked.
   Escape-in-a-text-box were three, fixed with the shortcuts).
 - Saves that change a file the user didn't edit, like the Global Shared Palette popup;
   decide per case whether to keep the bytes or tell the user (verified on real files):
-  - Plain Save of SFFv1 re-encodes every PCX (`SffV1Writer`), dropping PCX header
+  - Plain Save of SFF v1 re-encodes every PCX (`SffV1Writer`), dropping PCX header
     fields (DPI, 16-color header palette) and palette bytes left in same-palette
     records. Pixels and colors are unchanged. Seen in kfm_win's kfm.sff.
-- Import Palette into Sprite on several SFFv1 sprites writes the colors into each one's own
+- Import Palette into Sprite on several SFF v1 sprites writes the colors into each one's own
   palette, giving N identical copies. Could look at sharing one palette across runs of
   consecutive selected sprites (and stop skipping same-palette sprites), like v2.
 - Test and revisit the nearest-color alpha threshold: pixels below
@@ -70,14 +68,25 @@ before a release. Remove items once they're done or checked.
   design undecided.
 - Decide how our palette-alpha addition fits the SprMaker formats (the tools
   have no alpha beyond index 0).
+- Find out what Ikemen GO does with "decompress on load" (SFF node flag 1, tdata):
+  whether it unpacks tdata sprites once at load or on draw, whether it honors the flag
+  on every node or only compressed ones, any load-time or memory difference, and whether
+  our tdata layout matches what it reads. Notes in features.md are unverified.
+- Decide whether every save uses the smallest valid sprite format. Edited indexed sprites
+  get LZ5 or RLE8 by rule, never raw or the smaller one; edited true color already picks
+  the smallest. Also decide whether untouched sprites get re-encoded, and how byte changes
+  are reported.
+- Add ways to optimize SFF for size or load time. Only v2 has per-sprite format choice
+  (raw, RLE8, RLE5, LZ5, PNG); v1 writes every sprite as PCX, so only palette sharing and
+  cropping help there. Keep the version rules, and decide between smallest file and fastest load.
 - Give users more control over each sprite's "decompress on load"
 - Compare Save Like SprMaker 0.97 output against the real `sprmaker.exe` on
   controlled inputs; verify headers/flags, links, crop behavior and PCX
   payloads, then fix confirmed differences.
 - Compare Save Like SprMaker 2.01 output against the real `sprmake2.exe` on
-  controlled inputs; verify SFFv2 nodes, palette behavior, compression and
+  controlled inputs; verify SFF v2 nodes, palette behavior, compression and
   compatibility version, then fix confirmed differences.
-- Verify linked SFFv1 palette semantics against a compatible reader; the
+- Verify linked SFF v1 palette semantics against a compatible reader; the
   disassembly confirms the flag written, not whether the loader uses that
   palette or the link target's. Decided: a flagged link uses the previous palette like
   any flagged sprite (see features.md, Official tools); Ikemen GO's v1 loader uses the
@@ -102,9 +111,7 @@ before a release. Remove items once they're done or checked.
 - Canvas and Export Animation: true arithmetic Subtract (render.go's reverse subtract) instead of
   the Multiply stand-in, also for SubAdd's subtract pass. Needs reading back the drawn background
   (e.g. an offscreen render under the sprite), so it was left out of the easy fixes.
-- WebP import: decode with Skia's SKCodec (still and animated, lossy and lossless) in src/Editor,
-  then the existing image import, like JPG/BMP. Export already encodes frames with Skia's libwebp,
-  so both directions use one library.
+- WebP import: an animated WebP imports all frames like GIF does.
 - Multiple sprite export, one file per sprite: offer the shared-canvas option Export All has
   ("Pad every sprite to the same canvas size").
 - Add a tool to split palettes, the counterpart of Combine Into New and Merge and Update Sprites
@@ -165,9 +172,9 @@ Built, but not tried by the maintainer yet.
 - "Open with" (launch argument) routing passed for .sff, .snd, .air, .def and .act. Left: .imesession.
 - Release build: double-clicking the exe opens no console window; Debug still shows one.
 - Close during a large SFF save: the "Still working" popup appears and the save completes.
-- Recovery of an SFFv1 with an imported true-color sprite: the snapshot succeeds (no
+- Recovery of an SFF v1 with an imported true-color sprite: the snapshot succeeds (no
   crash.log entry), recovery restores it as v1 with the same palettes, and Save shows
-  the same "SFFv1 holds 8-bit sprites only" error as before the crash. Make a snapshot
+  the same "SFF v1 holds 8-bit sprites only" error as before the crash. Make a snapshot
   fail (e.g. read-only recovery folder): one popup.
 - Windows sound playback after the SoundPlayer removal (WinSound/PlaySound): Play, Play loop,
   Stop, playing another sound while one plays, a range selection, and a non-PCM sound

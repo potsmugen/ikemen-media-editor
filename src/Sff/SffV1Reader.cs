@@ -3,7 +3,7 @@ using System.Buffers.Binary;
 namespace Sff;
 
 /// <summary>
-/// Reads SFFv1, the format MUGEN used before 1.0. Where v2 has node tables, v1
+/// Reads SFF v1, the format MUGEN used before 1.0. Where v2 has node tables, v1
 /// is a linked list of 32-byte subheaders each followed by a PCX image, and
 /// palettes are carried by the PCX rather than stored separately.
 /// </summary>

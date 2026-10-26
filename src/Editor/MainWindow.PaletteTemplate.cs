@@ -89,7 +89,7 @@ public partial class MainWindow
 
     /// <summary>
     /// Indexed, decoded sprites whose palette is p or shares its colors through a link, one per bitmap.
-    /// A palette no sprite uses (external, temp or an unused alt) recolors the sprites of 1,1 (SFFv1: S1).
+    /// A palette no sprite uses (external, temp or an unused alt) recolors the sprites of 1,1 (SFF v1: S1).
     /// Sprite 0,0 is kept whenever it is among them.
     /// </summary>
     private static PaletteTemplateSource PaletteTemplateSprites(SffFile file, Palette p)

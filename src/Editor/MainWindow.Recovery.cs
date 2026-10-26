@@ -134,7 +134,7 @@ public partial class MainWindow
 
         void CaptureTab(bool isActive)
         {
-            // SFFv1 can't hold true-color sprites; such a session is snapshotted as v2 and set back to v1 on recovery.
+            // SFF v1 can't hold true-color sprites; such a session is snapshotted as v2 and set back to v1 on recovery.
             bool sffAsV2 = _file is not null && SffVersions.IsV1(_file.Version) && !SffWriter.FitsV1(_file);
             string? sessionVersion = sffAsV2 ? _file!.Version.ToString() : null;
             byte[] SffSnapshot()

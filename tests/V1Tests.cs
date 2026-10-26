@@ -4,7 +4,7 @@ using Xunit;
 namespace IkemenMediaEditor.Tests;
 
 /// <summary>
-/// SFFv1 is a linked list of PCX subfiles rather than the node tables v2 uses.
+/// SFF v1 is a linked list of PCX subfiles rather than the node tables v2 uses.
 /// Needs working/kfm-v1.sff; skips without it.
 /// </summary>
 public class V1Tests

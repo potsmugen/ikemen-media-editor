@@ -955,7 +955,7 @@ public partial class MainWindow
         string? notice = null;
         if (v1 && sharedPalette is not null && _file is { } file
             && file.Sprites.Any(other => !ReferenceEquals(other, sprite) && ReferenceEquals(other.Palette, sharedPalette)))
-            notice = "Other sprites using this SFFv1 palette keep their indexes and may look different.";
+            notice = "Other sprites using this SFF v1 palette keep their indexes and may look different.";
 
         bool allowNearest = disabledReason is null;
         bool allowKeep = sprite.Indexed is not null || !allowNearest;
@@ -1014,7 +1014,7 @@ public partial class MainWindow
 
             var files = await PickOpen(new FilePickerOpenOptions
             {
-                Title = v1 ? "Import Palette into SFFv1 Sprite" : "Import Palette into SFFv2 Sprite",
+                Title = v1 ? "Import Palette into SFF v1 Sprite" : "Import Palette into SFF v2 Sprite",
                 AllowMultiple = false,
                 FileTypeFilter = [PaletteFilesType],
             });
@@ -1062,7 +1062,7 @@ public partial class MainWindow
                         current!.Colors = before;
                         mapping.Revert(sprite);
                     });
-                StatusText.Text = $"Imported {Path.GetFileName(path)} into sprite {sprite.Group},{sprite.Index}'s own SFFv1 palette{(droppedAlpha ? " without alpha" : "")}.";
+                StatusText.Text = $"Imported {Path.GetFileName(path)} into sprite {sprite.Group},{sprite.Index}'s own SFF v1 palette{(droppedAlpha ? " without alpha" : "")}.";
             }
             else
             {
@@ -1118,7 +1118,7 @@ public partial class MainWindow
         {
             if (current is null || current.Source != PaletteSource.Embedded || file.PaletteCanBeMadeUnique(sprite))
             {
-                await Dialogs.ShowMessage(this, "Palette", "Set this sprite's Palette field to Own before using an external palette in SFFv1.");
+                await Dialogs.ShowMessage(this, "Palette", "Set this sprite's Palette field to Own before using an external palette in SFF v1.");
                 return false;
             }
             var prepared = await PreparePaletteForSprite(sprite, chosen.Colors, v1: true);
@@ -1143,7 +1143,7 @@ public partial class MainWindow
                     current.Colors = before;
                     mapping.Revert(sprite);
                 });
-            StatusText.Text = $"Copied {label} into sprite {sprite.Group},{sprite.Index}'s own SFFv1 palette{(prepared.Value.DroppedAlpha ? " without alpha" : "")}.";
+            StatusText.Text = $"Copied {label} into sprite {sprite.Group},{sprite.Index}'s own SFF v1 palette{(prepared.Value.DroppedAlpha ? " without alpha" : "")}.";
             return true;
         }
 
@@ -2205,10 +2205,10 @@ public partial class MainWindow
         return 65536;
     }
 
-    /// <summary>In SFFv2 a temp palette moves into the SFF when applied, so no duplicate is left behind.</summary>
+    /// <summary>In SFF v2 a temp palette moves into the SFF when applied, so no duplicate is left behind.</summary>
     private static bool MovesIntoSff(SffFile file, Palette chosen) => IsTempPalette(chosen) && !SffVersions.IsV1(file.Version);
 
-    /// <summary>SFFv1: once a temp palette's colors are copied into sprites, it leaves the list; no-ops for other palettes.</summary>
+    /// <summary>SFF v1: once a temp palette's colors are copied into sprites, it leaves the list; no-ops for other palettes.</summary>
     private static (Action Drop, Action Restore) TempPaletteLeavesList(SffFile file, Palette palette)
     {
         if (!IsTempPalette(palette)) return (() => { }, () => { });

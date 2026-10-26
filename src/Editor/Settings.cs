@@ -250,7 +250,7 @@ public sealed class Settings
         public int BackupCount { get; set; } = DefaultBackupCount;
         /// <summary>Minutes between crash-recovery snapshots.</summary>
         public int RecoveryIntervalMinutes { get; set; } = DefaultRecoveryIntervalMinutes;
-        /// <summary>Save Like SprMaker: the tool last picked (true = SprMaker 2.01, SFFv2).</summary>
+        /// <summary>Save Like SprMaker: the tool last picked (true = SprMaker 2.01, SFF v2).</summary>
         public bool SprMakerUseV2 { get; set; } = true;
         /// <summary>Save Like SprMaker: last options per tool (Reset restores the tools' defaults).</summary>
         public Sff.SprMakerOptions? SprMaker { get; set; }

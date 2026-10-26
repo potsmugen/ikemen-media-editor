@@ -22,7 +22,7 @@ public enum SpriteFormat : byte
     Png32 = 12,
 
     /// <summary>
-    /// Not an on-disk id. SFFv1 has no format field because every sprite is a
+    /// Not an on-disk id. SFF v1 has no format field because every sprite is a
     /// PCX; this labels those so the editor can say where a sprite came from.
     /// </summary>
     Pcx = 200,
@@ -40,7 +40,7 @@ public static class SffVersions
     public static bool SupportsPng(SffVersion v) => v.Hi == 2 && (v.Lo1 > 0 || v.Lo2 >= 1);
 
     /// <summary>
-    /// True for SFFv1. On disk it has no separate per-sprite palette resource —
+    /// True for SFF v1. On disk it has no separate per-sprite palette resource —
     /// a sprite either carries its own embedded palette or says "same as
     /// whoever came before me". The loader resolves that chain into direct
     /// object references up front, so two sprites sharing one Palette object
@@ -54,8 +54,8 @@ public static class SffVersions
 public enum PaletteSource
 {
     /// <summary>
-    /// Stored inside the sprite file: the palette table in SFFv2, or carried by
-    /// a sprite's PCX in SFFv1. Saving the file saves these with it.
+    /// Stored inside the sprite file: the palette table in SFF v2, or carried by
+    /// a sprite's PCX in SFF v1. Saving the file saves these with it.
     /// </summary>
     Embedded,
 
@@ -88,7 +88,7 @@ public sealed class Palette
     }
 
     /// <summary>
-    /// SFFv2 palette link: the palette whose colors this one uses (on disk a
+    /// SFF v2 palette link: the palette whose colors this one uses (on disk a
     /// node with no data and the target's number). A real link: editing either
     /// changes both, and the writer writes it back as a link. Never a chain
     /// back to itself; the reader refuses those.
@@ -116,7 +116,7 @@ public sealed class Palette
 
     /// <summary>
     /// The engine treats group 1 as the character's own palettes, numbered 1 to
-    /// 12, which is what a .act file supplies for an SFFv1 character.
+    /// 12, which is what a .act file supplies for an SFF v1 character.
     /// </summary>
     public bool IsCharacterPalette => Group == 1;
 
@@ -281,13 +281,13 @@ public sealed class SffFile
 {
     public SffVersion Version;
     public SffVersion CompatVersion;
-    /// <summary>Read from SFFv1 header byte 32 (SprMaker "Shared palette"), only to tell the
+    /// <summary>Read from SFF v1 header byte 32 (SprMaker "Shared palette"), only to tell the
     /// user; saving always writes the standard "use previous palette" format.</summary>
     public bool V1SharedPalette;
     /// <summary>Links read pointing at a later sprite, which Ikemen GO loads as blank. Saving turns
     /// them around (SffWriter.LinkTargets), so the editor warns; cleared once saved.</summary>
     public List<Sprite> ForwardLinksOnLoad = [];
-    /// <summary>SFFv2 palette links read pointing at a later palette, which Ikemen GO loads with wrong
+    /// <summary>SFF v2 palette links read pointing at a later palette, which Ikemen GO loads with wrong
     /// colors. Saving turns them around (SffWriter.PaletteLinkTargets), so the editor warns; cleared once saved.</summary>
     public List<Palette> ForwardPaletteLinksOnLoad = [];
     public List<Sprite> Sprites = [];
@@ -457,7 +457,7 @@ public sealed class SffFile
     /// their resolved colors. The axis and canvas position take no part in it, which also
     /// means the same drawing placed at the top of one canvas and the bottom of another
     /// is a match. When <paramref name="requireSamePalette"/> is set, palettes must also
-    /// match, which matters in SFFv1 where a sprite's colors come from its palette.
+    /// match, which matters in SFF v1 where a sprite's colors come from its palette.
     ///
     /// A sprite of a different kind (indexed against true color) never matches: there
     /// is no shared representation to compare. The reference itself, sprites that
@@ -825,7 +825,7 @@ public sealed class SffFile
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(target);
-        if (SffVersions.IsV1(Version)) throw new InvalidOperationException("Palette merging is only available in SFFv2.");
+        if (SffVersions.IsV1(Version)) throw new InvalidOperationException("Palette merging is only available in SFF v2.");
         if (!Palettes.Contains(source)) throw new ArgumentException("The source palette is not in this file.", nameof(source));
         if (!Palettes.Contains(target)) throw new ArgumentException("The target palette is not in this file.", nameof(target));
         if (ReferenceEquals(source, target)) throw new ArgumentException("A palette cannot be merged into itself.", nameof(target));

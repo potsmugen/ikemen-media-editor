@@ -5,7 +5,7 @@ using Xunit;
 namespace IkemenMediaEditor.Tests;
 
 /// <summary>
-/// Runs against a real character file when one is available. Drop an SFFv2 named
+/// Runs against a real character file when one is available. Drop an SFF v2 named
 /// kfm-v2.sff in working/ to enable these; without it they skip, so the
 /// suite stays green in a fresh clone.
 /// </summary>

@@ -5,7 +5,7 @@ using Sff;
 namespace Editor;
 
 /// <summary>
-/// Add to SFF: moves an external palette (temp, or imported from a file) into an SFFv2 at a
+/// Add to SFF: moves an external palette (temp, or imported from a file) into an SFF v2 at a
 /// chosen group and number, e.g. a 1,n alt palette that no sprite uses. A taken key asks to
 /// replace that palette's colors; it keeps its key, sprites and the palettes linked to it.
 /// </summary>
@@ -40,7 +40,7 @@ public partial class MainWindow
     /// <summary>Why Add to SFF is unavailable for this palette, or null when it can run.</summary>
     private string? AddToSffBlocker(Palette? palette) =>
         _file is not { } file ? "Open a sprite file first."
-        : SffVersions.IsV1(file.Version) ? "SFFv1 keeps palettes in its sprites; apply it to sprites instead."
+        : SffVersions.IsV1(file.Version) ? "SFF v1 keeps palettes in its sprites; apply it to sprites instead."
         : palette is not { Source: PaletteSource.External } ? "Available for imported and temp palettes."
         : null;
 

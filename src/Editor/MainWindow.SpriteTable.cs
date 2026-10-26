@@ -15,7 +15,7 @@ namespace Editor;
 /// The sprite table is SpriteList itself now — a real virtualizing ListBox
 /// (see MainWindow.axaml's ItemTemplate) instead of a hand-built Grid, so
 /// Avalonia only ever measures/arranges the rows on screen. On a 1591-sprite
-/// SFFv1 file this used to cost ~1s to build plus ~7s for Avalonia to lay
+/// SFF v1 file this used to cost ~1s to build plus ~7s for Avalonia to lay
 /// out the ~8000 resulting controls, every time the tab was (re)shown;
 /// virtualization makes both costs O(visible rows) instead of O(sprites).
 /// Selection highlighting is the ListBox's own :selected style now too —
@@ -32,9 +32,9 @@ public partial class MainWindow
 
         if (_file is null) { SpriteList.ItemsSource = null; return true; }
 
-        // SFFv1 stores palettes as a chain: a sprite whose palette is the
+        // SFF v1 stores palettes as a chain: a sprite whose palette is the
         // previous carrier's reuses it ("Previous"); any other shows its S number.
-        // SFFv2 always shows the key.
+        // SFF v2 always shows the key.
         bool v1 = SffVersions.IsV1(_file.Version);
         var externalOrdinals = ExternalPaletteOrdinals(_file);
         var v1Ordinals = V1PaletteOrdinals(_file);
@@ -131,7 +131,7 @@ public partial class MainWindow
     // Shows the linked-to sprite's real position in the file (its "#" — what you'd
     // scroll to), not its Group/Number identity: t.Index is the sprite's own SFF-format
     // Number field, easy to mistake for a row position but not one, especially once a
-    // filter or a large SFFv1 file makes "#" and "Number" diverge.
+    // filter or a large SFF v1 file makes "#" and "Number" diverge.
     private string SharedOrErrorText(Sprite s, Dictionary<Sprite, int> spriteIndex) =>
         s.DecodeError is not null ? "\u26a0 error"
         : s.SharesWith is { } t && spriteIndex.TryGetValue(t, out int i) ? (i + 1).ToString(CultureInfo.InvariantCulture) : "";
@@ -179,7 +179,7 @@ public partial class MainWindow
                     .ToArray();
                 if (paletteEntries.Length == 0)
                 {
-                    StatusText.Text = "No embedded SFFv2 palettes are available. Create or duplicate one in the Palettes tab first.";
+                    StatusText.Text = "No embedded SFF v2 palettes are available. Create or duplicate one in the Palettes tab first.";
                     return;
                 }
                 var choices = paletteEntries.Select(palette => PaletteDropdownName(file, palette)).ToArray();
@@ -508,14 +508,14 @@ public partial class MainWindow
             if (ReferenceEquals(sprite.Palette, palette)) continue;
             string identity = $"row {row + 1} ({sprite.Group},{sprite.Index})";
             if (v1 && sprite.SharesWith is not null)
-                return $"{identity} is linked and cannot carry its own SFFv1 palette. Unlink it and assign the palette manually.";
+                return $"{identity} is linked and cannot carry its own SFF v1 palette. Unlink it and assign the palette manually.";
             if (sprite.Direct is not null && sprite.Indexed is null)
                 return $"{identity} is true color and needs a conversion choice. Convert it and assign the palette manually.";
             if (sprite.Indexed is { Length: > 0 } indexes && indexes.Max(index => (int)index) >= palette.Colors.Length)
                 return $"The source palette is too short for {identity}'s indexes. Prepare and assign the palette manually.";
         }
         if (v1 && HasSffV1AlphaLoss(palette.Colors))
-            return "This SFFv1 palette contains alpha that cannot be kept. Handle the palette manually.";
+            return "This SFF v1 palette contains alpha that cannot be kept. Handle the palette manually.";
         return null;
     }
 
@@ -839,7 +839,7 @@ public partial class MainWindow
     /// Orders sprites by group, then number (group 9000 first on the whole file, per settings.json
     /// SortPortraitsFirst); ties keep their order. selectionOnly sorts the selected
     /// sprites among the positions they already hold. Links stay references, and the writers make
-    /// the earliest sprite of a linked set store the pixels, so links survive any order. On SFFv1,
+    /// the earliest sprite of a linked set store the pixels, so links survive any order. On SFF v1,
     /// refuses an order that would give a link its target's palette instead of its own, and lists them.
     /// </summary>
     private void SortSprites(bool selectionOnly)
@@ -881,12 +881,12 @@ public partial class MainWindow
             var lost = SffWriter.V1LinksLosingPalette(after).Where(x => !lostBefore.Contains(x)).ToList();
             if (lost.Count > 0)
             {
-                CrashLog.Error("SortSprites", $"refused: {lost.Count} SFFv1 link(s) would lose their palette");
+                CrashLog.Error("SortSprites", $"refused: {lost.Count} SFF v1 link(s) would lose their palette");
                 var lines = new List<(string Text, Action? Jump)>
                 {
                     ($"Sorting would make {lost.Count} linked {(lost.Count == 1 ? "sprite" : "sprites")} lose {(lost.Count == 1 ? "its" : "their")} palette.", null),
-                    ("An SFFv1 link can only use its linked sprite's palette or the previous sprite's.", null),
-                    ("Unlink them, or save as SFFv2, then sort again.", null),
+                    ("An SFF v1 link can only use its linked sprite's palette or the previous sprite's.", null),
+                    ("Unlink them, or save as SFF v2, then sort again.", null),
                     ("", null),
                 };
                 foreach (var sprite in lost)

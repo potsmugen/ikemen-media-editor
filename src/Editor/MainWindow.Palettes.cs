@@ -2075,8 +2075,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         return ordinals;
     }
 
-    /// <summary>SFFv1 stores no palette keys: its own palettes are numbered S1, S2… in list order.
-    /// Empty for SFFv2.</summary>
+    /// <summary>SFF v1 stores no palette keys: its own palettes are numbered S1, S2… in list order.
+    /// Empty for SFF v2.</summary>
     private static Dictionary<Palette, int> V1PaletteOrdinals(SffFile file)
     {
         var ordinals = new Dictionary<Palette, int>();
@@ -2087,7 +2087,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         return ordinals;
     }
 
-    private const string V1GroupToolTip = "S: stored in a sprite; SFFv1 has no palette keys";
+    private const string V1GroupToolTip = "S: stored in a sprite; SFF v1 has no palette keys";
 
     /// <summary>The displayed group of an external palette: T while it has no file, else F.</summary>
     private static string ExternalGroup(Palette p) => IsTempPalette(p) ? "T" : "F";
@@ -2135,8 +2135,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     {
         Palette = p,
         Number = number.ToString(CultureInfo.InvariantCulture),
-        // External rows use F/T and import order; SFFv1's own use S and list order,
-        // as SFFv1 stores no keys; SFFv2 rows use their group/number.
+        // External rows use F/T and import order; SFF v1's own use S and list order,
+        // as SFF v1 stores no keys; SFF v2 rows use their group/number.
         GroupText = p.Source == PaletteSource.External ? ExternalGroup(p)
             : v1Ordinals.ContainsKey(p) ? "S" : p.Group.ToString(CultureInfo.InvariantCulture),
         IndexText = p.Source == PaletteSource.External ? externalOrdinals[p].ToString(CultureInfo.InvariantCulture)
@@ -2154,12 +2154,12 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         // Same convention as the sprites' Shared column: the target's # in this list.
         LinkText = p.LinksTo is { } t && _file?.Palettes.IndexOf(t) is int ti and >= 0 ? $"{ti + 1}" : "",
         LinkToolTip = p.Source == PaletteSource.External ? "Only embedded palettes can be linked or merged."
-            : v1 ? "Palette links and merges are available in SFFv2." : "Double-click to link, merge, change or unlink this palette.",
+            : v1 ? "Palette links and merges are available in SFF v2." : "Double-click to link, merge, change or unlink this palette.",
         Kind = p.Source == PaletteSource.External
             ? IsTempPalette(p) ? TempPaletteKind : $"Imported from {System.IO.Path.GetFileName(p.SourcePath)}"
             : v1 && carriers.TryGetValue(p, out var carrier)
-                ? $"Palette carried by sprite #{SpriteOrdinal(_file!, carrier, spriteOrdinals)} in SFFv1"
-                : v1 ? "SFFv1 palette not carried by a sprite" : "Embedded in the sprite file",
+                ? $"Palette carried by sprite #{SpriteOrdinal(_file!, carrier, spriteOrdinals)} in SFF v1"
+                : v1 ? "SFF v1 palette not carried by a sprite" : "Embedded in the sprite file",
     };
 
     /// <summary>Matches on group/index (same "5000" / "5000,10" convention as the sprite filter) or the source text ("sff" or file format).</summary>
@@ -2296,7 +2296,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     /// same convention as OnSpriteCellDoubleTapped. Group/Index are plain
     /// fields with no uniqueness enforced elsewhere (sprites reference a
     /// Palette object directly, not by group/index), but two palettes
-    /// sharing a key is still worth flagging — SFFv2 writes it as the
+    /// sharing a key is still worth flagging — SFF v2 writes it as the
     /// palette's identity, and .act import matches on it — so a collision
     /// asks for confirmation instead of silently allowing it.
     /// </summary>
@@ -2334,7 +2334,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         }
     }
 
-    /// <summary>Double-clicking a palette's Linked cell lets an embedded SFFv2 palette
+    /// <summary>Double-clicking a palette's Linked cell lets an embedded SFF v2 palette
     /// link to or merge into a chosen target, or unlink.</summary>
     private async void OnPaletteLinkCellDoubleTapped(object? sender, TappedEventArgs e)
     {
@@ -2345,13 +2345,13 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             if (palette.Source != PaletteSource.Embedded)
             {
                 CrashLog.Error("OnPaletteLinkCellDoubleTapped", $"refused external palette {palette.Describe()}");
-                await Dialogs.ShowMessage(this, "Cannot Link or Merge Palette", "Only embedded SFFv2 palettes can be linked or merged.");
+                await Dialogs.ShowMessage(this, "Cannot Link or Merge Palette", "Only embedded SFF v2 palettes can be linked or merged.");
                 return;
             }
             if (SffVersions.IsV1(file.Version))
             {
-                CrashLog.Error("OnPaletteLinkCellDoubleTapped", "refused SFFv1 palette link or merge: SFFv1 has no palette link table");
-                await Dialogs.ShowMessage(this, "Cannot Link or Merge Palette", "Palette links and merges are available only in SFFv2.");
+                CrashLog.Error("OnPaletteLinkCellDoubleTapped", "refused SFF v1 palette link or merge: SFF v1 has no palette link table");
+                await Dialogs.ShowMessage(this, "Cannot Link or Merge Palette", "Palette links and merges are available only in SFF v2.");
                 return;
             }
 
@@ -2415,7 +2415,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             if (matching.Any(p => p.Source == PaletteSource.External))
             {
                 CrashLog.Error("Palette sharing", $"refused external target at {group},{index}");
-                return "Only embedded SFFv2 palettes can be linked or merged.";
+                return "Only embedded SFF v2 palettes can be linked or merged.";
             }
             return "No embedded palette has that Group and Index.";
         }
@@ -2429,7 +2429,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     private static string? PaletteShareTargetError(SffFile file, Palette source, Palette target)
     {
         if (ReferenceEquals(source, target)) return "A palette cannot be its own target.";
-        if (target.Source != PaletteSource.Embedded) return "Only embedded SFFv2 palettes can be linked or merged.";
+        if (target.Source != PaletteSource.Embedded) return "Only embedded SFF v2 palettes can be linked or merged.";
         int sourcePosition = file.Palettes.IndexOf(source);
         int targetPosition = file.Palettes.IndexOf(target);
         if (sourcePosition < 0 || targetPosition < 0) return "The source and target must be in the palette list.";
@@ -2554,7 +2554,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             if (target.Source != PaletteSource.Embedded)
             {
                 CrashLog.Error("Palette linking", $"refused external target {target.Describe()}");
-                await Dialogs.ShowMessage(this, "Cannot Link Palette", "Only embedded SFFv2 palettes can be linked.");
+                await Dialogs.ShowMessage(this, "Cannot Link Palette", "Only embedded SFF v2 palettes can be linked.");
                 return;
             }
             if (file.Palettes.IndexOf(target) > file.Palettes.IndexOf(source))

@@ -375,7 +375,7 @@ public static partial class Dialogs
     }
 
     public static Task<bool> PromptSffV1AlphaLoss(Window owner) =>
-        Show(owner, "SFFv1 Cannot Store Palette Alpha", "SFFv1 stores palette colors as RGB. Alpha from this palette will be lost when saved. Continue without alpha?",
+        Show(owner, "SFF v1 Cannot Store Palette Alpha", "SFF v1 stores palette colors as RGB. Alpha from this palette will be lost when saved. Continue without alpha?",
             [("Cancel", false), ("Continue without Alpha", true)], false);
 
     /// <summary>A single-line text prompt. Returns null if canceled. Null sizes mean several sprites,
@@ -969,12 +969,12 @@ public static partial class Dialogs
         return result.Task;
     }
 
-    /// <summary>Save Like SprMaker, step 1: which tool to save like. True = SprMaker 2.01 (SFFv2), null = cancel.</summary>
+    /// <summary>Save Like SprMaker, step 1: which tool to save like. True = SprMaker 2.01 (SFF v2), null = cancel.</summary>
     public static Task<bool?> PromptSprMakerTool(Window owner, bool v2)
     {
         var result = new TaskCompletionSource<bool?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var one = new RadioButton { Content = "SprMaker 0.97 (SFFv1)", GroupName = "SprMakerTool", IsChecked = !v2 };
-        var two = new RadioButton { Content = "SprMaker 2.01 (SFFv2)", GroupName = "SprMakerTool", IsChecked = v2 };
+        var one = new RadioButton { Content = "SprMaker 0.97 (SFF v1)", GroupName = "SprMakerTool", IsChecked = !v2 };
+        var two = new RadioButton { Content = "SprMaker 2.01 (SFF v2)", GroupName = "SprMakerTool", IsChecked = v2 };
         var next = new Button { Content = "Next", MinWidth = 90, IsDefault = true };
         var cancel = new Button { Content = "Cancel", MinWidth = 90, IsCancel = true };
         var body = new StackPanel { Spacing = 8, Margin = new Avalonia.Thickness(20) };
@@ -1000,7 +1000,7 @@ public static partial class Dialogs
         return result.Task;
     }
 
-    /// <summary>Save Like SprMaker, step 2 for SprMaker 0.97 (SFFv1). Null = cancel.</summary>
+    /// <summary>Save Like SprMaker, step 2 for SprMaker 0.97 (SFF v1). Null = cancel.</summary>
     public static Task<SprMakerOptions?> PromptSprMakerOptions(
         Window owner, SprMakerOptions current, IReadOnlyList<string> notes)
     {
@@ -1033,7 +1033,7 @@ public static partial class Dialogs
             });
     }
 
-    /// <summary>Save Like SprMaker, step 2 for SprMaker 2.01 (SFFv2). Null = cancel.</summary>
+    /// <summary>Save Like SprMaker, step 2 for SprMaker 2.01 (SFF v2). Null = cancel.</summary>
     public static Task<SprMaker2Options?> PromptSprMaker2Options(
         Window owner, SprMaker2Options current, IReadOnlyList<string> notes)
     {
@@ -1167,7 +1167,7 @@ public static partial class Dialogs
         var body = new StackPanel { Spacing = 10, Margin = new Avalonia.Thickness(20), MaxWidth = 420 };
         body.Children.Add(new TextBlock
         {
-            Text = "SFFv1 palettes are stored in sprite images. Own makes this sprite carry a copy of its current palette; later sprites that reuse it follow along.",
+            Text = "SFF v1 palettes are stored in sprite images. Own makes this sprite carry a copy of its current palette; later sprites that reuse it follow along.",
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
         });
         body.Children.Add(own);
@@ -1182,7 +1182,7 @@ public static partial class Dialogs
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-            Title = "SFFv1 Palette", SizeToContent = SizeToContent.WidthAndHeight,
+            Title = "SFF v1 Palette", SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
             Content = body,
         };
@@ -1219,7 +1219,7 @@ public static partial class Dialogs
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-            Title = "SFFv2 Palette", SizeToContent = SizeToContent.WidthAndHeight,
+            Title = "SFF v2 Palette", SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
             Content = body,
         };
@@ -2926,7 +2926,7 @@ public static partial class Dialogs
         if (!alphaEnabled)
         {
             aBox.IsEnabled = false;
-            ToolTip.SetTip(aBox, "SFFv1 stores RGB only.");
+            ToolTip.SetTip(aBox, "SFF v1 stores RGB only.");
         }
 
         var dialog = new Window

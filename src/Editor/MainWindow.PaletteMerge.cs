@@ -18,7 +18,7 @@ public partial class MainWindow
         return all.Where(chosen.Contains).ToList();
     }
 
-    /// <summary>Short label for dialogs: "g,i" for SFF palettes, "S1" for SFFv1's own, "F1"/"T1" for external ones.</summary>
+    /// <summary>Short label for dialogs: "g,i" for SFF palettes, "S1" for SFF v1's own, "F1"/"T1" for external ones.</summary>
     private static string PaletteKey(SffFile file, Palette? p) =>
         p is null ? "no palette"
         : p.Source == PaletteSource.Embedded
@@ -175,8 +175,8 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// Merges the selected palettes and remaps their sprites. SFFv2: the target (picked in the dialog,
-    /// starting on the right-clicked palette) gets the colors and the other SFF palettes are removed. SFFv1: every chosen SFF
+    /// Merges the selected palettes and remaps their sprites. SFF v2: the target (picked in the dialog,
+    /// starting on the right-clicked palette) gets the colors and the other SFF palettes are removed. SFF v1: every chosen SFF
     /// palette gets the colors. The target's indexes win.
     /// </summary>
     private void OnMergePalettes(object? sender, RoutedEventArgs e) => _ = MergePalettesInto(null);
@@ -200,7 +200,7 @@ public partial class MainWindow
                 return;
             }
             bool v1 = SffVersions.IsV1(file.Version);
-            // A link can't take the colors (SFFv2), so it can't be the target.
+            // A link can't take the colors (SFF v2), so it can't be the target.
             var candidates = embedded.Where(p => v1 || p.LinksTo is null).ToList();
             if (candidates.Count == 0)
             {

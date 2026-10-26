@@ -15,7 +15,7 @@ public enum SprMaker2Compress8 { Rle8, None }
 public enum SprMaker2Compress24 { None, Png24, Png32 }
 
 /// <summary>
-/// SprMaker 0.97 (SFFv1) save options, named after its switches. Defaults
+/// SprMaker 0.97 (SFF v1) save options, named after its switches. Defaults
 /// are the tool's with no switches. Options the writer can't do yet are
 /// listed by Unsupported() and refused by SprMakerSave.
 /// </summary>
@@ -57,7 +57,7 @@ public sealed class SprMakerOptions
 }
 
 /// <summary>
-/// SprMaker 2.01 (SFFv2) save options, named after its [Option] keys. Defaults are
+/// SprMaker 2.01 (SFF v2) save options, named after its [Option] keys. Defaults are
 /// the tool's with no switches, where known (its txt2def template turns
 /// autocrop and palette dedupe on; the built-in defaults are unverified).
 /// Compress24 defaults to Png32; the built-in default is unverified.
@@ -205,7 +205,7 @@ public sealed record SprMakerReport(
 /// </summary>
 public static class SprMakerSave
 {
-    /// <summary>SprMaker 0.97: SFFv1.</summary>
+    /// <summary>SprMaker 0.97: SFF v1.</summary>
     public static SprMakerReport Save(SffFile file, string path, SprMakerOptions o, bool clamp = false)
     {
         Refuse(o.Unsupported());
@@ -219,7 +219,7 @@ public static class SprMakerSave
         return new SprMakerReport(events);
     }
 
-    /// <summary>SprMaker 2.01: SFFv2, written as 2.0.1.0 like the tool.</summary>
+    /// <summary>SprMaker 2.01: SFF v2, written as 2.0.1.0 like the tool.</summary>
     public static SprMakerReport Save(SffFile file, string path, SprMaker2Options o, bool clamp = false)
     {
         Refuse(o.Unsupported());

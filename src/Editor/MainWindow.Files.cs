@@ -73,7 +73,7 @@ public partial class MainWindow
     }
 
     /// <summary>What saving does to palette links read pointing at a later palette; past tense once saved.
-    /// Null if none, or when saving as SFFv1, which has no palette links.</summary>
+    /// Null if none, or when saving as SFF v1, which has no palette links.</summary>
     private string? ForwardPaletteLinkNote(SffVersion version, bool done)
     {
         if (_file is not { } file || SffVersions.IsV1(version)) return null;
@@ -88,7 +88,7 @@ public partial class MainWindow
     }
 
     /// <summary>Loaded links to a later sprite that saving as <paramref name="version"/> turns around, and the
-    /// SFFv1 sprites in those linked sets that would then show their target's palette instead of their own.</summary>
+    /// SFF v1 sprites in those linked sets that would then show their target's palette instead of their own.</summary>
     private (List<Sprite> Turned, List<Sprite> LosePalette) ForwardLinkChanges(SffVersion version)
     {
         if (_file is null) return ([], []);
@@ -115,7 +115,7 @@ public partial class MainWindow
         if (lose.Count > 0)
             text += Environment.NewLine + Environment.NewLine
                 + $"{(lose.Count == 1 ? "1 sprite" : $"{lose.Count} sprites")} {(done ? (lose.Count == 1 ? "now shows" : "now show") : "will show")} "
-                + $"the linked sprite's palette instead of {(lose.Count == 1 ? "its" : "their")} own: an SFFv1 link can only use "
+                + $"the linked sprite's palette instead of {(lose.Count == 1 ? "its" : "their")} own: an SFF v1 link can only use "
                 + $"that one or the previous sprite's ({Keys(lose)}).";
         else if (!done) text += " Nothing else changes.";
         return text;
@@ -1319,14 +1319,14 @@ public partial class MainWindow
             if (!await CanWriteV1()) return null;
             var notes = new List<string> { $"Saving converts this file to SFF {version}; the session becomes the saved file." };
             notes.AddRange(V1ConversionLosses());
-            return await Dialogs.PromptSffConversion(this, "Convert to SFFv1", notes, 0, false) is null ? null : [];
+            return await Dialogs.PromptSffConversion(this, "Convert to SFF v1", notes, 0, false) is null ? null : [];
         }
 
         var embeddable = SffWriter.EmbeddableExternals(_file);
         // Embedding repoints the main palette's sprites when an .act lands on 1,1.
         bool repoints = embeddable.Any(e => e.Index == 1)
             && _file.Sprites.Any(s => s.Group == 0 && s.Index == 0 && s.Palette is not null);
-        var embed = await Dialogs.PromptSffConversion(this, "Convert to SFFv2",
+        var embed = await Dialogs.PromptSffConversion(this, "Convert to SFF v2",
             [$"Saving converts this file to SFF {version}: the session becomes the saved file, and the SFF's own palettes take their sprites' groups, and sprite 0,0's takes 1,1 unless an .act does."],
             embeddable.Count, repoints);
         if (embed is null) return null;
@@ -1343,9 +1343,9 @@ public partial class MainWindow
         var bad = _file.Sprites.Where(s => s.SharesWith is null && s.Indexed is null)
             .Select(s => $"{s.Group},{s.Index}").ToList();
         if (bad.Count == 0) return true;
-        CrashLog.Error("CanWriteV1", $"SFFv1 save refused: {bad.Count} true-color or undecoded sprite(s)");
-        await Dialogs.ShowMessage(this, "Can't Save as SFFv1",
-            $"SFFv1 holds 8-bit sprites only; {bad.Count} sprite{(bad.Count == 1 ? " is" : "s are")} true color or undecoded: "
+        CrashLog.Error("CanWriteV1", $"SFF v1 save refused: {bad.Count} true-color or undecoded sprite(s)");
+        await Dialogs.ShowMessage(this, "Can't Save as SFF v1",
+            $"SFF v1 holds 8-bit sprites only; {bad.Count} sprite{(bad.Count == 1 ? " is" : "s are")} true color or undecoded: "
             + string.Join(", ", bad.Take(5)) + (bad.Count > 5 ? ", …" : "") + ".");
         return false;
     }
@@ -1358,13 +1358,13 @@ public partial class MainWindow
         var used = _file.Sprites.Select(s => s.Palette).ToHashSet();
         int dropped = _file.Palettes.Count(p => p.Source == PaletteSource.Embedded && !used.Contains(p));
         if (dropped > 0)
-            notes.Add($"{dropped} palette{(dropped == 1 ? "" : "s")} no sprite uses will be dropped: SFFv1 stores palettes only inside sprites.");
+            notes.Add($"{dropped} palette{(dropped == 1 ? "" : "s")} no sprite uses will be dropped: SFF v1 stores palettes only inside sprites.");
         var lost = SffWriter.V1LinksLosingPalette(_file);
         if (lost.Count > 0)
             notes.Add($"{lost.Count} linked sprite{(lost.Count == 1 ? "" : "s")} will show the linked sprite's palette instead of "
-                + $"{(lost.Count == 1 ? "its" : "their")} own: an SFFv1 link can only use that one or the previous sprite's ("
+                + $"{(lost.Count == 1 ? "its" : "their")} own: an SFF v1 link can only use that one or the previous sprite's ("
                 + string.Join(", ", lost.Take(5)) + (lost.Count > 5 ? ", …" : "") + ").");
-        notes.Add("Palette group/index keys, links and alpha are not stored in SFFv1.");
+        notes.Add("Palette group/index keys, links and alpha are not stored in SFF v1.");
         return notes;
     }
 
@@ -1387,11 +1387,11 @@ public partial class MainWindow
             bool fromV1 = SffVersions.IsV1(file.Version);
             var notes = new List<string> { "Options apply to the saved file only; the open file is not changed." };
             if (v2 && fromV1)
-                notes.Add("This SFFv1 file is converted: its own palettes take their sprites' groups (sprite 0,0's takes 1,1), and external .act palettes no sprite uses are not saved.");
+                notes.Add("This SFF v1 file is converted: its own palettes take their sprites' groups (sprite 0,0's takes 1,1), and external .act palettes no sprite uses are not saved.");
             if (!v2 && !fromV1)
             {
                 if (!await CanWriteV1()) return;
-                notes.Add("This SFFv2 file is converted to SFFv1.");
+                notes.Add("This SFF v2 file is converted to SFF v1.");
                 notes.AddRange(V1ConversionLosses());
             }
 
@@ -1514,7 +1514,7 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// SFFv2 only: below 2.0.1.0, sprites still stored as PNG are re-encoded
+    /// SFF v2 only: below 2.0.1.0, sprites still stored as PNG are re-encoded
     /// (lossless) in the saved file, after asking. False = cancel.
     /// </summary>
     private async Task<bool> ConfirmSffVersionIssues(SffVersion version)

@@ -83,7 +83,7 @@ public partial class MainWindow
         bool allowKeep = plans.Any(plan => plan.BeforeIndexes is not null) || !allowNearest;
         string? notice = v1 && plans.Any(plan => plan.ChangesColors && plan.SourcePalette is { } palette
             && file.Sprites.Any(other => !ReferenceEquals(other, plan.Sprite) && ReferenceEquals(other.Palette, palette)))
-            ? "Other sprites using affected SFFv1 palettes may look different if their indexes are unchanged."
+            ? "Other sprites using affected SFF v1 palettes may look different if their indexes are unchanged."
             : null;
         var mapping = await Dialogs.PromptPaletteIndexMapping(this, allowNearest,
             allowNearest ? null : "Nearest-color matching is unavailable for the selected sprites.", notice,
@@ -118,7 +118,7 @@ public partial class MainWindow
             && (!await ConfirmLinkedSpritesChange(file, plans.Select(plan => plan.Sprite)) || !ReferenceEquals(_file, file)))
             return false;
 
-        // SFFv2: one new palette for every sprite, prefilled with the first sprite's (file order) group.
+        // SFF v2: one new palette for every sprite, prefilled with the first sprite's (file order) group.
         (int Group, int Index) newKey = default;
         if (!v1 && chosen.Source == PaletteSource.External)
         {
@@ -154,7 +154,7 @@ public partial class MainWindow
 
         List<Palette> added = copy is null ? [] : [copy];
         var colorChanges = BuildPaletteColorChanges(plans, targetColors, dirtyExternalPalettes: v1);
-        // A temp palette never stays behind: SFFv2 moves it in, SFFv1 drops it after copying its colors.
+        // A temp palette never stays behind: SFF v2 moves it in, SFF v1 drops it after copying its colors.
         Action moveIn, moveOut;
         if (move)
         {
@@ -186,7 +186,7 @@ public partial class MainWindow
                     : v1 && sprite.SharesWith is not null
                         ? "links to another sprite and cannot carry its own palette"
                         : v1 && (current!.Source != PaletteSource.Embedded || file.PaletteCanBeMadeUnique(sprite))
-                            ? "does not carry its own SFFv1 palette"
+                            ? "does not carry its own SFF v1 palette"
                             : null;
             if (reason is not null)
             {
@@ -206,7 +206,7 @@ public partial class MainWindow
 
         var files = await PickOpen(new FilePickerOpenOptions
         {
-            Title = v1 ? "Import Palette into SFFv1 Sprites" : "Import Palette into SFFv2 Sprites",
+            Title = v1 ? "Import Palette into SFF v1 Sprites" : "Import Palette into SFF v2 Sprites",
             AllowMultiple = false,
             FileTypeFilter = [PaletteFilesType],
         });
@@ -238,7 +238,7 @@ public partial class MainWindow
         bool allowKeep = plans.Any(plan => plan.BeforeIndexes is not null) || !allowNearest;
         string? notice = v1 && plans.Any(plan => plan.ChangesColors && plan.SourcePalette is { } palette
             && file.Sprites.Any(other => !ReferenceEquals(other, plan.Sprite) && ReferenceEquals(other.Palette, palette)))
-            ? "Other sprites using affected SFFv1 palettes may look different if their indexes are unchanged."
+            ? "Other sprites using affected SFF v1 palettes may look different if their indexes are unchanged."
             : null;
         var mapping = await Dialogs.PromptPaletteIndexMapping(this, allowNearest,
             allowNearest ? null : "Nearest-color matching is unavailable for the selected sprites.", notice,
@@ -273,7 +273,7 @@ public partial class MainWindow
             && (!await ConfirmLinkedSpritesChange(file, plans.Select(plan => plan.Sprite)) || !ReferenceEquals(_file, file)))
             return;
 
-        // SFFv2: one new palette for every sprite, prefilled with the first sprite's (file order) group.
+        // SFF v2: one new palette for every sprite, prefilled with the first sprite's (file order) group.
         Palette? shared = null;
         if (!v1)
         {

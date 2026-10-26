@@ -434,7 +434,7 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Links to later sprites on load** are recorded, listed in the Media Health Report, and
   turned around on save after a Save/Cancel prompt that also names v1 sprites that would
   take the target's palette.
-- **Links to later palettes on load** (SFFv2) are recorded in `ForwardPaletteLinksOnLoad`, shown
+- **Links to later palettes on load** (SFF v2) are recorded in `ForwardPaletteLinksOnLoad`, shown
   in a "Links to Later Palettes" popup, listed in the Media Health Report, and turned around on a
   v2 save after the same Save/Cancel prompt. A v1 save drops palette links, so it just clears them.
 - **Find Similar** compares visible pixels after trimming transparent borders; axes and
@@ -443,7 +443,7 @@ and constraints that are easy to miss when reading one code path in isolation.
   of the union of visible positions, and palette matching defaults by SFF version.
 - **Duplicate palette comparison** ignores index-0 RGB only when both palettes' index 0 is
   fully transparent. SprMaker's deduplication compares all RGBA including index 0.
-- **SFFv2 palette links** may only target earlier independent embedded palettes; after a
+- **SFF v2 palette links** may only target earlier independent embedded palettes; after a
   reorder or Sort Palettes, a save makes the set's earliest palette store the colors. Merging
   redirects sprites and links; unlinking copies the colors. Deleting a used palette
   redirects sprites to its link target or the first remaining palette and refuses when none
@@ -589,10 +589,10 @@ summaries; treat anything marked unverified as unknown.
   `SimilarLoosePercent` (80) in settings.json. `FindSimilarSprites` itself still takes
   any 0-100 and clamps it, so this limits what the dialog offers, not the comparison.
 
-- **Load speed.** SFFv2 sprite nodes are read in order, then pixel decoding runs
+- **Load speed.** SFF v2 sprite nodes are read in order, then pixel decoding runs
   in parallel (`Parallel.ForEach` in `SffReader.ReadSprites`); each sprite decodes
   from its own `SourceData`. Loading is slower than saving because save reuses
-  untouched bytes while load decodes every sprite. SFFv1 still decodes serially
+  untouched bytes while load decodes every sprite. SFF v1 still decodes serially
   because same-palette records depend on an earlier palette.
 - SFF palette byte 4 is alpha, despite the spec calling it unused.
 - LZ5 was reconstructed from mirrored excerpts because the Elecbyte wiki page
@@ -601,7 +601,7 @@ summaries; treat anything marked unverified as unknown.
   long-packet path adds 1). Verified by histogramming decoded back-reference
   distances against sprite width.
   Header compatibility bytes 24-27 remain unverified.
-- SFFv1 is a linked list of PCX subfiles that carry palettes. A sprite uses
+- SFF v1 is a linked list of PCX subfiles that carry palettes. A sprite uses
   its own palette; a same-palette-flagged one uses the file's first palette when
   header byte 32 = 1 (shared), else the preceding sprite's. Linked records share the
   palette object, so undo must restore palette references as well as colors.
@@ -616,7 +616,7 @@ summaries; treat anything marked unverified as unknown.
   `-p` omits duplicate successive palettes on non-link records; same-palette
   flags can also accompany records that still contain a palette. See
   **Official tools** for confirmed flag behavior.
-- SFFv2's palette count field is unreliable; trust the data block size. A
+- SFF v2's palette count field is unreliable; trust the data block size. A
   palette link is a zero-length node plus a target number. The reader resolves
   link chains to the palette with data; the writer preserves links and resolves
   them by object, so deletion must leave no references to the removed palette.
@@ -625,7 +625,7 @@ summaries; treat anything marked unverified as unknown.
   Ikemen GO's loadPalettes resolves links as it reads and a link to a later palette
   gets palette 0's colors (verified in image.go, not tried in game). A set whose chain
   end is not written stays in full. The colors are the same either way.
-- SFFv2's version is the user's choice and is never bumped by the writer.
+- SFF v2's version is the user's choice and is never bumped by the writer.
   Compatibility is written as SprMaker 2.01 does: 2.0.1.0 only for PNG or
   deeper-than-8-bit sprites, otherwise 2.0.0.0. Ikemen skips bytes 16-35;
   MUGEN may use compatibility (unverified). Below 2.0.1.0, PNG sprites must
@@ -944,6 +944,9 @@ The editor's writers follow these tools where applicable.
 
 - The official tools and their disassemblies are in `working/` (gitignored;
   README.txt there lists key addresses). Use them before disassembling again.
+- SFF version names: the editor follows the SprMaker 2.01 doc page (Elecbyte, sprmake2), which uses "SFF v1" and
+  "SFF v2". Elecbyte's MUGEN update history (`working/history.html`) uses "SFFv1" in places, so it is not used as the
+  reference. The UI text and code comments use "SFF v1" and "SFF v2" (decided 2026-10-26).
 - SprMaker 0.97's file-wide palette type is 1 (Individual palette, header byte
   32 = 0) or 2 (Shared palette, byte 32 = 1); "Use previous sprite's palette" is
   the per-sprite override menu. Disassembled: the type lives at 0x55aec and is
@@ -980,7 +983,7 @@ The editor's writers follow these tools where applicable.
   Plain v1 saves flag a link whose palette is the previous one and not its target's;
   Save Like SprMaker 0.97 keeps the tool's flag rule above. A v1 save can't keep a link
   palette that is neither (it reloads as the target's); the v2-to-v1 warning lists them.
-- SprMaker 2.01 (SFFv2, disassembled) links to the first earlier sprite with the
+- SprMaker 2.01 (SFF v2, disassembled) links to the first earlier sprite with the
   same file name, or with -f / sprite.detectduplicates the same file size and
   MD5 of the whole source PCX/PNG. The link node copies the target's node
   (size, format, data offset), length 0, axis shifted by the target's crop,
@@ -997,10 +1000,10 @@ The editor's writers follow these tools where applicable.
   (int32); the last one's next points at the end of the file, not 0. Each
   WAV is copied byte for byte, unchecked; duplicate keys are not refused.
   Our writer follows that layout (new files get version 4; opened files keep
-  theirs). The SFFv1 writer's last next pointer is the end of file too, as
+  theirs). The SFF v1 writer's last next pointer is the end of file too, as
   SprMaker 0.97 writes it.
 - Unused header space stays zero, as SprMaker 0.97 / SprMaker 2.01 / sndmaker leave it
   (they clear it and never write text there; none of them mentions comments):
-  SFFv1 bytes 36-511 and 19-31 of each sprite entry, SFFv2 after byte 67, SND
+  SFF v1 bytes 36-511 and 19-31 of each sprite entry, SFF v2 after byte 67, SND
   bytes 24-511. No app tag. Ikemen reads SFF headers only to byte 63 (v1: 31,
   so it ignores v1's palette-type byte 32) and SND to byte 23.

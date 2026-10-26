@@ -3,7 +3,7 @@ using System.Buffers.Binary;
 namespace Sff;
 
 /// <summary>
-/// Writes SFFv1: a 512-byte header followed by a linked list of 32-byte
+/// Writes SFF v1: a 512-byte header followed by a linked list of 32-byte
 /// subheaders, each carrying a PCX image. Palettes travel inside the PCX, and
 /// subheader flags let sprites reuse the preceding palette.
 /// </summary>
@@ -19,7 +19,7 @@ internal static class SffV1Writer
         var unsupported = Unsupported(f, 5);
         if (unsupported.Count > 0)
             throw new NotSupportedException(
-                "SFFv1 holds 8-bit sprites only, but these are true color or undecoded: "
+                "SFF v1 holds 8-bit sprites only, but these are true color or undecoded: "
                 + string.Join(", ", unsupported) + ". Save as SFF 2.0.1.0 instead.");
 
         var body = new MemoryStream();
@@ -136,7 +136,7 @@ internal static class SffV1Writer
         return lost;
     }
 
-    /// <summary>Up to <paramref name="max"/> sprites SFFv1 cannot hold (true color or undecoded), as "group,index".</summary>
+    /// <summary>Up to <paramref name="max"/> sprites SFF v1 cannot hold (true color or undecoded), as "group,index".</summary>
     internal static List<string> Unsupported(SffFile f, int max) => f.Sprites
         .Where(s => s.SharesWith is null && s.Indexed is null)
         .Select(s => $"{s.Group},{s.Index}")

@@ -2,7 +2,7 @@ using System.Buffers.Binary;
 
 namespace Sff;
 
-/// <summary>Writes the 8-bit run-length PCX images SFFv1 is made of.</summary>
+/// <summary>Writes the 8-bit run-length PCX images SFF v1 is made of.</summary>
 internal static class PcxWriter
 {
     /// <summary>

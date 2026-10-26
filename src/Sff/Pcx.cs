@@ -3,7 +3,7 @@ using System.Buffers.Binary;
 namespace Sff;
 
 /// <summary>
-/// SFFv1 stores every sprite as a PCX image, so reading v1 means reading PCX.
+/// SFF v1 stores every sprite as a PCX image, so reading v1 means reading PCX.
 /// Only what MUGEN actually produces is handled: 8-bit run-length encoded, one
 /// plane, with the 256-color palette appended after the pixel data.
 /// </summary>
@@ -84,7 +84,7 @@ internal static class Pcx
 
     /// <summary>
     /// The 256-color table sits in the last 769 bytes, introduced by 0x0c.
-    /// Not every writer emits that marker though, and SFFv1 readers in the wild
+    /// Not every writer emits that marker though, and SFF v1 readers in the wild
     /// simply take the last 768 bytes of the subfile, so that is the fallback.
     /// Sprites reusing the previous sprite's palette have none at all.
     /// </summary>
