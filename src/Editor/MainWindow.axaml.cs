@@ -1915,8 +1915,10 @@ public partial class MainWindow : Window
             var panel = grid.Children.FirstOrDefault(c => Grid.GetColumn(c) == col && c is not GridSplitter);
             if (panel is null || !panel.IsVisible) continue; // floating
             // Trimmed or wrapped text (e.g. a long action comment) fits any width, so it mustn't widen the panel.
+            // Button labels trim too (App.axaml), but only as a fallback; the panel still fits them in full.
             var squeezed = panel.GetVisualDescendants().OfType<TextBlock>()
-                .Where(t => t.TextTrimming != TextTrimming.None || t.TextWrapping != TextWrapping.NoWrap)
+                .Where(t => (t.TextTrimming != TextTrimming.None || t.TextWrapping != TextWrapping.NoWrap)
+                    && !t.GetVisualAncestors().OfType<Button>().Any())
                 .Select(t => (Block: t, t.MaxWidth)).ToList();
             foreach (var s in squeezed) s.Block.MaxWidth = 0;
             // Finite height so virtualised lists only realize the rows on screen, not every item.

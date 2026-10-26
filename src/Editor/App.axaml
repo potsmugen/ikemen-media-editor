@@ -30,10 +30,12 @@
     <Style Selector="Button, ToggleButton, RepeatButton, MenuItem, CheckBox, RadioButton, ComboBox, NumericUpDown, Slider, TextBox">
       <Setter Property="ToolTip.ShowOnDisabled" Value="True" />
     </Style>
-    <!-- Every button's label sits centered in its box, however wide the button is stretched. -->
+    <!-- Every button's label sits centered in its box, however wide the button is stretched,
+         and ends in … when the button is too narrow (inherited by the label's TextBlock). -->
     <Style Selector="Button, ToggleButton, RepeatButton">
       <Setter Property="HorizontalContentAlignment" Value="Center" />
       <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="TextBlock.TextTrimming" Value="CharacterEllipsis" />
     </Style>
     <!-- Disabled button appearance: ensure it looks disabled in both themes -->
     <Style Selector="ListBoxItem:selected > Grid">

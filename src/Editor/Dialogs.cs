@@ -145,12 +145,12 @@ public static partial class Dialogs
     /// On Windows the title bar keeps only Close.</summary>
     private static Task ShowModal(this Window dialog, Window owner)
     {
-        if (OperatingSystem.IsWindows())
-            dialog.Opened += (_, _) =>
-            {
-                try { WinDialogStyle.RemoveMinMax(dialog); }
-                catch (Exception ex) { CrashLog.Write("WinDialogStyle", ex); }
-            };
+        dialog.Opened += (_, _) =>
+        {
+            if (!OperatingSystem.IsWindows()) return; // checked in here: CA1416 doesn't see a guard outside the lambda
+            try { WinDialogStyle.RemoveMinMax(dialog); }
+            catch (Exception ex) { CrashLog.Write("WinDialogStyle", ex); }
+        };
         dialog.KeyDown += (_, e) =>
         {
             if (e.Handled || e.Key != Avalonia.Input.Key.Escape || e.KeyModifiers != Avalonia.Input.KeyModifiers.None) return;

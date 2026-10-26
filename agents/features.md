@@ -96,6 +96,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   The sound waveform shows the I-beam while a sound is loaded, since a drag selects a range.
 - **Panel widths start fitted**: a side panel with no saved width is fitted to its contents
   on its tab's first layout, inside `LayoutUpdated`, so the fixed XAML width never shows.
+  Trimmed or wrapped text doesn't widen it, except button labels: every Button, ToggleButton
+  and RepeatButton trims its label with … when too narrow (App.axaml), as a fallback only.
   The XAML sizes must match what `ResetPanelSizes` sets.
 - **Sprite Tools swatch on reset**: the swatch grid's natural cell is `SpriteSwatchCellSize`
   (16, a 256px grid), so Reset Panel Sizes starts it at 256×256 when the tab is big enough

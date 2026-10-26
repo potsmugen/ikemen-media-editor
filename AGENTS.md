@@ -53,7 +53,8 @@ and keep them current. Open, unchecked work is in `agents/todo.md`.
   headers and section headings ("Sprite Tools", "Tool Options"). Field labels stay
   sentence case ("Preview with", "Pin sprite").
 - No "..." in UI text; ask first if a case seems to need it. Approved
-  exceptions: splash "Loading..." and the ", …" sprite-number truncation.
+  exceptions: splash "Loading...", the ", …" sprite-number truncation, and text
+  trimmed to fit (TextTrimming), such as button labels too wide for their button.
   Don't put the user's name in files or code.
 - Never commit, publish, or share the sample character files in `working/`
   (kfm, zangief, and similar). It's gitignored; keep them out of zips and shared
