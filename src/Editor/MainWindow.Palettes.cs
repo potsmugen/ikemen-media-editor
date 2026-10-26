@@ -2963,29 +2963,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         }
         else if (file is null && selectedExisting >= 0)
         {
-            var palette = _standalonePalettes[selectedExisting];
             _standalonePaletteOverride = selectedExisting;
-            PaletteFilterBox.Text = "";
-            RebuildPaletteList();
-            _suppressEvents = true;
-            if (PaletteList.ItemsSource is IEnumerable<PaletteRow> rows)
-                PaletteList.SelectedIndex = rows.ToList().FindIndex(row => ReferenceEquals(row.Palette, palette));
-            _suppressEvents = false;
-            _editingPalette = palette;
-            _editingView = BigSwatches;
-            _selectedSwatch = palette.Colors.Length > 0 ? 0 : -1;
-            ColorEditor.IsEnabled = true;
-            ASlider.IsEnabled = CanEditPaletteAlpha(palette);
-            if (_selectedSwatch >= 0)
-            {
-                var color = palette.Colors[_selectedSwatch];
-                _suppressEvents = true;
-                RSlider.Value = color.R; GSlider.Value = color.G; BSlider.Value = color.B; ASlider.Value = color.A;
-                _suppressEvents = false;
-            }
-            ResetColorAdjustBase();
-            RefreshPaletteTab();
-            UpdateTitle();
+            ShowStandalonePalette(_standalonePalettes[selectedExisting]);
         }
         if (errors.Count > 0)
             await Dialogs.ShowMessage(this, "Some Palette Files Could Not Be Read", string.Join("\n", errors));

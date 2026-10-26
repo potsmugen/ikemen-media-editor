@@ -789,10 +789,12 @@
                   <Button Grid.Column="2" Content="Export" HorizontalAlignment="Stretch" Click="OnExportPalette" />
                 </Grid>
                 <Grid ColumnDefinitions="*,Auto,*">
-                  <Button Grid.Column="0" Content="New" HorizontalAlignment="Stretch" Click="OnNewPalette" />
+                  <Button Grid.Column="0" Content="Replace" HorizontalAlignment="Stretch" Click="OnReplacePalette"
+                          ToolTip.Tip="Loads a palette file over this palette, keeping its number and the sprites that use it." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
                   <Button Grid.Column="2" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeletePalette" />
                 </Grid>
+                <Button Content="New" HorizontalAlignment="Stretch" Click="OnNewPalette" />
               </StackPanel>
               <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,6">
                 <TextBox Grid.Column="0" x:Name="PaletteFilterBox"

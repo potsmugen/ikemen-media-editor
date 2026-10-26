@@ -303,6 +303,13 @@ and constraints that are easy to miss when reading one code path in isolation.
   for, so alt palettes no sprite uses can be added. A taken key asks to replace that
   palette's colors, keeping its key, sprites and linked palettes. A different color count is
   refused.
+- **Replace** (palette panel) loads a palette file over the active palette. An SFF palette
+  takes the colors in place in one undo step, keeping its key, sprites and linked palettes;
+  a palette that links elsewhere gets its own colors. v1 pads the file to 256 with opaque
+  black; v2 takes the file's count and refuses to shrink below an index its sprites (or
+  linked palettes' sprites) use, or when one is undecoded. Imported and temp palettes are
+  swapped for the new file at the same number and list spot (undoable); without an SFF the
+  palette document is closed and the file opened in its place, asking first if unsaved.
 - **Palette list right-click** offers "Save Original File" for imported palettes that have a
   file and "Save SFF File" for SFF palettes; the inapplicable one dims rather than hides.
   Temp palettes have no original file, so neither applies; the panel's Export button is
