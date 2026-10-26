@@ -362,7 +362,7 @@ and constraints that are easy to miss when reading one code path in isolation.
   use the selected item's group and the first free number after its number, wrapping to the
   lowest free one (`NextFreeNumber`). Add from Image also copies the selected sprite's axis.
   Palettes > Import follows the selected palette the same way, or 1,1 up when none is selected.
-- **Sprite Tools** has an Axis section (arrow pad, Set Axis, Shift Offset) and, under a hairline, a
+- **Sprite Tools** has an Axis section (arrow pad, Set Axis, Shift Offset, Align With Onion Skin) and, under a hairline, a
   Transform section (Crop, Resize Canvas, Resize, Flip, Rotate). Find Similar Sprites is in the
   canvas right-click menu, since it compares the shown sprite's pixels.
 - **Arrow pad** moves the selected sprites like a canvas drag,
@@ -370,6 +370,20 @@ and constraints that are easy to miss when reading one code path in isolation.
   (10, Shift+click) set the step. A step that would put any axis out of range does nothing and says
   so in the status line. Clicks in a row on the same sprites merge into one undo step. Arrow keys
   (Shift for the bigger step) do the same while the sprite canvas has focus.
+- **Align With Onion Skin** (Sprites tab only) moves each selected sprite's axis so it lines up with
+  the onion sprite shown when the command runs (pinned, else the row above), as one undo step. Dimmed
+  while no onion sprite is shown. The dialog picks the method (tooltips explain each), ordered by
+  complexity and remembered for the session: Box center, Bottom center or Center of mass (visible
+  pixels only; halves round toward no move), or Similarity: the move with the highest share of
+  visible positions whose colors are close (R+G+B differences up to 48, as drawn through each
+  sprite's own palette), ties to the smallest move. It searches coarse to fine: both sprites halve
+  until 48 px or less (a block is visible if any of its pixels is, colored with their average),
+  every move that keeps them overlapping is tried there, then ±2 around the answer at each larger
+  size. There is no distance limit: a fixed 32 px window made big stage layers inch over in steps. A full search was about 100× slower on a 180×240
+  sprite; the cost is a possible miss on repeating patterns. The status shows each sprite's search
+  %, and trace.log `[align]` lines its time. It always moves to the best result and shows the move and match % in the status
+  line. Sprites with no visible pixels, no close colors, or an axis that would leave the
+  range stay put and are listed in a popup. `Sff.SpriteAlign` holds the math.
 - **Sprite import palette help** counts how many images each palette reproduces exactly
   (full RGBA) or by index or nearest color, with index 0 excluded. The specific-palette
   dropdown opens on a palette matching every image, else the previous sprite's. A square

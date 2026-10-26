@@ -48,13 +48,9 @@ before a release. Remove items once they're done or checked.
   - Plain Save of SFFv1 re-encodes every PCX (`SffV1Writer`), dropping PCX header
     fields (DPI, 16-color header palette) and palette bytes left in same-palette
     records. Pixels and colors are unchanged. Seen in kfm_win's kfm.sff.
-  - Saving SFF drops header comment text (v1 bytes 36-511, v2 after byte 67), e.g.
-    "Made in VirtuallTek / Powered by Fighter Factory" in working/kfm-v1.sff and kfm-v2.sff.
-    Also happens on a Save All where only a temp palette was added and removed.
 - Import Palette into Sprite on several SFFv1 sprites writes the colors into each one's own
   palette, giving N identical copies. Could look at sharing one palette across runs of
   consecutive selected sprites (and stop skipping same-palette sprites), like v2.
-- There's another app that opens large SFF's faster than ours. Means we could improve that
 - Test and revisit the nearest-color alpha threshold: pixels below
   NearestColorAlphaThreshold (settings.json, default 32) map to index 0. Check
   against real sprites and the official tools.
@@ -155,7 +151,9 @@ before a release. Remove items once they're done or checked.
   steps. Cause unknown; the maintainer can't reproduce it either. Origin is now snapped to
   device pixels as hardening (features.md "Canvas pixel snapping"); checked by the maintainer.
   Waiting for the reporter's feedback on the next build; close if it doesn't recur.
-- Auto-align a sprite to the onion skin by similarity (design undecided).
+- Dialog option descriptions: consider a smaller muted line under each option in dialogs with
+  radio options (Find Similar Sprites, Align With Onion Skin), instead of tooltips. Both used
+  that once (a SemiBold label over a ThemeMutedText line).
 
 ## Not yet checked in the app
 

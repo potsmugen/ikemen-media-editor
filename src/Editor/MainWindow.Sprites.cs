@@ -756,6 +756,127 @@ public partial class MainWindow
         }
     }
 
+    private SpriteAlign.Method _onionAlignMethod = SpriteAlign.Method.BoxCenter; // remembered for the session
+
+    /// <summary>The sprite the Sprites tab onion skin shows: the pinned one, else the row above. Null while off.</summary>
+    private Sprite? ShownSpriteOnion()
+    {
+        if (!_onionSkin || _file is null) return null;
+        return _onionGroup is { } g && _onionIndex is { } i ? _file.Find(g, i) : PreviousVisibleSprite();
+    }
+
+    /// <summary>Dims Align With Onion Skin while no onion sprite is shown, and says why.</summary>
+    private void SyncAlignOnionButton(Sprite? onion)
+    {
+        if (AlignOnionButton is null) return;
+        AlignOnionButton.IsEnabled = onion is not null;
+        ToolTip.SetTip(AlignOnionButton, onion is not null
+            ? "Moves each selected sprite to line up with the onion skin."
+            : "Available while the onion skin shows a sprite.");
+    }
+
+    /// <summary>
+    /// Moves the selected sprites to line up with the onion skin shown now, by the method
+    /// chosen in the dialog, as one undo step. Sprites with no match stay put and are listed.
+    /// </summary>
+    private async void OnAlignWithOnion(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (_file is not { } file) return;
+            var selected = SelectedSpriteTargets();
+            if (selected.Count == 0 || ShownSpriteOnion() is not { } onion) return;
+            string onionKey = $"{onion.Group},{onion.Index}";
+            string what = selected.Count == 1 ? $"sprite {selected[0].Group},{selected[0].Index}" : $"{selected.Count} sprites";
+            var method = await Dialogs.PromptOnionAlign(this, _onionAlignMethod, $"Aligns {what} with sprite {onionKey}.");
+            if (method is null || !ReferenceEquals(_file, file)) return;
+            _onionAlignMethod = method.Value;
+
+            // Taken before anything moves, so every sprite lines up with the onion as it is now.
+            if (SpriteAlign.Prepare(onion) is not { } reference)
+            {
+                CrashLog.Error("Align With Onion Skin", $"refused: onion sprite {onionKey} has no visible pixels");
+                await Dialogs.ShowMessage(this, "Can't Align", $"Sprite {onionKey} (the onion skin) has no visible pixels.");
+                return;
+            }
+            if (!TryBeginBusy()) return;
+            try { await AlignWithOnionCore(selected, reference, onionKey, method.Value); }
+            finally { EndBusy(); }
+        }
+        catch (Exception ex)
+        {
+            await Failed("OnAlignWithOnion", ex);
+        }
+    }
+
+    private async Task AlignWithOnionCore(List<Sprite> selected, SpriteAlign.Placed reference, string onionKey, SpriteAlign.Method method)
+    {
+        var after = new List<(Sprite Sprite, int X, int Y)>();
+        var skipped = new List<string>();
+        int unchanged = 0;
+        SpriteAlign.Move lastMove = default;
+
+        for (int i = 0; i < selected.Count; i++)
+        {
+            var sprite = selected[i];
+            string key = $"{sprite.Group},{sprite.Index}";
+            await BusyStep("Aligning", i, selected.Count, key);
+            if (SpriteAlign.Prepare(sprite) is not { } target) { skipped.Add($"{key}: no visible pixels"); continue; }
+            // Progress is posted, so a late report must not overwrite the status after the search.
+            bool searching = true;
+            string step = $"Aligning {i + 1}/{selected.Count}\u2026";
+            var progress = new Progress<double>(f => { if (searching) StatusText.Text = $"{step} {f:P0}"; });
+            var watch = Stopwatch.StartNew();
+            var found = await Task.Run(() => SpriteAlign.Find(reference, target, method, progress));
+            searching = false;
+            CrashLog.Trace($"[align] {key} {method}: {watch.ElapsedMilliseconds} ms");
+            if (found is not { } move) { skipped.Add($"{key}: no matching pixels"); continue; }
+            lastMove = move;
+            // Moving right on the canvas moves the axis left, as a drag does.
+            long x = (long)sprite.AxisX - move.X, y = (long)sprite.AxisY - move.Y;
+            if (x < SpriteAxisMin || x > SpriteAxisMax || y < SpriteAxisMin || y > SpriteAxisMax)
+            {
+                skipped.Add($"{key}: the axis would leave the permitted range");
+                continue;
+            }
+            if (move.X == 0 && move.Y == 0) { unchanged++; continue; }
+            after.Add((sprite, (int)x, (int)y));
+        }
+
+        foreach (var item in skipped) CrashLog.Error("Align With Onion Skin", item);
+        ShowSkipped("Not Aligned", skipped);
+
+        string match = lastMove.Percent is { } p ? $" ({p}% match)" : "";
+        if (after.Count > 0)
+        {
+            var before = after.Select(item => (item.Sprite, X: item.Sprite.AxisX, Y: item.Sprite.AxisY)).ToList();
+            _undo.Do(after.Count == 1 ? "align sprite with onion skin" : $"align {after.Count} sprites with onion skin",
+                () => ApplySpriteAxes(after), () => ApplySpriteAxes(before));
+            MarkDirty();
+        }
+
+        if (selected.Count == 1)
+        {
+            string key = $"{selected[0].Group},{selected[0].Index}";
+            StatusText.Text = after.Count == 1 ? $"Moved sprite {key} {DescribeMove(lastMove)}{match}."
+                : unchanged == 1 ? $"Sprite {key} is already aligned with sprite {onionKey}{match}."
+                : $"Sprite {key} was not aligned.";
+            return;
+        }
+        StatusText.Text = $"Aligned {after.Count} of {selected.Count} sprites with sprite {onionKey}"
+            + (unchanged > 0 ? $"; {unchanged} already aligned" : "")
+            + (skipped.Count > 0 ? $"; {skipped.Count} not aligned" : "") + ".";
+    }
+
+    /// <summary>A canvas move in words, e.g. "3 px right, 2 px up".</summary>
+    private static string DescribeMove(SpriteAlign.Move move)
+    {
+        var parts = new List<string>();
+        if (move.X != 0) parts.Add($"{Math.Abs(move.X)} px {(move.X > 0 ? "right" : "left")}");
+        if (move.Y != 0) parts.Add($"{Math.Abs(move.Y)} px {(move.Y > 0 ? "down" : "up")}");
+        return string.Join(", ", parts);
+    }
+
 
     private async void OnAssignPalette(object? sender, RoutedEventArgs e)
     {

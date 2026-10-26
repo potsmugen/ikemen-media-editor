@@ -1355,6 +1355,7 @@ public partial class MainWindow : Window
     {
         if (_current is null)
         {
+            SyncAlignOnionButton(null);
             return;
         }
 
@@ -1362,14 +1363,9 @@ public partial class MainWindow : Window
 
         var pal = ActivePalette();
         SpriteCanvas.Show(_current, pal, _showMask);
-        Sprite? onion = null;
-        Palette? onionPal = null;
-        if (_onionSkin)
-        {
-            if (_onionGroup is { } og && _onionIndex is { } oi) { onion = _file?.Find(og, oi); onionPal = onion?.Palette; }
-            else { onion = PreviousVisibleSprite(); onionPal = onion?.Palette; }
-        }
-        SpriteCanvas.ShowOnion(onion, onionPal, default, _onionGrayscale);
+        var onion = ShownSpriteOnion();
+        SpriteCanvas.ShowOnion(onion, onion?.Palette, default, _onionGrayscale);
+        SyncAlignOnionButton(onion);
         ShowSpriteSwatches(pal);
         RefreshAssignPaletteButton();
         RefreshPaletteTab();

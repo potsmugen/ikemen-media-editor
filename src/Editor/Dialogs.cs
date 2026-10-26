@@ -1877,21 +1877,8 @@ public static partial class Dialogs
         int chosen = Math.Clamp(selected, 0, levels.Count - 1);
         foreach (var level in levels)
         {
-            // The name alone ("Similar") doesn't say what it catches, so each option carries
-            // its own line about that rather than hiding it in a tooltip.
-            var button = new RadioButton
-            {
-                GroupName = "Similarity",
-                IsChecked = buttons.Count == chosen,
-                Content = new StackPanel
-                {
-                    Spacing = 2, Children =
-                    {
-                        new TextBlock { Text = level.Label, FontWeight = FontWeight.SemiBold },
-                        new TextBlock { Text = level.Detail, Foreground = ThemeBrush("ThemeMutedText") },
-                    },
-                },
-            };
+            var button = new RadioButton { GroupName = "Similarity", IsChecked = buttons.Count == chosen, Content = level.Label };
+            ToolTip.SetTip(button, level.Detail);
             buttons.Add(button);
         }
         var palette = new CheckBox { Content = "Require the same palette", IsChecked = initialRequirePalette };
@@ -1933,6 +1920,73 @@ public static partial class Dialogs
                 new TextBlock { Text = $"How much of sprite {spriteKey} should match?" },
                 options,
                 palette,
+                new StackPanel
+                {
+                    Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
+                    Spacing = 8, Children = { ok, cancel },
+                },
+            },
+        };
+        dialog.Closed += (_, _) => result.TrySetResult(null);
+        dialog.Opened += (_, _) => buttons[chosen].Focus();
+
+        dialog.ShowModal(owner);
+        return result.Task;
+    }
+
+    /// <summary>Asks how Align With Onion Skin should line sprites up. <paramref name="summary"/>
+    /// says what it acts on. Returns null if canceled.</summary>
+    public static Task<SpriteAlign.Method?> PromptOnionAlign(Window owner, SpriteAlign.Method selected, string summary)
+    {
+        var result = new TaskCompletionSource<SpriteAlign.Method?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        (SpriteAlign.Method Method, string Label, string Detail)[] methods =
+        [
+            (SpriteAlign.Method.BoxCenter, "Box center", "Lines up the middles of the visible bounds."),
+            (SpriteAlign.Method.BottomCenter, "Bottom center", "Lines up the bottom edges and horizontal middles of the visible bounds."),
+            (SpriteAlign.Method.CenterOfMass, "Center of mass", "Lines up the average position of the visible pixels."),
+            (SpriteAlign.Method.Similarity, "Similarity", "Moves each sprite to where its colors best match the onion skin."),
+        ];
+        var buttons = new List<RadioButton>();
+        foreach (var m in methods)
+        {
+            var button = new RadioButton { GroupName = "AlignMethod", IsChecked = m.Method == selected, Content = m.Label };
+            ToolTip.SetTip(button, m.Detail);
+            buttons.Add(button);
+        }
+        int chosen = Math.Max(0, buttons.FindIndex(b => b.IsChecked == true));
+
+        var ok = new Button { Content = "Align", MinWidth = 90, IsDefault = true };
+        var cancel = new Button { Content = "Cancel", MinWidth = 90 };
+        var dialog = new Window
+        {
+            Background = ThemeBrush("ThemePanelBg"),
+            Foreground = ThemeBrush("ThemeText"),
+            Title = "Align With Onion Skin",
+            SizeToContent = SizeToContent.WidthAndHeight,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+            ShowInTaskbar = false,
+        };
+        ok.Click += (_, _) =>
+        {
+            int at = buttons.FindIndex(b => b.IsChecked == true);
+            if (at < 0) return;
+            result.TrySetResult(methods[at].Method);
+            dialog.Close();
+        };
+        cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
+
+        var options = new StackPanel { Spacing = 8 };
+        foreach (var b in buttons) options.Children.Add(b);
+        dialog.Content = new StackPanel
+        {
+            Margin = new Avalonia.Thickness(20),
+            Spacing = 12,
+            MaxWidth = 420,
+            Children =
+            {
+                new TextBlock { Text = summary, TextWrapping = TextWrapping.Wrap },
+                options,
                 new StackPanel
                 {
                     Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
