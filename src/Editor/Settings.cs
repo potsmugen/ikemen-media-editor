@@ -309,6 +309,8 @@ public sealed class Settings
         public double[] ZoomLevels { get; set; } = DefaultZoomLevels;
         /// <summary>Touchpad pinch (macOS) per zoom step or waveform wheel notch; smaller zooms faster.</summary>
         public double PinchZoomStep { get; set; } = DefaultPinchZoomStep;
+        /// <summary>Wheel and pinch zoom keep the point under the pointer in place; off keeps the axis.</summary>
+        public bool ZoomAroundCursor { get; set; } = true;
         /// <summary>How far the mouse must move with the Select tool before a press selects or moves instead of clearing the selection.</summary>
         public double SelectionDragThresholdPixels { get; set; } = DefaultSelectionDragThresholdPixels;
         /// <summary>Flat, Checkerboard or Image; null = not chosen yet (Checkerboard).</summary>

@@ -230,6 +230,8 @@ public class SpriteView : Control
 
     /// <summary>Touchpad pinch magnification per zoom step (settings.json PinchZoomStep); shared by the reference image and waveform.</summary>
     public static double PinchZoomStep { get; set; } = Settings.DefaultPinchZoomStep;
+    /// <summary>settings.json ZoomAroundCursor; shared by the reference image.</summary>
+    public static bool ZoomAroundCursor { get; set; } = true;
 
     /// <summary>Pixels the pointer must move before a Select press counts as a drag (settings.json SelectionDragThresholdPixels).</summary>
     public static double SelectDragThreshold { get; set; } = Settings.DefaultSelectionDragThresholdPixels;
@@ -549,10 +551,18 @@ public class SpriteView : Control
         return bmp;
     }
 
-    public void StepZoom(int delta)
+    /// <param name="anchor">Point in view coordinates that stays put (wheel and pinch); null keeps the axis in place.</param>
+    public void StepZoom(int delta, Point? anchor = null)
     {
         int next = Math.Clamp(_zoomIdx + delta, 0, ZoomLevels.Length - 1);
         if (next == _zoomIdx) return;
+        if (anchor is { } a && _sprite is not null)
+        {
+            // Keep the sprite point under the anchor: new origin = anchor - (anchor - origin) * ratio.
+            var o = Origin;
+            double ratio = ZoomLevels[next] / ZoomLevels[_zoomIdx];
+            _pan = new Point(a.X - (a.X - o.X) * ratio - Bounds.Width / 2, a.Y - (a.Y - o.Y) * ratio - Bounds.Height / 2);
+        }
         _zoomIdx = next;
         RefreshCursorPosition();
         ZoomChanged?.Invoke();
@@ -1920,7 +1930,7 @@ public class SpriteView : Control
         _cursorPosition = e.GetPosition(this);
         // A notch is 1; touchpads (and a Windows pinch) send fractions that add up to a step.
         int steps = _zoomSteps.Add(e.Delta.Y);
-        if (steps != 0) StepZoom(steps); // StepZoom already raises ZoomChanged
+        if (steps != 0) StepZoom(steps, ZoomAroundCursor ? _cursorPosition : null); // StepZoom already raises ZoomChanged
         e.Handled = true;
     }
 
@@ -1929,7 +1939,7 @@ public class SpriteView : Control
     {
         _cursorPosition = e.GetPosition(this);
         int steps = _zoomSteps.Add(e.Delta.X / PinchZoomStep);
-        if (steps != 0) StepZoom(steps);
+        if (steps != 0) StepZoom(steps, ZoomAroundCursor ? _cursorPosition : null);
         e.Handled = true;
     }
 

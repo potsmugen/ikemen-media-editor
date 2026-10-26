@@ -213,6 +213,7 @@ public partial class MainWindow : Window
             Settings.DefaultSelectionDragThresholdPixels, v => double.IsFinite(v) && v >= 0);
         SpriteView.PinchZoomStep = Settings.Checked(nameof(s.Canvas.PinchZoomStep), s.Canvas.PinchZoomStep,
             Settings.DefaultPinchZoomStep, v => double.IsFinite(v) && v > 0);
+        SpriteView.ZoomAroundCursor = s.Canvas.ZoomAroundCursor;
         var zoom = s.Canvas.ZoomLevels ?? [];
         if (zoom.Length > 0 && zoom.All(v => double.IsFinite(v) && v > 0))
             SpriteView.ZoomLevels = zoom.Distinct().Order().ToArray();

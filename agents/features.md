@@ -135,8 +135,11 @@ and constraints that are easy to miss when reading one code path in isolation.
   step and fractional touchpad deltas add up; reversing drops the leftover. A Windows touchpad
   pinch arrives as wheel input. macOS pinch is `Gestures.PointerTouchPadGestureMagnifyEvent`
   (`Delta.X` = magnification): one settings.json `PinchZoomStep` (default 0.25) is one step,
-  or one wheel notch's worth of the waveform's continuous zoom. Neither anchors to the pointer
-  on the canvases.
+  or one wheel notch's worth of the waveform's continuous zoom. Both keep the point under the
+  pointer in place (pan adjusted in `StepZoom`) while settings.json `ZoomAroundCursor` is on
+  (default; settings file only, no Preferences control); off, they keep the axis in place like
+  Ctrl++/Ctrl+- and the View menu (the reference image: its top-left). The waveform always
+  zooms at the pointer.
 - **Paint history**: the pending session has its own undo, one step per stroke, fill, paste,
   selection drag, layer operation or layer show/hide. Undo past the start closes the empty
   session and continues in the main history. If `PaintUndoLimit` (default 100) dropped steps

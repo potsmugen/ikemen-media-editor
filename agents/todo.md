@@ -8,7 +8,7 @@ before a release. Remove items once they're done or checked.
 - Found in Linux sandbox testing (2026-10-23), verified unless noted:
   - Sprite list scrolls half a row after Sort or Duplicate (row 1 half hidden).
   - Shortcuts table: the selected row shows a blue block past the last column; "Select all
-    sprites, sounds, frames or p..." is cut off; zoom shows as "Ctrl++" / "Ctrl+-".
+    sprites, sounds, frames or p..." is cut off.
   - Linux default font at the 1100x700 default window: "Resize Canvas" and "Shift Offset" are
     cut off in Sprite Tools.
   - Question: sorting or deleting a sprite marks Palettes* dirty too (v1 Donald, v2 kfm).

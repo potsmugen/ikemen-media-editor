@@ -103,10 +103,12 @@ public class ScratchImageView : Control
     }
 
     /// <summary>Steps the zoom the same way the sprite canvas does, leaving the fitted view for the nearest step below it.</summary>
-    public void StepZoom(int delta)
+    /// <param name="anchor">Point in view coordinates that stays put (wheel and pinch); null keeps the top-left in place.</param>
+    public void StepZoom(int delta, Point? anchor = null)
     {
         var levels = SpriteView.ZoomLevels;
         if (_width == 0) return;
+        double before = Zoom;
 
         if (_zoomIdx == FitIndex)
         {
@@ -122,6 +124,13 @@ public class ScratchImageView : Control
 
         int next = Math.Clamp(_zoomIdx + delta, 0, levels.Length - 1);
         if (next == _zoomIdx) return;
+        if (anchor is { } a)
+        {
+            // Keep the image point under the anchor; the ratio is from the shown scale, which may be the fitted one.
+            var o = ImageOrigin;
+            double ratio = levels[next] / before;
+            _pan = new Point(a.X - (a.X - o.X) * ratio, a.Y - (a.Y - o.Y) * ratio);
+        }
         _zoomIdx = next;
         InvalidateMeasure();
         InvalidateVisual();
@@ -231,7 +240,7 @@ public class ScratchImageView : Control
     {
         base.OnPointerWheelChanged(e);
         int steps = _zoomSteps.Add(e.Delta.Y); // fractional touchpad deltas add up to a step, as on the canvas
-        if (steps != 0) StepZoom(steps);
+        if (steps != 0) StepZoom(steps, SpriteView.ZoomAroundCursor ? e.GetPosition(this) : null);
         e.Handled = true;
     }
 
@@ -239,7 +248,7 @@ public class ScratchImageView : Control
     private void OnPinch(object? sender, PointerDeltaEventArgs e)
     {
         int steps = _zoomSteps.Add(e.Delta.X / SpriteView.PinchZoomStep);
-        if (steps != 0) StepZoom(steps);
+        if (steps != 0) StepZoom(steps, SpriteView.ZoomAroundCursor ? e.GetPosition(this) : null);
         e.Handled = true;
     }
 }
