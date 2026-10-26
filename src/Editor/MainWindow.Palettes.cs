@@ -1681,6 +1681,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             {
                 (unused.Count == 0 ? "No unused palettes found." : $"Unused palettes: {unused.Count}", null),
                 ("Ignored group 1 character palettes and all external palettes.", null),
+                ("Palettes that no sprites use might be used by RemapPal.", null),
             };
             if (unused.Count > 0)
             {
@@ -1745,6 +1746,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 message += "\n1 palette links to one of them and keeps its current colors.";
             else if (linkers.Count > 1)
                 message += $"\n{linkers.Count} palettes link to them and keep their current colors.";
+            message += "\nPalettes that no sprites use might be used by RemapPal.";
             if (!await Dialogs.Confirm(this, "Delete Unused Palettes", message, "Delete")) return;
             if (!ReferenceEquals(_file, file) || targets.Any(p => !file.Palettes.Contains(p))) return;
 

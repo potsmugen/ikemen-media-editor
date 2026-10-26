@@ -12,9 +12,6 @@ before a release. Remove items once they're done or checked.
   - Linux default font at the 1100x700 default window: "Resize Canvas" and "Shift Offset" are
     cut off in Sprite Tools.
   - Question: sorting or deleting a sprite marks Palettes* dirty too (v1 Donald, v2 kfm).
-  - Found in the release review (2026-10-23), by reading code; unverified in the app:
-    - Delete These Palettes counts sprite use only; a .cns RemapPal can target palettes outside
-      group 1. Question: should the confirm say so?
   - Questions: after Recover, the command-line file is skipped silently (by design per
     App.axaml.cs, but nothing tells the user). A recovered changed-source file opens from
     data/recovery/recovered/ under a GUID name, so plain Save writes into the app folder.
