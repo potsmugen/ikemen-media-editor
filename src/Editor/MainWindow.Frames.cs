@@ -354,6 +354,7 @@ public partial class MainWindow
             [action.InterpolateOffset.Contains(i), action.InterpolateScale.Contains(i),
              action.InterpolateAngle.Contains(i), action.InterpolateBlend.Contains(i)],
             action.LoopStart > 0 && action.LoopStart == i)).ToList();
+        _boxClipboard = null; // Ctrl+V pastes whatever was copied last
         StatusText.Text = targets.Count == 1 ? $"Copied frame {targets[0] + 1}." : $"Copied {targets.Count} frames.";
     }
 

@@ -890,8 +890,8 @@ public partial class MainWindow : Window
                     MenuAction("Paste Frames", PasteFrames, _frameClipboard is not null && _action is not null),
                     new Separator(),
                     // Grayed out when there's nothing to copy / nothing copied yet.
-                    MenuAction("Copy Clsn", CopyFrameClsn, CanCopyFrameClsn()),
-                    MenuAction("Paste Clsn", PasteFrameClsn, _clsnClipboard is not null && CurrentElement is not null),
+                    MenuAction("Copy All Clsn", CopyFrameClsn, CanCopyFrameClsn()),
+                    MenuAction("Paste All Clsn", PasteFrameClsn, _clsnClipboard is not null && CurrentElement is not null),
                     new Separator(),
                     MenuAction("Loop From Here", () => OnSetLoopStart(null, new RoutedEventArgs()),
                         CurrentElement is not null && (FrameList.SelectedIndex > 0 || _action?.LoopStart > 0)),

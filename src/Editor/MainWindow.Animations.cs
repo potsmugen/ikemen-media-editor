@@ -1233,6 +1233,81 @@ public partial class MainWindow
         AnimCanvas.SelectBox(LastBoxOf(touched));
     }
 
+    // ---- copy and paste selected boxes (Ctrl+C / Ctrl+V) --------------------
+
+    /// <summary>Boxes copied from the canvas, in canvas order; null when frames were copied last.</summary>
+    private List<(ClsnBox Box, ClsnKind Kind)>? _boxClipboard;
+
+    private List<int> ValidSelectedBoxes() =>
+        AnimCanvas.SelectedBoxes.Where(i => i >= 0 && i < AnimCanvas.Boxes.Count).Order().ToList();
+
+    /// <summary>Ctrl+C: boxes selected on the canvas are copied; otherwise the selected frames.</summary>
+    private void CopyBoxesOrFrames()
+    {
+        if (ValidSelectedBoxes().Count > 0) CopySelectedBoxes();
+        else CopyFrames();
+    }
+
+    /// <summary>Ctrl+V: pastes whichever was copied last, boxes or frames.</summary>
+    private void PasteBoxesOrFrames()
+    {
+        if (_boxClipboard is not null) PasteBoxes();
+        else PasteFrames();
+    }
+
+    private void CopySelectedBoxes()
+    {
+        var selected = ValidSelectedBoxes();
+        if (selected.Count == 0) return;
+        _boxClipboard = selected.Select(i => AnimCanvas.Boxes[i])
+            .Select(b => (new ClsnBox(b.X1, b.Y1, b.X2, b.Y2), (ClsnKind?)b.Tag ?? ClsnKind.Hurt)).ToList();
+        _frameClipboard = null; // Ctrl+V pastes whatever was copied last
+        StatusText.Text = selected.Count == 1 ? "Copied 1 box." : $"Copied {selected.Count} boxes.";
+    }
+
+    /// <summary>Adds the copied boxes to the current frame as one undo step, as Add Clsn would:
+    /// on a frame declaring a default they join the default, otherwise they become own boxes.</summary>
+    private void PasteBoxes()
+    {
+        if (_action is not { } action || CurrentElement is not { } element || _boxClipboard is not { Count: > 0 } clip) return;
+        var before = CaptureActionBoxes(action);
+        foreach (var kind in new[] { ClsnKind.Hurt, ClsnKind.Attack })
+        {
+            var add = clip.Where(c => c.Kind == kind).Select(c => c.Box.Normalized()).ToList();
+            if (add.Count == 0) continue;
+            bool attack = kind == ClsnKind.Attack;
+            if (DeclaredSegmentHere(element, kind) is { } segment)
+            {
+                ApplyDefaultSegmentBoxes(kind, segment, [.. segment.Boxes, .. add]);
+                continue;
+            }
+            // An inheriting frame starts its own boxes fresh, like AddBox.
+            bool own = attack ? element.OwnAttackBoxes : element.OwnHurtBoxes;
+            List<ClsnBox> boxes = own ? [.. (attack ? element.Attack : element.Hurt), .. add] : add;
+            if (attack) { element.Attack = boxes; element.OwnAttackBoxes = true; }
+            else { element.Hurt = boxes; element.OwnHurtBoxes = true; }
+        }
+        var after = CaptureActionBoxes(action);
+        string name = clip.Count == 1 ? "paste box" : "paste boxes";
+        _undo.Record(name, () => RestoreActionBoxes(action, before), () => RestoreActionBoxes(action, after));
+        MarkAirDirty();
+        RestoreActionBoxes(action, after);
+
+        // Select the pasted boxes: they're the last of each kind (BoxesFor lists Clsn2 before Clsn1).
+        int hurt = clip.Count(c => c.Kind == ClsnKind.Hurt), attackCount = clip.Count - hurt;
+        var pasted = new List<int>();
+        for (int i = AnimCanvas.Boxes.Count - 1; i >= 0; i--)
+        {
+            var kind = (ClsnKind?)AnimCanvas.Boxes[i].Tag ?? ClsnKind.Hurt;
+            if (kind == ClsnKind.Hurt && hurt > 0) { pasted.Add(i); hurt--; }
+            else if (kind == ClsnKind.Attack && attackCount > 0) { pasted.Add(i); attackCount--; }
+        }
+        AnimCanvas.SelectBoxes(pasted, pasted.Count > 0 ? pasted.Min() : -1);
+        UpdateBoxInfo();
+        StatusText.Text = clip.Count == 1 ? $"Pasted 1 box into frame {FrameList.SelectedIndex + 1}."
+            : $"Pasted {clip.Count} boxes into frame {FrameList.SelectedIndex + 1}.";
+    }
+
     /// <summary>
     /// Toggles the selected box's kind (Clsn1 or Clsn2, whichever the selection
     /// is) between the frame's own boxes and the action's default: if this
@@ -1846,6 +1921,7 @@ public partial class MainWindow
     private void OnBoxContextRequested(int index, Point screenPos)
     {
         bool hasFrame = CurrentElement is not null;
+        bool canPaste = hasFrame && _boxClipboard is { Count: > 0 };
         if (index < 0)
         {
             var empty = new ContextMenu
@@ -1853,6 +1929,8 @@ public partial class MainWindow
                 ItemsSource = new List<object>
                 {
                     MenuAction("Center Image in Canvas", AnimCanvas.CenterImage),
+                    new Separator(),
+                    MenuAction("Paste Clsn", PasteBoxes, canPaste),
                     new Separator(),
                     MenuAction("Pin Onion Skin to This Frame", PinFrameAsOnion, hasFrame),
                 },
@@ -1868,6 +1946,8 @@ public partial class MainWindow
             new Separator(),
             MenuAction("Delete", () => DeleteBox(index)),
             MenuAction("Duplicate", () => DuplicateBox(index)),
+            MenuAction("Copy Clsn", CopySelectedBoxes),
+            MenuAction("Paste Clsn", PasteBoxes, canPaste),
             MenuAction("Make Default", () => MakeBoxDefault(index)),
             new Separator(),
             MenuAction("Pin Onion Skin to This Frame", PinFrameAsOnion, hasFrame),

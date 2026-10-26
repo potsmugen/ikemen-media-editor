@@ -163,7 +163,13 @@ and constraints that are easy to miss when reading one code path in isolation.
   Insert, Insert Sprite Group and Duplicate insert after the last selected frame. Special
   Flags sets Interpolate on every selected frame and dims Loopstart.
 - **Batch Clsn actions**: Auto Clsn, Sort Boxes, Delete All Boxes, Copy from Onion Skin and
-  Paste Clsn act on every selected frame as one undo step; Add Clsn1/2 needs a single frame.
+  Paste All Clsn act on every selected frame as one undo step; Add Clsn1/2 and Copy All Clsn
+  need a single frame.
+- **Copy/paste boxes**: Ctrl+C copies the boxes selected on the canvas (inherited ones too, as
+  values), or the selected frames when no box is selected. Ctrl+V pastes whichever was copied
+  last. Boxes are added to the current frame only, as Add Clsn adds them: into a default declared
+  there, otherwise as own boxes (an inheriting kind starts fresh). One undo step; the pasted
+  boxes end up selected. The canvas right-click menu has Copy Clsn (the right-clicked box) and Paste Clsn.
   Delete Box and Toggle Default act on the boxes selected on the canvas, whatever the frame
   selection. Buttons dim when they can't act.
 - **Frame-table fill handles** copy one field down a dragged row range as one step without

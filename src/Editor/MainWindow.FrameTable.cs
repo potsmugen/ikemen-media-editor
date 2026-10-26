@@ -622,7 +622,7 @@ public partial class MainWindow
         EditFrame("table edit", change(FrameState.Of(element)));
     }
 
-    // ---- Copy/Paste Clsn (row right-click menu) ----------------------------
+    // ---- Copy/Paste All Clsn (row right-click menu) ------------------------
 
     /// <summary>Copied Clsn, per kind; null = that kind wasn't copied (the frame had none of its own).</summary>
     private (List<ClsnBox>? Hurt, List<ClsnBox>? Attack)? _clsnClipboard;
@@ -636,8 +636,10 @@ public partial class MainWindow
         return boxes.Count > 0 ? [.. boxes] : null;
     }
 
+    /// <summary>Copies one frame's Clsn, so it's off while several frames are selected.</summary>
     private bool CanCopyFrameClsn() =>
-        CurrentElement is { } el && (OwnClsn(el, ClsnKind.Hurt) is not null || OwnClsn(el, ClsnKind.Attack) is not null);
+        SelectedFrameTargets().Count <= 1
+        && CurrentElement is { } el && (OwnClsn(el, ClsnKind.Hurt) is not null || OwnClsn(el, ClsnKind.Attack) is not null);
 
     private void CopyFrameClsn()
     {
