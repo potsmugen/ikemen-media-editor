@@ -431,7 +431,7 @@ public static partial class Dialogs
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-            Title = single ? "Resize sprite canvas" : "Resize sprite canvases", SizeToContent = SizeToContent.WidthAndHeight,
+            Title = single ? "Resize Sprite Canvas" : "Resize Sprite Canvases", SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
             Content = body,
         };
@@ -516,7 +516,7 @@ public static partial class Dialogs
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-            Title = single ? "Resize sprite" : "Resize sprites", SizeToContent = SizeToContent.WidthAndHeight,
+            Title = single ? "Resize Sprite" : "Resize Sprites", SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
             Content = body,
         };
@@ -887,7 +887,7 @@ public static partial class Dialogs
     /// choices Save As offers. Returns null if canceled, aborting New.</summary>
     /// <summary>Asks for an SFF version: New (title/action default) and Save As (preselects the file's own).</summary>
     public static Task<SffVersion?> PromptSffVersion(Window owner, SffVersion? preselect = null,
-        string title = "New sprite file", string prompt = "SFF version for the new file:", string action = "Create")
+        string title = "New Sprite File", string prompt = "SFF version for the new file:", string action = "Create")
     {
         var result = new TaskCompletionSource<SffVersion?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var v21 = new RadioButton { Content = "SFF 2.0.1.0 (8, 24 and 32-bit) - recommended", GroupName = "SffVersion", IsChecked = true };
@@ -989,7 +989,7 @@ public static partial class Dialogs
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-            Title = "Save Like SprMaker", SizeToContent = SizeToContent.WidthAndHeight,
+            Title = "Save like SprMaker", SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
             Content = body,
         };
@@ -1022,7 +1022,7 @@ public static partial class Dialogs
             quiet.IsChecked = o.QuietMode;
         }
         Show(current);
-        return OptionsDialog(owner, "Save Like SprMaker 0.97", notes,
+        return OptionsDialog(owner, "Save like SprMaker 0.97", notes,
             [crop, link, pal, summary, quiet],
             () => Show(new SprMakerOptions()),
             () => new SprMakerOptions
@@ -1076,7 +1076,7 @@ public static partial class Dialogs
             Orientation = Orientation.Horizontal, Spacing = 8,
             Children = { new TextBlock { Text = label, Width = 110, VerticalAlignment = VerticalAlignment.Center }, box },
         };
-        return OptionsDialog(owner, "Save Like SprMaker 2.01", notes,
+        return OptionsDialog(owner, "Save like SprMaker 2.01", notes,
             [crop, link, detect, verbose, veryVerbose, quiet,
              Row("5-bit sprites", c5), Row("8-bit sprites", c8), Row("True color", c24), decompress, discard],
             () => Show(new SprMaker2Options()),
@@ -1968,7 +1968,7 @@ public static partial class Dialogs
         {
             Background = ThemeBrush("ThemePanelBg"),
             Foreground = ThemeBrush("ThemeText"),
-            Title = "Align With Onion Skin",
+            Title = "Align with Onion Skin",
             SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             CanResize = false,
@@ -3365,7 +3365,7 @@ public static partial class Dialogs
         {
             Background = ThemeBrush("ThemePanelBg"),
             Foreground = ThemeBrush("ThemeText"),
-            Title = forAll ? "Auto Clsn2 For All" : "Auto Clsn",
+            Title = forAll ? "Auto Clsn2 for All" : "Auto Clsn",
             SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             CanResize = false,

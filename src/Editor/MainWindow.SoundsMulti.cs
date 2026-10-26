@@ -252,7 +252,7 @@ public partial class MainWindow
     private async Task FadeMany(List<SoundEntry> many, bool fadeIn)
     {
         if (_busy || !await ResolvePendingSoundEditsBeforeSwitch()) return;
-        string title = fadeIn ? "Fade in" : "Fade out";
+        string title = fadeIn ? "Fade In" : "Fade Out";
         var linear = new RadioButton { Content = "Linear", IsChecked = true };
         var equalPower = new RadioButton { Content = "Equal-power" };
         var curves = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 16, Children = { linear, equalPower } };
@@ -419,7 +419,7 @@ public partial class MainWindow
         {
             var keys = string.Join(", ", duplicateKeys.Select(g => $"{g.Key.Group},{g.Key.Index}"));
             CrashLog.Error("ExportSoundsMany", $"Cannot export duplicate sound keys: {keys}");
-            await Dialogs.ShowMessage(this, "Cannot Export Duplicate Sound Keys", keys);
+            await Dialogs.ShowMessage(this, "Duplicate Sound Keys", keys);
             return;
         }
         if (await PickFolder("Export Sounds") is not { } dir) return;

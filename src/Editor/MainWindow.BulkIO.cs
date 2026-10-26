@@ -230,7 +230,7 @@ public partial class MainWindow
         {
             var picked = await PickOpen(new FilePickerOpenOptions
             {
-                Title = "Import Sprites and Palettes - Choose the Manifest .txt",
+                Title = "Open Manifest",
                 FileTypeFilter = [TxtType],
             });
             if (picked.Count == 0 || picked[0].TryGetLocalPath() is not { } txtPath) return;
@@ -410,7 +410,7 @@ public partial class MainWindow
                 && spritesAfter.Count == spritesBefore.Count && palettesAfter.Count == palettesBefore.Count)
             {
                 StatusText.Text = "Nothing imported.";
-                ShowSkipped("Some Entries Could Not Be Imported", errors);
+                ShowSkipped("Some Entries Skipped", errors);
                 return;
             }
 
@@ -453,7 +453,7 @@ public partial class MainWindow
                              $"Palettes: {paletteChanges.Count} replaced, {addedPalettes} added";
             if (errors.Count > 0) summary += $"; {errors.Count} error(s)";
             StatusText.Text = summary;
-            ShowSkipped("Some Entries Could Not Be Imported", errors);
+            ShowSkipped("Some Entries Skipped", errors);
         }
         catch (Exception ex)
         {
@@ -488,7 +488,7 @@ public partial class MainWindow
         string suggested = _path is null ? "export" : Path.GetFileNameWithoutExtension(_path);
         var file = await PickSave(new FilePickerSaveOptions
         {
-            Title = "Export Sprites - Choose the Manifest .txt",
+            Title = "Save Sprite Manifest",
             SuggestedFileName = $"{suggested}.txt",
             DefaultExtension = "txt",
             FileTypeChoices = [TxtType],

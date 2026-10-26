@@ -206,7 +206,7 @@ public partial class MainWindow
 
         var files = await PickOpen(new FilePickerOpenOptions
         {
-            Title = v1 ? "Import palette into SFFv1 sprites" : "Import palette into SFFv2 sprites",
+            Title = v1 ? "Import Palette into SFFv1 Sprites" : "Import Palette into SFFv2 Sprites",
             AllowMultiple = false,
             FileTypeFilter = [PaletteFilesType],
         });

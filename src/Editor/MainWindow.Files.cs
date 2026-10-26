@@ -525,7 +525,7 @@ public partial class MainWindow
         catch (Exception ex)
         {
             CrashLog.Write("OpenCharacterFile", ex);
-            await Dialogs.ShowMessage(this, "Could Not Read the Character Definition", ex.Message);
+            await Dialogs.ShowMessage(this, "Could Not Read the Definition", ex.Message);
             return;
         }
 
@@ -1150,7 +1150,7 @@ public partial class MainWindow
     private async Task AskVersionAndSaveAs()
     {
         if (_file is null) return;
-        if (await Dialogs.PromptSffVersion(this, _file.Version, "Save sprites as", "Save as SFF version:", "Next") is { } v)
+        if (await Dialogs.PromptSffVersion(this, _file.Version, "Save Sprites as", "Save as SFF version:", "Next") is { } v)
             await SaveAs(v);
     }
 
@@ -1444,7 +1444,7 @@ public partial class MainWindow
             {
                 CrashLog.Write("SaveLikeSprMaker", ex);
                 StatusText.Text = $"Could not save {Path.GetFileName(path)}.";
-                await Dialogs.ShowMessage(this, $"Could Not Save Like {(v2 ? "SprMaker 2.01" : "SprMaker 0.97")}", ex.Message);
+                await Dialogs.ShowMessage(this, $"Could Not Save like {(v2 ? "SprMaker 2.01" : "SprMaker 0.97")}", ex.Message);
                 return;
             }
 

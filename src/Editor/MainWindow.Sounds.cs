@@ -998,7 +998,7 @@ public partial class MainWindow
             string suggested = _sndPath is null ? "export" : Path.GetFileNameWithoutExtension(_sndPath);
             var file = await PickSave(new FilePickerSaveOptions
             {
-                Title = "Export Sounds - Choose the Manifest .txt",
+                Title = "Save Sound Manifest",
                 SuggestedFileName = $"{suggested}.txt",
                 DefaultExtension = "txt",
                 FileTypeChoices = [TxtType],
@@ -1011,7 +1011,7 @@ public partial class MainWindow
             {
                 var keys = string.Join(", ", duplicateKeys.Select(g => $"{g.Key.Group},{g.Key.Index}"));
                 CrashLog.Error("OnExportAllSounds", $"Cannot export duplicate sound keys: {keys}");
-                await Dialogs.ShowMessage(this, "Cannot Export Duplicate Sound Keys", keys);
+                await Dialogs.ShowMessage(this, "Duplicate Sound Keys", keys);
                 return;
             }
 
@@ -1047,7 +1047,7 @@ public partial class MainWindow
             {
                 var picked = await PickOpen(new FilePickerOpenOptions
                 {
-                    Title = "Import Sounds - Choose the Manifest .txt",
+                    Title = "Open Sound Manifest",
                     FileTypeFilter = [TxtType],
                 });
                 if (picked.Count == 0 || picked[0].TryGetLocalPath() is not { } txtPath) return;
@@ -1112,7 +1112,7 @@ public partial class MainWindow
                 if (changes.Count == 0 && added == 0)
                 {
                     StatusText.Text = "Nothing imported.";
-                    ShowSkipped("Some Entries Could Not Be Imported", errors);
+                    ShowSkipped("Some Entries Skipped", errors);
                     return;
                 }
 
@@ -1135,7 +1135,7 @@ public partial class MainWindow
                 string summary = $"Sounds: {changes.Count} replaced, {added} added";
                 if (errors.Count > 0) summary += $"; {errors.Count} error(s)";
                 StatusText.Text = summary;
-                ShowSkipped("Some Entries Could Not Be Imported", errors);
+                ShowSkipped("Some Entries Skipped", errors);
             }
             catch (Exception ex)
             {
@@ -1192,7 +1192,7 @@ public partial class MainWindow
         try
         {
             if (_snd is null) return;
-            if (await PickWav("Add sound from .wav") is not { } wav) return;
+            if (await PickWav("Add Sound from .wav") is not { } wav) return;
 
             var entry = new SoundEntry
             {
@@ -1265,7 +1265,7 @@ public partial class MainWindow
             string names = string.Join(", ", sounds.Take(3).Select(sound => $"{sound.Group},{sound.Index}"))
                 + (sounds.Count > 3 ? ", …" : "");
             string message = sounds.Count == 1 ? $"Delete {names}?" : $"Delete {sounds.Count} sounds ({names})?";
-            if (!await Dialogs.Confirm(this, sounds.Count == 1 ? "Delete sound" : "Delete sounds", message, "Delete")
+            if (!await Dialogs.Confirm(this, sounds.Count == 1 ? "Delete Sound" : "Delete Sounds", message, "Delete")
                 || !ReferenceEquals(_snd, file) || sounds.Any(sound => !file.Sounds.Contains(sound))) return;
 
             var positions = sounds.Select(sound => file.Sounds.IndexOf(sound)).ToList();
@@ -1707,7 +1707,7 @@ public partial class MainWindow
         try
         {
             double max = PitchLimit();
-            await RunRateEdit("Change pitch",
+            await RunRateEdit("Change Pitch",
                 $"Semitones, {-max:0.##} to {max:0.##} (12 = one octave up, -12 = one down; length stays the same):",
                 0, -max, max, $"a pitch shift between {-max:0.##} and {max:0.##} semitones",
                 SndEdit.ChangePitch,
@@ -1725,7 +1725,7 @@ public partial class MainWindow
         try
         {
             var (min, max) = RateLimits();
-            await RunRateEdit("Change tempo",
+            await RunRateEdit("Change Tempo",
                 $"Tempo %, {min:0.##} to {max:0.##} (100 = unchanged, 200 = twice as fast; pitch stays the same):",
                 100, min, max, $"a tempo between {min:0.##} and {max:0.##}%",
                 SndEdit.ChangeTempo,
@@ -1743,7 +1743,7 @@ public partial class MainWindow
         try
         {
             var (min, max) = RateLimits();
-            await RunRateEdit("Change speed",
+            await RunRateEdit("Change Speed",
                 $"Speed %, {min:0.##} to {max:0.##} (100 = unchanged, 200 = twice as fast and an octave higher):",
                 100, min, max, $"a speed between {min:0.##} and {max:0.##}%",
                 SndEdit.ChangeSpeed,
@@ -1978,7 +1978,7 @@ public partial class MainWindow
     {
         if (MultiSelection() is { } many) { await FadeMany(many, fadeIn); return; }
         if (CurrentSound is not { } s) return;
-        string title = fadeIn ? "Fade in" : "Fade out", verb = fadeIn ? "fade in" : "fade out";
+        string title = fadeIn ? "Fade In" : "Fade Out", verb = fadeIn ? "fade in" : "fade out";
         if (s.Problem is not null || s.SampleRate <= 0)
         {
             CrashLog.Error(title, $"sound {s.Group},{s.Index}: WAV header problem: {s.Problem}");

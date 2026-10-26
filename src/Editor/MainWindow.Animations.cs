@@ -128,7 +128,7 @@ public partial class MainWindow
             // async void: an exception here has nowhere else to go — log it
             // explicitly rather than relying on it reaching AppDomain intact.
             CrashLog.Write("OnOpenAir", ex);
-            await Dialogs.ShowMessage(this, "Something Went Wrong Opening the Animation File", ex.Message);
+            await Dialogs.ShowMessage(this, "Could Not Open the Animation File", ex.Message);
         }
     }
 
@@ -355,7 +355,7 @@ public partial class MainWindow
                 bool definition = _airEmbeddedInDef;
                 var file = await PickSave(new FilePickerSaveOptions
                 {
-                    Title = definition ? "Save definition" : "Save animations",
+                    Title = definition ? "Save Definition" : "Save Animations",
                     DefaultExtension = definition ? "def" : "air",
                     FileTypeChoices = [definition ? DefType : AirType],
                 });
@@ -370,7 +370,7 @@ public partial class MainWindow
                 ReportClsnRewrite(linted, encoding);
             }
             else if (_airError is not null)
-                await Dialogs.ShowMessage(this, _airEmbeddedInDef ? "Could not save the definition" : "Could not save the animation file", _airError);
+                await Dialogs.ShowMessage(this, _airEmbeddedInDef ? "Could Not Save the Definition" : "Could Not Save the Animation File", _airError);
         }
         catch (Exception ex)
         {
@@ -1528,7 +1528,7 @@ public partial class MainWindow
             // Work on copies first, so the confirm can count real changes and Cancel leaves everything as it was.
             var before = air.Actions.ToDictionary(a => a, CaptureActionBoxes);
             var work = before.ToList();
-            var progressWindow = new Dialogs.ProgressWindow(this, "Sort Boxes For All", "Sorting boxes: action", work.Count);
+            var progressWindow = new Dialogs.ProgressWindow(this, "Sort Boxes for All", "Sorting boxes: action", work.Count);
             var progress = new Progress<int>(progressWindow.Report);
             var token = progressWindow.Token;
             List<(AnimationAction Action, ActionBoxState After, int Changed)> sortedStates;
@@ -1586,7 +1586,7 @@ public partial class MainWindow
             var parts = new List<string>();
             if (after.Count > 0) parts.Add($"Sort boxes on {Plural(frames, "frame", "frames")} in {Plural(after.Count, "action", "actions")}.");
             if (lint.Count > 0) parts.Add($"Fix Clsn counts and numbering in {Plural(lint.Count, "action", "actions")}.");
-            if (!await Dialogs.Confirm(this, "Sort Boxes For All", string.Join(Environment.NewLine, parts), "Sort")) return;
+            if (!await Dialogs.Confirm(this, "Sort Boxes for All", string.Join(Environment.NewLine, parts), "Sort")) return;
 
             CrashLog.Trace($"Sort Boxes For All: {order}, {frames} frames in {after.Count} actions, lint fixed in {lint.Count}");
             var undoState = after.Keys.ToDictionary(a => a, a => before[a]);
@@ -1701,7 +1701,7 @@ public partial class MainWindow
             // async void: an exception here has nowhere else to go — log it
             // explicitly rather than relying on it reaching AppDomain intact.
             CrashLog.Write("OnAutoHurtBoxes", ex);
-            await Dialogs.ShowMessage(this, "Something Went Wrong Generating Clsn Boxes", ex.Message);
+            await Dialogs.ShowMessage(this, "Could Not Generate Clsn Boxes", ex.Message);
         }
     }
 
@@ -1821,12 +1821,12 @@ public partial class MainWindow
 
             int usable = targets.Count(t => t.Sprite is not null);
             int actions = targets.Where(t => t.Sprite is not null).Select(t => t.Action).Distinct().Count();
-            if (usable > 0 && !await Dialogs.Confirm(this, "Auto Clsn2 For All",
+            if (usable > 0 && !await Dialogs.Confirm(this, "Auto Clsn2 for All",
                     $"Replace Clsn2 on {usable} frames in {actions} actions?", "Replace")) return;
 
             CrashLog.Trace($"Auto Clsn2 For All: {targets.Count} frames, {usable} with sprites, boxes={choice.Boxes} layout={choice.Layout} skipWithout={choice.SkipWithoutClsn2}");
             // Modal progress: blocks the window (so nothing changes underneath) until done or canceled.
-            var progressWindow = new Dialogs.ProgressWindow(this, "Auto Clsn2 For All", "Generating Clsn2: frame", targets.Count);
+            var progressWindow = new Dialogs.ProgressWindow(this, "Auto Clsn2 for All", "Generating Clsn2: frame", targets.Count);
             var progress = new Progress<int>(progressWindow.Report);
             var token = progressWindow.Token;
             List<List<ClsnBox>?> covers;

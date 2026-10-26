@@ -2969,7 +2969,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             ShowStandalonePalette(_standalonePalettes[selectedExisting]);
         }
         if (errors.Count > 0)
-            await Dialogs.ShowMessage(this, "Some Palette Files Could Not Be Read", string.Join("\n", errors));
+            await Dialogs.ShowMessage(this, "Some Palettes Could Not Be Read", string.Join("\n", errors));
     }
 
     /// <summary>
