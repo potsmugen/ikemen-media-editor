@@ -885,7 +885,9 @@ summaries; treat anything marked unverified as unknown.
   safe. Dialog TaskCompletionSources need `RunContinuationsAsynchronously` or
   the caller may run before `dialog.Close()` and leave the main window disabled.
   Show dialogs with `ShowModal`, not `ShowDialog`: it makes Escape close them like X
-  (after the dialog's own key handlers, which can claim Escape first).
+  (after the dialog's own key handlers, which can claim Escape first), and on Windows
+  it drops the minimize and maximize boxes once the dialog opens (`WinDialogStyle`), since
+  Avalonia 11.3 has no CanMinimize/CanMaximize.
 - Playback reassigns `AnimCanvas.Boxes` each tick; bounds-check held indices.
   `Pointer.Capture(null)` raises `PointerCaptureLost` synchronously, so read
   drag state before releasing capture. Put `DoubleTapped` on the cell Border

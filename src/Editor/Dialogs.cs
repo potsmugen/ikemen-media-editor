@@ -141,9 +141,16 @@ public static partial class Dialogs
         Avalonia.Application.Current?.Resources.TryGetResource(key, null, out var v) == true && v is IBrush b
             ? b : Brushes.Gray;
 
-    /// <summary>Shows a dialog modally. Escape closes it like the X button, unless a control already used the key.</summary>
+    /// <summary>Shows a dialog modally. Escape closes it like the X button, unless a control already used the key.
+    /// On Windows the title bar keeps only Close.</summary>
     private static Task ShowModal(this Window dialog, Window owner)
     {
+        if (OperatingSystem.IsWindows())
+            dialog.Opened += (_, _) =>
+            {
+                try { WinDialogStyle.RemoveMinMax(dialog); }
+                catch (Exception ex) { CrashLog.Write("WinDialogStyle", ex); }
+            };
         dialog.KeyDown += (_, e) =>
         {
             if (e.Handled || e.Key != Avalonia.Input.Key.Escape || e.KeyModifiers != Avalonia.Input.KeyModifiers.None) return;
