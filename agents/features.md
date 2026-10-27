@@ -222,6 +222,8 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **List look-ahead** scrolls the next row fully into view after an arrow, Page, Home or End
   step, since Avalonia rebuilds every visible row when `ScrollIntoView` targets an unrealized
   one (measured ~50 ms per step on a 12k-sprite SFF).
+- Centering a sprite list row keeps the scroll offset on a row boundary, so a rebuild cannot
+  leave the first visible row clipped.
 - **Export Animation** writes one looping pass of the action as WebP (default) or GIF; the format
   carries over within the session. Playback splits into runs of identical drawn state so Interpolate
   shows, and -1 holds use the configured dwell. Without a background, blends draw as normal on a

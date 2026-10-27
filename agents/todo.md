@@ -3,52 +3,43 @@
 What's left to build, what hasn't been tried in the app yet, and what to do
 before a release. Remove items once they're done or checked.
 
-## To do, easiest first
+## To do
 
-- Found in Linux sandbox testing (2026-10-23), verified unless noted:
-  - Sprite list scrolls half a row after Sort or Duplicate (row 1 half hidden).
-  - Shortcuts table: remove the blue block the selected row shows past the last column; "Select all
-    sprites, sounds, frames or p..." is cut off.
-  - Linux default font at the 1100x700 default window: "Resize Canvas" and "Shift Offset" are
-    cut off in Sprite Tools.
-  - Question: sorting or deleting a sprite marks Palettes* dirty too (v1 Donald, v2 kfm).
-  - Questions: after Recover, the command-line file is skipped silently (by design per
-    App.axaml.cs, but nothing tells the user). A recovered changed-source file opens from
-    data/recovery/recovered/ under a GUID name, so plain Save writes into the app folder.
-  - At 200% font and button scale (window 1580x960) fixed-width buttons and fields clip:
-    Paint Tools (Commit, Reset, Pencil, Eraser, Eyedropper, Replace, Select), Resize Canvas,
-    Shift Offset, onion-skin Group/Number and Pin frame boxes, Palettes Commit, Scratch label,
-    Animations Play / |< / Special Flags, Sounds Play/Loop/Stop. Palettes Color R/G/B/A sliders
-    collapse to nothing, the Sprites tab palette grid under Preview with disappears, and the
-    float/collapse icons render as other glyphs.
-  - Found in the second sandbox pass (2026-10-23):
-    Report text: a drag across two lines selects nothing; double-click selects within a line.
-  - Unverified (sandbox has no window manager): Escape doesn't close the Alt+F4 refusal popup.
-- Some way to increase/decrease values faster with the mouse (Shift+wheel?); design undecided.
-- Customizable shortcuts: see features.md "Keyboard shortcuts". It compiles, and column widths
-  measure at the largest of the dialog, window and tab font sizes. Left:
-  - Check the "Animations tab" command fits at large font scales.
-- Review the save and load warnings (forward links, Links to Later
-  Palettes): they're too verbose. Their status suffix also gets cut off by the Cursor field
-  ("1 link to later pa…" at 1280 wide).
-- AIR save changes after Recover: a recovery snapshot is written already converted (LF, UTF-8,
-  Clsn lint fixed), so the recovered file shows no save-change notes or Health Report entries.
-  Fixing it means storing the original format and counts with the snapshot.
-- The AIR save status note ("Adjusted N actions you didn't edit.") may be cut off by the Cursor
-  field, like the status suffixes in the save and load warnings item above.
-- Audit for Sprites-only assumptions left from when SFF was the only format (Ctrl+O, Ctrl+F and
-  Escape-in-a-text-box were three, fixed with the shortcuts).
-- Saves that change a file the user didn't edit, like the Global Shared Palette popup;
-  decide per case whether to keep the bytes or tell the user (verified on real files):
-  - Plain Save of SFF v1 re-encodes every PCX (`SffV1Writer`), dropping PCX header
-    fields (DPI, 16-color header palette) and palette bytes left in same-palette
-    records. Pixels and colors are unchanged. Seen in kfm_win's kfm.sff.
+### Linux sandbox findings (2026-10-23)
+
+Verified unless noted.
+- Shortcuts table: remove the blue block the selected row shows past the last column; "Select all
+  sprites, sounds, frames or p..." is cut off.
+- Linux default font at the 1100x700 default window: "Resize Canvas" and "Shift Offset" are
+  cut off in Sprite Tools.
+- Question: sorting or deleting a sprite marks Palettes* dirty too (v1 Donald, v2 kfm).
+- Questions: after Recover, the command-line file is skipped silently (by design per
+  App.axaml.cs, but nothing tells the user). A recovered changed-source file opens from
+  data/recovery/recovered/ under a GUID name, so plain Save writes into the app folder.
+- At 200% font and button scale (window 1580x960) fixed-width buttons and fields clip:
+  Paint Tools (Commit, Reset, Pencil, Eraser, Eyedropper, Replace, Select), Resize Canvas,
+  Shift Offset, onion-skin Group/Number and Pin frame boxes, Palettes Commit, Scratch label,
+  Animations Play / |< / Special Flags, Sounds Play/Loop/Stop. Palettes Color R/G/B/A sliders
+  collapse to nothing, the Sprites tab palette grid under Preview with disappears, and the
+  float/collapse icons render as other glyphs.
+- Found in the second sandbox pass (2026-10-23):
+  Report text: a drag across two lines selects nothing; double-click selects within a line.
+- Unverified (sandbox has no window manager): Escape doesn't close the Alt+F4 refusal popup.
+
+### Sprites and palettes
+
 - Import Palette into Sprite on several SFF v1 sprites writes the colors into each one's own
   palette, giving N identical copies. Could look at sharing one palette across runs of
   consecutive selected sprites (and stop skipping same-palette sprites), like v2.
 - Test and revisit the nearest-color alpha threshold: pixels below
   NearestColorAlphaThreshold (settings.json, default 32) map to index 0. Check
   against real sprites and the official tools.
+- Add a tool to split palettes, the counterpart of Combine Into New and Merge and Update Sprites
+  (design undecided).
+- Palette list is now multi-select: decide whether Delete (and other sidebar buttons) should act
+  on every selected palette; today they act on the first selected one.
+
+### Paint Mode
 
 - Paint Mode: add a Polygonal Lasso to Select. It can reuse the lasso's mask and outline code.
   - Click corner points; double-click, Enter, or a click near the first point closes it. The snap
@@ -61,8 +52,33 @@ before a release. Remove items once they're done or checked.
     pixel center, clears the selection. Switching tools, sprites or leaving Paint Mode drops it.
 - Paint Mode: add a Magic Wand to Select that matches the exact index (no tolerance for now;
   contiguous or global undecided). It can reuse Fill's flood fill and the lasso's mask.
+
+### Animations and Clsn
+
+- Clsn outlines: add Scale with zoom (Preferences > Clsn), so the box lines grow with the canvas
+  zoom and never go below 1 px. Default off. Undecided: whether Export Animation follows too, as it
+  draws at its own output scale.
+- Canvas and Export Animation: true arithmetic Subtract (render.go's reverse subtract) instead of
+  the Multiply stand-in, also for SubAdd's subtract pass. Needs reading back the drawn background
+  (e.g. an offscreen render under the sprite), so it was left out of the easy fixes.
+
+### Canvas
+
+- Reported, not reproduced (2026-10-24): on the Sprites canvas at 16px per sprite pixel, a
+  user screenshot shows 1px steps partway along a sprite row (one row drawn at y 240-255 on
+  the left, 239-254 on the right). Plain DrawImage path, no transform or blend. The guide lines
+  suggest a half-pixel Origin (Bounds/2 + pan, unrounded). A Skia half-pixel test showed no
+  steps. Cause unknown; the maintainer can't reproduce it either. Origin is now snapped to
+  device pixels as hardening (features.md "Canvas pixel snapping"); checked by the maintainer.
+  Waiting for the reporter's feedback on the next build; close if it doesn't recur.
+
+### Sounds
+
 - Add a low-pass filter for sounds (slope and dialog design undecided).
 - Add a high-pass filter for sounds (slope and dialog design undecided).
+
+### SprMaker and SFF formats
+
 - Import/export SprMaker 0.97 (.txt sprite list + PCX) formats; design undecided.
 - Import/export SprMaker 2.01 (.def with [Pal]/sprite lines + PCX/PNG) formats;
   design undecided.
@@ -99,6 +115,29 @@ before a release. Remove items once they're done or checked.
 - Test the Save Like SprMaker report file and its -s/-q and -v/-q switches in
   the app; the writer and its tests are already in (see the Save Like SprMaker
   items below).
+
+### Import and export
+
+- Improve the Export Palette dialog (what to change is undecided).
+- WebP import: an animated WebP imports all frames like GIF does.
+- Multiple sprite export, one file per sprite: offer the shared-canvas option Export All has
+  ("Pad every sprite to the same canvas size").
+
+### Saving and recovery
+
+- Review the save and load warnings (forward links, Links to Later
+  Palettes): they're too verbose. Their status suffix also gets cut off by the Cursor field
+  ("1 link to later pa…" at 1280 wide).
+- AIR save changes after Recover: a recovery snapshot is written already converted (LF, UTF-8,
+  Clsn lint fixed), so the recovered file shows no save-change notes or Health Report entries.
+  Fixing it means storing the original format and counts with the snapshot.
+- The AIR save status note ("Adjusted N actions you didn't edit.") may be cut off by the Cursor
+  field, like the status suffixes in the save and load warnings item above.
+- Saves that change a file the user didn't edit, like the Global Shared Palette popup;
+  decide per case whether to keep the bytes or tell the user (verified on real files):
+  - Plain Save of SFF v1 re-encodes every PCX (`SffV1Writer`), dropping PCX header
+    fields (DPI, 16-color header palette) and palette bytes left in same-palette
+    records. Pixels and colors are unchanged. Seen in kfm_win's kfm.sff.
 - Autosave still rereads and rehashes the source file on every snapshot, and copies
   unchanged items into each new package. Cache the hash and write only what changed.
 - Autosave writes on the UI thread. Move the disk write to a background thread once
@@ -106,19 +145,10 @@ before a release. Remove items once they're done or checked.
 - Check disk use: each recovery package and each save's backup can be a full copy of
   a 350 MB file.
 - Decide whether to use a change event on the undo stack instead of polling for dirty state.
-- Loading is much slower than saving for large SFFs. Find out why.
-- Improve the Export Palette dialog (what to change is undecided).
-- Canvas and Export Animation: true arithmetic Subtract (render.go's reverse subtract) instead of
-  the Multiply stand-in, also for SubAdd's subtract pass. Needs reading back the drawn background
-  (e.g. an offscreen render under the sprite), so it was left out of the easy fixes.
-- WebP import: an animated WebP imports all frames like GIF does.
-- Multiple sprite export, one file per sprite: offer the shared-canvas option Export All has
-  ("Pad every sprite to the same canvas size").
-- Add a tool to split palettes, the counterpart of Combine Into New and Merge and Update Sprites
-  (design undecided).
-- Palette list is now multi-select: decide whether Delete (and other sidebar buttons) should act
-  on every selected palette; today they act on the first selected one.
 
+### Performance and lists
+
+- Loading is much slower than saving for large SFFs. Find out why.
 - Lists: selecting a sprite clears then adds the selection (ApplySpriteRowSelection),
   firing two SelectionChanged events per step; the first returns early, so it's minor.
 - Lists: time RebuildFrameTable on a long action (it rebuilds fully from 18 places)
@@ -139,20 +169,24 @@ before a release. Remove items once they're done or checked.
   the palette group/index collision keeps its confirm. Loses the +/- spinners. The sprite
   table comments mention "old inline cells"; find out why they were replaced first.
 
+### Controls and layout
+
+- Some way to increase/decrease values faster with the mouse (Shift+wheel?); design undecided.
+- Customizable shortcuts: see features.md "Keyboard shortcuts". It compiles, and column widths
+  measure at the largest of the dialog, window and tab font sizes. Left:
+  - Check the "Animations tab" command fits at large font scales.
+- Audit for Sprites-only assumptions left from when SFF was the only format (Ctrl+O, Ctrl+F and
+  Escape-in-a-text-box were three, fixed with the shortcuts).
+- Dialog option descriptions: consider a smaller muted line under each option in dialogs with
+  radio options (Find Similar Sprites, Align With Onion Skin), instead of tooltips. Both used
+  that once (a SemiBold label over a ThemeMutedText line).
+
+### Other
+
 - Logging: `crash.log` holds unhandled exceptions and non-exception errors alike (skipped
   export/import items, invalid settings values), so its name promises more than it delivers.
   Decide whether to split it into a crash dump file and an error log, and update the
   `AGENTS.md` logging rule if so.
-- Reported, not reproduced (2026-10-24): on the Sprites canvas at 16px per sprite pixel, a
-  user screenshot shows 1px steps partway along a sprite row (one row drawn at y 240-255 on
-  the left, 239-254 on the right). Plain DrawImage path, no transform or blend. The guide lines
-  suggest a half-pixel Origin (Bounds/2 + pan, unrounded). A Skia half-pixel test showed no
-  steps. Cause unknown; the maintainer can't reproduce it either. Origin is now snapped to
-  device pixels as hardening (features.md "Canvas pixel snapping"); checked by the maintainer.
-  Waiting for the reporter's feedback on the next build; close if it doesn't recur.
-- Dialog option descriptions: consider a smaller muted line under each option in dialogs with
-  radio options (Find Similar Sprites, Align With Onion Skin), instead of tooltips. Both used
-  that once (a SemiBold label over a ThemeMutedText line).
 
 ## Not yet checked in the app
 

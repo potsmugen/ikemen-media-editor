@@ -528,9 +528,14 @@ public partial class MainWindow
         if (SpriteList.FindDescendantOfType<ScrollViewer>() is not { } scroller) return;
         if (item.TranslatePoint(new Point(0, 0), scroller) is not { } top) return;
 
-        double target = scroller.Offset.Y + top.Y + item.Bounds.Height / 2 - scroller.Viewport.Height / 2;
+        double rowHeight = item.Bounds.Height;
+        double target = scroller.Offset.Y + top.Y + rowHeight / 2 - scroller.Viewport.Height / 2;
         double max = Math.Max(0, scroller.Extent.Height - scroller.Viewport.Height);
-        scroller.Offset = new Vector(scroller.Offset.X, Math.Clamp(target, 0, max));
+        // Keep the first visible row whole. Centering at an arbitrary pixel offset can
+        // leave the top row half hidden after a table rebuild (for example, Sort or Duplicate).
+        double alignedMax = rowHeight > 0 ? Math.Floor(max / rowHeight) * rowHeight : max;
+        double alignedTarget = rowHeight > 0 ? Math.Round(target / rowHeight) * rowHeight : target;
+        scroller.Offset = new Vector(scroller.Offset.X, Math.Clamp(alignedTarget, 0, alignedMax));
         SpriteList.UpdateLayout();
     }
 

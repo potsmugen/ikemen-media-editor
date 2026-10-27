@@ -143,10 +143,10 @@ public static class Shortcuts
 
     public static string ScopeText(ShortcutScope scope) => scope switch
     {
-        ShortcutScope.SpritesTab => "Sprites tab",
-        ShortcutScope.PalettesTab => "Palettes tab",
-        ShortcutScope.AnimationsTab => "Animations tab",
-        ShortcutScope.SoundsTab => "Sounds tab",
+        ShortcutScope.SpritesTab => "Sprites",
+        ShortcutScope.PalettesTab => "Palettes",
+        ShortcutScope.AnimationsTab => "Animations",
+        ShortcutScope.SoundsTab => "Sounds",
         _ => "Everywhere",
     };
 
