@@ -85,6 +85,12 @@ public partial class App : Application
                 splash.Close();
                 window.Activate();
 
+                if (Settings.UnreadableBackupPath is { } badSettings)
+                    await Dialogs.ShowMessage(window, "Settings Could Not Be Read",
+                        $"settings.json has an error, so the editor started with default settings. "
+                        + $"Your file was kept as {Path.GetFileName(badSettings)} in the data folder; fix it and rename it back "
+                        + $"to settings.json while the editor is closed.\n\n{Settings.UnreadableReason}");
+
                 // Recovery is always offered first. The launch file opens only if the recovered session was not restored.
                 bool recovered = await window.OfferRecovery();
 

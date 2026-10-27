@@ -842,6 +842,13 @@ summaries; treat anything marked unverified as unknown.
 - **settings.json sections**: keys live under General, Files, Layout, Appearance, Canvas,
   Sprites, Palettes, Animations and Sounds (nested `Settings.*Section` classes; `Shortcuts` stays
   top-level). `Default*` constants stay on `Settings`. Old flat files load as defaults.
+- **Upgrades and unreadable settings**: releases ship no settings.json, so unpacking over an old
+  install keeps it; missing keys load as defaults and the next Save writes them in. A key whose
+  value fails to load (wrong type) is dropped and logged, and takes its default; the rest load
+  (`Settings.Parse`; a bad array item drops the whole array). Broken JSON loads as all defaults,
+  which the next Save would write over, so `Settings.Load` first copies it to
+  `data/settings.json.bad` (once per run) and
+  startup shows "Settings Could Not Be Read" with the parser's message, before the recovery offer.
 - **Trimming: the JSON half is a `JsonSerializerContext`, the XAML half is a root
   assembly.** `PublishTrimmed=true` reports IL2026 on `ReflectionBindingExtension`
   (every XAML binding) and on `JsonSerializer.Serialize/Deserialize` in

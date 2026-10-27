@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Runtime.CompilerServices;
 
@@ -138,21 +139,120 @@ public sealed class Settings
         }
     }
 
-    /// <summary>Unknown keys are ignored, so a settings.json from before the sections falls back to defaults.</summary>
+    /// <summary>Where an unreadable settings.json was copied this run, before defaults replace it; null if none.</summary>
+    public static string? UnreadableBackupPath { get; private set; }
+    /// <summary>Why settings.json couldn't be read (the parser's message, with line and key).</summary>
+    public static string? UnreadableReason { get; private set; }
+
+    /// <summary>Unknown keys are ignored, so a settings.json from before the sections falls back to defaults.
+    /// A key with a bad value is dropped and takes its default; the rest still load.
+    /// An unreadable file is copied to settings.json.bad once per run, since the next Save overwrites it.</summary>
     public static Settings Load()
     {
         try
         {
             if (File.Exists(FilePath))
             {
-                return JsonSerializer.Deserialize(File.ReadAllText(FilePath), SettingsContext.Default.Settings) ?? new Settings();
+                var dropped = new List<string>();
+                var loaded = Parse(File.ReadAllText(FilePath), dropped);
+                foreach (var d in dropped) CrashLog.Error("Settings", d);
+                if (loaded is not null) return loaded;
+                BackUpUnreadable(dropped.LastOrDefault() ?? "unreadable");
             }
         }
         catch (Exception ex)
         {
             CrashLog.Write("Settings.Load", ex);
+            BackUpUnreadable(ex.Message);
         }
         return new Settings();
+    }
+
+    /// <summary>Settings from JSON, dropping each key whose value fails to load (one note per key in
+    /// <paramref name="notes"/>); null when the JSON itself is broken, with the reason as the last note.</summary>
+    internal static Settings? Parse(string json, List<string> notes)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize(json, SettingsContext.Default.Settings) ?? new Settings();
+        }
+        catch (JsonException first)
+        {
+            JsonNode? root;
+            try { root = JsonNode.Parse(json); }
+            catch (JsonException) { notes.Add(first.Message); return null; }
+            var ex = first;
+            for (int i = 0; i < 1000; i++)
+            {
+                if (root is null || !RemoveKeyAt(root, ex.Path)) { notes.Add(ex.Message); return null; }
+                notes.Add($"{ex.Path} isn't valid; using its default ({ex.Message})");
+                try { return root.Deserialize(SettingsContext.Default.Settings) ?? new Settings(); }
+                catch (JsonException next) { ex = next; }
+            }
+            notes.Add(ex.Message);
+            return null;
+        }
+    }
+
+    /// <summary>Removes the object key named last in a JsonException path ($.A.B, $['A'], [n]); an
+    /// array index after it drops the whole array. False when the path has no such key.</summary>
+    private static bool RemoveKeyAt(JsonNode root, string? path)
+    {
+        if (path is null || !path.StartsWith('$')) return false;
+        var segments = new List<object>(); // string key or int index
+        int i = 1;
+        while (i < path.Length)
+        {
+            if (path[i] == '.')
+            {
+                int end = path.IndexOfAny(['.', '['], i + 1);
+                if (end < 0) end = path.Length;
+                segments.Add(path[(i + 1)..end]);
+                i = end;
+            }
+            else if (string.CompareOrdinal(path, i, "['", 0, 2) == 0)
+            {
+                int end = path.IndexOf("']", i + 2, StringComparison.Ordinal);
+                if (end < 0) return false;
+                segments.Add(path[(i + 2)..end]);
+                i = end + 2;
+            }
+            else if (path[i] == '[')
+            {
+                int end = path.IndexOf(']', i);
+                if (end < 0 || !int.TryParse(path[(i + 1)..end], out int index)) return false;
+                segments.Add(index);
+                i = end + 1;
+            }
+            else return false;
+        }
+        int last = segments.FindLastIndex(s => s is string);
+        if (last < 0) return false;
+        JsonNode? node = root;
+        for (int k = 0; k < last && node is not null; k++)
+            node = segments[k] switch
+            {
+                string key when node is JsonObject o => o[key],
+                int n when node is JsonArray a && n < a.Count => a[n],
+                _ => null,
+            };
+        return node is JsonObject parent && parent.Remove((string)segments[last]);
+    }
+
+    private static void BackUpUnreadable(string reason)
+    {
+        if (UnreadableBackupPath is not null) return;
+        try
+        {
+            string backup = FilePath + ".bad";
+            File.Copy(FilePath, backup, overwrite: true);
+            UnreadableBackupPath = backup;
+            UnreadableReason = reason;
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("Settings.BackUpUnreadable", ex);
+        }
     }
 
     public static void ResetToDefaults()
