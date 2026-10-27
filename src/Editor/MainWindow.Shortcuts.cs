@@ -44,6 +44,14 @@ public partial class MainWindow
         ["Guides"] = () => OnToggleGuides(this, new RoutedEventArgs()),
         ["ZoomIn"] = () => ActiveCanvas?.StepZoom(1),
         ["ZoomOut"] = () => ActiveCanvas?.StepZoom(-1),
+        ["PreviousSprite"] = () => StepSprite(-1),
+        ["NextSprite"] = () => StepSprite(1),
+        ["PreviousPalette"] = () => StepPalette(-1),
+        ["NextPalette"] = () => StepPalette(1),
+        ["PreviousFrame"] = () => StepFrame(-1),
+        ["NextFrame"] = () => StepFrame(1),
+        ["PreviousSound"] = () => StepSound(-1),
+        ["NextSound"] = () => StepSound(1),
     };
 
     /// <summary>Ctrl+O for whichever tab is active, like Save: .sff, palette files, .air or .def, .snd.</summary>
@@ -74,7 +82,10 @@ public partial class MainWindow
 
     private bool ShortcutScopeActive(ShortcutScope scope) => scope switch
     {
+        ShortcutScope.SpritesTab => Tabs?.SelectedIndex == 0,
+        ShortcutScope.PalettesTab => Tabs?.SelectedIndex == 1,
         ShortcutScope.AnimationsTab => Tabs?.SelectedIndex == 2,
+        ShortcutScope.SoundsTab => Tabs?.SelectedIndex == 3,
         _ => true,
     };
 

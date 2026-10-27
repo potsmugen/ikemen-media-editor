@@ -1679,6 +1679,24 @@ public partial class MainWindow : Window
         SpriteList.ScrollIntoView(row);
     }
 
+    /// <summary>Previous/Next palette shortcut: selects only the neighbor row, as a click would.</summary>
+    private void StepPalette(int delta)
+    {
+        if (PaletteList.ItemsSource is not IList<PaletteRow> rows || rows.Count == 0) return;
+        int row = Math.Clamp(PaletteList.SelectedIndex + delta, 0, rows.Count - 1);
+        PaletteList.SelectedIndex = row;
+        PaletteList.ScrollIntoView(row);
+    }
+
+    /// <summary>Previous/Next sound shortcut: selects only the neighbor row, as a click would.</summary>
+    private void StepSound(int delta)
+    {
+        if (SoundList.ItemCount == 0) return;
+        int row = Math.Clamp(SoundList.SelectedIndex + delta, 0, SoundList.ItemCount - 1);
+        SoundList.SelectedIndex = row;
+        SoundList.ScrollIntoView(row);
+    }
+
     /// <summary>The Find shortcut: focuses the current tab's list filter.</summary>
     private void OnFocusFind(object? sender, RoutedEventArgs e)
     {
@@ -2125,16 +2143,16 @@ public partial class MainWindow : Window
             return;
         }
 
-        // Focused sprite canvas: arrows move the selected sprites like the arrow pad (Shift for the bigger step).
+        // Focused sprite canvas: arrows move the selected sprites like the arrow pad.
         if (Tabs?.SelectedIndex == 0 && SpriteCanvas.IsFocused && e.Key is Key.Left or Key.Right or Key.Up or Key.Down
-            && (e.KeyModifiers & ~KeyModifiers.Shift) == KeyModifiers.None)
+            && e.KeyModifiers == KeyModifiers.None)
         {
-            NudgeSprites(e.Key, e.KeyModifiers.HasFlag(KeyModifiers.Shift));
+            NudgeSprites(e.Key);
             e.Handled = true;
             return;
         }
 
-        if (Tabs?.SelectedIndex == 2 && AnimCanvas.IsFocused
+        if (Tabs?.SelectedIndex == 2 && AnimCanvas.IsFocused && e.KeyModifiers == KeyModifiers.None
             && AnimCanvas.SelectedBoxes.Count > 0)
         {
             (int X, int Y)? delta = e.Key switch
@@ -2226,7 +2244,7 @@ public partial class MainWindow : Window
                 ("Page Up / Down", "Jump a page"),
                 ("Home / End", "First / last row"),
                 ("Ctrl or Shift+click", "Toggle a Clsn box in the selection"),
-                ("Arrows (canvas)", "Nudge selected boxes 1 pixel"),
+                ("Arrows (canvas)", "Move the selected sprites or Clsn boxes"),
                 ("Left / Right (timeline)", "Previous / next frame"),
                 ("Shift+drag (Replace tool)", "Paint New to Old"));
             Add("Mouse",

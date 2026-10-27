@@ -3,7 +3,7 @@ using Avalonia.Input;
 namespace Editor;
 
 /// <summary>Where a shortcut works. A more specific scope wins over Everywhere on the same key.</summary>
-public enum ShortcutScope { Everywhere, AnimationsTab }
+public enum ShortcutScope { Everywhere, SpritesTab, PalettesTab, AnimationsTab, SoundsTab }
 
 /// <summary>A key plus modifiers. Text form: "Ctrl+Shift+O", "Ctrl+0", "+", "Ctrl+Tab".</summary>
 public readonly record struct Chord(Key Key, KeyModifiers Modifiers)
@@ -103,6 +103,7 @@ public sealed record ShortcutCommand(string Id, string Section, string Label, Sh
 public static class Shortcuts
 {
     public const string TabsSection = "Tabs";
+    public const string NavigationSection = "Navigation";
 
     public static readonly ShortcutCommand[] All =
     [
@@ -127,13 +128,25 @@ public static class Shortcuts
         new("Guides", "View", "Axis guides", ShortcutScope.Everywhere, "Ctrl+G"),
         new("ZoomIn", "View", "Zoom in", ShortcutScope.Everywhere, "Ctrl++"), // the usual Ctrl+Plus/Minus/0 family
         new("ZoomOut", "View", "Zoom out", ShortcutScope.Everywhere, "Ctrl+-"),
+        // Step the tab's list without moving focus, so canvas arrows keep nudging (Photoshop's Alt+[ / Alt+]).
+        new("PreviousSprite", NavigationSection, "Previous sprite", ShortcutScope.SpritesTab, "Alt+Up"),
+        new("NextSprite", NavigationSection, "Next sprite", ShortcutScope.SpritesTab, "Alt+Down"),
+        new("PreviousPalette", NavigationSection, "Previous palette", ShortcutScope.PalettesTab, "Alt+Up"),
+        new("NextPalette", NavigationSection, "Next palette", ShortcutScope.PalettesTab, "Alt+Down"),
+        new("PreviousFrame", NavigationSection, "Previous frame", ShortcutScope.AnimationsTab, "Alt+Up"),
+        new("NextFrame", NavigationSection, "Next frame", ShortcutScope.AnimationsTab, "Alt+Down"),
+        new("PreviousSound", NavigationSection, "Previous sound", ShortcutScope.SoundsTab, "Alt+Up"),
+        new("NextSound", NavigationSection, "Next sound", ShortcutScope.SoundsTab, "Alt+Down"),
     ];
 
     public static ShortcutCommand? Find(string id) => All.FirstOrDefault(c => c.Id == id);
 
     public static string ScopeText(ShortcutScope scope) => scope switch
     {
+        ShortcutScope.SpritesTab => "Sprites tab",
+        ShortcutScope.PalettesTab => "Palettes tab",
         ShortcutScope.AnimationsTab => "Animations tab",
+        ShortcutScope.SoundsTab => "Sounds tab",
         _ => "Everywhere",
     };
 

@@ -619,43 +619,36 @@ public partial class MainWindow
         UpdateStatus();
     }
 
-    private int _nudgePixels = Settings.DefaultSpriteNudgePixels, _nudgeShiftPixels = Settings.DefaultSpriteNudgeShiftPixels;
-    private bool _nudgeShift; // Shift was held when the pad button was pressed
+    private int _nudgePixels = Settings.DefaultSpriteNudgePixels;
 
     private void SetupNudgePad()
     {
         var s = _settings.Sprites;
         _nudgePixels = Settings.Checked(nameof(s.SpriteNudgePixels), s.SpriteNudgePixels,
             Settings.DefaultSpriteNudgePixels, v => v is >= 1 and <= 1000);
-        _nudgeShiftPixels = Settings.Checked(nameof(s.SpriteNudgeShiftPixels), s.SpriteNudgeShiftPixels,
-            Settings.DefaultSpriteNudgeShiftPixels, v => v is >= 1 and <= 1000);
         foreach (var (button, direction) in new[] { (NudgeUpButton, "up"), (NudgeLeftButton, "left"), (NudgeRightButton, "right"), (NudgeDownButton, "down") })
         {
-            ToolTip.SetTip(button, $"Move sprite {direction} (Shift+click: {_nudgeShiftPixels} px; arrow keys on the canvas)");
-            // Click carries no modifiers, so Shift is read when the press starts.
-            button.AddHandler(PointerPressedEvent, (_, e) => _nudgeShift = e.KeyModifiers.HasFlag(KeyModifiers.Shift), RoutingStrategies.Tunnel);
+            ToolTip.SetTip(button, $"Move sprite {direction} (arrow keys on the canvas)");
         }
     }
 
     private void OnNudgeSprite(object? sender, RoutedEventArgs e)
     {
-        bool big = _nudgeShift;
-        _nudgeShift = false;
         if (sender is not Button button) return;
         NudgeSprites(button == NudgeLeftButton ? Key.Left : button == NudgeRightButton ? Key.Right
-            : button == NudgeUpButton ? Key.Up : Key.Down, big);
+            : button == NudgeUpButton ? Key.Up : Key.Down);
     }
 
     /// <summary>Arrow pad and arrow keys on the canvas: moves the selected sprites as a canvas drag does, so the
     /// axis goes the other way. Nudges in a row on the same sprites are one undo step.</summary>
-    private void NudgeSprites(Key arrow, bool big)
+    private void NudgeSprites(Key arrow)
     {
         try
         {
             if (_file is null) return;
             var selected = SelectedSpriteTargets();
             if (selected.Count == 0) return;
-            int step = big ? _nudgeShiftPixels : _nudgePixels;
+            int step = _nudgePixels;
             var (dx, dy, direction) = arrow switch
             {
                 Key.Left => (step, 0, "left"),

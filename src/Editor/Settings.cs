@@ -88,7 +88,7 @@ public sealed class Settings
     public const int DefaultSheetMinimumSizePixels = Sff.SheetImport.DefaultMinimumSize;
     public const int DefaultPaletteTemplateSprites = 12, DefaultPaletteTemplatePaddingPixels = 4,
         DefaultPaletteTemplateSwatchSize = 8;
-    public const int DefaultSpriteNudgePixels = 1, DefaultSpriteNudgeShiftPixels = 10;
+    public const int DefaultSpriteNudgePixels = 1;
 
     // Palettes
     public const double DefaultPaletteCellMin = 6, DefaultPaletteCellMax = 64;
@@ -499,9 +499,8 @@ public sealed class Settings
         public int PaletteTemplatePaddingPixels { get; set; } = DefaultPaletteTemplatePaddingPixels;
         /// <summary>Create Palette Template: the dialog's initial pixels per swatch cell (1-64); the grid is 16 cells wide.</summary>
         public int PaletteTemplateSwatchSize { get; set; } = DefaultPaletteTemplateSwatchSize;
-        /// <summary>Sprite Tools arrow pad: pixels per click, and per Shift+click (1-1000).</summary>
+        /// <summary>Sprite Tools arrow pad and canvas arrow keys: pixels per step (1-1000).</summary>
         public int SpriteNudgePixels { get; set; } = DefaultSpriteNudgePixels;
-        public int SpriteNudgeShiftPixels { get; set; } = DefaultSpriteNudgeShiftPixels;
     }
 
     public sealed class PalettesSection

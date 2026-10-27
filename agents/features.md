@@ -378,10 +378,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   Transform section (Crop, Resize Canvas, Resize, Flip, Rotate). Find Similar Sprites is in the
   canvas right-click menu, since it compares the shown sprite's pixels.
 - **Arrow pad** moves the selected sprites like a canvas drag,
-  so the axis goes the other way. settings.json `SpriteNudgePixels` (1) and `SpriteNudgeShiftPixels`
-  (10, Shift+click) set the step. A step that would put any axis out of range does nothing and says
-  so in the status line. Clicks in a row on the same sprites merge into one undo step. Arrow keys
-  (Shift for the bigger step) do the same while the sprite canvas has focus.
+  so the axis goes the other way. settings.json `SpriteNudgePixels` (1) sets the step; there is no
+  big step, since the pad is for fine-tuning. A step that would put any axis out of range does nothing
+  and says so in the status line. Clicks in a row on the same sprites merge into one undo step. Plain
+  arrow keys do the same while the sprite canvas has focus (built-in, like box nudging; not a command).
 - **Align With Onion Skin** (Sprites tab only) moves each selected sprite's axis so it lines up with
   the onion sprite shown when the command runs (pinned, else the row above), as one undo step. Dimmed
   while no onion sprite is shown. The dialog picks the method (tooltips explain each), ordered by
@@ -508,7 +508,11 @@ and constraints that are easy to miss when reading one code path in isolation.
 
 - **Keyboard shortcuts**: one table in `Shortcuts.cs` drives the key handler, menu text and
   Help > Keyboard Shortcuts. Settings hold only changed bindings, and bad entries fall back
-  and are logged. Scopes are Everywhere and Animations tab, and the more specific wins.
+  and are logged. Scopes are Everywhere and one per tab, and the more specific wins.
+  Previous/Next (Alt+Up/Down by default, as Photoshop's Alt+[ / Alt+]) step the tab's list
+  (sprites, palettes, frames, sounds) without moving focus, so canvas arrows keep nudging between
+  steps. A focused list takes Alt+arrows itself (Avalonia's ListBox treats them as plain arrows),
+  so on Animations a focused action list steps actions. Canvas arrows take no modifiers.
   Built-in navigation (arrows, Page/Home/End, Delete, Escape, Enter/Tab in tables, Shift-drag,
   Ctrl/Shift-click) isn't in the table. Preferences > Shortcuts lists Where, Command and
   Shortcut; conflicts in overlapping scopes ask to move the key, and keys used by navigation
