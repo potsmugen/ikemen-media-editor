@@ -72,7 +72,7 @@ public class WebPTests
         var top = Chunks(data, 12, data.Length);
         Assert.Equal(new[] { "VP8X", "ANIM", "ANMF", "ANMF" }, top.Select(c => c.Tag));
         Assert.Equal(0x02, top[0].Data[0]); // animation, no alpha
-        Assert.Equal(2, U24(top[0].Data, 4) + 1);
+        Assert.Equal(3, U24(top[0].Data, 4) + 1);
         Assert.Equal(2, U24(top[0].Data, 7) + 1);
         Assert.Equal(0, BitConverter.ToUInt16(top[1].Data, 4)); // loops forever
 
