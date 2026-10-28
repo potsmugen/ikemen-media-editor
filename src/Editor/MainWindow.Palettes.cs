@@ -3234,7 +3234,6 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 && !await Dialogs.Confirm(this, "Palette Export Loses Information", loss + " RGBA keeps everything.", "Export"))
                 return;
 
-            Backups.Make(path, _settings.Files.BackupCount);
             switch (format)
             {
                 case Dialogs.PaletteExportFormat.Rgba:

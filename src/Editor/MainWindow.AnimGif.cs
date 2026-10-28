@@ -111,7 +111,6 @@ public partial class MainWindow
             var bytes = await Task.Run(() => webp
                 ? WebP.Encode((int)width, (int)height, pixels.Select((p, i) => new WebPFrame(p, delays[i])).ToList(), EncodeWebPStill)
                 : Gif.Encode((int)width, (int)height, pixels.Select((p, i) => new GifFrame(p, delays[i])).ToList()));
-            Backups.Make(path, _settings.Files.BackupCount);
             await File.WriteAllBytesAsync(path, bytes);
             CrashLog.Trace($"[anim] {(webp ? "webp" : "gif")} action {action.Number}: {pixels.Count} frames, {width}x{height}, x{scale}, boxes {choice.Boxes}, background {choice.Background}, {emitted}/{unitsPerSecond} s, {bytes.Length} bytes");
             StatusText.Text = $"Wrote {Path.GetFileName(path)}: {pixels.Count} frames, {width}x{height}, {emitted / (double)unitsPerSecond:0.##}s.";

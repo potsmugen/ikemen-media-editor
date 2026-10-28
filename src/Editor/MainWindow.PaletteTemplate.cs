@@ -76,7 +76,6 @@ public partial class MainWindow
             });
             if (target?.TryGetLocalPath() is not { } path) return;
 
-            Backups.Make(path, _settings.Files.BackupCount);
             File.WriteAllBytes(path, PaletteTemplate.Encode(built, chosen.Colors));
             CrashLog.Trace($"[palettes] template for {PaletteKey(file, chosen)}: {choice.Count} sprites, spacing {choice.Spacing}, swatch {choice.SwatchSize}, seed {choice.Seed}, {built.Width}x{built.Height}");
             StatusText.Text = $"Wrote {Path.GetFileName(path)}.";

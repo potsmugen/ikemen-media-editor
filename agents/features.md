@@ -45,7 +45,8 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Opening a character** clears all prior open files before loading its references, so a
   missing reference can't leave an unrelated asset active.
 - **Saving**: before overwriting, keep `BackupCount` prior versions (`.bak`, `.bak.1`…;
-  default 1, 0–10, 0 disables), and abort the save if the backup fails. Recovery is separate:
+  default 1, 0–10, 0 disables), and abort the save if the backup fails. Only saving a tab's file
+  (SFF, palettes, AIR/.def, SND) makes backups; exports never do. Recovery is separate:
   every five minutes the app snapshots committed dirty files into `data/recovery` without
   touching sources. After an unclean exit, one list appears before command-line opening;
   matching sources restore as dirty documents, changed or missing ones become separate
