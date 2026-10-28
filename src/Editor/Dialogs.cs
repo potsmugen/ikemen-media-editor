@@ -2149,10 +2149,7 @@ public static partial class Dialogs
         {
             GroupName = "ImportIndex", Content = "Keep the image's indexes", IsEnabled = imagesIndexed,
         };
-        ToolTip.SetTip(keep, imagesIndexed
-            ? "Keeps pixel indexes, using the chosen palette."
-            : framesGif ? "A GIF's frames have no palette indexes to keep."
-            : "These images have no palette indexes.");
+        ToolTip.SetTip(keep, "Keeps pixel indexes, using the chosen palette.");
         var nearest = new RadioButton
         {
             GroupName = "ImportIndex", Content = "Match the nearest color",
@@ -2791,8 +2788,8 @@ public static partial class Dialogs
 
     /// <summary>Chooses whether this sprite keeps its indexes or maps them to a palette by color.</summary>
     public static Task<ImportIndexChoice?> PromptPaletteIndexMapping(
-        Window owner, bool allowNearest, string? nearestDisabledReason = null, string? notice = null,
-        bool multiple = false, bool allowKeep = true, string? keepDisabledReason = null)
+        Window owner, bool allowNearest, string? notice = null,
+        bool multiple = false, bool allowKeep = true)
     {
         var result = new TaskCompletionSource<ImportIndexChoice?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var keep = new RadioButton
@@ -2800,19 +2797,17 @@ public static partial class Dialogs
             GroupName = "PaletteIndexMapping", Content = "Keep indexes",
             IsChecked = allowKeep, IsEnabled = allowKeep,
         };
-        ToolTip.SetTip(keep, allowKeep
-            ? multiple ? "Leaves each selected sprite's pixel indexes unchanged."
-                : "Leaves this sprite's pixel indexes unchanged."
-            : keepDisabledReason ?? "These sprites have no indexes to keep.");
+        ToolTip.SetTip(keep, multiple
+            ? "Leaves each selected sprite's pixel indexes unchanged."
+            : "Leaves this sprite's pixel indexes unchanged.");
         var nearest = new RadioButton
         {
             GroupName = "PaletteIndexMapping", Content = "Match the nearest color",
             IsChecked = !allowKeep, IsEnabled = allowNearest,
         };
-        ToolTip.SetTip(nearest, allowNearest
-            ? multiple ? "Maps each selected sprite's visible colors to the closest palette colors."
-                : "Maps each visible color to its closest color in the palette."
-            : nearestDisabledReason ?? "Nearest-color matching is unavailable for this sprite.");
+        ToolTip.SetTip(nearest, multiple
+            ? "Maps each selected sprite's visible colors to the closest palette colors."
+            : "Maps each visible color to its closest color in the palette.");
 
         var dialog = new Window
         {

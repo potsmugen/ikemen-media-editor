@@ -19,12 +19,12 @@ public partial class MainWindow
 
     private const string AddToSffTip = "Moves this palette into the SFF at a group and number you choose.";
 
-    /// <summary>The palette list's right-click entry; dimmed with the reason when it can't run.</summary>
+    /// <summary>The palette list's right-click entry; dimmed when it can't run.</summary>
     private MenuItem AddToSffMenuItem(Palette? palette)
     {
         string? blocker = palette is null ? "Select one palette." : AddToSffBlocker(palette);
         var item = MenuAction("Add to SFF", () => { if (palette is not null) _ = AddPaletteToSff(palette); }, blocker is null);
-        ToolTip.SetTip(item, blocker ?? AddToSffTip);
+        ToolTip.SetTip(item, AddToSffTip);
         return item;
     }
 
@@ -34,7 +34,7 @@ public partial class MainWindow
         var palette = PaletteList?.SelectedItems?.Count == 1 ? (PaletteList.SelectedItem as PaletteRow)?.Palette : null;
         string? blocker = palette is null ? "Select one palette." : AddToSffBlocker(palette);
         AddPaletteToSffMenuItem.IsEnabled = blocker is null;
-        ToolTip.SetTip(AddPaletteToSffMenuItem, blocker ?? AddToSffTip);
+        ToolTip.SetTip(AddPaletteToSffMenuItem, AddToSffTip);
     }
 
     /// <summary>Why Add to SFF is unavailable for this palette, or null when it can run.</summary>

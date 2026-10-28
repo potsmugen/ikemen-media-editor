@@ -986,8 +986,6 @@ public partial class MainWindow : Window
             : null;
         var copy = MenuAction(toScratch ? "Copy to Scratch Palette" : "Copy to Current Palette",
             () => _ = CopyColorsToSameIndex(pal!, picked, target!, toScratch ? ScratchSwatches : BigSwatches), blocked is null);
-        if (blocked is not null) ToolTip.SetTip(copy, blocked);
-
         OpenContextMenu(view, new ContextMenu
         {
             ItemsSource = new List<Control>

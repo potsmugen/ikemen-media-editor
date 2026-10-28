@@ -763,14 +763,11 @@ public partial class MainWindow
         return _onionGroup is { } g && _onionIndex is { } i ? _file.Find(g, i) : PreviousVisibleSprite();
     }
 
-    /// <summary>Dims Align With Onion Skin while no onion sprite is shown, and says why.</summary>
+    /// <summary>Enables Align With Onion Skin when a sprite is shown.</summary>
     private void SyncAlignOnionButton(Sprite? onion)
     {
         if (AlignOnionButton is null) return;
         AlignOnionButton.IsEnabled = onion is not null;
-        ToolTip.SetTip(AlignOnionButton, onion is not null
-            ? "Moves each selected sprite to line up with the onion skin."
-            : "Available while the onion skin shows a sprite.");
     }
 
     /// <summary>
@@ -957,8 +954,8 @@ public partial class MainWindow
 
         bool allowNearest = disabledReason is null;
         bool allowKeep = sprite.Indexed is not null || !allowNearest;
-        var choice = await Dialogs.PromptPaletteIndexMapping(this, allowNearest, disabledReason, notice,
-            allowKeep: allowKeep, keepDisabledReason: allowKeep ? null : "This sprite has no indexes to keep.");
+        var choice = await Dialogs.PromptPaletteIndexMapping(this, allowNearest, notice,
+            allowKeep: allowKeep);
         if (choice is null) return PixelMapping.Canceled(sprite);
         if (choice != ImportIndexChoice.Nearest) return PixelMapping.Unchanged(sprite);
         if (_file is { } owner && !await ConfirmLinkedSpritesChange(owner, [sprite])) return PixelMapping.Canceled(sprite);

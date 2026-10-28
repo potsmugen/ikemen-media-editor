@@ -85,10 +85,8 @@ public partial class MainWindow
             && file.Sprites.Any(other => !ReferenceEquals(other, plan.Sprite) && ReferenceEquals(other.Palette, palette)))
             ? "Other sprites using affected SFF v1 palettes may look different if their indexes are unchanged."
             : null;
-        var mapping = await Dialogs.PromptPaletteIndexMapping(this, allowNearest,
-            allowNearest ? null : "Nearest-color matching is unavailable for the selected sprites.", notice,
-            multiple: true, allowKeep: allowKeep,
-            keepDisabledReason: allowKeep ? null : "These sprites have no indexes to keep.");
+        var mapping = await Dialogs.PromptPaletteIndexMapping(this, allowNearest, notice,
+            multiple: true, allowKeep: allowKeep);
         if (mapping is null || !ReferenceEquals(_file, file)) return false;
 
         if (mapping == ImportIndexChoice.Nearest)
@@ -240,10 +238,8 @@ public partial class MainWindow
             && file.Sprites.Any(other => !ReferenceEquals(other, plan.Sprite) && ReferenceEquals(other.Palette, palette)))
             ? "Other sprites using affected SFF v1 palettes may look different if their indexes are unchanged."
             : null;
-        var mapping = await Dialogs.PromptPaletteIndexMapping(this, allowNearest,
-            allowNearest ? null : "Nearest-color matching is unavailable for the selected sprites.", notice,
-            multiple: true, allowKeep: allowKeep,
-            keepDisabledReason: allowKeep ? null : "These sprites have no indexes to keep.");
+        var mapping = await Dialogs.PromptPaletteIndexMapping(this, allowNearest, notice,
+            multiple: true, allowKeep: allowKeep);
         if (mapping is null || !ReferenceEquals(_file, file)) return;
 
         if (mapping == ImportIndexChoice.Nearest)

@@ -167,8 +167,7 @@ Verified unless noted.
 
 ### Controls and layout
 
-- Audit disabled-control tooltips to make sure they keep the normal action description and add
-  the disabled reason when it isn't obvious.
+- Audit buttons and commands that remain enabled before their required data is loaded, including Export.
 - Some way to increase/decrease values faster with the mouse (Shift+wheel?); design undecided.
 - Customizable shortcuts: see features.md "Keyboard shortcuts". It compiles, and column widths
   measure at the largest of the dialog, window and tab font sizes. Left:
