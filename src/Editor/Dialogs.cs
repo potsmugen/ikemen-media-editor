@@ -815,9 +815,14 @@ public static partial class Dialogs
         var angle = Number(0, 0, 360, 1, "0.#", 90);
         var left = new RadioButton { GroupName = "RotateDir", Content = "Left" };
         var right = new RadioButton { GroupName = "RotateDir", Content = "Right", IsChecked = true };
+        ToolTip.SetTip(left, "Turns counterclockwise.");
+        ToolTip.SetTip(right, "Turns clockwise.");
         var pivotSprite = new RadioButton { GroupName = "RotatePivot", Content = "Sprite", IsChecked = true };
         var pivotAxis = new RadioButton { GroupName = "RotatePivot", Content = "Axis" };
-        var pivotNone = new RadioButton { GroupName = "RotatePivot", Content = "None (keeps the same coordinates)" };
+        var pivotNone = new RadioButton { GroupName = "RotatePivot", Content = "None" };
+        ToolTip.SetTip(pivotSprite, "Turns around the center of the sprite.");
+        ToolTip.SetTip(pivotAxis, "Keeps the axis point in place.");
+        ToolTip.SetTip(pivotNone, "Keeps the same coordinates.");
         // All three are always listed, the ones that cannot work for this sprite disabled with
         // the reason, as EnumCombo does for the SprMaker options.
         var samplings = new[] { SpriteRotate.Interpolation.Nearest, SpriteRotate.Interpolation.Area, SpriteRotate.Interpolation.Bilinear };
@@ -830,29 +835,29 @@ public static partial class Dialogs
         if (indexed)
             ToolTip.SetTip(smooth, "Available for true-color sprites only.");
 
-        Control Row(string label, Control content)
+        Control Field(string label, Control content)
         {
-            var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
-            Grid.SetColumn(content, 1);
-            grid.Children.Add(new TextBlock
+            return new StackPanel
             {
-                Text = label, Foreground = ThemeBrush("ThemeMutedText"),
-                VerticalAlignment = VerticalAlignment.Center, Margin = new Avalonia.Thickness(0, 0, 10, 0),
-            });
-            grid.Children.Add(content);
-            return grid;
+                Spacing = 4,
+                Children =
+                {
+                    new TextBlock { Text = label, Foreground = ThemeBrush("ThemeMutedText") },
+                    content,
+                },
+            };
         }
 
         var ok = new Button { Content = "Rotate", MinWidth = 90, IsDefault = true };
         var cancel = new Button { Content = "Cancel", MinWidth = 90, IsCancel = true };
         var body = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 10 };
-        body.Children.Add(Row("Angle", new StackPanel
+        body.Children.Add(Field("Angle", angle));
+        body.Children.Add(Field("Direction", new StackPanel
         {
-            Orientation = Orientation.Horizontal, Spacing = 16,
-            Children = { angle, left, right },
+            Orientation = Orientation.Horizontal, Spacing = 16, Children = { left, right },
         }));
-        body.Children.Add(Row("Pivot", new StackPanel { Children = { pivotSprite, pivotAxis, pivotNone } }));
-        body.Children.Add(Row("Sampling", smooth));
+        body.Children.Add(Field("Pivot", new StackPanel { Children = { pivotSprite, pivotAxis, pivotNone } }));
+        body.Children.Add(Field("Sampling", smooth));
         body.Children.Add(new StackPanel
         {
             Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,

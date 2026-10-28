@@ -258,7 +258,9 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Sprite rotation**: quarter turns and mirrors only rearrange pixels, so they are lossless
   and keep axes on whole pixels; a free angle resamples and rounds fractional axes. Indexed
   sprites can't use bilinear sampling, since interpolated indexes have no color. Fitting must
-  use the signed angle, because clockwise and counterclockwise offsets differ.
+  use the signed angle, because clockwise and counterclockwise offsets differ. The Rotate
+  Sprite dialog places each field name above its control or options, including a separate
+  Direction field. Direction and pivot choices explain their behavior with tooltips.
 - **Sprite flips** rearrange pixels without resampling; linked sprites follow their target's
   axis and linked selections are skipped.
 - **Sprite Resize** resamples to absolute dimensions or independent X/Y percentages, scaling
