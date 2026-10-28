@@ -195,7 +195,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   uses the colors; onion boxes and Export Animation use the plain thickness, export in output
   pixels and in the own Clsn1/Clsn2 colors. Changes preview live; Cancel reverts. "Scale with
   zoom" option (default off, 1 px floor) scales outline thickness with canvas zoom; Export
-  Animation follows scaled by its output scale.
+  Animation follows scaled by its output scale. Outlines are drawn inside the box (canvas and
+  export), so the drawn box covers exactly the pixels it covers in game.
 - **Onion skins** use the ghost sprite's own palette while the active palette stays selected
   for editing. Each panel has its own Show toggle. Copying Clsn from an onion frame copies
   the shown boxes as owned boxes.

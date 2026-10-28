@@ -697,6 +697,16 @@ public class SpriteView : Control
         return h == 0 || r.Width < 2 * h || r.Height < 2 * h ? r : new Rect(r.X + h, r.Y + h, r.Width - 2 * h, r.Height - 2 * h);
     }
 
+    /// <summary>A pen width rounded to whole device pixels, never below 1 px.</summary>
+    private double DevicePen(double w) => Math.Max(1, Math.Round(Math.Max(1, w) * RenderScale)) / RenderScale;
+
+    /// <summary>Shrinks a rectangle so a stroke of this width lies fully inside it; null when it doesn't fit.</summary>
+    private static Rect? InsideStroke(Rect r, double penWidth)
+    {
+        double d = penWidth / 2;
+        return r.Width < penWidth || r.Height < penWidth ? null : new Rect(r.X + d, r.Y + d, r.Width - penWidth, r.Height - penWidth);
+    }
+
     private Rect SpriteRect()
     {
         if (_sprite is null || _bitmap is null) return default;
@@ -1039,8 +1049,16 @@ public class SpriteView : Control
         double s = clsn.ScaleWithZoom ? Zoom : 1;
         if (ShowOnionSkin)
         {
+            double ghostPen = DevicePen(clsn.LineThickness * s);
             foreach (var g in _ghostBoxes)
-                ctx.DrawRectangle(new Pen(new SolidColorBrush(g.Color, OnionOpacityOverride ?? OnionOpacity), Math.Max(1, clsn.LineThickness * s), new DashStyle([4, 3], 0)), InsetFor(ScreenRect(g), Math.Max(1, clsn.LineThickness * s)));
+            {
+                var gr = ScreenRect(g);
+                var brush = new SolidColorBrush(g.Color, OnionOpacityOverride ?? OnionOpacity);
+                if (InsideStroke(gr, ghostPen) is { } inner)
+                    ctx.DrawRectangle(new Pen(brush, ghostPen, new DashStyle([4, 3], 0)), inner);
+                else
+                    ctx.FillRectangle(brush, gr);
+            }
         }
 
         var o = Origin;
@@ -1052,10 +1070,13 @@ public class SpriteView : Control
             bool active = i == SelectedBox;
 
             ctx.FillRectangle(new SolidColorBrush(box.Color, selected ? clsn.SelectedFillOpacity : clsn.FillOpacity), r);
-            double boxPen = active ? Math.Max(1, clsn.ActiveLineThickness * s)
-                : selected ? Math.Max(1, clsn.SelectedLineThickness * s)
-                : Math.Max(1, clsn.LineThickness * s);
-            ctx.DrawRectangle(new Pen(new SolidColorBrush(box.Color), boxPen), InsetFor(r, boxPen));
+            double boxPen = DevicePen((active ? clsn.ActiveLineThickness
+                : selected ? clsn.SelectedLineThickness : clsn.LineThickness) * s);
+            // Every drawn pixel is a pixel the box covers in game; a box too small for the line is filled.
+            if (InsideStroke(r, boxPen) is { } inner)
+                ctx.DrawRectangle(new Pen(new SolidColorBrush(box.Color), boxPen), inner);
+            else
+                ctx.FillRectangle(new SolidColorBrush(box.Color), r);
             DrawIndexLabel(ctx, r, box.Index, box.Color);
 
             if (!active) continue;

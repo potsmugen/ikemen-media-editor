@@ -51,6 +51,9 @@ Verified unless noted.
 
 - Clsn outlines: add Scale with zoom (Preferences > Clsn), so the box lines grow with the canvas
   zoom and never go below 1 px. Default off. Export Animation follows, scaled by its output scale.
+- Clsn outlines: when Scale with zoom is on, selected/active boxes get thicker lines which can look
+  heavy. Think of a way to keep them readable without over-thickening (e.g. cap, or scale only the
+  plain outline and keep selected/active at a fixed visual weight).
 - Canvas and Export Animation: true arithmetic Subtract (render.go's reverse subtract) instead of
   the Multiply stand-in, also for SubAdd's subtract pass. Needs reading back the drawn background
   (e.g. an offscreen render under the sprite), so it was left out of the easy fixes.
