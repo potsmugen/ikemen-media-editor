@@ -376,7 +376,7 @@ and constraints that are easy to miss when reading one code path in isolation.
   use the selected item's group and the first free number after its number, wrapping to the
   lowest free one (`NextFreeNumber`). Add from Image also copies the selected sprite's axis.
   Palettes > Import follows the selected palette the same way, or 1,1 up when none is selected.
-- **Sprite Tools** has an Axis section (arrow pad, Set Axis, Shift Offset, Align With Onion Skin) and, under a hairline, a
+- **Sprite Tools** has an Axis section (arrow pad above Presets and Shift, Align With Onion Skin) and, under a hairline, a
   Transform section (Crop, Resize Canvas, Resize, Flip, Rotate). Find Similar Sprites is in the
   canvas right-click menu, since it compares the shown sprite's pixels.
 - **Arrow pad** moves the selected sprites like a canvas drag,

@@ -8,15 +8,13 @@ before a release. Remove items once they're done or checked.
 ### Linux sandbox findings (2026-10-23)
 
 Verified unless noted.
-- Linux default font at the 1100x700 default window: "Resize Canvas" and "Shift Offset" are
-  cut off in Sprite Tools.
 - Question: sorting or deleting a sprite marks Palettes* dirty too (v1 Donald, v2 kfm).
 - Questions: after Recover, the command-line file is skipped silently (by design per
   App.axaml.cs, but nothing tells the user). A recovered changed-source file opens from
   data/recovery/recovered/ under a GUID name, so plain Save writes into the app folder.
 - At 200% font and button scale (window 1580x960) fixed-width buttons and fields clip:
-  Paint Tools (Commit, Reset, Pencil, Eraser, Eyedropper, Replace, Select), Resize Canvas,
-  Shift Offset, onion-skin Group/Number and Pin frame boxes, Palettes Commit, Scratch label,
+  Paint Tools (Commit, Reset, Pencil, Eraser, Eyedropper, Replace, Select), onion-skin
+  Group/Number and Pin frame boxes, Palettes Commit, Scratch label,
   Animations Play / |< / Special Flags, Sounds Play/Loop/Stop. Palettes Color R/G/B/A sliders
   collapse to nothing, the Sprites tab palette grid under Preview with disappears, and the
   float/collapse icons render as other glyphs.
@@ -169,6 +167,8 @@ Verified unless noted.
 
 ### Controls and layout
 
+- Audit disabled-control tooltips to make sure they keep the normal action description and add
+  the disabled reason when it isn't obvious.
 - Some way to increase/decrease values faster with the mouse (Shift+wheel?); design undecided.
 - Customizable shortcuts: see features.md "Keyboard shortcuts". It compiles, and column widths
   measure at the largest of the dialog, window and tab font sizes. Left:

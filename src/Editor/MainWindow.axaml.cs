@@ -797,8 +797,6 @@ public partial class MainWindow : Window
                     MenuSeparator,
                     ("Duplicate", () => OnDuplicateSprite(null, new RoutedEventArgs())),
                     MenuSeparator,
-                    ("Shift Offset", () => OnShiftSpriteOffsets(null, new RoutedEventArgs())),
-                    MenuSeparator,
                     ("Sort Selected Ascending", () => _ = SortSelectedSprites()));
             }
             catch (Exception ex)
