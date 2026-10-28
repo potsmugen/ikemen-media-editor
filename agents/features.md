@@ -538,7 +538,11 @@ and constraints that are easy to miss when reading one code path in isolation.
   **Find Unused Palettes** lists unreferenced embedded palettes as clickable rows, and offers
   deleting them all as one undo step; palettes that link to one keep their current colors.
 - **Skipped items** from bulk import/export and multi-sound edits are listed in a popup: the
-  first 10 entries, then "…and N more (see crash.log)". The status line keeps the count.
+  first 10 entries, then "…and N more (see errors.log)". The status line keeps the count.
+- **Logs**: `crash.log` holds unhandled exceptions, `errors.log` caught exceptions and
+  skipped or invalid items, and `trace.log` breadcrumbs. Each is capped at settings.json
+  `Files LogMaxKilobytes` (default 256, 16–10240 KB); past the cap the newer half is kept.
+  Settings > Open Logs Folder opens them.
 - **Separators**: draggable ones are `PanelSeparatorWidth` bars in `ThemeSeparator`; fixed ones are
   1px `ThemeLine` hairlines, except the menu, tab-strip and status-bar lines, which match the tab
   outlines. The Paint panel resizes like the other side panels (settings.json `SpritesPaintWidth`;
@@ -841,7 +845,7 @@ summaries; treat anything marked unverified as unknown.
   Security (unverified). The user approves the exe once. Then `Program.ClearQuarantine` (macOS only, in
   `UseLibFolder`, before any native load) calls `removexattr` on every file under lib/,
   same as `xattr -d com.apple.quarantine`. Files that weren't quarantined (ENOATTR) are
-  skipped silently; other errors go to crash.log, and a count of cleared files goes to
+  skipped silently; other errors go to errors.log, and a count of cleared files goes to
   trace.log.
   - Why: it extends the trust the user gave the exe to the libraries shipped beside it.
     It doesn't bypass the exe's own approval.

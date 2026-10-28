@@ -1791,18 +1791,18 @@ public partial class MainWindow
         }
     }
 
-    private void OnOpenCrashLogsFolder(object? sender, RoutedEventArgs e)
+    private void OnOpenLogsFolder(object? sender, RoutedEventArgs e)
     {
         try
         {
             Directory.CreateDirectory(CrashLog.LogDir);
             Process.Start(new ProcessStartInfo(CrashLog.LogDir) { UseShellExecute = true });
-            StatusText.Text = $"Crash logs: {CrashLog.LogDir}";
+            StatusText.Text = $"Logs: {CrashLog.LogDir}";
         }
         catch (Exception ex)
         {
-            CrashLog.Write("OnOpenCrashLogsFolder", ex);
-            StatusText.Text = $"Could not open the crash logs folder: {ex.Message}";
+            CrashLog.Write("OnOpenLogsFolder", ex);
+            StatusText.Text = $"Could not open the logs folder: {ex.Message}";
         }
     }
 

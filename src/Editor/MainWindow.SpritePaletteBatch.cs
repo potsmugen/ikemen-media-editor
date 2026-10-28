@@ -440,13 +440,13 @@ public partial class MainWindow
         foreach (string item in skipped) CrashLog.Error(action, item);
         ShowSkipped("Sprites Skipped", skipped);
         if (summary is not null)
-            StatusText.Text = summary + (skipped.Count > 0 ? $" Skipped {skipped.Count} (see crash.log)." : "");
+            StatusText.Text = summary + (skipped.Count > 0 ? $" Skipped {skipped.Count} (see errors.log)." : "");
         else if (applied > 0)
             StatusText.Text = $"Applied to {applied} sprite(s)"
                 + (unchanged > 0 ? $"; {unchanged} already matched" : "")
-                + (skipped.Count > 0 ? $"; skipped {skipped.Count} (see crash.log)" : ".");
+                + (skipped.Count > 0 ? $"; skipped {skipped.Count} (see errors.log)" : ".");
         else if (skipped.Count > 0)
-            StatusText.Text = $"No sprites changed; skipped {skipped.Count} (see crash.log).";
+            StatusText.Text = $"No sprites changed; skipped {skipped.Count} (see errors.log).";
         else if (unchanged > 0)
             StatusText.Text = "All selected sprites already use this palette.";
         else

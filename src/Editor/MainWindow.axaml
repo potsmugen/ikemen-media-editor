@@ -140,8 +140,8 @@
         <MenuItem Header="_Suggested Action Names" Click="OnEditActionNames" />
         <MenuItem Header="_Open Settings File" Click="OnOpenSettingsFile" />
         <MenuItem Header="Open _Themes Folder" Click="OnOpenThemesFolder" />
-        <MenuItem Header="Open _Crash Logs Folder" Click="OnOpenCrashLogsFolder"
-                  ToolTip.Tip="Opens the folder with crash.log and trace.log." />
+        <MenuItem Header="Open _Logs Folder" Click="OnOpenLogsFolder"
+                  ToolTip.Tip="Opens the folder with crash.log, errors.log and trace.log." />
       </MenuItem>
 
       <MenuItem Header="_Help">

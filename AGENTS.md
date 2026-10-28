@@ -63,13 +63,16 @@ and keep them current. Open, unchecked work is in `agents/todo.md`.
   user's desktop; verify with build, tests, and reading files, and ask before
   running it when a launch is the only way to confirm something.
 - Check code, logs, or files before explaining behavior or a failure. For bug
-  reports, read `logs/trace.log` and `crash.log` first. State uncertainty;
+  reports, read `logs/trace.log` and `logs/errors.log` first (and `logs/crash.log`
+  after an unhandled exception). State uncertainty;
   verify format assumptions against a real file (Python prototype) before C#.
 - Log every error, including caught exceptions and non-exception failures.
   Wrap `async void` handlers with try/catch and `Failed(name, ex)` (MainWindow)
   or `CrashLog.Write` (controls). Use `CrashLog.Error` for skipped/wrong-kind
   items and `CrashLog.Trace` breadcrumbs for long or fragile loops. Logs live
-  in `logs/` beside the exe (`CrashLog.LogDir`); no AppData fallback.
+  in `logs/` beside the exe (`CrashLog.LogDir`); no AppData fallback. `crash.log`
+  holds unhandled exceptions only; caught exceptions and non-exception errors go
+  to `errors.log`.
 - Keep the user informed: answer status requests promptly and send concise
   progress updates at least every 60 seconds during ongoing work and before
   long operations. Do what was asked; a clarification isn't a reason to defer

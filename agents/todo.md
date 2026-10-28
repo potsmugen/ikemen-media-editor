@@ -122,13 +122,10 @@ Verified unless noted.
 ### Saving and recovery
 
 - Review the save and load warnings (forward links, Links to Later
-  Palettes): they're too verbose. Their status suffix also gets cut off by the Cursor field
-  ("1 link to later pa…" at 1280 wide).
+  Palettes): they're too verbose.
 - AIR save changes after Recover: a recovery snapshot is written already converted (LF, UTF-8,
   Clsn lint fixed), so the recovered file shows no save-change notes or Health Report entries.
   Fixing it means storing the original format and counts with the snapshot.
-- The AIR save status note ("Adjusted N actions you didn't edit.") may be cut off by the Cursor
-  field, like the status suffixes in the save and load warnings item above.
 - Saves that change a file the user didn't edit, like the Global Shared Palette popup;
   decide per case whether to keep the bytes or tell the user (verified on real files):
   - Plain Save of SFF v1 re-encodes every PCX (`SffV1Writer`), dropping PCX header
@@ -180,10 +177,6 @@ Verified unless noted.
 - Split the Media Health Report into Media Info (counts, sizes, encodings, total sound
   length) and Media Health (problems only). The status bar's per-tab file summaries were
   removed; their counts live in the report for now.
-- Logging: `crash.log` holds unhandled exceptions and non-exception errors alike (skipped
-  export/import items, invalid settings values), so its name promises more than it delivers.
-  Decide whether to split it into a crash dump file and an error log, and update the
-  `AGENTS.md` logging rule if so.
 
 ## Not yet checked in the app
 
@@ -204,7 +197,7 @@ Built, but not tried by the maintainer yet.
 - Release build: double-clicking the exe opens no console window; Debug still shows one.
 - Close during a large SFF save: the "Still working" popup appears and the save completes.
 - Recovery of an SFF v1 with an imported true-color sprite: the snapshot succeeds (no
-  crash.log entry), recovery restores it as v1 with the same palettes, and Save shows
+  errors.log entry), recovery restores it as v1 with the same palettes, and Save shows
   the same "SFF v1 holds 8-bit sprites only" error as before the crash. Make a snapshot
   fail (e.g. read-only recovery folder): one popup.
 - Windows sound playback after the SoundPlayer removal (WinSound/PlaySound): Play, Play loop,
@@ -223,6 +216,9 @@ Built, but not tried by the maintainer yet.
   tabs while they run and show "what i/n…" in the status bar.
 - Test .def case fallback.
 - Test save clamping.
+- Logging: a caught error writes errors.log and leaves crash.log alone; skipped items point
+  to errors.log; a log past Files.LogMaxKilobytes keeps its newer half; Settings > Open Logs
+  Folder opens the folder.
 - General Save rule: a new document or one whose source file disappeared must
   use Save As rather than writing to a missing source path.
 - Test AIR moved-comment warnings and reports.

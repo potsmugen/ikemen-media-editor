@@ -215,7 +215,7 @@ public partial class MainWindow
             {
                 foreach (string item in users.Blocked) CrashLog.Error("Merge palettes", "refused: " + item);
                 string shown = string.Join("\n", users.Blocked.Take(10));
-                if (users.Blocked.Count > 10) shown += $"\n…and {users.Blocked.Count - 10} more (see crash.log).";
+                if (users.Blocked.Count > 10) shown += $"\n…and {users.Blocked.Count - 10} more (see errors.log).";
                 await Dialogs.ShowMessage(this, "Cannot Merge Palettes", "These sprites can't be remapped:\n" + shown);
                 return;
             }

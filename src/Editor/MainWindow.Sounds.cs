@@ -1013,7 +1013,7 @@ public partial class MainWindow
         catch (Exception ex)
         {
             CrashLog.Write("OnExportAllSounds", ex);
-            await Dialogs.ShowMessage(this, "Export Failed", $"Export failed: {ex.Message} (see crash.log)");
+            await Dialogs.ShowMessage(this, "Export Failed", $"Export failed: {ex.Message} (see errors.log)");
         }
     }
 
@@ -1121,7 +1121,7 @@ public partial class MainWindow
             catch (Exception ex)
             {
                 CrashLog.Write("OnImportAllSounds", ex);
-                await Dialogs.ShowMessage(this, "Could Not Import", $"{ex.Message}\n\nDetails were written to {CrashLog.Path}");
+                await Dialogs.ShowMessage(this, "Could Not Import", $"{ex.Message}\n\nDetails were written to {CrashLog.ErrorPath}");
             }
         }
         catch (Exception ex)

@@ -1253,11 +1253,11 @@ public partial class MainWindow : Window
 
     // ---- errors ------------------------------------------------------------
 
-    /// <summary>Catch-all for async void handlers: logs to crash.log, then tells the user.</summary>
+    /// <summary>Catch-all for async void handlers: logs to errors.log, then tells the user.</summary>
     private async Task Failed(string source, Exception ex)
     {
         CrashLog.Write(source, ex);
-        try { await Dialogs.ShowMessage(this, "Something Went Wrong", $"{ex.Message}\n\nDetails were written to {CrashLog.Path}"); }
+        try { await Dialogs.ShowMessage(this, "Something Went Wrong", $"{ex.Message}\n\nDetails were written to {CrashLog.ErrorPath}"); }
         catch (Exception e2) { CrashLog.Write(source + " (error dialog)", e2); }
     }
 

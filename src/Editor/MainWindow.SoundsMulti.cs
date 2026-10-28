@@ -26,7 +26,7 @@ public partial class MainWindow
     /// <summary>
     /// Runs edit on each target under the busy lock and applies the results as one undo step.
     /// edit runs off the UI thread, so it must touch no UI. It returns the new bytes, or null
-    /// Data: with Skip, a reason logged to crash.log; without, nothing to change. Sounds with
+    /// Data: with Skip, a reason logged to errors.log; without, nothing to change. Sounds with
     /// unreadable headers are skipped before edit sees them. done gets the changed count.
     /// </summary>
     private async Task EditSounds(List<SoundEntry> targets, string busyText, string undoName,
@@ -73,7 +73,7 @@ public partial class MainWindow
 
             foreach (var item in skipped) CrashLog.Error(undoName, item);
             CrashLog.Trace($"[sound] {undoName}: {changes.Count} changed, {unchanged} unchanged, {skipped.Count} skipped");
-            string skippedText = skipped.Count > 0 ? $"; {skipped.Count} skipped (see crash.log)" : "";
+            string skippedText = skipped.Count > 0 ? $"; {skipped.Count} skipped (see errors.log)" : "";
             if (changes.Count == 0)
             {
                 StatusText.Text = skipped.Count == 0 ? "Nothing to change in the selected sounds." : $"No sounds changed{skippedText}.";

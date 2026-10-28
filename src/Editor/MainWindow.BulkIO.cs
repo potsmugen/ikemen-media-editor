@@ -473,7 +473,7 @@ public partial class MainWindow
                 }
             }
             CrashLog.Write("OnImportAllSpritesAndPalettes", ex);
-            await Dialogs.ShowMessage(this, "Could Not Import", $"{ex.Message}\n\nDetails were written to {CrashLog.Path}");
+            await Dialogs.ShowMessage(this, "Could Not Import", $"{ex.Message}\n\nDetails were written to {CrashLog.ErrorPath}");
         }
         finally
         {
@@ -551,15 +551,15 @@ public partial class MainWindow
 
             StatusText.Text = options.IncludePalettes
                 ? $"Exported {written} sprites and {allPalettes.Count} palettes to {dir}"
-                    + (skipped > 0 ? $", skipped {skipped} (see crash.log)" : "")
+                    + (skipped > 0 ? $", skipped {skipped} (see errors.log)" : "")
                 : $"Exported {written} sprites to {dir}"
-                    + (skipped > 0 ? $", skipped {skipped} (see crash.log)" : "");
+                    + (skipped > 0 ? $", skipped {skipped} (see errors.log)" : "");
             ShowSkipped("Sprites Skipped", skippedItems);
         }
         catch (Exception ex)
         {
             CrashLog.Write("ExportAllSpritesAndPalettes", ex);
-            await Dialogs.ShowMessage(this, "Export Failed", $"Export failed: {ex.Message} (see crash.log)");
+            await Dialogs.ShowMessage(this, "Export Failed", $"Export failed: {ex.Message} (see errors.log)");
         }
         finally
         {
@@ -576,7 +576,7 @@ public partial class MainWindow
         return name;
     }
 
-    /// <summary>Logs skipped/failed items from a bulk operation to crash.log.</summary>
+    /// <summary>Logs skipped/failed items from a bulk operation to errors.log.</summary>
     private static void LogBulkProblems(string source, IEnumerable<string> errors, IEnumerable<string> unmatched)
     {
         foreach (var err in errors) CrashLog.Error(source, err);

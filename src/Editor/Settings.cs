@@ -55,6 +55,8 @@ public sealed class Settings
 
     // Files
     public const int DefaultBackupCount = 1, DefaultBackupCountMax = 10, DefaultRecoveryIntervalMinutes = 5;
+    /// <summary>Size cap for each file in logs/. The oldest half is dropped when a file passes it.</summary>
+    public const int DefaultLogMaxKilobytes = 256, LogMaxKilobytesMin = 16, LogMaxKilobytesMax = 10240;
 
     // Layout
     public const double DefaultWindowWidth = 1100, DefaultWindowHeight = 700;
@@ -156,7 +158,7 @@ public sealed class Settings
                 var dropped = new List<string>();
                 var loaded = Parse(File.ReadAllText(FilePath), dropped);
                 foreach (var d in dropped) CrashLog.Error("Settings", d);
-                if (loaded is not null) return loaded;
+                if (loaded is not null) return ApplyLogLimit(loaded);
                 BackUpUnreadable(dropped.LastOrDefault() ?? "unreadable");
             }
         }
@@ -165,7 +167,15 @@ public sealed class Settings
             CrashLog.Write("Settings.Load", ex);
             BackUpUnreadable(ex.Message);
         }
-        return new Settings();
+        return ApplyLogLimit(new Settings());
+    }
+
+    /// <summary>Gives every log file in logs/ the same size cap.</summary>
+    private static Settings ApplyLogLimit(Settings settings)
+    {
+        CrashLog.SetLogMaxKilobytes(Checked(nameof(FilesSection.LogMaxKilobytes), settings.Files.LogMaxKilobytes,
+            DefaultLogMaxKilobytes, v => v is >= LogMaxKilobytesMin and <= LogMaxKilobytesMax));
+        return settings;
     }
 
     /// <summary>Settings from JSON, dropping each key whose value fails to load (one note per key in
@@ -350,6 +360,8 @@ public sealed class Settings
         public int BackupCount { get; set; } = DefaultBackupCount;
         /// <summary>Minutes between crash-recovery snapshots.</summary>
         public int RecoveryIntervalMinutes { get; set; } = DefaultRecoveryIntervalMinutes;
+        /// <summary>Size cap for each file in logs/; the oldest half is dropped when one passes it.</summary>
+        public int LogMaxKilobytes { get; set; } = DefaultLogMaxKilobytes;
         /// <summary>Save Like SprMaker: the tool last picked (true = SprMaker 2.01, SFF v2).</summary>
         public bool SprMakerUseV2 { get; set; } = true;
         /// <summary>Save Like SprMaker: last options per tool (Reset restores the tools' defaults).</summary>

@@ -55,7 +55,7 @@ public partial class MainWindow
     {
         if (items.Count == 0) return;
         string shown = string.Join("\n", items.Take(10));
-        if (items.Count > 10) shown += $"\n…and {items.Count - 10} more (see crash.log).";
+        if (items.Count > 10) shown += $"\n…and {items.Count - 10} more (see errors.log).";
         ShowPopup(title, shown);
     }
 

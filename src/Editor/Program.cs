@@ -32,7 +32,7 @@ internal static class Program
             // A windowed build has no console, so a startup crash would otherwise
             // look like the app simply doing nothing.
             CrashLog.Write("Main", e);
-            Console.Error.WriteLine($"\nWritten to {CrashLog.Path}");
+            Console.Error.WriteLine($"\nWritten to {CrashLog.ErrorPath} and {CrashLog.Path}");
             throw;
         }
     }

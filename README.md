@@ -52,7 +52,7 @@ To update, extract the new version over the old one. To uninstall, delete the fo
 ## Reporting a problem or requesting a feature
 
 Open an issue describing what you did and what happened.  
-If you can, attach `crash.log` and `trace.log` from the `logs` folder next to the editor (**Settings > Open Crash Logs Folder**), and include the version from **Help > About**.
+If you can, attach the contents of the `logs` folder next to the editor (**Settings > Open Logs Folder**), and include the version from **Help > About**.
 
 Feature requests are welcome too. Open an issue describing what you'd like the editor to do and why it would help.
 
