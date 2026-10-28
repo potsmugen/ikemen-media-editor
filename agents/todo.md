@@ -18,8 +18,6 @@ Verified unless noted.
   Animations Play / |< / Special Flags, Sounds Play/Loop/Stop. Palettes Color R/G/B/A sliders
   collapse to nothing, the Sprites tab palette grid under Preview with disappears, and the
   float/collapse icons render as other glyphs.
-- Found in the second sandbox pass (2026-10-23):
-  Report text: a drag across two lines selects nothing; double-click selects within a line.
 - Unverified (sandbox has no window manager): Escape doesn't close the Alt+F4 refusal popup.
 
 ### Sprites and palettes

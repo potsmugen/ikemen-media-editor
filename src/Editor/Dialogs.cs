@@ -895,7 +895,7 @@ public static partial class Dialogs
         string title = "New Sprite File", string prompt = "SFF version for the new file:", string action = "Create")
     {
         var result = new TaskCompletionSource<SffVersion?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var v21 = new RadioButton { Content = "SFF 2.0.1.0 (8, 24 and 32-bit) - recommended", GroupName = "SffVersion", IsChecked = true };
+        var v21 = new RadioButton { Content = "SFF 2.0.1.0 (8, 24 and 32-bit)", GroupName = "SffVersion", IsChecked = true };
         var v20 = new RadioButton { Content = "SFF 2.0.0.0 (8-bit)", GroupName = "SffVersion" };
         var v1 = new RadioButton { Content = "SFF 1.0.1.0 (8-bit)", GroupName = "SffVersion" };
         if (preselect is { } pv && SffVersions.IsV1(pv)) v1.IsChecked = true;
@@ -2016,38 +2016,55 @@ public static partial class Dialogs
     /// <summary>A multi-line text editor, for editing an action as raw .air text. Returns null if canceled.</summary>
     /// <summary>
     /// A long report beside the owner (not modal): resizable, wrapped, scrolling vertically, with Close.
-    /// A line with a Jump is underlined with a hand cursor; one click runs it. Each action becomes a button
-    /// before Close, showing its tip; clicking it runs the action and closes the report.
+    /// The text is selectable across lines. A line with a Jump is underlined with a hand cursor; one click
+    /// runs it. Each action becomes a button before Close, showing its tip; clicking it runs the action
+    /// and closes the report.
     /// </summary>
     public static Window ShowReport(Window owner, string title, IReadOnlyList<(string Text, Action? Jump)> lines,
         IReadOnlyList<(string Label, string Tip, Action Click)>? actions = null)
     {
-        var mono = MonoFont;
-        var panel = new StackPanel { Margin = new Avalonia.Thickness(4) };
-        foreach (var (text, jump) in lines)
+        // One text block for the whole report, so a selection can span lines.
+        // Runs are joined by "\n", so starts[i] is the text offset of line i.
+        var block = new SelectableTextBlock
         {
-            // Plain lines can be selected; jump lines keep TextBlock so a click still jumps.
-            var line = jump is null ? new SelectableTextBlock() : new TextBlock();
-            line.Text = text.Length == 0 ? " " : text;
-            line.FontFamily = mono;
-            line.Foreground = ThemeBrush("ThemeText");
-            line.TextWrapping = TextWrapping.Wrap;
-            if (jump is not null)
-            {
-                line.TextDecorations = TextDecorations.Underline;
-                line.Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand);
-                line.Background = Brushes.Transparent; // the whole line is hit-testable, not just the glyphs
-                line.Tapped += (_, _) =>
-                {
-                    try { jump(); }
-                    catch (Exception ex) { CrashLog.Write("ShowReport jump", ex); }
-                };
-            }
-            panel.Children.Add(line);
+            FontFamily = MonoFont,
+            Foreground = ThemeBrush("ThemeText"),
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Avalonia.Thickness(4),
+            Inlines = new Avalonia.Controls.Documents.InlineCollection(),
+        };
+        var starts = new int[lines.Count];
+        int offset = 0;
+        for (int i = 0; i < lines.Count; i++)
+        {
+            starts[i] = offset;
+            var run = new Avalonia.Controls.Documents.Run(i < lines.Count - 1 ? lines[i].Text + "\n" : lines[i].Text);
+            if (lines[i].Jump is not null) run.TextDecorations = TextDecorations.Underline;
+            block.Inlines.Add(run);
+            offset += run.Text!.Length;
         }
+        int LineAt(Avalonia.Point p)
+        {
+            int at = Array.BinarySearch(starts, block.TextLayout.HitTestPoint(p).TextPosition);
+            return at >= 0 ? at : ~at - 1;
+        }
+        var hand = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand);
+        var ibeam = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Ibeam);
+        block.PointerMoved += (_, e) =>
+        {
+            int i = LineAt(e.GetPosition(block));
+            block.Cursor = i >= 0 && lines[i].Jump is not null ? hand : ibeam;
+        };
+        block.Tapped += (_, e) =>
+        {
+            int i = LineAt(e.GetPosition(block));
+            if (i < 0 || lines[i].Jump is not { } jump) return;
+            try { jump(); }
+            catch (Exception ex) { CrashLog.Write("ShowReport jump", ex); }
+        };
         var scroller = new ScrollViewer
         {
-            Content = panel,
+            Content = block,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, // lines wrap to the window width
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             Background = ThemeBrush("ThemeListBg"),

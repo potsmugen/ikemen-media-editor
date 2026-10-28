@@ -537,6 +537,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   counts sounds and gives their total length; unreadable headers add nothing to the total.
   **Find Unused Palettes** lists unreferenced embedded palettes as clickable rows, and offers
   deleting them all as one undo step; palettes that link to one keep their current colors.
+- **Report windows** show the whole text as one selectable block, so a drag selects across
+  lines; jump lines are underlined runs, and a click hit-tests which line it landed on.
 - **Skipped items** from bulk import/export and multi-sound edits are listed in a popup: the
   first 10 entries, then "…and N more (see errors.log)". The status line keeps the count.
 - **Logs**: `crash.log` holds unhandled exceptions, `errors.log` caught exceptions and
