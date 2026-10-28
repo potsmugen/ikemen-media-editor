@@ -8,8 +8,6 @@ before a release. Remove items once they're done or checked.
 ### Linux sandbox findings (2026-10-23)
 
 Verified unless noted.
-- Shortcuts table: remove the blue block the selected row shows past the last column; "Select all
-  sprites, sounds, frames or p..." is cut off.
 - Linux default font at the 1100x700 default window: "Resize Canvas" and "Shift Offset" are
   cut off in Sprite Tools.
 - Question: sorting or deleting a sprite marks Palettes* dirty too (v1 Donald, v2 kfm).

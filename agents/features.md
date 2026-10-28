@@ -517,8 +517,11 @@ and constraints that are easy to miss when reading one code path in isolation.
   so on Animations a focused action list steps actions. Canvas arrows take no modifiers.
   Built-in navigation (arrows, Page/Home/End, Delete, Escape, Enter/Tab in tables, Shift-drag,
   Ctrl/Shift-click) isn't in the table. Preferences > Shortcuts lists Where, Command and
-  Shortcut; conflicts in overlapping scopes ask to move the key, and keys used by navigation
-  or by a menu access key ask first. Alt+F4 is refused, and one binding per command. Open,
+  Shortcut; double-clicking anywhere in a row or choosing Change Shortcut from its context menu
+  starts key capture. A command tooltip appears only when its label is truncated. The Command
+  column fills the remaining width, and selection uses the active theme's ThemeSelection color.
+  Conflicts in overlapping scopes ask to move the key, and keys used by navigation or by a menu
+  access key ask first. Alt+F4 is refused, and one binding per command. Open,
   Save and Save As act on the current tab.
 - **Media Health Report** leaves external palettes out of SFF palette counts and leaves group
   1 out of the unused count, since a character can select it without a sprite. **Find Unused

@@ -25,8 +25,6 @@ public static partial class Dialogs
         public string ShortcutText { get => _shortcutText; set => Set(ref _shortcutText, value, nameof(ShortcutText)); }
         private FontWeight _shortcutWeight = FontWeight.Normal;
         public FontWeight ShortcutWeight { get => _shortcutWeight; set => Set(ref _shortcutWeight, value, nameof(ShortcutWeight)); }
-        private string _shortcutTip = "";
-        public string ShortcutTip { get => _shortcutTip; set => Set(ref _shortcutTip, value, nameof(ShortcutTip)); }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private void Set<T>(ref T field, T value, string name)
@@ -74,8 +72,6 @@ public static partial class Dialogs
             bool changed = chord != r.Command.DefaultChord;
             r.ShortcutText = ReferenceEquals(r, capturing) ? "Press a key" : chord?.ToString() ?? "None";
             r.ShortcutWeight = changed ? FontWeight.Bold : FontWeight.Normal;
-            r.ShortcutTip = (changed ? $"Default: {r.Command.DefaultChord?.ToString() ?? "none"}. " : "")
-                + "Double-click or press Enter to change; right-click to reset or remove.";
         }
         foreach (var r in rows) Refresh(r);
 
@@ -90,24 +86,28 @@ public static partial class Dialogs
             Math.Ceiling(texts.Append(header).Max(t => Measure(t, FontWeight.Bold))) + 8 + 1 + 4; // padding, border, slack
         double whereWidth = Column("Where", rows.Select(r => r.Where));
         double shortcutWidth = Column("Shortcut", rows.Select(r => r.ShortcutText).Append("Press a key").Append("Ctrl+Shift+Page Down"));
-        double commandWidth = Math.Max(120, width - whereWidth - shortcutWidth - 24); // room for the scroll bar
-        double[] widths = [whereWidth, commandWidth, shortcutWidth];
+        double[] widths = [whereWidth, 0, shortcutWidth];
 
         Border Cell(Control child, int column, bool header)
         {
             var b = new Border
             {
-                Width = widths[column],
                 Padding = header ? new Thickness(4, 2) : new Thickness(4, 1),
                 BorderThickness = header ? new Thickness(0, 0, 1, 2) : new Thickness(0, 0, 1, 1),
                 Background = Brushes.Transparent,
                 Child = child,
             };
+            if (column != 1) b.Width = widths[column];
+            else b.MinWidth = 120;
             b.Bind(Border.BorderBrushProperty, b.GetResourceObservable(header ? "ThemeHeaderLine" : "ThemeLine"));
             Grid.SetColumn(b, column);
             return b;
         }
-        Grid RowGrid() => new() { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,Auto"), HorizontalAlignment = HorizontalAlignment.Left };
+        Grid RowGrid() => new()
+        {
+            ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
 
         var header = RowGrid();
         foreach (var (text, column) in new[] { ("Where", 0), ("Command", 1), ("Shortcut", 2) })
@@ -158,10 +158,18 @@ public static partial class Dialogs
             Refresh(r);
         }
 
-        var list = new ListBox { SelectionMode = SelectionMode.Single };
+        var list = new ListBox { SelectionMode = SelectionMode.Single, Background = ThemeBrush("ThemeListBg") };
         list.Styles.Add(new Style(x => x.OfType<ListBoxItem>())
         {
-            Setters = { new Setter(ListBoxItem.PaddingProperty, new Thickness(0)), new Setter(ListBoxItem.MinHeightProperty, 0d) },
+            Setters =
+            {
+                new Setter(ListBoxItem.PaddingProperty, new Thickness(0)),
+                new Setter(ListBoxItem.MinHeightProperty, 0d),
+            },
+        });
+        list.Styles.Add(new Style(x => x.OfType<ListBoxItem>().Class(":selected"))
+        {
+            Setters = { new Setter(ListBoxItem.BackgroundProperty, ThemeBrush("ThemeSelection")) },
         });
         list.ItemTemplate = new FuncDataTemplate<ShortcutRow>((_, _) =>
         {
@@ -173,7 +181,17 @@ public static partial class Dialogs
                 return t;
             }
             var label = Text(nameof(ShortcutRow.Label));
-            label.Bind(ToolTip.TipProperty, new Binding(nameof(ShortcutRow.Label))); // long labels are trimmed
+            void UpdateCommandTip()
+            {
+                if (label.Text is not { Length: > 0 } command || label.Bounds.Width <= 0) return;
+                var layout = new TextLayout(command, new Typeface(label.FontFamily, weight: label.FontWeight), label.FontSize, null);
+                ToolTip.SetTip(label, layout.Width > label.Bounds.Width + 0.5 ? command : null);
+            }
+            label.SizeChanged += (_, _) =>
+            {
+                try { UpdateCommandTip(); }
+                catch (Exception ex) { CrashLog.Write("ShortcutsPage.CommandTooltip", ex); }
+            };
             var key = Text(nameof(ShortcutRow.ShortcutText));
             key.HorizontalAlignment = HorizontalAlignment.Center;
             key.Bind(TextBlock.FontWeightProperty, new Binding(nameof(ShortcutRow.ShortcutWeight)));
@@ -181,15 +199,19 @@ public static partial class Dialogs
             whereText.Bind(TextBlock.ForegroundProperty, whereText.GetResourceObservable("ThemeMutedText"));
 
             var keyCell = Cell(key, 2, header: false);
-            keyCell.Cursor = new Cursor(StandardCursorType.Hand);
-            keyCell.Bind(ToolTip.TipProperty, new Binding(nameof(ShortcutRow.ShortcutTip)));
-            keyCell.DoubleTapped += (_, _) => { if (keyCell.DataContext is ShortcutRow r) StartCapture(r); };
+            grid.Cursor = new Cursor(StandardCursorType.Hand);
+            grid.DoubleTapped += (_, _) => { if (grid.DataContext is ShortcutRow r) StartCapture(r); };
             grid.Children.Add(Cell(whereText, 0, header: false));
             grid.Children.Add(Cell(label, 1, header: false));
             grid.Children.Add(keyCell);
 
-            var reset = new MenuItem { Header = "Reset to Default" };
+            var change = new MenuItem { Header = "Change Shortcut" };
             var remove = new MenuItem { Header = "Remove Shortcut" };
+            var reset = new MenuItem { Header = "Reset to Default" };
+            change.Click += (_, _) =>
+            {
+                if (grid.DataContext is ShortcutRow r) StartCapture(r);
+            };
             reset.Click += (_, _) =>
             {
                 if (grid.DataContext is ShortcutRow r) Run("ShortcutsPage.Reset", () => SetBinding(r, r.Command.DefaultChord));
@@ -198,7 +220,7 @@ public static partial class Dialogs
             {
                 if (grid.DataContext is ShortcutRow r) Run("ShortcutsPage.Remove", () => SetBinding(r, null));
             };
-            grid.ContextMenu = new ContextMenu { ItemsSource = new[] { reset, remove } };
+            grid.ContextMenu = new ContextMenu { ItemsSource = new[] { change, remove, reset } };
             return grid;
         });
 
