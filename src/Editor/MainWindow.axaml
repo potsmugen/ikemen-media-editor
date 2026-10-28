@@ -151,15 +151,14 @@
     </Menu>
 
     <Border x:Name="StatusBar" DockPanel.Dock="Bottom" Background="{DynamicResource ThemePanelBg}" Padding="8,4">
-      <Grid ColumnDefinitions="*,Auto,*">
-        <TextBlock Grid.Column="0" x:Name="StatusText" Text="No file loaded" Foreground="{DynamicResource ThemeMutedText}" />
-        <TextBlock Grid.Column="1" x:Name="CursorStatusText" Foreground="{DynamicResource ThemeMutedText}" HorizontalAlignment="Center" />
-        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
-          <TextBlock x:Name="SffStatusText" Foreground="{DynamicResource ThemeMutedText}" Margin="12,0,0,0" />
-          <TextBlock x:Name="AirStatusText" Foreground="{DynamicResource ThemeMutedText}" Margin="12,0,0,0" />
-          <TextBlock x:Name="PaletteStatusText" Foreground="{DynamicResource ThemeMutedText}" Margin="12,0,0,0" />
-          <TextBlock x:Name="SndStatusText" Foreground="{DynamicResource ThemeMutedText}" Margin="12,0,0,0" />
-        </StackPanel>
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Grid.Column="0" x:Name="StatusText" Text="No file loaded" Foreground="{DynamicResource ThemeMutedText}"
+                   TextTrimming="CharacterEllipsis" />
+        <!-- Fixed width: the invisible sample sizes the field, so the readout never moves. -->
+        <Grid Grid.Column="1" Margin="12,0,0,0">
+          <TextBlock Text="Cursor: -8888, -8888   |   Zoom: 8888.8%" Opacity="0" IsHitTestVisible="False" />
+          <TextBlock x:Name="CursorStatusText" Foreground="{DynamicResource ThemeMutedText}" HorizontalAlignment="Right" />
+        </Grid>
       </Grid>
     </Border>
     <!-- Line between the panels and the status bar, like the ones under the menu and tabs. -->

@@ -271,13 +271,12 @@ public partial class MainWindow
         if (_doc.AnimView is { } animView) AnimCanvas.View = animView;
         else AnimCanvas.ResetView();
         UpdateFrameButtons();
-        UpdateAirInfo();
+        UpdateTitle();
 
         // Sounds
         SoundList.ItemsSource = null;
         _visibleSounds = [];
         if (_snd is not null) ApplySoundFilter();
-        else SndStatusText.Text = "";
         if (_snd is not null && _doc.Sound is { } keepSound && _snd.Sounds.IndexOf(keepSound) is var at and >= 0
             && _visibleSounds.IndexOf(at) is var soundRow and >= 0)
         {
@@ -287,7 +286,7 @@ public partial class MainWindow
             SoundList.ScrollIntoView(soundRow);
         }
         ShowSound();
-        UpdateSndInfo();
+        UpdateTitle();
 
         SyncOnionControls();
         SyncAnimOnionControls();
@@ -295,7 +294,6 @@ public partial class MainWindow
         // The Sprites/Palettes/Animations/Sounds tab stays as it is across project tabs.
         if (Tabs?.SelectedIndex == 1) RefreshPaletteTab();
 
-        UpdateSffInfo();
         // The left status describes the sprite; other sub-tabs only use it for messages.
         if ((Tabs?.SelectedIndex ?? 0) == 0) UpdateStatus();
         else StatusText.Text = "";

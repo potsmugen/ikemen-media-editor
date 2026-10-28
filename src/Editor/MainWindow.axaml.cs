@@ -66,7 +66,7 @@ public partial class MainWindow : Window
         UpdateSpriteActionButtons();
         UpdatePaletteActionButtons();
         UpdateSoundButtonStates(); // nothing open yet
-        UpdateTabStatusVisibility(Tabs.SelectedIndex);
+        StatusText.LayoutUpdated += (_, _) => SyncStatusTip();
 
         SpriteCanvas.AxisChanged += OnAxisDragged;
         SpriteCanvas.CursorPositionChanged += (x, y) => UpdateCursorStatus(0, x, y);
@@ -1061,7 +1061,6 @@ public partial class MainWindow : Window
             return;
         }
         RebuildPaletteList();
-        UpdateSffInfo();
         int keep = _current is null ? -1 : _file.PositionOf(_current);
         // Capture the multi-selection before ApplyFilter rebuilds the rows (which recreates the row
         // objects and drops the ListBox selection) so it can be restored afterwards by sprite identity.
@@ -1550,7 +1549,6 @@ public partial class MainWindow : Window
             _spriteCursorPosition = null;
             _animCursorPosition = null;
             CursorStatusText.Text = "";
-            UpdateTabStatusVisibility(tab);
             UpdateCursorStatus();
             RestoreFloatingPanels(tab);
             switch (Tabs?.SelectedIndex)
@@ -1575,6 +1573,8 @@ public partial class MainWindow : Window
 
     private void UpdateStatus()
     {
+        // Sprite info is the Sprites tab's; other tabs keep their last message.
+        if ((Tabs?.SelectedIndex ?? 0) != 0) return;
         if (_file is null || _current is null)
         {
             StatusText.Text = _file is null ? "No file loaded" : "No sprite selected";
@@ -1627,12 +1627,12 @@ public partial class MainWindow : Window
         CursorStatusText.Text = $"Cursor: {coordinates}   |   Zoom: {zoom:0.#%}";
     }
 
-    private void UpdateTabStatusVisibility(int tab)
+    /// <summary>The full status message as a tooltip, only while it's cut off.</summary>
+    private void SyncStatusTip()
     {
-        SffStatusText.IsVisible = tab == 0;
-        PaletteStatusText.IsVisible = tab == 1;
-        AirStatusText.IsVisible = tab == 2;
-        SndStatusText.IsVisible = tab == 3;
+        bool trimmed = StatusText.TextLayout.TextLines.Any(line => line.HasCollapsed);
+        string? tip = trimmed ? StatusText.Text : null;
+        if (!Equals(ToolTip.GetTip(StatusText), tip)) ToolTip.SetTip(StatusText, tip);
     }
 
     // ---- view and navigation ----------------------------------------------

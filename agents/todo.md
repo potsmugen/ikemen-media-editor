@@ -177,6 +177,9 @@ Verified unless noted.
 
 ### Other
 
+- Split the Media Health Report into Media Info (counts, sizes, encodings, total sound
+  length) and Media Health (problems only). The status bar's per-tab file summaries were
+  removed; their counts live in the report for now.
 - Logging: `crash.log` holds unhandled exceptions and non-exception errors alike (skipped
   export/import items, invalid settings values), so its name promises more than it delivers.
   Decide whether to split it into a crash dump file and an error log, and update the

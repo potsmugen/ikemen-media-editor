@@ -67,7 +67,7 @@ public partial class MainWindow
             _sndError = null;
             SoundFilterBox.Text = "";
             ApplySoundFilter();
-            UpdateSndInfo();
+            UpdateTitle();
             StatusText.Text = "New sound file. Add sounds, then Save.";
             SwitchToTab(3);
         }
@@ -194,7 +194,7 @@ public partial class MainWindow
         SoundFilterBox.Text = "";
         ApplySoundFilter();
         ShowSound(); // ApplySoundFilter selects row 0 with events suppressed, so nothing else shows it
-        UpdateSndInfo();
+        UpdateTitle();
         FocusTabList();
         return true;
     }
@@ -258,7 +258,7 @@ public partial class MainWindow
             _sndDirty = false;
             ResolveRecoveredItem("snd", recoverySource ?? path);
             _undo.MarkSaved(SndKind);
-            UpdateSndInfo();
+            UpdateTitle();
             return true;
         }
         catch (Exception ex)
@@ -269,31 +269,11 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>
-    /// The open .snd's summary lives in the status bar's corner, next to the
-    /// .air's filename, rather than taking a line above the sound list — the
-    /// list right below the filter box already makes clear something's loaded.
-    /// </summary>
-    private void UpdateSndInfo()
-    {
-        if (_snd is null || SndStatusText is null) return;
-
-        int bad = _snd.Sounds.Count(s => s.Problem is not null);
-        int duplicates = _snd.Duplicates().Count();
-        var total = TimeSpan.FromSeconds(_snd.Sounds.Sum(s => s.Duration.TotalSeconds));
-
-        SndStatusText.Text = (_sndDirty ? "* " : "")
-            + $"{(_sndPath is null ? "Unsaved sounds" : Path.GetFileName(_sndPath))}: {_snd.Sounds.Count} sounds, {total:mm\\:ss} total"
-            + (bad > 0 ? $", {bad} unreadable" : "")
-            + (duplicates > 0 ? $", {duplicates} duplicate keys" : "");
-        UpdateTitle();
-    }
-
     private void MarkSndDirty()
     {
         if (!_undo.Tag(SndKind)) _undo.Untracked(SndKind);
         _sndDirty = true;
-        UpdateSndInfo();
+        UpdateTitle();
         SyncSaveMenu();
     }
 
@@ -2319,7 +2299,7 @@ public partial class MainWindow
         ApplySoundFilter();
         ShowSound();
         UpdateSoundButtonStates();
-        UpdateSndInfo();
+        UpdateTitle();
     }
 
     /// <summary>

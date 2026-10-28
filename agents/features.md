@@ -76,6 +76,10 @@ and constraints that are easy to miss when reading one code path in isolation.
 
 ### Editor behavior
 
+- **Status bar**: the message fills the left and ends in … when cut off, with the full text as
+  a tooltip only then. Cursor and zoom sit in a fixed-width field at the right, sized by an
+  invisible sample text and right-aligned, so its right edge never moves. Sprite info
+  (UpdateStatus) is written only on the Sprites tab. No per-tab file summaries.
 - **Scroll bars** auto-hide by default; settings.json `ScrollBarsAutoHide: false` (read at
   startup) keeps them full width. `App.KeepScrollBarsExpanded` styles ScrollViewer, ListBox,
   TextBox and TreeView, since those templates pass their own value down.
@@ -527,9 +531,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   access key ask first. Alt+F4 is refused, and one binding per command. Open,
   Save and Save As act on the current tab.
 - **Media Health Report** leaves external palettes out of SFF palette counts and leaves group
-  1 out of the unused count, since a character can select it without a sprite. **Find Unused
-  Palettes** lists unreferenced embedded palettes as clickable rows, and offers deleting them
-  all as one undo step; palettes that link to one keep their current colors.
+  1 out of the unused count, since a character can select it without a sprite. Its SND section
+  counts sounds and gives their total length; unreadable headers add nothing to the total.
+  **Find Unused Palettes** lists unreferenced embedded palettes as clickable rows, and offers
+  deleting them all as one undo step; palettes that link to one keep their current colors.
 - **Skipped items** from bulk import/export and multi-sound edits are listed in a popup: the
   first 10 entries, then "…and N more (see crash.log)". The status line keeps the count.
 - **Separators**: draggable ones are `PanelSeparatorWidth` bars in `ThemeSeparator`; fixed ones are

@@ -363,7 +363,7 @@ public partial class MainWindow
                     SoundFilterBox.Text = "";
                     ApplySoundFilter();
                     ShowSound();
-                    UpdateSndInfo();
+                    UpdateTitle();
                     break;
                 case "act":
                     if (_file is null && item.ContextPath is not null)
@@ -389,8 +389,6 @@ public partial class MainWindow
             }
         }
         UpdateTitle();
-        UpdateAirInfo();
-        UpdateSndInfo();
         SyncSaveMenu();
     }
 

@@ -251,7 +251,7 @@ public partial class MainWindow
         _suppressEvents = false;
         CrashLog.Trace($"LoadAir: selecting first action ({_air!.Actions.Count} total)");
         if (_air.Actions.Count > 0) ActionList.SelectedIndex = 0;
-        UpdateAirInfo();
+        UpdateTitle();
         CrashLog.Trace($"[air] encoding: {_air.TextEncoding} {_air.LegacyEncodingName}");
         foreach (var a in _air.Actions.Where(a => a.ChangesOnSave))
             CrashLog.Trace($"[air] action {a.Number}: changes on save: {a.MisnumberedClsnLines} Clsn lines misnumbered, "
@@ -379,9 +379,6 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>How many actions a save would write differently from the file without the user editing them.</summary>
-    private int ActionsChangingOnSave() => _air?.Actions.Count(a => a.WarnsOnSave) ?? 0;
-
     private static string Plural(int n, string one, string many) => $"{n} {(n == 1 ? one : many)}";
 
     /// <summary>Actions a save would write differently without the user editing them, taken just before a save (which clears it).</summary>
@@ -491,7 +488,7 @@ public partial class MainWindow
             _airDirty = false;
             _undo.MarkSaved(AirKind);
             ResolveRecoveredItem("air", trackedSourcePath ?? path);
-            UpdateAirInfo();
+            UpdateTitle();
             return true;
         }
         catch (Exception ex)
@@ -531,34 +528,11 @@ public partial class MainWindow
         return string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), comparison);
     }
 
-    /// <summary>
-    /// The open .air's filename lives in the status bar's corner rather than
-    /// its own label at the top of the action list — the list right below it
-    /// already makes clear something's loaded, so a repeated filename there
-    /// was just using up space for nothing. Action/frame totals follow the
-    /// Sounds tab's "N sounds" style.
-    /// </summary>
-    private void UpdateAirInfo()
-    {
-        if (AirStatusText is null) return;
-        if (_air is null) { AirStatusText.Text = ""; UpdateTitle(); return; }
-
-        int frames = _air.Actions.Sum(a => a.Elements.Count);
-        AirStatusText.Text = (_airDirty ? "* " : "") + (_airPath is null ? "Unsaved animation" : Path.GetFileName(_airPath))
-            + $": {_air.Actions.Count} action{(_air.Actions.Count == 1 ? "" : "s")}"
-            + $", {frames} frame{(frames == 1 ? "" : "s")}"
-            + (ActionsChangingOnSave() is var changing and > 0 ? $", {changing} change on save" : "")
-            + (_air.Actions.Sum(a => a.FramesWithDefaultAndOwnClsn().Count) is var both and > 0
-                ? $", {both} invalid frame{(both == 1 ? "" : "s")} (default and own Clsn)" : "")
-            + (_air.TextEncoding == AirEncoding.Legacy ? $", {_air.LegacyEncodingName} (becomes UTF-8 on save)" : "");
-        UpdateTitle();
-    }
-
     private void MarkAirDirty()
     {
         if (!_undo.Tag(AirKind)) _undo.Untracked(AirKind);
         _airDirty = true;
-        UpdateAirInfo();
+        UpdateTitle();
         SyncSaveMenu();
     }
 
@@ -1599,7 +1573,7 @@ public partial class MainWindow
                     act.MisnumberedClsnLines = fixedLint ? 0 : misnumbered;
                     act.MismatchedClsnCounts = fixedLint ? 0 : mismatched;
                 }
-                UpdateAirInfo();
+                UpdateTitle();
             }
             _undo.Record($"sort boxes for all ({order})", () => Apply(undoState, false), () => Apply(after, true));
             Apply(after, true);

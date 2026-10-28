@@ -272,29 +272,7 @@ public partial class MainWindow
         ApplyFilter();
         SpriteCanvas.ResetView();
         UpdateTitle();
-        UpdateSffInfo();
         FocusTabList();
-    }
-
-    /// <summary>
-    /// Sprite and palette totals for the status bar, mirroring the Sounds
-    /// tab's corner summary. Both come from the one SffFile, so one update
-    /// covers both the Sprites and Palettes tabs.
-    /// </summary>
-    private void UpdateSffInfo()
-    {
-        if (SffStatusText is null || PaletteStatusText is null) return;
-        if (_file is null) { SffStatusText.Text = ""; PaletteStatusText.Text = ""; return; }
-
-        string fileName = _path is null ? "Unsaved SFF" : Path.GetFileName(_path);
-        int failed = _file.Sprites.Count(s => s.DecodeError is not null);
-        int embeddedPalettes = _file.Palettes.Count(p => p.Source == PaletteSource.Embedded);
-        int externalPalettes = _file.Palettes.Count(p => p.Source == PaletteSource.External);
-        SffStatusText.Text = $"{fileName}: {_file.Sprites.Count} sprite{(_file.Sprites.Count == 1 ? "" : "s")}"
-            + $", {embeddedPalettes} SFF palette{(embeddedPalettes == 1 ? "" : "s")}"
-            + (failed > 0 ? $", {failed} failed" : "");
-        PaletteStatusText.Text = $"{fileName}: {embeddedPalettes} embedded palette{(embeddedPalettes == 1 ? "" : "s")}, "
-            + $"{externalPalettes} external palette{(externalPalettes == 1 ? "" : "s")}";
     }
 
     /// <summary>The open Media Health Report (it isn't modal); reopening replaces it with a fresh one.</summary>
@@ -398,6 +376,7 @@ public partial class MainWindow
                 var unreadable = snd.Sounds.Where(s => s.Problem is not null).ToList();
                 var duplicates = snd.Duplicates().ToList();
                 lines.Add(($"SND: {snd.Sounds.Count} sounds", null));
+                lines.Add(($"  Total length: {FormatSoundLength(TimeSpan.FromTicks(snd.Sounds.Sum(s => s.Duration.Ticks)))}", null));
                 lines.Add(($"  Unreadable headers: {unreadable.Count}", null));
                 lines.Add(($"  Duplicate sound keys: {duplicates.Count}", null));
                 Section("Unreadable headers:", unreadable.Select(s => ($"  Sound {s.Group},{s.Index}: {s.Problem}", (Action)(() => JumpToSound(s)))));
@@ -414,6 +393,11 @@ public partial class MainWindow
             await Failed("OnShowHealthReport", ex);
         }
     }
+
+    /// <summary>Total SND length as m:ss.hh, or h:mm:ss.hh once it reaches an hour.</summary>
+    private static string FormatSoundLength(TimeSpan total) => total.TotalHours >= 1
+        ? $"{(int)total.TotalHours}:{total.Minutes:00}:{total.Seconds:00}.{total.Milliseconds / 10:00}"
+        : $"{(int)total.TotalMinutes}:{total.Seconds:00}.{total.Milliseconds / 10:00}";
 
     // ---- Health report jumps: each checks the item is still there (the report is a snapshot) ----
 
@@ -933,7 +917,6 @@ public partial class MainWindow
         AnimCanvas.SelectBox(-1);
         AnimCanvas.InvalidateVisual();
         TimelineView.Show([], -1);
-        AirStatusText.Text = "";
         UpdateFrameButtons();
 
         _snd = null;
@@ -941,10 +924,8 @@ public partial class MainWindow
         _sndDirty = false;
         MarkCleanKindsSaved();
         SoundList.ItemsSource = null;
-        SndStatusText.Text = "";
         ShowSound();
 
-        UpdateSffInfo();
         UpdateTitle();
         SyncSaveMenu();
     }
@@ -1319,7 +1300,6 @@ public partial class MainWindow
             _settings.Save();
             RebuildRecentMenu();
             var size = new FileInfo(path).Length;
-            UpdateSffInfo();
             var parts = new List<string>();
             if (sffPalettes > 0) parts.Add($"{sffPalettes} SFF palette{(sffPalettes == 1 ? "" : "s")} rekeyed to their sprites' groups"
                 + (mainTo11 ? "; sprite 0,0's palette is 1,1" : ""));
@@ -1773,8 +1753,6 @@ public partial class MainWindow
         foreach (var palette in _standalonePalettes)
             palette.Dirty = _undo.Differs(StandalonePaletteKindFor(palette));
         UpdateTitle();
-        UpdateAirInfo();
-        UpdateSndInfo();
         SyncSaveMenu();
     }
 
@@ -1832,8 +1810,7 @@ public partial class MainWindow
     /// A tab's dim state just mirrors whether the file that feeds it is
     /// loaded — dimmed tabs stay selectable, so you can sit on Sounds and
     /// open a .snd from the menu without a detour. Runs from UpdateTitle,
-    /// which every open/close flow already calls (the .air/.snd ones via
-    /// UpdateAirInfo/UpdateSndInfo, before their SwitchToTab).
+    /// which every open/close flow already calls.
     /// </summary>
     private void SyncTabDimming()
     {

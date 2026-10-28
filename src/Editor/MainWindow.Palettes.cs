@@ -1857,7 +1857,6 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             _paletteOverride = selected is null ? -1 : file.Palettes.IndexOf(selected);
             RebuildPaletteList();
             RefreshPaletteTab();
-            UpdateSffInfo();
         }
 
         _undo.Do("sort palettes", () => Apply(after), () => Apply(before));
