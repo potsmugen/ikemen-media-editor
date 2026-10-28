@@ -102,6 +102,7 @@ public partial class MainWindow
             SpriteCanvas.Show(null, null, false);
             RefreshAssignPaletteButton();
         }
+        UpdateSpriteActionButtons();
         UpdateStatus(); // the selection event may not fire (suppressed, or same sprite kept)
         return replaced;
     }
@@ -131,7 +132,9 @@ public partial class MainWindow
     {
         try
         {
-            if (_suppressEvents || _file is null) return;
+            if (_suppressEvents) return;
+            UpdateSpriteActionButtons();
+            if (_file is null) return;
             int row = SpriteList.SelectedIndex;
             if (row < 0 || row >= _visible.Count) return;
             bool picking = _pickingFor is not null;
@@ -767,7 +770,31 @@ public partial class MainWindow
     private void SyncAlignOnionButton(Sprite? onion)
     {
         if (AlignOnionButton is null) return;
-        AlignOnionButton.IsEnabled = onion is not null;
+        AlignOnionButton.IsEnabled = onion is not null && SelectedSpriteTargets().Count > 0;
+    }
+
+    private void UpdateSpriteActionButtons()
+    {
+        bool hasFile = _file is not null;
+        bool hasSelection = hasFile && SelectedSpriteTargets().Count > 0;
+        bool hasCurrentSprite = hasFile && _current is not null;
+        if (SpriteImportButton is not null) SpriteImportButton.IsEnabled = hasFile;
+        if (SpriteExportButton is not null) SpriteExportButton.IsEnabled = hasCurrentSprite;
+        if (SpriteReplaceButton is not null) SpriteReplaceButton.IsEnabled = hasCurrentSprite;
+        if (SpriteDeleteButton is not null) SpriteDeleteButton.IsEnabled = hasSelection;
+        if (SpriteAxisPresetsButton is not null) SpriteAxisPresetsButton.IsEnabled = hasSelection;
+        if (SpriteAxisShiftButton is not null) SpriteAxisShiftButton.IsEnabled = hasSelection;
+        if (SpriteCropButton is not null) SpriteCropButton.IsEnabled = hasSelection;
+        if (SpriteResizeCanvasButton is not null) SpriteResizeCanvasButton.IsEnabled = hasSelection;
+        if (SpriteResizePixelsButton is not null) SpriteResizePixelsButton.IsEnabled = hasSelection;
+        if (SpriteFlipButton is not null) SpriteFlipButton.IsEnabled = hasSelection;
+        if (SpriteRotateButton is not null) SpriteRotateButton.IsEnabled = hasSelection;
+        if (ImportPaletteIntoSpriteButton is not null) ImportPaletteIntoSpriteButton.IsEnabled = hasSelection;
+        if (PaintModeToggle is not null) PaintModeToggle.IsEnabled = _current is not null || _paintBaselineSprite is not null;
+        if (NudgeUpButton is not null) NudgeUpButton.IsEnabled = NudgeLeftButton.IsEnabled =
+            NudgeRightButton.IsEnabled = NudgeDownButton.IsEnabled = hasSelection;
+        if (AlignOnionButton is not null) AlignOnionButton.IsEnabled = hasSelection && ShownSpriteOnion() is not null;
+        RefreshAssignPaletteButton();
     }
 
     /// <summary>

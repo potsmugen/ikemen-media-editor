@@ -63,6 +63,8 @@ public partial class MainWindow : Window
         InitializeComponent();
         SetupNudgePad(); // needs the pad's buttons
         LoadShortcuts();
+        UpdateSpriteActionButtons();
+        UpdatePaletteActionButtons();
         UpdateSoundButtonStates(); // nothing open yet
         UpdateTabStatusVisibility(Tabs.SelectedIndex);
 
@@ -1081,6 +1083,7 @@ public partial class MainWindow : Window
             _current = _file.Sprites[_visible[SpriteList.SelectedIndex]];
         RefreshPaletteTab();
         RefreshSprite();
+        SyncSaveMenu();
     }
 
     private void OnUndo(object? sender, RoutedEventArgs e)
@@ -1350,6 +1353,7 @@ public partial class MainWindow : Window
 
     private void RefreshSprite()
     {
+        UpdateSpriteActionButtons();
         if (_current is null)
         {
             SyncAlignOnionButton(null);

@@ -911,6 +911,8 @@ public partial class MainWindow
         PalettePreview.ShowOnion(null, null);
         ShowSpriteSwatches(null);
         BigSwatches.Show(null);
+        UpdateSpriteActionButtons();
+        UpdatePaletteActionButtons();
 
         _air = null;
         _airPath = null;
@@ -1017,6 +1019,44 @@ public partial class MainWindow
         if (SaveSpritesItem is { } a) a.IsEnabled = _dirty && _file is not null;
         if (SaveAnimationsItem is { } b) b.IsEnabled = _airDirty;
         if (SaveSoundsItem is { } c) c.IsEnabled = _sndDirty;
+        SyncDataCommandMenus();
+    }
+
+    private void SyncDataCommandMenus()
+    {
+        bool hasSff = _file is not null;
+        bool hasSprites = _file is { Sprites.Count: > 0 };
+        bool hasSffContents = hasSprites || _file is { Palettes.Count: > 0 };
+        bool hasPaletteTemplateSource = _file is { Sprites.Count: > 0, Palettes.Count: > 0 };
+        bool hasAir = _air is { Actions.Count: > 0 };
+        bool hasFrames = _air?.Actions.Any(a => a.Elements.Count > 0) == true;
+        bool hasSnd = _snd is not null;
+        bool hasSounds = _snd is { Sounds.Count: > 0 };
+
+        if (SaveAsSpritesItem is not null) SaveAsSpritesItem.IsEnabled = hasSff;
+        if (SaveLikeSprMakerItem is not null) SaveLikeSprMakerItem.IsEnabled = hasSff;
+        if (SortSpritesItem is not null) SortSpritesItem.IsEnabled = hasSprites;
+        if (ExportAllSpritesItem is not null) ExportAllSpritesItem.IsEnabled = hasSffContents;
+        if (ImportAllSpritesItem is not null) ImportAllSpritesItem.IsEnabled = hasSff;
+        if (LinkAllDuplicateSpritesItem is not null) LinkAllDuplicateSpritesItem.IsEnabled = hasSprites;
+        if (UnlinkAllSpritesItem is not null) UnlinkAllSpritesItem.IsEnabled = _file?.Sprites.Any(s => s.SharesWith is not null) == true;
+        if (ImportSpriteSheetItem is not null) ImportSpriteSheetItem.IsEnabled = hasSff;
+        if (CreatePaletteTemplateItem is not null) CreatePaletteTemplateItem.IsEnabled = hasPaletteTemplateSource;
+
+        if (FindDuplicatePalettesItem is not null) FindDuplicatePalettesItem.IsEnabled = _file is { Palettes.Count: > 1 };
+        if (FindUnusedPalettesItem is not null) FindUnusedPalettesItem.IsEnabled = _file is { Palettes.Count: > 0 };
+
+        if (SaveAsAnimationsItem is not null) SaveAsAnimationsItem.IsEnabled = _air is not null;
+        if (SortActionsItem is not null) SortActionsItem.IsEnabled = _air is { Actions.Count: > 1 };
+        if (ApplySuggestedNamesItem is not null) ApplySuggestedNamesItem.IsEnabled = hasAir;
+        if (AutoClsnAllItem is not null) AutoClsnAllItem.IsEnabled = hasFrames;
+        if (SortBoxesAllItem is not null) SortBoxesAllItem.IsEnabled = hasFrames;
+
+        if (SaveAsSoundsItem is not null) SaveAsSoundsItem.IsEnabled = hasSnd;
+        if (SortSoundsItem is not null) SortSoundsItem.IsEnabled = hasSounds;
+        if (ExportAllSoundsItem is not null) ExportAllSoundsItem.IsEnabled = hasSounds;
+        if (ImportAllSoundsItem is not null) ImportAllSoundsItem.IsEnabled = hasSnd;
+        if (DownsampleAllItem is not null) DownsampleAllItem.IsEnabled = hasSounds;
     }
 
     private async Task<bool> ConfirmDiscardEverything(bool resolveStandalone = true)

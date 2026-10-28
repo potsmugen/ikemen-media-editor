@@ -260,6 +260,7 @@ public partial class MainWindow
         foreach (var a in _air.Actions)
             if (a.FramesWithDefaultAndOwnClsn() is { Count: > 0 } both)
                 CrashLog.Trace($"[air] action {a.Number}: default and own Clsn on frame {string.Join(", ", both.Select(i => i + 1))}");
+        SyncSaveMenu();
         FocusTabList();
         CrashLog.Trace("LoadAir: done");
     }

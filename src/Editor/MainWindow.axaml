@@ -63,23 +63,23 @@
              each tab's Open and Save item shows them. Menu gesture text comes from ApplyMenuGestures. -->
         <MenuItem Header="_Save" x:Name="SaveSpritesItem" Click="OnSave" />
         <MenuItem Header="Save _As" x:Name="SaveAsSpritesItem" Click="OnSaveAs" />
-        <MenuItem Header="Save Like Spr_Maker" Click="OnSaveLikeSprMaker"
+        <MenuItem Header="Save Like Spr_Maker" x:Name="SaveLikeSprMakerItem" Click="OnSaveLikeSprMaker"
                   ToolTip.Tip="Saves a copy built the way SprMaker 0.97 or 2.01 would." />
         <Separator />
-        <MenuItem Header="Sort Asc_ending" Click="OnSortSpritesAscending"
+        <MenuItem Header="Sort Asc_ending" x:Name="SortSpritesItem" Click="OnSortSpritesAscending"
                   ToolTip.Tip="Orders sprites by group, then number." />
         <Separator />
-        <MenuItem Header="Export _All With Manifest" Click="OnExportAllSprites"
+        <MenuItem Header="Export _All With Manifest" x:Name="ExportAllSpritesItem" Click="OnExportAllSprites"
                   ToolTip.Tip="Exports every sprite with a manifest; you choose the format, palette PNGs and padding." />
-        <MenuItem Header="_Import All From Manifest" Click="OnImportAllSpritesAndPalettes"
+        <MenuItem Header="_Import All From Manifest" x:Name="ImportAllSpritesItem" Click="OnImportAllSpritesAndPalettes"
                   ToolTip.Tip="Imports from an Export All manifest. Asks before overwriting." />
-        <MenuItem Header="_Link All Duplicate Sprites" Click="OnShareAllDuplicateSprites"
+        <MenuItem Header="_Link All Duplicate Sprites" x:Name="LinkAllDuplicateSpritesItem" Click="OnShareAllDuplicateSprites"
                   ToolTip.Tip="Links sprites with identical pixels to one copy. Makes the file smaller." />
-        <MenuItem Header="Unl_ink All Sprites" Click="OnUnshareAllSprites"
+        <MenuItem Header="Unl_ink All Sprites" x:Name="UnlinkAllSpritesItem" Click="OnUnshareAllSprites"
                   ToolTip.Tip="Gives every linked sprite its own pixels. Makes the file bigger." />
-        <MenuItem Header="Import from S_heet" Click="OnAddSpriteSheet"
+        <MenuItem Header="Import from S_heet" x:Name="ImportSpriteSheetItem" Click="OnAddSpriteSheet"
                   ToolTip.Tip="Finds the sprites in one image and adds each as its own sprite, cropped tight." />
-        <MenuItem Header="Create Palette _Template" Click="OnCreatePaletteTemplate"
+        <MenuItem Header="Create Palette _Template" x:Name="CreatePaletteTemplateItem" Click="OnCreatePaletteTemplate"
                   ToolTip.Tip="Exports a sheet of sprites showing every color a palette's sprites use, with its swatch grid, as one indexed PNG." />
 
       </MenuItem>
@@ -94,9 +94,9 @@
         <MenuItem x:Name="MergePalettesMenuItem" Header="_Merge and Update Sprites" Click="OnMergePalettes"
                   ToolTip.Tip="Merges the selected palettes into one and remaps their sprites. Imported palettes only add colors." />
         <Separator />
-        <MenuItem Header="_Find Duplicate Palettes" Click="OnFindDuplicatePalettes"
+        <MenuItem Header="_Find Duplicate Palettes" x:Name="FindDuplicatePalettesItem" Click="OnFindDuplicatePalettes"
                   ToolTip.Tip="Finds duplicate embedded palettes and lets you merge or link them." />
-        <MenuItem Header="Find _Unused Palettes" Click="OnFindUnusedPalettes"
+        <MenuItem Header="Find _Unused Palettes" x:Name="FindUnusedPalettesItem" Click="OnFindUnusedPalettes"
                   ToolTip.Tip="Lists unused embedded palettes, excluding group 1 and external palettes." />
       </MenuItem>
 
@@ -105,15 +105,15 @@
                   ToolTip.Tip="Starts a blank animation file in place of the open one." />
         <MenuItem Header="_Open .air or .def" x:Name="OpenAirItem" Click="OnOpenAir" />
         <MenuItem Header="_Save" x:Name="SaveAnimationsItem" Click="OnSaveAir" />
-        <MenuItem Header="Save _As" Click="OnSaveAirAs" />
+        <MenuItem Header="Save _As" x:Name="SaveAsAnimationsItem" Click="OnSaveAirAs" />
         <Separator />
-        <MenuItem Header="_Sort Actions Ascending" Click="OnSortActionsAscending"
+        <MenuItem Header="_Sort Actions Ascending" x:Name="SortActionsItem" Click="OnSortActionsAscending"
                   ToolTip.Tip="Orders every action by number." />
-        <MenuItem Header="_Apply Suggested Names to All Actions" Click="OnApplyAllSuggestedNames"
+        <MenuItem Header="_Apply Suggested Names to All Actions" x:Name="ApplySuggestedNamesItem" Click="OnApplyAllSuggestedNames"
                   ToolTip.Tip="Adds the standard action name as the comment where there is none." />
-        <MenuItem Header="Auto _Clsn2 For All" Click="OnAutoHurtBoxesForAll"
+        <MenuItem Header="Auto _Clsn2 For All" x:Name="AutoClsnAllItem" Click="OnAutoHurtBoxesForAll"
                   ToolTip.Tip="Replaces Clsn2 on every frame that has its own, in every action." />
-        <MenuItem Header="Sort _Boxes For All" Click="OnSortBoxesForAll"
+        <MenuItem Header="Sort _Boxes For All" x:Name="SortBoxesAllItem" Click="OnSortBoxesForAll"
                   ToolTip.Tip="Reorders every frame's own Clsn and every default, and fixes Clsn counts and numbering." />
 
       </MenuItem>
@@ -123,15 +123,15 @@
                   ToolTip.Tip="Starts a blank sound file in place of the open one." />
         <MenuItem Header="_Open .snd" x:Name="OpenSndItem" Click="OnOpenSnd" />
         <MenuItem Header="_Save" x:Name="SaveSoundsItem" Click="OnSaveSnd" />
-        <MenuItem Header="Save _As" Click="OnSaveSndAs" />
-        <MenuItem Header="_Sort Ascending" Click="OnSortSoundsAscending"
+        <MenuItem Header="Save _As" x:Name="SaveAsSoundsItem" Click="OnSaveSndAs" />
+        <MenuItem Header="_Sort Ascending" x:Name="SortSoundsItem" Click="OnSortSoundsAscending"
                   ToolTip.Tip="Orders sounds by group, then number." />
         <Separator />
-        <MenuItem Header="Export _All With Manifest" Click="OnExportAllSounds"
+        <MenuItem Header="Export _All With Manifest" x:Name="ExportAllSoundsItem" Click="OnExportAllSounds"
                   ToolTip.Tip="Exports every sound as .wav, with a manifest." />
-        <MenuItem Header="_Import All From Manifest" Click="OnImportAllSounds"
+        <MenuItem Header="_Import All From Manifest" x:Name="ImportAllSoundsItem" Click="OnImportAllSounds"
                   ToolTip.Tip="Imports from an Export All manifest. Asks before overwriting." />
-        <MenuItem Header="_Downsample All" Click="OnDownsampleAll"
+        <MenuItem Header="_Downsample All" x:Name="DownsampleAllItem" Click="OnDownsampleAll"
                   ToolTip.Tip="Lowers every sound above the chosen rate." />
       </MenuItem>
 
@@ -440,15 +440,15 @@
 
                 <Grid Grid.Row="2" RowDefinitions="Auto,Auto" Margin="0,6,0,0">
                   <Grid Grid.Row="0" ColumnDefinitions="*,Auto,*">
-                    <Button Grid.Column="0" Content="Import" HorizontalAlignment="Stretch" Click="OnAddSprite" />
+                    <Button Grid.Column="0" x:Name="SpriteImportButton" Content="Import" HorizontalAlignment="Stretch" Click="OnAddSprite" />
                     <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                    <Button Grid.Column="2" Content="Export" HorizontalAlignment="Stretch" Click="OnExportSprite"
+                    <Button Grid.Column="2" x:Name="SpriteExportButton" Content="Export" HorizontalAlignment="Stretch" Click="OnExportSprite"
                             ToolTip.Tip="Saves the selected sprite, asking for .png or .pcx." />
                   </Grid>
                   <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*" Margin="{DynamicResource UiGapTop}">
-                    <Button Grid.Column="0" Content="Replace" HorizontalAlignment="Stretch" Click="OnReplaceSprite" />
+                    <Button Grid.Column="0" x:Name="SpriteReplaceButton" Content="Replace" HorizontalAlignment="Stretch" Click="OnReplaceSprite" />
                     <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                    <Button Grid.Column="2" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeleteSprite" />
+                    <Button Grid.Column="2" x:Name="SpriteDeleteButton" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeleteSprite" />
                   </Grid>
                 </Grid>
               </Grid>
@@ -690,10 +690,10 @@
                                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="OnNudgeSprite" />
                       </Grid>
                       <Grid ColumnDefinitions="*,Auto,*">
-                        <Button Grid.Column="0" Content="Presets" HorizontalAlignment="Stretch" Click="OnSetSpriteAxis"
+                        <Button Grid.Column="0" x:Name="SpriteAxisPresetsButton" Content="Presets" HorizontalAlignment="Stretch" Click="OnSetSpriteAxis"
                                 ToolTip.Tip="Places each selected sprite's axis at the chosen canvas position." />
                         <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                        <Button Grid.Column="2" Content="Shift" HorizontalAlignment="Stretch" Click="OnShiftSpriteOffsets"
+                        <Button Grid.Column="2" x:Name="SpriteAxisShiftButton" Content="Shift" HorizontalAlignment="Stretch" Click="OnShiftSpriteOffsets"
                                 ToolTip.Tip="Shifts the selected sprites' axes by the same X/Y amount." />
                       </Grid>
                       <!-- Enabled state follows the shown onion (SyncAlignOnionButton). -->
@@ -705,19 +705,19 @@
                     <TextBlock Text="Transform" Foreground="{DynamicResource ThemeMutedText}" />
                     <StackPanel Spacing="{DynamicResource UiButtonGap}">
                       <Grid ColumnDefinitions="*,Auto,*">
-                        <Button Grid.Column="0" Content="Crop" HorizontalAlignment="Stretch" Click="OnCropSprite"
+                        <Button Grid.Column="0" x:Name="SpriteCropButton" Content="Crop" HorizontalAlignment="Stretch" Click="OnCropSprite"
                                 ToolTip.Tip="Trims each selected sprite's empty border." />
                         <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                        <Button Grid.Column="2" Content="Resize Canvas" HorizontalAlignment="Stretch" Click="OnResizeSpriteCanvas"
+                        <Button Grid.Column="2" x:Name="SpriteResizeCanvasButton" Content="Resize Canvas" HorizontalAlignment="Stretch" Click="OnResizeSpriteCanvas"
                                 ToolTip.Tip="Grows or shrinks each selected sprite's canvas around its pixels." />
                       </Grid>
-                      <Button Content="Resize" HorizontalAlignment="Stretch" Click="OnResizeSpritePixels"
+                      <Button x:Name="SpriteResizePixelsButton" Content="Resize" HorizontalAlignment="Stretch" Click="OnResizeSpritePixels"
                               ToolTip.Tip="Scales each selected sprite's pixels to a new size." />
                       <Grid ColumnDefinitions="*,Auto,*">
-                        <Button Grid.Column="0" Content="Flip" HorizontalAlignment="Stretch" Click="OnFlipSprite"
+                        <Button Grid.Column="0" x:Name="SpriteFlipButton" Content="Flip" HorizontalAlignment="Stretch" Click="OnFlipSprite"
                                 ToolTip.Tip="Mirrors each selected sprite in place." />
                         <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                        <Button Grid.Column="2" Content="Rotate" HorizontalAlignment="Stretch" Click="OnRotateSprite"
+                        <Button Grid.Column="2" x:Name="SpriteRotateButton" Content="Rotate" HorizontalAlignment="Stretch" Click="OnRotateSprite"
                                 ToolTip.Tip="Rotates each selected sprite by the chosen angle." />
                       </Grid>
                     </StackPanel>
@@ -744,7 +744,7 @@
                         <Button x:Name="AssignPaletteButton" Content="Apply Preview Palette"
                                 HorizontalAlignment="Stretch" IsEnabled="False" Click="OnAssignPalette"
                                 ToolTip.Tip="Applies the preview palette to the selected sprites. External palettes are imported into the SFF file." />
-                        <Button Content="Import Palette into Sprite" HorizontalAlignment="Stretch"
+                        <Button x:Name="ImportPaletteIntoSpriteButton" Content="Import Palette into Sprite" HorizontalAlignment="Stretch"
                                 Click="OnImportPaletteIntoSprite"
                                 ToolTip.Tip="Loads a palette file and applies it to the selected sprites." />
                       </StackPanel>
@@ -786,13 +786,13 @@
                 <Grid ColumnDefinitions="*,Auto,*">
                   <Button Grid.Column="0" Content="Import" HorizontalAlignment="Stretch" Click="OnImportPaletteFiles" />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" Content="Export" HorizontalAlignment="Stretch" Click="OnExportPalette" />
+                  <Button Grid.Column="2" x:Name="PaletteExportButton" Content="Export" HorizontalAlignment="Stretch" Click="OnExportPalette" />
                 </Grid>
                 <Grid ColumnDefinitions="*,Auto,*">
-                  <Button Grid.Column="0" Content="Replace" HorizontalAlignment="Stretch" Click="OnReplacePalette"
+                  <Button Grid.Column="0" x:Name="PaletteReplaceButton" Content="Replace" HorizontalAlignment="Stretch" Click="OnReplacePalette"
                           ToolTip.Tip="Loads a palette file over this palette, keeping its number and the sprites that use it." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeletePalette" />
+                  <Button Grid.Column="2" x:Name="PaletteDeleteButton" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeletePalette" />
                 </Grid>
                 <Button Content="New" HorizontalAlignment="Stretch" Click="OnNewPalette" />
               </StackPanel>
@@ -1262,9 +1262,9 @@
                   </ListBox>
                 </Grid>
                 <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*" Margin="0,6,0,0">
-                  <Button Grid.Column="0" Content="New" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="OnNewAction" />
+                  <Button Grid.Column="0" x:Name="NewActionButton" Content="New" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="OnNewAction" />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" Content="Delete" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="OnDeleteAction" />
+                  <Button Grid.Column="2" x:Name="DeleteActionButton" Content="Delete" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="OnDeleteAction" />
                 </Grid>
               </Grid>
             </Grid>
@@ -1336,11 +1336,11 @@
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
                 <ToggleButton x:Name="PlayButton" Content="Play" Click="OnPlayPause" Width="80" />
                 <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
-                <Button Content="|&lt;" Click="OnFirstFrame" Width="44" />
-                <Button Content="&lt;" Click="OnPrevFrame" Width="44" />
-                <Button Content="&gt;" Click="OnNextFrame" Width="44" />
+                <Button x:Name="FirstFrameButton" Content="|&lt;" Click="OnFirstFrame" Width="44" />
+                <Button x:Name="PrevFrameButton" Content="&lt;" Click="OnPrevFrame" Width="44" />
+                <Button x:Name="NextFrameButton" Content="&gt;" Click="OnNextFrame" Width="44" />
                 <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
-                <Button Content="Export Animation" Click="OnExportAnimation"
+                <Button x:Name="ExportAnimationButton" Content="Export Animation" Click="OnExportAnimation"
                         ToolTip.Tip="Saves this action as a looping WebP or GIF." />
                 <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
                 <TextBlock x:Name="FrameInfo" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
@@ -1766,7 +1766,7 @@
                    the .air's filename — the list below already says what's loaded. -->
               <Grid DockPanel.Dock="Bottom" RowDefinitions="Auto,Auto" Margin="0,6,0,0">
                 <Grid Grid.Row="0" ColumnDefinitions="*,Auto,*">
-                  <Button Grid.Column="0" Content="Import" HorizontalAlignment="Stretch" Click="OnAddSound"
+                  <Button Grid.Column="0" x:Name="SoundImportButton" Content="Import" HorizontalAlignment="Stretch" Click="OnAddSound"
                           ToolTip.Tip="Adds a sound from a .wav." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
                   <Button Grid.Column="2" x:Name="SoundExportButton" Content="Export" HorizontalAlignment="Stretch" Click="OnExportSound"

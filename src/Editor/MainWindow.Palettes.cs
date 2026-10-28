@@ -2782,6 +2782,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     /// </summary>
     private void RefreshPaletteTab()
     {
+        UpdatePaletteActionButtons();
         if (BigSwatches is null || PalettePreview is null) return;
         var pal = ActivePalette();
         BigSwatches.Show(pal);
@@ -2789,6 +2790,16 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         // The preview is a full sprite decode; skip it while the Palettes tab
         // (index 2) is hidden — OnTabChanged refreshes it when the tab returns.
         if (Tabs is null || Tabs.SelectedIndex == 1) PalettePreview.Show(PalettePreviewSprite(), pal, _showMask);
+    }
+
+    private void UpdatePaletteActionButtons()
+    {
+        SyncDataCommandMenus();
+        if (PaletteExportButton is null) return;
+        PaletteExportButton.IsEnabled = ActivePalette() is not null;
+        bool hasSelectedPalette = PreviewOverridePalette() is not null;
+        PaletteReplaceButton.IsEnabled = hasSelectedPalette;
+        PaletteDeleteButton.IsEnabled = hasSelectedPalette;
     }
 
     /// <summary>

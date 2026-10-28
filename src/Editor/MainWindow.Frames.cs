@@ -157,6 +157,12 @@ public partial class MainWindow
     {
         if (FrameInsertButton is null || AnimCanvas is null) return;
         var action = _action;
+        if (NewActionButton is not null) NewActionButton.IsEnabled = _air is not null;
+        if (DeleteActionButton is not null) DeleteActionButton.IsEnabled = _air is not null && action is not null;
+        bool hasFrames = action is { Elements.Count: > 0 };
+        PlayButton.IsEnabled = hasFrames;
+        FirstFrameButton.IsEnabled = PrevFrameButton.IsEnabled = NextFrameButton.IsEnabled = hasFrames;
+        ExportAnimationButton.IsEnabled = hasFrames && _file is not null;
         var targets = SelectedFrameTargets();
         bool any = action is not null && targets.Count > 0, single = any && targets.Count == 1;
         int count = action?.Elements.Count ?? 0;

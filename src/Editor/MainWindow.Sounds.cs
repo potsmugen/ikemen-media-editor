@@ -722,8 +722,9 @@ public partial class MainWindow
     {
         // When multiple sounds are selected, disable buttons that only work on a single sound.
         bool multi = HasMultipleSounds;
-        // With no sound selected, only Import (and Stop, for a sound still playing) has anything to act on.
+        // With no sound selected in an open file, only Import (and Stop, for a sound still playing) has anything to act on.
         bool none = CurrentSound is null;
+        if (SoundImportButton is not null) SoundImportButton.IsEnabled = _snd is not null;
         // An unreadable sound has no samples to play or process; Replace can still repair it.
         bool unreadable = !multi && CurrentSound is { Problem: not null };
 
@@ -733,7 +734,7 @@ public partial class MainWindow
         if (SoundStopButton is not null) SoundStopButton.IsEnabled = !multi;
 
         // Trim to Selection needs a specific waveform selection; Replace takes one .wav for one sound
-        if (SoundTrimToSelectionButton is not null) SoundTrimToSelectionButton.IsEnabled = !multi && !unreadable;
+        if (SoundTrimToSelectionButton is not null) SoundTrimToSelectionButton.IsEnabled = !multi && !none && !unreadable;
         if (SoundReplaceButton is not null) SoundReplaceButton.IsEnabled = !multi && !none;
         if (SoundExportButton is not null) SoundExportButton.IsEnabled = !none;
         if (SoundDeleteButton is not null) SoundDeleteButton.IsEnabled = !none;
