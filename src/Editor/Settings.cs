@@ -578,6 +578,7 @@ public sealed class Settings
         public int ClsnSelectedLineThickness { get; set; } = DefaultClsnSelectedLineThickness;
         /// <summary>The active box: the one with resize handles.</summary>
         public int ClsnActiveLineThickness { get; set; } = DefaultClsnActiveLineThickness;
+        public bool ClsnScaleWithZoom { get; set; }
     }
 
     public sealed class SoundsSection

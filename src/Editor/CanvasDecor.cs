@@ -70,6 +70,7 @@ public sealed class ClsnStyle
     public int SelectedLineThickness { get; init; } = Settings.DefaultClsnSelectedLineThickness;
     /// <summary>The box with resize handles.</summary>
     public int ActiveLineThickness { get; init; } = Settings.DefaultClsnActiveLineThickness;
+    public bool ScaleWithZoom { get; init; }
 
     /// <summary>A box's color: own boxes in the Clsn color, inherited ones in the default color.</summary>
     public Color For(Air.ClsnKind kind, bool own) => kind == Air.ClsnKind.Attack

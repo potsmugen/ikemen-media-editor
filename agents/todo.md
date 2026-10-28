@@ -8,7 +8,7 @@ before a release. Remove items once they're done or checked.
 ### Linux sandbox findings (2026-10-23)
 
 Verified unless noted.
-- Question: sorting or deleting a sprite marks Palettes* dirty too (v1 Donald, v2 kfm).
+
 - Questions: after Recover, the command-line file is skipped silently (by design per
   App.axaml.cs, but nothing tells the user). A recovered changed-source file opens from
   data/recovery/recovered/ under a GUID name, so plain Save writes into the app folder.
@@ -50,8 +50,7 @@ Verified unless noted.
 ### Animations and Clsn
 
 - Clsn outlines: add Scale with zoom (Preferences > Clsn), so the box lines grow with the canvas
-  zoom and never go below 1 px. Default off. Undecided: whether Export Animation follows too, as it
-  draws at its own output scale.
+  zoom and never go below 1 px. Default off. Export Animation follows, scaled by its output scale.
 - Canvas and Export Animation: true arithmetic Subtract (render.go's reverse subtract) instead of
   the Multiply stand-in, also for SubAdd's subtract pass. Needs reading back the drawn background
   (e.g. an offscreen render under the sprite), so it was left out of the easy fixes.

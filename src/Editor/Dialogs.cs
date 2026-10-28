@@ -3742,7 +3742,7 @@ public static partial class Dialogs
     /// <summary>Preferences > Clsn. Colors are #RRGGBB, opacities 0-100, thicknesses in pixels.</summary>
     public sealed record ClsnValues(string Clsn1, string Clsn2, string Clsn1Default, string Clsn2Default,
         double FillOpacityPercent, double SelectedFillOpacityPercent,
-        int LineThickness, int SelectedLineThickness, int ActiveLineThickness);
+        int LineThickness, int SelectedLineThickness, int ActiveLineThickness, bool ScaleWithZoom);
 
     /// <summary>Preferences > Canvas. Colors are #RRGGBB; null BaseColor = theme, null CheckerColor = auto from the base.</summary>
     public sealed record CanvasValues(BackgroundStyle Style, string? BaseColor, string? CheckerColor,
@@ -4473,7 +4473,7 @@ public static partial class Dialogs
         var tab = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions("230,Auto,Auto,Auto"),
-            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto,Auto,Auto"),
+            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto,Auto,Auto,Auto"),
             ColumnSpacing = 12, RowSpacing = 8,
         };
         void Put(Control c, int r, int col)
@@ -4489,13 +4489,18 @@ public static partial class Dialogs
         Put(section("Boxes"), 3, 0); Put(Header("Plain"), 3, 1); Put(Header("Selected"), 3, 2); Put(Header("Active"), 3, 3);
         Put(Name("Fill opacity %"), 4, 0); Put(fill.View, 4, 1); Put(selectedFill.View, 4, 2);
         Put(Name($"Line thickness (1-{max})"), 5, 0); Put(line, 5, 1); Put(selectedLine, 5, 2); Put(activeLine, 5, 3);
+        var scaleWithZoom = new CheckBox { Content = "Scale with zoom", IsChecked = init.ScaleWithZoom, VerticalAlignment = VerticalAlignment.Center };
+        ToolTip.SetTip(scaleWithZoom, "Line thickness follows the canvas zoom, never below 1 px.");
+        scaleWithZoom.Checked += (_, _) => changed(); scaleWithZoom.Unchecked += (_, _) => changed();
+        Put(scaleWithZoom, 6, 0);
 
         ClsnValues Values() => new(
             Hex(c1.Color), Hex(c2.Color), Hex(c1d.Color), Hex(c2d.Color),
             fill.Slider.Value, selectedFill.Slider.Value,
             line.Value is { } l ? (int)l : init.LineThickness,
             selectedLine.Value is { } sl ? (int)sl : init.SelectedLineThickness,
-            activeLine.Value is { } al ? (int)al : init.ActiveLineThickness);
+            activeLine.Value is { } al ? (int)al : init.ActiveLineThickness,
+            scaleWithZoom.IsChecked == true);
 
         void Set(ClsnValues v)
         {
@@ -4508,6 +4513,7 @@ public static partial class Dialogs
             line.Value = Math.Clamp(v.LineThickness, 1, max);
             selectedLine.Value = Math.Clamp(v.SelectedLineThickness, 1, max);
             activeLine.Value = Math.Clamp(v.ActiveLineThickness, 1, max);
+            scaleWithZoom.IsChecked = v.ScaleWithZoom;
         }
 
         return (tab, Values, Set);

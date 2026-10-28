@@ -104,7 +104,7 @@ public partial class MainWindow
         var a = (from ?? _settings).Animations;
         return new(a.Clsn1Color, a.Clsn2Color, a.Clsn1DefaultColor, a.Clsn2DefaultColor,
             a.ClsnFillOpacityPercent, a.ClsnSelectedFillOpacityPercent,
-            a.ClsnLineThickness, a.ClsnSelectedLineThickness, a.ClsnActiveLineThickness);
+            a.ClsnLineThickness, a.ClsnSelectedLineThickness, a.ClsnActiveLineThickness, a.ClsnScaleWithZoom);
     }
 
     private void StoreClsnValues(Dialogs.ClsnValues c)
@@ -117,6 +117,7 @@ public partial class MainWindow
         a.ClsnFillOpacityPercent = c.FillOpacityPercent;
         a.ClsnSelectedFillOpacityPercent = c.SelectedFillOpacityPercent;
         a.ClsnLineThickness = c.LineThickness;
+        a.ClsnScaleWithZoom = c.ScaleWithZoom;
         a.ClsnSelectedLineThickness = c.SelectedLineThickness;
         a.ClsnActiveLineThickness = c.ActiveLineThickness;
     }
@@ -149,6 +150,7 @@ public partial class MainWindow
                 Settings.DefaultClsnSelectedLineThickness),
             ActiveLineThickness = CheckedThickness(nameof(Settings.AnimationsSection.ClsnActiveLineThickness), v.ActiveLineThickness,
                 Settings.DefaultClsnActiveLineThickness),
+            ScaleWithZoom = v.ScaleWithZoom,
         };
 
         // Recolor in place rather than ShowFrame, which would drop the box selection.

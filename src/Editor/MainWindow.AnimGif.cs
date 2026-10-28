@@ -299,7 +299,7 @@ public partial class MainWindow
             int i = (y * width + x) * 4;
             (dst[i], dst[i + 1], dst[i + 2], dst[i + 3]) = (c.B, c.G, c.R, 255);
         }
-        int thickness = ClsnStyle.Current.LineThickness;
+        int thickness = Math.Max(1, (int)(ClsnStyle.Current.LineThickness * (ClsnStyle.Current.ScaleWithZoom ? scale : 1)));
         foreach (var b in boxes)
         {
             int x1 = (Math.Min(b.X1, b.X2) - left) * scale, x2 = (Math.Max(b.X1, b.X2) - left) * scale - 1;
