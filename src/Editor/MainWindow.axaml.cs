@@ -36,6 +36,8 @@ public partial class MainWindow : Window
     private Sprite? _animSprite;
     private (int X, int Y)? _spriteCursorPosition;
     private (int X, int Y)? _animCursorPosition;
+    private (int Index, Rgba Color)? _paletteHover;
+    private int? _soundHoverFrame;
     internal bool RecoveryInterrupted { get; set; }
     internal bool _suppressEvents;
     private bool _forceClose;
@@ -111,6 +113,13 @@ public partial class MainWindow : Window
         WireFrameText();
         AnimCanvas.BoxEditStarted += OnBoxEditStarted;
         AnimCanvas.CursorPositionChanged += (x, y) => UpdateCursorStatus(2, x, y);
+        BigSwatches.HoverChanged += OnPaletteHover;
+        ScratchSwatches.HoverChanged += OnPaletteHover;
+        Waveform.HoverChanged += frame =>
+        {
+            _soundHoverFrame = frame;
+            if (Tabs?.SelectedIndex == 3) UpdateCursorStatus();
+        };
         AnimCanvas.CursorPositionCleared += () => ClearCursorStatus(2);
         AnimCanvas.ZoomChanged += UpdateCursorStatus;
         AnimCanvas.BoxChanged += OnBoxChanged;
@@ -1548,6 +1557,8 @@ public partial class MainWindow : Window
             _lastTab = tab;
             _spriteCursorPosition = null;
             _animCursorPosition = null;
+            _paletteHover = null;
+            _soundHoverFrame = null;
             CursorStatusText.Text = "";
             UpdateCursorStatus();
             RestoreFloatingPanels(tab);
@@ -1617,8 +1628,20 @@ public partial class MainWindow : Window
             SetCursorStatus(_spriteCursorPosition, SpriteCanvas.Zoom);
         else if (Tabs?.SelectedIndex == 2)
             SetCursorStatus(_animCursorPosition, AnimCanvas.Zoom);
+        else if (Tabs?.SelectedIndex == 1)
+            CursorStatusText.Text = _paletteHover is { } h
+                ? $"Color: {h.Index} ({h.Color.R}, {h.Color.G}, {h.Color.B}, {h.Color.A})" : "Color: n/a";
+        else if (Tabs?.SelectedIndex == 3)
+            CursorStatusText.Text = _soundHoverFrame is { } f && CurrentSound is { SampleRate: > 0 } s
+                ? $"Cursor: {f * 1000.0 / s.SampleRate:0} ms (sample {f})" : "Cursor: n/a";
         else
             CursorStatusText.Text = "";
+    }
+
+    private void OnPaletteHover(int index, Rgba? color)
+    {
+        _paletteHover = color is { } c ? (index, c) : null;
+        if (Tabs?.SelectedIndex == 1) UpdateCursorStatus();
     }
 
     private void SetCursorStatus((int X, int Y)? position, double zoom)

@@ -94,6 +94,15 @@ public class WaveformView : Control
     /// <summary>Raised while dragging (the range so far) and on a plain click (null: cleared).</summary>
     public event Action<(int Start, int End)?>? SelectionEdited;
 
+    /// <summary>Raised as the pointer moves: the frame under it, or null off the waveform.</summary>
+    public event Action<int?>? HoverChanged;
+
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        HoverChanged?.Invoke(null);
+    }
+
     private double? _pressX;
     private bool _dragging;
 
@@ -171,8 +180,9 @@ public class WaveformView : Control
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
-        if (_pressX is not { } pressX) return;
         double x = e.GetPosition(this).X;
+        HoverChanged?.Invoke(_entry is null ? null : FrameAt(x));
+        if (_pressX is not { } pressX) return;
         if (!_dragging && Math.Abs(x - pressX) < DragThreshold) return;
         _dragging = true;
         int a = FrameAt(pressX), b = FrameAt(x);

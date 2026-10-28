@@ -78,7 +78,9 @@ and constraints that are easy to miss when reading one code path in isolation.
 
 - **Status bar**: the message fills the left and ends in … when cut off, with the full text as
   a tooltip only then. Cursor and zoom sit in a fixed-width field at the right, sized by an
-  invisible sample text and right-aligned, so its right edge never moves. Sprite info
+  invisible sample text and right-aligned, so its right edge never moves. It shows what is under
+  the pointer: canvas position and zoom (Sprites, Animations), the hovered swatch's index and
+  RGBA (Palettes grid and scratch), the waveform time in ms and sample (Sounds). Sprite info
   (UpdateStatus) is written only on the Sprites tab. No per-tab file summaries.
 - **Scroll bars** auto-hide by default; settings.json `ScrollBarsAutoHide: false` (read at
   startup) keeps them full width. `App.KeepScrollBarsExpanded` styles ScrollViewer, ListBox,

@@ -54,6 +54,23 @@ public class PaletteView : Control
     /// <summary>Raised when a box selection ends, so the owner can rebase anything keyed to the selection.</summary>
     public event Action? BoxSelected;
 
+    /// <summary>Raised when the swatch under the pointer changes: its index and color, or -1 and null.</summary>
+    public event Action<int, Rgba?>? HoverChanged;
+    private int _hover = -1;
+
+    private void SetHover(int index)
+    {
+        if (index == _hover) return;
+        _hover = index;
+        HoverChanged?.Invoke(index, index >= 0 && _palette is { } p ? p.Colors[index] : null);
+    }
+
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        SetHover(-1);
+    }
+
     public PaletteView()
     {
         MinHeight = 120;
@@ -286,6 +303,7 @@ public class PaletteView : Control
         try
         {
             base.OnPointerMoved(e);
+            SetHover(IndexAt(e.GetPosition(this)));
             if (_boxArmed || _boxActive)
             {
                 _boxEnd = e.GetPosition(this);
