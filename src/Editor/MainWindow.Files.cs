@@ -1221,7 +1221,6 @@ public partial class MainWindow
             }
             var forwardNote = ForwardLinkNote(version, done: true);
             var forwardPaletteNote = ForwardPaletteLinkNote(version, done: true);
-            Backups.Make(path, _settings.Files.BackupCount);
             bool rekeyed = !SffVersions.IsV1(version) && SffVersions.IsV1(_file.Version);
 
             // The session becomes the saved file: the .acts embed here with
@@ -1291,6 +1290,7 @@ public partial class MainWindow
             }
             var fileToSave = _file!;
             bool clampToSave = !_settings.General.DebugMode;
+            Backups.Make(path, _settings.Files.BackupCount);
             await RunFileWriteAsync($"Saving {Path.GetFileName(path)}…", () => fileToSave.Save(path, version, clamp: clampToSave));
             rollback.Clear(); // on disk now; the session keeps the changes
             _file.Version = version; // what's on disk now; plain Save keeps it from here
