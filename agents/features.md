@@ -532,9 +532,21 @@ and constraints that are easy to miss when reading one code path in isolation.
   Conflicts in overlapping scopes ask to move the key, and keys used by navigation or by a menu
   access key ask first. Alt+F4 is refused, and one binding per command. Open,
   Save and Save As act on the current tab.
-- **Media Health Report** leaves external palettes out of SFF palette counts and leaves group
-  1 out of the unused count, since a character can select it without a sprite. Its SND section
-  counts sounds and gives their total length; unreadable headers add nothing to the total.
+- **Media Health Report** starts with a heading per loaded file (SFF, AIR, SND), each followed
+  by its data points on separate lines: SFF shows Version, File size (omitted for new/unsaved
+  files, with " (last saved)" when dirty), Sprites, and embedded Palettes; AIR shows
+  File size (omitted when embedded in a .def or unreadable), Actions, Frames, Encoding (UTF-8,
+  UTF-8 with BOM, or "<name> (guessed)" / "not UTF-8"), and Line endings (CRLF or LF, omitted
+  for embedded .def); SND shows File size, Sounds, Total length, and a Sound formats heading
+  with one indented line per SampleRate/BitsPerSample/Channels/FormatTag group, most common
+  first ("mono"/"stereo"/"N channels", non-PCM noted as "format 0xNN"), then an "N unreadable"
+  line when some are. A blank line separates file blocks. Below
+  the info lines it lists only the problems that exist, one section each headed with its count
+  (`Heading (N):`); with nothing wrong it says "No problems found." An
+  AIR "Written differently on save" section names a legacy encoding becoming UTF-8 and CRLF
+  becoming LF, then lists the actions a save would rewrite. Frames with both a Clsn default and
+  their own Clsn get their own section, labeled invalid. The unused palette count leaves group 1 out, since a character can select it
+  without a sprite.
   **Find Unused Palettes** lists unreferenced embedded palettes as clickable rows, and offers
   deleting them all as one undo step; palettes that link to one keep their current colors.
 - **Report windows** show the whole text as one selectable block, so a drag selects across

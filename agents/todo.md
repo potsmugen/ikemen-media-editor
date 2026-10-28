@@ -136,6 +136,10 @@ Verified unless noted.
 - Check disk use: each recovery package and each save's backup can be a full copy of
   a 350 MB file.
 - Decide whether to use a change event on the undo stack instead of polling for dirty state.
+- After an SFF save, the sprites in memory keep their old SrcFormat, SrcDepth, SourceData and
+  PixelsDirty (`SffWriter.Save` uses the chosen format only for the file; plain Save doesn't
+  reload). Update them from what was written, in both writers, so the next save reuses the bytes
+  and a sprite-format list in the Media Health Report could be trusted. Mind undo snapshots.
 
 ### Performance and lists
 
@@ -171,10 +175,6 @@ Verified unless noted.
   that once (a SemiBold label over a ThemeMutedText line).
 
 ### Other
-
-- Split the Media Health Report into Media Info (counts, sizes, encodings, total sound
-  length) and Media Health (problems only). The status bar's per-tab file summaries were
-  removed; their counts live in the report for now.
 
 ## Not yet checked in the app
 

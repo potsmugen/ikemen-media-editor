@@ -278,21 +278,21 @@ public partial class MainWindow
     /// <summary>The open Media Health Report (it isn't modal); reopening replaces it with a fresh one.</summary>
     private Window? _healthReport;
 
-    /// <summary>Quick, non-mutating checks for the most common cross-file media problems. Counts first,
-    /// then one line per problem; those lines jump to the sprite, palette, action/frame or sound.</summary>
+    /// <summary>Quick, non-mutating checks for the most common cross-file media problems. One info block per
+    /// loaded file, then one section per problem found; its lines jump to the sprite, palette, action/frame or sound.</summary>
     private async void OnShowHealthReport(object? sender, RoutedEventArgs e)
     {
         try
         {
             var lines = new List<(string Text, Action? Jump)>();
             var details = new List<(string Text, Action? Jump)>();
-            void Section(string heading, IEnumerable<(string Text, Action Jump)> items)
+            void Section(string heading, IEnumerable<(string Text, Action? Jump)> items)
             {
                 var list = items.ToList();
                 if (list.Count == 0) return;
                 details.Add(("", null));
-                details.Add((heading, null));
-                details.AddRange(list.Select(x => (x.Text, (Action?)x.Jump)));
+                details.Add(($"{heading} ({list.Count}):", null));
+                details.AddRange(list);
             }
 
             if (_file is { } file)
@@ -311,57 +311,64 @@ public partial class MainWindow
                 // is still used in-game and isn't dead weight.
                 var unused = embeddedPalettes
                     .Where(p => !p.IsCharacterPalette && !file.Sprites.Any(s => ReferenceEquals(s.Palette, p))).ToList();
-                lines.Add(($"SFF: {file.Sprites.Count} sprites, {embeddedPalettes.Count} palettes", null));
-                lines.Add(($"  Decode failures: {bad.Count}", null));
-                lines.Add(($"  Duplicate sprite keys: {duplicateSprites.Count}", null));
-                lines.Add(($"  Duplicate SFF palette keys: {duplicatePaletteKeys.Count}", null));
-                lines.Add(($"  Duplicate embedded palette colors: {duplicatePaletteColors.Count}", null));
-                lines.Add(($"  Unused embedded palettes: {unused.Count} (group 1 not counted)", null));
                 var forward = SffWriter.ForwardLinksTurnedOnSave(file);
-                lines.Add(($"  Links to a later sprite (turned around on save): {forward.Count}", null));
                 var forwardPalettes = SffWriter.ForwardPaletteLinksTurnedOnSave(file);
-                lines.Add(($"  Links to a later palette (turned around on save): {forwardPalettes.Count}", null));
-                Section("Decode failures:", bad.Select(s => ($"  Sprite {s.Group},{s.Index}: {s.DecodeError}", (Action)(() => JumpToSprite(s)))));
-                Section("Duplicate sprite keys (the later ones):", duplicateSprites.Select(s => ($"  Sprite {s.Group},{s.Index}", (Action)(() => JumpToSprite(s)))));
-                Section("Duplicate SFF palette keys (the later ones):", duplicatePaletteKeys.Select(p => ($"  Palette {PaletteKey(file, p)}", (Action)(() => JumpToPalette(p)))));
-                Section("Duplicate embedded palette colors (later palettes match the first):", duplicatePaletteColors.Select(x =>
-                    ($"  Palette {PaletteKey(file, x.Palette)} matches {PaletteKey(file, x.Original)}", (Action)(() => JumpToPalette(x.Palette)))));
-                Section("Unused embedded palettes:", unused.Select(p => ($"  Palette {PaletteKey(file, p)}", (Action)(() => JumpToPalette(p)))));
-                Section("Links to a later sprite (Ikemen GO loads them as blank):", forward.Select(s =>
-                    ($"  Sprite {s.Group},{s.Index} links to {s.SharesWith!.Group},{s.SharesWith.Index}", (Action)(() => JumpToSprite(s)))));
-                Section("Links to a later palette (Ikemen GO loads them with the wrong colors):", forwardPalettes.Select(p =>
-                    ($"  Palette {PaletteKey(file, p)} links to {PaletteKey(file, p.LinksTo!)}", (Action)(() => JumpToPalette(p)))));
+                lines.Add(("SFF", null));
+                lines.Add(($"  Version: {file.Version}", null));
+                string? sffFileSize = FileSizeLine(_path, _dirty);
+                if (sffFileSize is not null) lines.Add((sffFileSize, null));
+                lines.Add(($"  Sprites: {file.Sprites.Count}", null));
+                lines.Add(($"  Palettes: {embeddedPalettes.Count}", null));
+                Section("Decode failures", bad.Select(s => ($"  Sprite {s.Group},{s.Index}: {s.DecodeError}", (Action?)(() => JumpToSprite(s)))));
+                Section("Duplicate sprite keys (the later ones)", duplicateSprites.Select(s => ($"  Sprite {s.Group},{s.Index}", (Action?)(() => JumpToSprite(s)))));
+                Section("Duplicate SFF palette keys (the later ones)", duplicatePaletteKeys.Select(p => ($"  Palette {PaletteKey(file, p)}", (Action?)(() => JumpToPalette(p)))));
+                Section("Duplicate embedded palette colors (later palettes match the first)", duplicatePaletteColors.Select(x =>
+                    ($"  Palette {PaletteKey(file, x.Palette)} matches {PaletteKey(file, x.Original)}", (Action?)(() => JumpToPalette(x.Palette)))));
+                Section("Unused embedded palettes (group 1 not counted)", unused.Select(p => ($"  Palette {PaletteKey(file, p)}", (Action?)(() => JumpToPalette(p)))));
+                Section("Links to a later sprite (Ikemen GO loads them as blank)", forward.Select(s =>
+                    ($"  Sprite {s.Group},{s.Index} links to {s.SharesWith!.Group},{s.SharesWith.Index}", (Action?)(() => JumpToSprite(s)))));
+                Section("Links to a later palette (Ikemen GO loads them with the wrong colors)", forwardPalettes.Select(p =>
+                    ($"  Palette {PaletteKey(file, p)} links to {PaletteKey(file, p.LinksTo!)}", (Action?)(() => JumpToPalette(p)))));
             }
             if (_air is { } air)
             {
+                if (lines.Count > 0) lines.Add(("", null));
                 List<(Air.AnimationAction Action, int Frame, Air.AnimationElement Element)> missing = _file is null ? []
                     : air.Actions.SelectMany(a => a.Elements.Select((e, i) => (Action: a, Frame: i, Element: e)))
                         .Where(x => !x.Element.NoSprite && _file.Find(x.Element.Group, x.Element.Index) is null).ToList();
-                lines.Add(($"AIR: {air.Actions.Count} actions, {air.Actions.Sum(a => a.Elements.Count)} frames", null));
-                lines.Add(("  Encoding: " + air.TextEncoding switch
+                var encodingName = air.TextEncoding switch
                 {
-                    Air.AirEncoding.Utf8Bom => "UTF-8 with byte-order mark",
-                    Air.AirEncoding.Legacy => $"not UTF-8, read as {air.LegacyEncodingName} (a guess); saving converts it to UTF-8",
+                    Air.AirEncoding.Utf8Bom => "UTF-8 with BOM",
+                    Air.AirEncoding.Legacy => air.LegacyEncodingName is { } legacy ? $"{legacy} (guessed)" : "not UTF-8",
                     _ => "UTF-8",
-                }, null));
+                };
+                lines.Add(("AIR", null));
                 if (!_airEmbeddedInDef)
-                    lines.Add(("  Line endings: " + (air.CrLineEndings ? "CRLF; saving converts them to LF" : "LF"), null));
-                if (_file is not null) lines.Add(($"  Missing sprite references: {missing.Count}", null)); // needs the .sff open
+                {
+                    var airSize = FileSizeLine(_airPath, _airDirty);
+                    if (airSize is not null) lines.Add((airSize, null));
+                }
+                lines.Add(($"  Actions: {air.Actions.Count}", null));
+                lines.Add(($"  Frames: {air.Actions.Sum(a => a.Elements.Count)}", null));
+                lines.Add(("  Encoding: " + encodingName, null));
+                if (!_airEmbeddedInDef)
+                    lines.Add(("  Line endings: " + (air.CrLineEndings ? "CRLF" : "LF"), null));
                 var lint = air.Actions.Where(a => a.ChangesOnSave).ToList();
-                lines.Add(($"  Clsn lines numbered out of order: {lint.Sum(a => a.MisnumberedClsnLines)}", null));
-                lines.Add(($"  Clsn counts not matching their box lines: {lint.Sum(a => a.MismatchedClsnCounts)}", null));
-                lines.Add(($"  End-of-line comments on Clsn, Loopstart, Interpolate or Copy Action lines (moved onto their own line on save): {lint.Sum(a => a.MovedComments)}", null));
-                lines.Add(($"  Comment lines below a frame's Clsn, Loopstart or Interpolate lines (moved past them on save): {lint.Sum(a => a.ReorderedComments)}", null));
-                lines.Add(($"  Unused lines, like Loopstart after the last frame or a Clsn block with no frame (dropped on save): {lint.Sum(a => a.DroppedLines)}", null));
-                lines.Add(($"  Clsn boxes not written top-left corner first (rewritten on save): {lint.Sum(a => a.SwappedBoxCorners)}", null));
                 var both = air.Actions.SelectMany(a => a.FramesWithDefaultAndOwnClsn().Select(i => (Action: a, Frame: i))).ToList();
-                lines.Add(($"  Frames with both a Clsn default and their own Clsn (invalid): {both.Count}", null));
 
-                Section("Missing sprite references (action, frame: sprite):", missing.Select(x =>
-                    ($"  Action {x.Action.Number}, frame {x.Frame + 1}: {x.Element.Group},{x.Element.Index}", (Action)(() => JumpToFrame(x.Action, x.Element)))));
-                Section("Frames with both a Clsn default and their own Clsn (action, frame):", both.Select(x =>
-                    ($"  Action {x.Action.Number}, frame {x.Frame + 1}", (Action)(() => JumpToFrame(x.Action, x.Action.Elements[x.Frame])))));
-                Section("Written differently on save:", lint.Select(a => ($"  Action {a.Number}: " + string.Join(", ", new[]
+                Section("Missing sprite references (action, frame: sprite)", missing.Select(x =>
+                    ($"  Action {x.Action.Number}, frame {x.Frame + 1}: {x.Element.Group},{x.Element.Index}", (Action?)(() => JumpToFrame(x.Action, x.Element)))));
+                Section("Frames with both a Clsn default and their own Clsn (invalid; action, frame)", both.Select(x =>
+                    ($"  Action {x.Action.Number}, frame {x.Frame + 1}", (Action?)(() => JumpToFrame(x.Action, x.Action.Elements[x.Frame])))));
+                // Embedded actions keep the .def's encoding and line endings, so only a standalone .air converts.
+                var written = new List<(string Text, Action? Jump)>();
+                if (!_airEmbeddedInDef)
+                {
+                    if (air.TextEncoding == Air.AirEncoding.Legacy)
+                        written.Add(($"  Encoding: {encodingName} becomes UTF-8 on save", null));
+                    if (air.CrLineEndings) written.Add(("  Line endings: CRLF become LF on save", null));
+                }
+                written.AddRange(lint.Select(a => ($"  Action {a.Number}: " + string.Join(", ", new[]
                 {
                     a.MisnumberedClsnLines > 0 ? $"{a.MisnumberedClsnLines} Clsn lines misnumbered" : null,
                     a.MismatchedClsnCounts > 0 ? $"{a.MismatchedClsnCounts} Clsn counts off" : null,
@@ -369,20 +376,50 @@ public partial class MainWindow
                     a.ReorderedComments > 0 ? $"{a.ReorderedComments} comment lines moved" : null,
                     a.DroppedLines > 0 ? $"{a.DroppedLines} unused lines dropped" : null,
                     a.SwappedBoxCorners > 0 ? $"{a.SwappedBoxCorners} Clsn boxes reordered" : null,
-                }.Where(p => p is not null)), (Action)(() => JumpToAction(a)))));
+                }.Where(p => p is not null)), (Action?)(() => JumpToAction(a)))));
+                Section("Written differently on save", written);
             }
             if (_snd is { } snd)
             {
+                if (lines.Count > 0) lines.Add(("", null));
                 var unreadable = snd.Sounds.Where(s => s.Problem is not null).ToList();
                 var duplicates = snd.Duplicates().ToList();
-                lines.Add(($"SND: {snd.Sounds.Count} sounds", null));
-                lines.Add(($"  Total length: {FormatSoundLength(TimeSpan.FromTicks(snd.Sounds.Sum(s => s.Duration.Ticks)))}", null));
-                lines.Add(($"  Unreadable headers: {unreadable.Count}", null));
-                lines.Add(($"  Duplicate sound keys: {duplicates.Count}", null));
-                Section("Unreadable headers:", unreadable.Select(s => ($"  Sound {s.Group},{s.Index}: {s.Problem}", (Action)(() => JumpToSound(s)))));
-                Section("Duplicate sound keys (the later ones):", duplicates.Select(s => ($"  Sound {s.Group},{s.Index}", (Action)(() => JumpToSound(s)))));
+                lines.Add(("SND", null));
+                var sndSize = FileSizeLine(_sndPath, _sndDirty);
+                if (sndSize is not null) lines.Add((sndSize, null));
+                lines.Add(($"  Sounds: {snd.Sounds.Count}", null));
+                lines.Add(("  Total length: " + FormatSoundLength(TimeSpan.FromTicks(snd.Sounds.Sum(s => s.Duration.Ticks))), null));
+                var readable = snd.Sounds.Where(s => s.Problem is null).ToList();
+                var soundFormatGroups = readable
+                    .GroupBy(s => (s.SampleRate, s.BitsPerSample, s.Channels, s.FormatTag))
+                    .OrderByDescending(g => g.Count())
+                    .ToList();
+                var soundFormatLines = soundFormatGroups.Select(g =>
+                {
+                    string channelsStr = g.Key.Channels switch
+                    {
+                        1 => "mono",
+                        2 => "stereo",
+                        _ => $"{g.Key.Channels} channels"
+                    };
+                    string fmtNote = g.Key.FormatTag != 1 ? $" format 0x{g.Key.FormatTag:X2}" : "";
+                    return $"{g.Count()} × {g.Key.SampleRate} Hz {g.Key.BitsPerSample}-bit {channelsStr}{fmtNote}";
+                });
+                if (soundFormatGroups.Count > 0 || unreadable.Count > 0) lines.Add(("  Sound formats:", null));
+                foreach (var line in soundFormatLines)
+                    lines.Add(("    " + line, null));
+                if (unreadable.Count > 0)
+                    lines.Add(($"    {unreadable.Count} unreadable", null));
+                Section("Unreadable headers", unreadable.Select(s => ($"  Sound {s.Group},{s.Index}: {s.Problem}", (Action?)(() => JumpToSound(s)))));
+                Section("Duplicate sound keys (the later ones)", duplicates.Select(s => ($"  Sound {s.Group},{s.Index}", (Action?)(() => JumpToSound(s)))));
             }
-            if (lines.Count == 0) lines.Add(("No media is loaded.", null));
+            if (lines.Count == 0)
+                lines.Add(("No media is loaded.", null));
+            else if (details.Count == 0)
+            {
+                lines.Add(("", null));
+                lines.Add(("No problems found.", null));
+            }
 
             _healthReport?.Close();
             _healthReport = Dialogs.ShowReport(this, "Media Health Report", [.. lines, .. details]);
@@ -392,6 +429,34 @@ public partial class MainWindow
         {
             await Failed("OnShowHealthReport", ex);
         }
+    }
+
+    /// <summary>File size line for the info block; null when path is null or unreadable.</summary>
+    private static string? FileSizeLine(string? path, bool dirty)
+    {
+        if (path is null) return null;
+        try
+        {
+            var size = FormatSize(new FileInfo(path).Length);
+            if (dirty) size += " (last saved)";
+            return "  File size: " + size;
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("OnShowHealthReport file size", ex);
+            return null;
+        }
+    }
+
+    /// <summary>Formats a file size in B/KB/MB with one decimal place.</summary>
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024)
+            return $"{bytes} B";
+        else if (bytes < 1024 * 1024)
+            return $"{bytes / 1024.0:F1} KB";
+        else
+            return $"{bytes / (1024.0 * 1024):F1} MB";
     }
 
     /// <summary>Total SND length as m:ss.hh, or h:mm:ss.hh once it reaches an hour.</summary>
