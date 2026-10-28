@@ -145,8 +145,6 @@ Verified unless noted.
 ### Performance and lists
 
 - Loading is much slower than saving for large SFFs. Find out why.
-- Lists: selecting a sprite clears then adds the selection (ApplySpriteRowSelection),
-  firing two SelectionChanged events per step; the first returns early, so it's minor.
 - Lists: time RebuildFrameTable on a long action (it rebuilds fully from 18 places)
   before deciding whether it needs incremental updates. (Frame table rows now update in
   place, which fixed the measured edit and scroll slowness; a full rebuild measured 5–35 ms.)

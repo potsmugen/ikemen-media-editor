@@ -644,9 +644,15 @@ public partial class MainWindow
         try
         {
             var wanted = selectedRows.Distinct().Order().ToList();
-            selectedItems.Clear();
-            foreach (int row in wanted)
-                if (row >= 0 && row < rows.Count) selectedItems.Add(rows[row]);
+            // One batch, so the clear and the adds raise a single SelectionChanged.
+            SpriteList.Selection.BeginBatchUpdate();
+            try
+            {
+                selectedItems.Clear();
+                foreach (int row in wanted)
+                    if (row >= 0 && row < rows.Count) selectedItems.Add(rows[row]);
+            }
+            finally { SpriteList.Selection.EndBatchUpdate(); }
         }
         finally { _suppressEvents = wasSuppressed; }
     }
