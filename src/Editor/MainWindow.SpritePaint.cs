@@ -159,9 +159,11 @@ public partial class MainWindow
         if (sender is not ToggleButton { Tag: string tag }) return;
         SpriteCanvas.LassoSelect = tag == "Lasso";
         SpriteCanvas.MagicWandSelect = tag == "MagicWand";
+        SpriteCanvas.PolygonSelect = tag == "Polygon";
         RectangleSelectButton.IsChecked = tag == "Rectangle";
         LassoSelectButton.IsChecked = tag == "Lasso";
         MagicWandSelectButton.IsChecked = tag == "MagicWand";
+        PolygonSelectButton.IsChecked = tag == "Polygon";
     }
 
     /// <summary>Right-click on the Sprites tab canvas: Eyedropper is a one-shot pick here, whatever tool is currently active.</summary>
@@ -274,7 +276,7 @@ public partial class MainWindow
     private void EraseSelection()
     {
         if (SpriteCanvas.Selection is not { Width: > 0, Height: > 0 } selection) return;
-        if (_current is not { Indexed: { } pixels, Width: int w, Height: int h } sprite) return;
+        if (_current is not { Indexed: not null, Width: int w, Height: int h } sprite) return;
         if (ActivePaintPixels() is not { } target) return;
         if (!ActiveLayerCanPaint()) return;
         if (RefuseBorrowerEdit(sprite, "erase selection")) return;

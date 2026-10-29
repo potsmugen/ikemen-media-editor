@@ -222,6 +222,8 @@ public partial class MainWindow : Window
             Settings.DefaultOnionOpacity, v => v is >= 0 and <= 1);
         SpriteView.SelectDragThreshold = Settings.Checked(nameof(s.Canvas.SelectionDragThresholdPixels), s.Canvas.SelectionDragThresholdPixels,
             Settings.DefaultSelectionDragThresholdPixels, v => double.IsFinite(v) && v >= 0);
+        SpriteView.PolygonLassoSnapRadiusPixels = Settings.Checked(nameof(s.Canvas.PolygonLassoSnapRadiusPixels), s.Canvas.PolygonLassoSnapRadiusPixels,
+            Settings.DefaultPolygonLassoSnapRadiusPixels, v => v is >= 0 and <= 100);
         SpriteView.PinchZoomStep = Settings.Checked(nameof(s.Canvas.PinchZoomStep), s.Canvas.PinchZoomStep,
             Settings.DefaultPinchZoomStep, v => double.IsFinite(v) && v > 0);
         SpriteView.ZoomAroundCursor = s.Canvas.ZoomAroundCursor;

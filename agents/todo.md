@@ -35,15 +35,17 @@ Verified unless noted.
 
 ### Paint Mode
 
-- Paint Mode: add a Polygonal Lasso to Select. It can reuse the lasso's mask and outline code.
-  - Click corner points; double-click, Enter, or a click near the first point closes it. The snap
-    radius is a settings.json value in screen pixels; a double-click adds no duplicate point.
-  - While drawing, show the clicked edges and a line from the last point to the cursor; after
-    closing, the pixel-edge outline.
-  - Backspace removes the last point. Esc cancels a shape in progress, else clears the selection.
-  - A click on the sprite starts a shape; a click off the sprite still clears the selection.
-  - Points off the sprite are clamped to its edge. Closing with under 3 points, or enclosing no
-    pixel center, clears the selection. Switching tools, sprites or leaving Paint Mode drops it.
+Select tool gaps against image editor conventions:
+
+- Add and subtract for every Select shape, not just the Magic Wand (Shift adds; Alt subtracts in
+  Photoshop, Ctrl in GIMP). Decide the modifiers, and how they fit Ctrl/Shift box selection.
+- Polygon: Shift locks the next edge to 45° steps.
+- Lasso and Polygon: Alt switches between freehand and polygon mid-shape.
+- Magic Wand: a Contiguous toggle (off = every pixel with that index).
+- Decide Esc: today it clears the selection only with Polygon (when no shape is in progress).
+  Either every Select shape clears on Esc, or none does and deselect gets its own shortcut
+  (Ctrl+D in Photoshop, GIMP and Aseprite, where Esc only cancels a shape in progress).
+
 ### Animations and Clsn
 
 - Clsn outlines: add Scale with zoom (Preferences > Clsn), so the box lines grow with the canvas

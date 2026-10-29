@@ -578,8 +578,13 @@
                             <ToggleButton Grid.Column="2" x:Name="LassoSelectButton" Content="Lasso" Tag="Lasso" Click="OnSelectSelectionShape" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                                           ToolTip.Tip="Selects a freehand outline; releasing closes it." />
                           </Grid>
-                          <ToggleButton x:Name="MagicWandSelectButton" Content="Magic Wand" Tag="MagicWand" Click="OnSelectSelectionShape" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                        ToolTip.Tip="Selects contiguous pixels with the same index." />
+                          <Grid ColumnDefinitions="*,Auto,*">
+                            <ToggleButton Grid.Column="0" x:Name="PolygonSelectButton" Content="Polygon" Tag="Polygon" Click="OnSelectSelectionShape" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                          ToolTip.Tip="Selects a polygonal outline; click corners, double-click or Enter to close." />
+                            <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                            <ToggleButton Grid.Column="2" x:Name="MagicWandSelectButton" Content="Magic Wand" Tag="MagicWand" Click="OnSelectSelectionShape" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                          ToolTip.Tip="Selects contiguous pixels with the same index." />
+                          </Grid>
                           <Grid ColumnDefinitions="*,Auto,*">
                             <Button Grid.Column="0" x:Name="CopySelectionButton" Content="Copy" Click="OnCopySelection" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                                     ToolTip.Tip="Copies the selected pixels." />

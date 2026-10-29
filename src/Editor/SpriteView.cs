@@ -219,6 +219,8 @@ public class SpriteView : Control
     private PixelSelection? _selection;
     /// <summary>The lasso path in progress, in sprite pixel units; null when not drawing a lasso.</summary>
     private List<Point>? _lassoPoints;
+    /// <summary>The polygonal lasso path in progress, in sprite pixel units; null when not drawing.</summary>
+    private List<Point>? _polygonPoints;
     private bool[]? _outlineMask;
     private List<(int X1, int Y1, int X2, int Y2, int Inward)> _outlineRuns = [];
 
@@ -235,11 +237,20 @@ public class SpriteView : Control
 
     /// <summary>Pixels the pointer must move before a Select press counts as a drag (settings.json SelectionDragThresholdPixels).</summary>
     public static double SelectDragThreshold { get; set; } = Settings.DefaultSelectionDragThresholdPixels;
+    /// <summary>Snap radius in screen pixels for closing a polygonal lasso by clicking near the first point.</summary>
+    public static int PolygonLassoSnapRadiusPixels { get; set; } = Settings.DefaultPolygonLassoSnapRadiusPixels;
 
     /// <summary>When set, a Select drag draws a freehand lasso instead of a rectangle.</summary>
     public bool LassoSelect { get; set; }
     /// <summary>When set, a Select click selects contiguous pixels with the same index.</summary>
     public bool MagicWandSelect { get; set; }
+    private bool _polygonSelect;
+    /// <summary>When set, a Select click builds a polygonal lasso with discrete corner points; turning it off drops a shape in progress.</summary>
+    public bool PolygonSelect
+    {
+        get => _polygonSelect;
+        set { _polygonSelect = value; if (!value && _polygonPoints is not null) { _polygonPoints = null; InvalidateVisual(); } }
+    }
     private Point? _hoverPos;
     private Point? _cursorPosition;
 
@@ -261,6 +272,7 @@ public class SpriteView : Control
     /// <summary>Sets a pixel selection, clamped to the currently displayed sprite.</summary>
     public void SetSelection(PixelSelection? selection)
     {
+        _polygonPoints = null; // switching tools, leaving Paint Mode or pasting drops a polygon in progress
         if (selection is null || _sprite is null)
         {
             _selection = null;
@@ -447,6 +459,7 @@ public class SpriteView : Control
         if (changedSprite)
         {
             _selection = null;
+            _polygonPoints = null;
             SelectionChanged?.Invoke();
         }
         _palette = palette;
@@ -1088,6 +1101,30 @@ public class SpriteView : Control
 
         if (ShowCrosshair) DrawCrosshair(ctx, o);
 
+        if (_polygonPoints is not null && _polygonPoints.Count > 0 && PolygonSelect && PaintMode && ActiveTool == PaintTool.Selection && _sprite is not null)
+        {
+            var sr = SpriteRect();
+            // White and black dashes, like the selection outline, so the edges show on any color.
+            var white = new Pen(Brushes.White, 1, new DashStyle([3, 3], 0));
+            var black = new Pen(Brushes.Black, 1, new DashStyle([3, 3], 3));
+            var points = new List<Point>();
+            foreach (var pt in _polygonPoints)
+                points.Add(new Point(sr.X + pt.X * Zoom, sr.Y + pt.Y * Zoom));
+            if (_cursorPosition is { } cp) points.Add(cp);
+            for (int i = 0; i < points.Count - 1; i++)
+            {
+                ctx.DrawLine(white, points[i], points[i + 1]);
+                ctx.DrawLine(black, points[i], points[i + 1]);
+            }
+            // A ring on the first point when the next click would close the shape.
+            if (_polygonPoints.Count >= 3 && _cursorPosition is { } near
+                && Point.Distance(near, points[0]) < PolygonLassoSnapRadiusPixels)
+            {
+                ctx.DrawEllipse(null, new Pen(Brushes.Black, 1), points[0], 5, 5);
+                ctx.DrawEllipse(null, new Pen(Brushes.White, 1), points[0], 4, 4);
+            }
+        }
+
         if (_selection is { } selection && _sprite is not null && PaintMode && ActiveTool == PaintTool.Selection)
         {
             var sr = SpriteRect();
@@ -1153,6 +1190,36 @@ public class SpriteView : Control
     {
         if (e.Key is Key.LeftShift or Key.RightShift) SetInverseHeld(true);
         RefreshHoverCursorForKey(e, true);
+        if (PaintMode && ActiveTool == PaintTool.Selection && PolygonSelect)
+        {
+            if (e.Key == Key.Back && _polygonPoints is not null && _polygonPoints.Count > 0)
+            {
+                _polygonPoints.RemoveAt(_polygonPoints.Count - 1);
+                InvalidateVisual();
+                e.Handled = true;
+                return;
+            }
+            if (e.Key == Key.Escape)
+            {
+                if (_polygonPoints is not null)
+                {
+                    _polygonPoints = null;
+                    InvalidateVisual();
+                }
+                else
+                {
+                    ClearSelectionByClick();
+                }
+                e.Handled = true;
+                return;
+            }
+            if (e.Key == Key.Enter && _polygonPoints is not null && _polygonPoints.Count > 0)
+            {
+                ClosePolygon();
+                e.Handled = true;
+                return;
+            }
+        }
         base.OnKeyDown(e);
     }
 
@@ -1373,6 +1440,8 @@ public class SpriteView : Control
 
     private static readonly Cursor MoveCursor = new(StandardCursorType.SizeAll);
     private static readonly Cursor CrossCursor = new(StandardCursorType.Cross);
+    /// <summary>Arrow with a plus: Shift+click with the Magic Wand adds to the selection.</summary>
+    private static readonly Cursor AddCursor = new(StandardCursorType.DragCopy);
     private static readonly Cursor PanCursor = new(StandardCursorType.Hand);
     private static readonly Cursor SizeWestEastCursor = new(StandardCursorType.SizeWestEast);
     private static readonly Cursor SizeNorthSouthCursor = new(StandardCursorType.SizeNorthSouth);
@@ -1408,6 +1477,9 @@ public class SpriteView : Control
         if (extendSelection && !wandAdd) return Cursor.Default;
 
         bool onSprite = SpriteContains(p);
+        // A polygon in progress adds a corner wherever you click.
+        if (PaintMode && ActiveTool == PaintTool.Selection && PolygonSelect && _polygonPoints is not null) return CrossCursor;
+        if (PaintMode && ActiveTool == PaintTool.Selection && onSprite && wandAdd) return AddCursor;
         if (PaintMode && ActiveTool == PaintTool.Selection && onSprite)
         {
             bool inSelection = _selection is { } sel && PixelRect(sel).Contains(p)
@@ -1533,9 +1605,11 @@ public class SpriteView : Control
         }
 
         bool onSprite = SpriteContains(p.Position);
-        if (PaintMode && ActiveTool == PaintTool.Selection && onSprite)
+        // A polygon in progress takes every click as a corner, even over the old selection or off the sprite (clamped).
+        bool polygonInProgress = PaintMode && ActiveTool == PaintTool.Selection && PolygonSelect && _polygonPoints is not null;
+        if (PaintMode && ActiveTool == PaintTool.Selection && (onSprite || polygonInProgress))
         {
-            if (!wandAdd && _selection is { } existing && PixelRect(existing).Contains(p.Position)
+            if (!wandAdd && !polygonInProgress && _selection is { } existing && PixelRect(existing).Contains(p.Position)
                 && TryPixelAt(p.Position, out int hitX, out int hitY) && existing.Contains(hitX - existing.X, hitY - existing.Y))
             {
                 _movingSelection = true;
@@ -1553,6 +1627,46 @@ public class SpriteView : Control
                 // The wand is click-born: the press picks the region, and a drag doesn't reshape it.
                 // Shift adds the new region to the current selection instead of replacing it.
                 StartMagicWand(p.Position, wandAdd);
+                Cursor = CrossCursor;
+                e.Pointer.Capture(this);
+                InvalidateVisual();
+                return;
+            }
+
+            if (PolygonSelect)
+            {
+                if (_polygonPoints is null)
+                {
+                    SelectionStarted?.Invoke(); // settles a floating paste, like Rectangle and Lasso
+                    _polygonPoints = [];
+                    AddPolygonPoint(p.Position);
+                    Cursor = CrossCursor;
+                    e.Pointer.Capture(this);
+                    InvalidateVisual();
+                    return;
+                }
+                if (e.ClickCount >= 2)
+                {
+                    ClosePolygon();
+                    Cursor = CrossCursor;
+                    e.Pointer.Capture(this);
+                    InvalidateVisual();
+                    return;
+                }
+                if (_polygonPoints.Count >= 3)
+                {
+                    var sr = SpriteRect();
+                    var firstScreen = new Point(sr.X + _polygonPoints[0].X * Zoom, sr.Y + _polygonPoints[0].Y * Zoom);
+                    if (Point.Distance(p.Position, firstScreen) < PolygonLassoSnapRadiusPixels)
+                    {
+                        ClosePolygon();
+                        Cursor = CrossCursor;
+                        e.Pointer.Capture(this);
+                        InvalidateVisual();
+                        return;
+                    }
+                }
+                AddPolygonPoint(p.Position);
                 Cursor = CrossCursor;
                 e.Pointer.Capture(this);
                 InvalidateVisual();
@@ -1654,6 +1768,7 @@ public class SpriteView : Control
             _hoverPos = e.GetPosition(this);
             InvalidateVisual(); // the outline needs to follow the cursor even when not painting
         }
+        if (PolygonSelect && _polygonPoints is { Count: > 0 }) InvalidateVisual(); // the next edge follows the cursor
 
         if ((_movingSelection || _selecting) && !_selectDragged)
         {
@@ -1898,6 +2013,33 @@ public class SpriteView : Control
         InvalidateVisual();
     }
 
+    private void AddPolygonPoint(Point point)
+    {
+        if (_polygonPoints is null || _sprite is not { Width: > 0, Height: > 0 } sprite) return;
+        var r = SpriteRect();
+        var local = new Point(Math.Clamp((point.X - r.X) / Zoom, 0, sprite.Width), Math.Clamp((point.Y - r.Y) / Zoom, 0, sprite.Height));
+        if (_polygonPoints.Count > 0 && _polygonPoints[^1] == local) return;
+        _polygonPoints.Add(local);
+        InvalidateVisual();
+    }
+
+    private void ClosePolygon()
+    {
+        if (_polygonPoints is null || _sprite is not { Width: > 0, Height: > 0 } sprite) { _polygonPoints = null; return; }
+        if (_polygonPoints.Count < 3)
+        {
+            _polygonPoints = null;
+            _selection = null;
+            SelectionChanged?.Invoke();
+            InvalidateVisual();
+            return;
+        }
+        _selection = LassoSelection(_polygonPoints, sprite.Width, sprite.Height);
+        _polygonPoints = null;
+        SelectionChanged?.Invoke();
+        InvalidateVisual();
+    }
+
     /// <summary>
     /// Magic Wand: selects the contiguous same-index pixels under the point, cropped to their bounds.
     /// With addToSelection, unions the new region with the current selection instead of replacing it.
@@ -2090,6 +2232,7 @@ public class SpriteView : Control
         _lastMovePos = null;
         _cursorPosition = null;
         CursorPositionCleared?.Invoke();
+        if (PolygonSelect && _polygonPoints is { Count: > 0 }) InvalidateVisual(); // hide the next edge
         if (_hoverPos is null) return;
         _hoverPos = null;
         InvalidateVisual();
