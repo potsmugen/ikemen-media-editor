@@ -120,8 +120,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   unactivated with their tab. A saved spot touching no monitor falls back to the docked one.
   Reset Panel Sizes docks the current tab's panels and forgets them.
 - **Paint tool panels**: each tool's options sit under the tools and show only while it is
-  active. Brush for Pencil and Eraser; Rectangle/Lasso and Copy/Paste for Select; colors plus
-  a synced Brush box for Replace; Fill and Eyedropper have none.
+  active. Brush for Pencil and Eraser; Rectangle/Lasso on one row, Magic Wand on its own row,
+  and Copy/Paste for Select; colors plus a synced Brush box for Replace; Fill and Eyedropper
+  have none.
 - **Replace inverse**: Shift-drag paints New → Old, fixed at the press (the brush outline
   turns ThemeAccent while Shift is held). A New shared by several pairs is left alone and
   named in the status bar. Swap flips Old and New everywhere.
@@ -130,13 +131,21 @@ and constraints that are easy to miss when reading one code path in isolation.
   pasted pixels leave the pixels under them. The selection shows only with the Select tool;
   switching tools or leaving Paint Mode clears it. Copy needs a selection, Paste a copied
   block.
-- **Lasso**: Select's Rectangle/Lasso toggle is session-only, Rectangle by default. A lasso
+- **Lasso**: Select's Rectangle/Lasso/Magic Wand toggle is session-only, Rectangle by default. A lasso
   closes on release, and a pixel is in when its center is inside the path (nonzero winding,
   so loops stay filled). The path is clamped to the sprite, and an empty lasso clears the
   selection. Copy leaves pixels outside the mask transparent and Paste restores the shape.
+- **Magic Wand**: Select's third toggle, Magic Wand, picks the contiguous same-index pixels
+  under the click as a lasso-style mask cropped to the region (exact index, no tolerance;
+  contiguous like the Fill tool's flood fill). A click selects; a drag does not reshape it, so
+  the wand can make a 1×1 selection. Shift+click unions the new region with the current
+  selection instead of replacing it; a plain click replaces. Copy leaves pixels outside the mask
+  transparent and Paste restores the shape.
 - **Select clicks**: a click (under settings.json `SelectionDragThresholdPixels`, default 3)
-  clears the selection and settles a floating paste. Only a drag selects or moves, so there
-  are no 1×1 selections; a drag off the sprite still pans.
+  clears the selection and settles a floating paste, unless the Magic Wand is the active Select
+  shape, in which case a click picks the region instead. Only a drag selects or moves, so there
+  are no drag-made 1×1 selections; a drag off the sprite still pans. With the Magic Wand active,
+  Shift+click adds the picked region to the current selection instead of replacing it.
 - **Sprite drag** (Sprites axis, Animations offset) starts only on a visible pixel (alpha above 0 as
   drawn, every pixel with Show Mask); a transparent pixel pans like empty canvas.
 - **Wheel and pinch zoom**: the sprite, animation and palette-preview canvases and the

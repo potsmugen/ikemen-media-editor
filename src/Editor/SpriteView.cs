@@ -238,6 +238,8 @@ public class SpriteView : Control
 
     /// <summary>When set, a Select drag draws a freehand lasso instead of a rectangle.</summary>
     public bool LassoSelect { get; set; }
+    /// <summary>When set, a Select click selects contiguous pixels with the same index.</summary>
+    public bool MagicWandSelect { get; set; }
     private Point? _hoverPos;
     private Point? _cursorPosition;
 
@@ -1339,11 +1341,12 @@ public class SpriteView : Control
     }
 
     /// <summary>4-connected flood fill of the region matching the start pixel's index. BrushSize does not apply here.</summary>
-    private bool FloodFill(byte[] idx, int startX, int startY, byte replacement)
+    /// <param name="mask">When given, marks the region into it instead of replacing the pixels — the Magic Wand's selection mask.</param>
+    private bool FloodFill(byte[] idx, int startX, int startY, byte replacement, bool[]? mask = null)
     {
         int w = _sprite!.Width, h = _sprite.Height;
         byte target = idx[startY * w + startX];
-        if (target == replacement) return false;
+        if (mask is null && target == replacement) return false;
 
         var stack = new Stack<(int X, int Y)>();
         stack.Push((startX, startY));
@@ -1353,7 +1356,15 @@ public class SpriteView : Control
             if (x < 0 || x >= w || y < 0 || y >= h) continue;
             int i = y * w + x;
             if (idx[i] != target) continue;
-            idx[i] = replacement;
+            if (mask is not null)
+            {
+                if (mask[i]) continue;
+                mask[i] = true;
+            }
+            else
+            {
+                idx[i] = replacement;
+            }
             stack.Push((x + 1, y)); stack.Push((x - 1, y));
             stack.Push((x, y + 1)); stack.Push((x, y - 1));
         }
@@ -1391,8 +1402,10 @@ public class SpriteView : Control
         (int Index, BoxGrip Grip) hit = Boxes.Count > 0 ? HitTest(p) : (-1, BoxGrip.None);
         bool replacing = PaintMode && ActiveTool == PaintTool.Replace;
         bool extendSelection = (modifiers & (replacing ? KeyModifiers.Control : KeyModifiers.Control | KeyModifiers.Shift)) != 0;
+        // Shift with the Magic Wand adds to the selection, so it still picks like the wand.
+        bool wandAdd = MagicWandSelect && (modifiers & KeyModifiers.Shift) != 0;
         if (hit.Index >= 0) return extendSelection ? Cursor.Default : GripCursor(hit.Grip);
-        if (extendSelection) return Cursor.Default;
+        if (extendSelection && !wandAdd) return Cursor.Default;
 
         bool onSprite = SpriteContains(p);
         if (PaintMode && ActiveTool == PaintTool.Selection && onSprite)
@@ -1470,7 +1483,9 @@ public class SpriteView : Control
         // Shift with Replace paints New → Old instead (see ApplyTool).
         bool replacing = PaintMode && ActiveTool == PaintTool.Replace;
         bool extendSelection = (e.KeyModifiers & (replacing ? KeyModifiers.Control : KeyModifiers.Control | KeyModifiers.Shift)) != 0;
-        if (extendSelection)
+        // Shift with the Magic Wand adds the picked region to the current selection instead of replacing it.
+        bool wandAdd = MagicWandSelect && (e.KeyModifiers & KeyModifiers.Shift) != 0;
+        if (extendSelection && !wandAdd)
         {
             if (hit.Index >= 0)
             {
@@ -1520,7 +1535,7 @@ public class SpriteView : Control
         bool onSprite = SpriteContains(p.Position);
         if (PaintMode && ActiveTool == PaintTool.Selection && onSprite)
         {
-            if (_selection is { } existing && PixelRect(existing).Contains(p.Position)
+            if (!wandAdd && _selection is { } existing && PixelRect(existing).Contains(p.Position)
                 && TryPixelAt(p.Position, out int hitX, out int hitY) && existing.Contains(hitX - existing.X, hitY - existing.Y))
             {
                 _movingSelection = true;
@@ -1530,6 +1545,17 @@ public class SpriteView : Control
                 _selectDragged = false;
                 Cursor = MoveCursor;
                 e.Pointer.Capture(this);
+                return;
+            }
+
+            if (MagicWandSelect)
+            {
+                // The wand is click-born: the press picks the region, and a drag doesn't reshape it.
+                // Shift adds the new region to the current selection instead of replacing it.
+                StartMagicWand(p.Position, wandAdd);
+                Cursor = CrossCursor;
+                e.Pointer.Capture(this);
+                InvalidateVisual();
                 return;
             }
 
@@ -1691,6 +1717,7 @@ public class SpriteView : Control
         {
             _movingSelection = false;
             if (_selectDragged) { SelectionMoved?.Invoke(); SelectionMoveFinished?.Invoke(); }
+            else if (MagicWandSelect) StartMagicWand(_selectPressPos); // a wand click picks, even inside the selection
             else ClearSelectionByClick();
             e.Pointer.Capture(null);
             UpdateHoverCursor(e.GetPosition(this), e.KeyModifiers);
@@ -1872,6 +1899,23 @@ public class SpriteView : Control
     }
 
     /// <summary>
+    /// Magic Wand: selects the contiguous same-index pixels under the point, cropped to their bounds.
+    /// With addToSelection, unions the new region with the current selection instead of replacing it.
+    /// </summary>
+    private void StartMagicWand(Point point, bool addToSelection = false)
+    {
+        if (_sprite?.Indexed is not { } flattened) return;
+        if (!TryPixelAt(point, out int x, out int y)) return;
+        var wand = MagicWandSelection(PaintTarget ?? flattened, x, y);
+        _selection = addToSelection && _selection is { } existing
+            ? UnionSelections(existing, wand)
+            : wand;
+        SelectionStarted?.Invoke();
+        SelectionChanged?.Invoke();
+        InvalidateVisual();
+    }
+
+    /// <summary>
     /// Pixels whose centers lie inside the closed path (nonzero winding, so a looped
     /// outline stays filled), cropped to their bounds; null when none do.
     /// </summary>
@@ -1915,6 +1959,61 @@ public class SpriteView : Control
         for (int y = 0; y < h; y++)
             Array.Copy(full, (minY + y) * width + minX, mask, y * w, w);
         return new PixelSelection(minX, minY, w, h, mask);
+    }
+
+    /// <summary>
+    /// Magic Wand: the contiguous same-index pixels around a start pixel, cropped to their bounds.
+    /// Exact index match, no tolerance; contiguous like the Fill tool's flood fill.
+    /// </summary>
+    private PixelSelection MagicWandSelection(byte[] idx, int startX, int startY)
+    {
+        int w = _sprite!.Width, h = _sprite!.Height;
+        var mask = new bool[w * h];
+        FloodFill(idx, startX, startY, idx[startY * w + startX], mask);
+        int minX = w, minY = h, maxX = -1, maxY = -1;
+        for (int i = 0; i < mask.Length; i++)
+        {
+            if (!mask[i]) continue;
+            int x = i % w, y = i / w;
+            minX = Math.Min(minX, x); maxX = Math.Max(maxX, x);
+            minY = Math.Min(minY, y); maxY = Math.Max(maxY, y);
+        }
+        int width = maxX - minX + 1, height = maxY - minY + 1;
+        var region = new bool[width * height];
+        for (int y = 0; y < height; y++)
+            Array.Copy(mask, (minY + y) * w + minX, region, y * width, width);
+        return new PixelSelection(minX, minY, width, height, region);
+    }
+
+    /// <summary>
+    /// Unions two selections into the bounding box that covers both, with a mask that is true
+    /// wherever either selection reaches; a null mask means the whole box is selected.
+    /// </summary>
+    private static PixelSelection UnionSelections(PixelSelection a, PixelSelection b)
+    {
+        int left = Math.Min(a.X, b.X);
+        int top = Math.Min(a.Y, b.Y);
+        int right = Math.Max(a.X + a.Width, b.X + b.Width);
+        int bottom = Math.Max(a.Y + a.Height, b.Y + b.Height);
+        int width = right - left;
+        int height = bottom - top;
+        var mask = new bool[width * height];
+        OrInto(mask, a, left, top, width);
+        OrInto(mask, b, left, top, width);
+        return new PixelSelection(left, top, width, height, mask);
+    }
+
+    /// <summary>Marks the part of a selection that falls inside the box at (left, top), width wide.</summary>
+    private static void OrInto(bool[] mask, PixelSelection s, int left, int top, int width)
+    {
+        int x0 = s.X - left, y0 = s.Y - top;
+        for (int y = 0; y < s.Height; y++)
+        {
+            int t = (y0 + y) * width + x0;
+            int sIdx = y * s.Width;
+            for (int x = 0; x < s.Width; x++)
+                if (s.Mask is null || s.Mask[sIdx + x]) mask[t + x] = true;
+        }
     }
 
     /// <summary>

@@ -578,6 +578,8 @@
                             <ToggleButton Grid.Column="2" x:Name="LassoSelectButton" Content="Lasso" Tag="Lasso" Click="OnSelectSelectionShape" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                                           ToolTip.Tip="Selects a freehand outline; releasing closes it." />
                           </Grid>
+                          <ToggleButton x:Name="MagicWandSelectButton" Content="Magic Wand" Tag="MagicWand" Click="OnSelectSelectionShape" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                        ToolTip.Tip="Selects contiguous pixels with the same index." />
                           <Grid ColumnDefinitions="*,Auto,*">
                             <Button Grid.Column="0" x:Name="CopySelectionButton" Content="Copy" Click="OnCopySelection" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                                     ToolTip.Tip="Copies the selected pixels." />

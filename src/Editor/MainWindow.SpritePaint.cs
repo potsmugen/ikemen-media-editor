@@ -158,8 +158,10 @@ public partial class MainWindow
     {
         if (sender is not ToggleButton { Tag: string tag }) return;
         SpriteCanvas.LassoSelect = tag == "Lasso";
-        RectangleSelectButton.IsChecked = !SpriteCanvas.LassoSelect;
-        LassoSelectButton.IsChecked = SpriteCanvas.LassoSelect;
+        SpriteCanvas.MagicWandSelect = tag == "MagicWand";
+        RectangleSelectButton.IsChecked = tag == "Rectangle";
+        LassoSelectButton.IsChecked = tag == "Lasso";
+        MagicWandSelectButton.IsChecked = tag == "MagicWand";
     }
 
     /// <summary>Right-click on the Sprites tab canvas: Eyedropper is a one-shot pick here, whatever tool is currently active.</summary>

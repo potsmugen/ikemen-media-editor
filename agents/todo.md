@@ -44,9 +44,6 @@ Verified unless noted.
   - A click on the sprite starts a shape; a click off the sprite still clears the selection.
   - Points off the sprite are clamped to its edge. Closing with under 3 points, or enclosing no
     pixel center, clears the selection. Switching tools, sprites or leaving Paint Mode drops it.
-- Paint Mode: add a Magic Wand to Select that matches the exact index (no tolerance for now;
-  contiguous or global undecided). It can reuse Fill's flood fill and the lasso's mask.
-
 ### Animations and Clsn
 
 - Clsn outlines: add Scale with zoom (Preferences > Clsn), so the box lines grow with the canvas
