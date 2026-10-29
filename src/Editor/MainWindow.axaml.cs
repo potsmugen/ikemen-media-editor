@@ -2225,6 +2225,15 @@ public partial class MainWindow : Window
             return;
         }
 
+        // Paint Mode on the sprite tab: Delete erases the pixel selection.
+        if (e.Key == Key.Delete && Tabs?.SelectedIndex == 0 && SpriteCanvas.PaintMode
+            && SpriteCanvas.Selection is { Width: > 0, Height: > 0 })
+        {
+            EraseSelection();
+            e.Handled = true;
+            return;
+        }
+
         // Arrows, Page Up/Down and Home/End belong to the focused list or control; nothing steps a list behind it.
         // With nothing focused they'd wander into the menus, so they hand focus to the tab's list instead.
         if (e.Key is Key.Left or Key.Right or Key.Up or Key.Down or Key.PageUp or Key.PageDown or Key.Home or Key.End

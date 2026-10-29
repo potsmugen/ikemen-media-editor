@@ -271,6 +271,51 @@ public partial class MainWindow
         PasteSelectionButton.IsEnabled = enabled && _pixelClipboard is not null;
     }
 
+    private void EraseSelection()
+    {
+        if (SpriteCanvas.Selection is not { Width: > 0, Height: > 0 } selection) return;
+        if (_current is not { Indexed: { } pixels, Width: int w, Height: int h } sprite) return;
+        if (ActivePaintPixels() is not { } target) return;
+        if (!ActiveLayerCanPaint()) return;
+        if (RefuseBorrowerEdit(sprite, "erase selection")) return;
+
+        int x0 = Math.Max(selection.X, 0);
+        int y0 = Math.Max(selection.Y, 0);
+        int x1 = Math.Min(selection.X + selection.Width, w);
+        int y1 = Math.Min(selection.Y + selection.Height, h);
+
+        bool any = false;
+        for (int y = y0; y < y1 && !any; y++)
+        {
+            for (int x = x0; x < x1 && !any; x++)
+            {
+                int rx = x - selection.X;
+                int ry = y - selection.Y;
+                if (selection.Contains(rx, ry) && target[y * w + x] != Sprite.TransparentIndex)
+                    any = true;
+            }
+        }
+        if (!any) return;
+
+        OnPaintStrokeStarted();
+        for (int y = y0; y < y1; y++)
+        {
+            for (int x = x0; x < x1; x++)
+            {
+                int rx = x - selection.X;
+                int ry = y - selection.Y;
+                if (selection.Contains(rx, ry))
+                    target[y * w + x] = Sprite.TransparentIndex;
+            }
+        }
+        RecomposePaintLayers();
+        sprite.PixelsDirty = true;
+        SpriteCanvas.Show(sprite, ActivePalette(), _showMask);
+        if (PaintSessionHasChanges()) MarkPaintPendingDirty();
+        PaintStep("erase selection");
+        SyncPaintButtons();
+    }
+
     private void OnCopySelection(object? sender, RoutedEventArgs e)
     {
         if (_current?.Indexed is not { } pixels || SpriteCanvas.Selection is not { } selection) return;
