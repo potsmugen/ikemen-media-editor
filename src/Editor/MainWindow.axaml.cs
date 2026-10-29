@@ -226,6 +226,8 @@ public partial class MainWindow : Window
             Settings.DefaultPolygonLassoSnapRadiusPixels, v => v is >= 0 and <= 100);
         SpriteView.PinchZoomStep = Settings.Checked(nameof(s.Canvas.PinchZoomStep), s.Canvas.PinchZoomStep,
             Settings.DefaultPinchZoomStep, v => double.IsFinite(v) && v > 0);
+        SpriteView.SelectionAnimationMilliseconds = Settings.Checked(nameof(s.Canvas.SelectionAnimationMilliseconds), s.Canvas.SelectionAnimationMilliseconds,
+            Settings.DefaultSelectionAnimationMilliseconds, v => v is >= 0 and <= 1000);
         SpriteView.ZoomAroundCursor = s.Canvas.ZoomAroundCursor;
         var zoom = s.Canvas.ZoomLevels ?? [];
         if (zoom.Length > 0 && zoom.All(v => double.IsFinite(v) && v > 0))

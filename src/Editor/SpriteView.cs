@@ -160,8 +160,10 @@ public class SpriteView : Control
     /// the axis. Panning (a click outside the sprite) and box editing are
     /// unaffected either way.
     /// </summary>
-    public bool PaintMode { get; set; }
-    public PaintTool ActiveTool { get; set; } = PaintTool.Pencil;
+    private bool _paintMode;
+    public bool PaintMode { get => _paintMode; set { _paintMode = value; UpdateSelectionTimer(); } }
+    private PaintTool _activeTool = PaintTool.Pencil;
+    public PaintTool ActiveTool { get => _activeTool; set { _activeTool = value; UpdateSelectionTimer(); } }
 
     /// <summary>Palette index the Pencil/Fill tools paint with.</summary>
     public int PaintColorIndex { get; set; }
@@ -223,6 +225,8 @@ public class SpriteView : Control
     private List<Point>? _polygonPoints;
     private bool[]? _outlineMask;
     private List<(int X1, int Y1, int X2, int Y2, int Inward)> _outlineRuns = [];
+    private DispatcherTimer? _selectionTimer;
+    private double _selectionDashOffset;
 
     /// <summary>Press position for telling a Select click (clears) from a drag.</summary>
     private Point _selectPressPos;
@@ -239,6 +243,8 @@ public class SpriteView : Control
     public static double SelectDragThreshold { get; set; } = Settings.DefaultSelectionDragThresholdPixels;
     /// <summary>Snap radius in screen pixels for closing a polygonal lasso by clicking near the first point.</summary>
     public static int PolygonLassoSnapRadiusPixels { get; set; } = Settings.DefaultPolygonLassoSnapRadiusPixels;
+    /// <summary>Selection outline dash animation interval in milliseconds (settings.json SelectionAnimationMilliseconds); 0 disables.</summary>
+    public static int SelectionAnimationMilliseconds { get; set; } = Settings.DefaultSelectionAnimationMilliseconds;
 
     /// <summary>When set, a Select drag draws a freehand lasso instead of a rectangle.</summary>
     public bool LassoSelect { get; set; }
@@ -289,6 +295,7 @@ public class SpriteView : Control
         }
         SelectionChanged?.Invoke();
         InvalidateVisual();
+        UpdateSelectionTimer();
     }
 
     /// <summary>Raised by the Eyedropper tool with the index it picked.</summary>
@@ -461,6 +468,7 @@ public class SpriteView : Control
             _selection = null;
             _polygonPoints = null;
             SelectionChanged?.Invoke();
+            UpdateSelectionTimer();
         }
         _palette = palette;
         _showMask = showMask;
@@ -1128,8 +1136,9 @@ public class SpriteView : Control
         if (_selection is { } selection && _sprite is not null && PaintMode && ActiveTool == PaintTool.Selection)
         {
             var sr = SpriteRect();
-            var white = new Pen(Brushes.White, 1, new DashStyle([3, 3], 0));
-            var black = new Pen(Brushes.Black, 1, new DashStyle([3, 3], 3));
+            var offset = _selectionDashOffset;
+            var white = new Pen(Brushes.White, 1, new DashStyle([3, 3], offset));
+            var black = new Pen(Brushes.Black, 1, new DashStyle([3, 3], (offset + 3) % 6));
             if (selection.Mask is null)
             {
                 var rect = new Rect(sr.X + selection.X * Zoom, sr.Y + selection.Y * Zoom,
@@ -1679,6 +1688,7 @@ public class SpriteView : Control
             _selectPressPos = p.Position;
             _selectDragged = false;
             _selection = null; // nothing is selected until the press becomes a drag
+            UpdateSelectionTimer();
             if (LassoSelect) StartLasso(p.Position);
             Cursor = CrossCursor;
             e.Pointer.Capture(this);
@@ -1971,6 +1981,7 @@ public class SpriteView : Control
         _selection = original with { X = nx, Y = ny };
         SelectionMoved?.Invoke();
         InvalidateVisual();
+        UpdateSelectionTimer();
     }
 
     private void UpdateSelection(Point point)
@@ -1984,6 +1995,7 @@ public class SpriteView : Control
         int left = Math.Min(sx, x), top = Math.Min(sy, y);
         _selection = new PixelSelection(left, top, Math.Abs(x - sx) + 1, Math.Abs(y - sy) + 1);
         InvalidateVisual();
+        UpdateSelectionTimer();
     }
 
     /// <summary>A click clears the selection and settles a floating paste, like starting a new one.</summary>
@@ -1992,6 +2004,37 @@ public class SpriteView : Control
         SelectionStarted?.Invoke();
         _selection = null;
         SelectionChanged?.Invoke();
+        InvalidateVisual();
+        UpdateSelectionTimer();
+    }
+
+    private void UpdateSelectionTimer()
+    {
+        bool shouldRun = _selection is not null && _sprite is not null && PaintMode && ActiveTool == PaintTool.Selection && SelectionAnimationMilliseconds > 0;
+        if (shouldRun)
+        {
+            if (_selectionTimer is null)
+            {
+                _selectionTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(SelectionAnimationMilliseconds) };
+                _selectionTimer.Tick += OnSelectionTimerTick;
+            }
+            else
+            {
+                _selectionTimer.Interval = TimeSpan.FromMilliseconds(SelectionAnimationMilliseconds);
+            }
+            if (!_selectionTimer.IsEnabled)
+                _selectionTimer.Start();
+        }
+        else
+        {
+            if (_selectionTimer is not null)
+                _selectionTimer.Stop();
+        }
+    }
+
+    private void OnSelectionTimerTick(object? sender, EventArgs e)
+    {
+        _selectionDashOffset = (_selectionDashOffset + 1) % 6;
         InvalidateVisual();
     }
 
@@ -2011,6 +2054,7 @@ public class SpriteView : Control
         _lassoPoints.Add(local);
         _selection = LassoSelection(_lassoPoints, sprite.Width, sprite.Height);
         InvalidateVisual();
+        UpdateSelectionTimer();
     }
 
     private void AddPolygonPoint(Point point)
@@ -2032,12 +2076,14 @@ public class SpriteView : Control
             _selection = null;
             SelectionChanged?.Invoke();
             InvalidateVisual();
+            UpdateSelectionTimer();
             return;
         }
         _selection = LassoSelection(_polygonPoints, sprite.Width, sprite.Height);
         _polygonPoints = null;
         SelectionChanged?.Invoke();
         InvalidateVisual();
+        UpdateSelectionTimer();
     }
 
     /// <summary>
@@ -2055,6 +2101,7 @@ public class SpriteView : Control
         SelectionStarted?.Invoke();
         SelectionChanged?.Invoke();
         InvalidateVisual();
+        UpdateSelectionTimer();
     }
 
     /// <summary>

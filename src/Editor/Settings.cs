@@ -73,6 +73,7 @@ public sealed class Settings
     public static readonly double[] DefaultZoomLevels = [0.125, 0.25, 0.5, 1, 2, 3, 4, 6, 8, 12, 16];
     public const double DefaultSelectionDragThresholdPixels = 3, DefaultPinchZoomStep = 0.25;
     public const int DefaultPolygonLassoSnapRadiusPixels = 10;
+    public const int DefaultSelectionAnimationMilliseconds = 150;
     public const double DefaultCrosshairArmLength = 7, DefaultCrosshairThickness = 1,
         DefaultCrosshairArmMin = 1, DefaultCrosshairArmMax = 100,
         DefaultCrosshairThicknessMin = 1, DefaultCrosshairThicknessMax = 10,
@@ -428,6 +429,8 @@ public sealed class Settings
         public double SelectionDragThresholdPixels { get; set; } = DefaultSelectionDragThresholdPixels;
         /// <summary>Snap radius in screen pixels for closing a polygonal lasso by clicking near the first point.</summary>
         public int PolygonLassoSnapRadiusPixels { get; set; } = DefaultPolygonLassoSnapRadiusPixels;
+        /// <summary>Selection outline animation interval in milliseconds; 0 disables.</summary>
+        public int SelectionAnimationMilliseconds { get; set; } = DefaultSelectionAnimationMilliseconds;
         /// <summary>Flat, Checkerboard or Image; null = not chosen yet (Checkerboard).</summary>
         public string? BackgroundStyle { get; set; }
         /// <summary>#RRGGBB canvas base color; null = the theme's.</summary>

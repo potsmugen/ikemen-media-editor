@@ -156,6 +156,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   shape, in which case a click picks the region instead. Only a drag selects or moves, so there
   are no drag-made 1×1 selections; a drag off the sprite still pans. With the Magic Wand active,
   Shift+click adds the picked region to the current selection instead of replacing it.
+- **Selection outline**: the dashed outline animates (marching ants) while the Select tool is
+  active, stepping every settings.json `SelectionAnimationMilliseconds` (default 150, 0–1000;
+  0 disables). The timer stops when there is no selection or another tool is active.
 - **Sprite drag** (Sprites axis, Animations offset) starts only on a visible pixel (alpha above 0 as
   drawn, every pixel with Show Mask); a transparent pixel pans like empty canvas.
 - **Wheel and pinch zoom**: the sprite, animation and palette-preview canvases and the
