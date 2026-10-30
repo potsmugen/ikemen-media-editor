@@ -4467,7 +4467,8 @@ public static partial class Dialogs
         var selectedLine = ThicknessBox(init.SelectedLineThickness);
         var activeLine = ThicknessBox(init.ActiveLineThickness);
         ToolTip.SetTip(line, "Also used by onion skin boxes and Export Animation.");
-        ToolTip.SetTip(activeLine, "The box with resize handles.");
+        ToolTip.SetTip(selectedLine, "With Scale with zoom, the extra over Plain stays fixed in screen px.");
+        ToolTip.SetTip(activeLine, "The box with resize handles. With Scale with zoom, the extra over Plain stays fixed in screen px.");
 
         // Same 230 label column as the other tabs' rows.
         var tab = new Grid
@@ -4490,7 +4491,7 @@ public static partial class Dialogs
         Put(Name("Fill opacity %"), 4, 0); Put(fill.View, 4, 1); Put(selectedFill.View, 4, 2);
         Put(Name($"Line thickness (1-{max})"), 5, 0); Put(line, 5, 1); Put(selectedLine, 5, 2); Put(activeLine, 5, 3);
         var scaleWithZoom = new CheckBox { Content = "Scale with zoom", IsChecked = init.ScaleWithZoom, VerticalAlignment = VerticalAlignment.Center };
-        ToolTip.SetTip(scaleWithZoom, "Line thickness follows the canvas zoom, never below 1 px.");
+        ToolTip.SetTip(scaleWithZoom, "Plain thickness follows the canvas zoom, never below 1 px. Selected/Active add their extra over Plain unscaled.");
         scaleWithZoom.Checked += (_, _) => changed(); scaleWithZoom.Unchecked += (_, _) => changed();
         Put(scaleWithZoom, 6, 0);
 

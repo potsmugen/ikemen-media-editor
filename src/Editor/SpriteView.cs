@@ -1093,8 +1093,10 @@ public class SpriteView : Control
             bool active = i == SelectedBox;
 
             ctx.FillRectangle(new SolidColorBrush(box.Color, selected ? clsn.SelectedFillOpacity : clsn.FillOpacity), r);
-            double boxPen = DevicePen((active ? clsn.ActiveLineThickness
-                : selected ? clsn.SelectedLineThickness : clsn.LineThickness) * s);
+            // Base scales with zoom; the selected/active extra stays in screen px.
+            int extra = Math.Max(0, (active ? clsn.ActiveLineThickness
+                : selected ? clsn.SelectedLineThickness : clsn.LineThickness) - clsn.LineThickness);
+            double boxPen = DevicePen(clsn.LineThickness * s + extra);
             // Every drawn pixel is a pixel the box covers in game; a box too small for the line is filled.
             if (InsideStroke(r, boxPen) is { } inner)
                 ctx.DrawRectangle(new Pen(new SolidColorBrush(box.Color), boxPen), inner);
