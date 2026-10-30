@@ -352,6 +352,8 @@
                         <Setter Property="Height" Value="7" />
                         <Setter Property="HorizontalAlignment" Value="Right" />
                         <Setter Property="VerticalAlignment" Value="Bottom" />
+                        <!-- Out through the cell's Padding (4,1) and border to sit on the gridline corner. -->
+                        <Setter Property="Margin" Value="0,0,-5,-2" />
                         <Setter Property="Background" Value="{DynamicResource ThemeAccent}" />
                         <Setter Property="Cursor" Value="Cross" />
                         <Setter Property="ZIndex" Value="11" />

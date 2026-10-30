@@ -771,8 +771,9 @@ public partial class MainWindow
         var cell = hit?.FindAncestorOfType<Border>(true);
         if (cell is null || !cell.Classes.Contains("cell") || cell.Tag is not string tag || cell.DataContext is not FrameTableRow row) return;
         if (cell.TranslatePoint(new Point(0, 0), FrameTableList) is not { } origin) return;
-        FrameFillHandle.Margin = new Thickness(origin.X + cell.Bounds.Width - FrameFillHandle.Width - 1,
-            origin.Y + cell.Bounds.Height - FrameFillHandle.Height - 1, 0, 0);
+        // Flush with the cell's outer corner, over the gridlines
+        FrameFillHandle.Margin = new Thickness(origin.X + cell.Bounds.Width - FrameFillHandle.Width,
+            origin.Y + cell.Bounds.Height - FrameFillHandle.Height, 0, 0);
         FrameFillHandle.Tag = tag;
         FrameFillHandle.DataContext = row;
         FrameFillHandle.IsVisible = true;
