@@ -695,13 +695,14 @@ public static partial class Dialogs
 
     public enum SpriteExportFormat { Png, Pcx }
 
-    public sealed record SpriteExportChoice(SpriteExportFormat Format, bool UsePreviewPalette);
+    public sealed record SpriteExportChoice(SpriteExportFormat Format, bool UsePreviewPalette, bool PadCanvas = false);
 
     /// <summary>Export's format, asked before the save dialog, plus whether to color the
     /// image with the preview palette. That checkbox appears only while a preview
     /// override is selected, since without one both answers are the same sprite
-    /// palette. Null = canceled.</summary>
-    public static Task<SpriteExportChoice?> PromptSpriteFormat(Window owner, SpriteExportFormat initial, string? preview)
+    /// palette. Several sprites (one file each) also offer the shared canvas. Null = canceled.</summary>
+    public static Task<SpriteExportChoice?> PromptSpriteFormat(Window owner, SpriteExportFormat initial, string? preview,
+        bool several = false)
     {
         var result = new TaskCompletionSource<SpriteExportChoice?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -721,6 +722,8 @@ public static partial class Dialogs
             previewBox = new CheckBox { Content = $"Use the preview palette ({label})" };
             body.Children.Add(previewBox);
         }
+        var pad = several ? new CheckBox { Content = "Pad every sprite to the same canvas size" } : null;
+        if (pad is not null) body.Children.Add(pad);
         body.Children.Add(new StackPanel
         {
             Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
@@ -730,14 +733,14 @@ public static partial class Dialogs
         var dialog = new Window
         {
             Background = ThemeBrush("ThemePanelBg"), Foreground = ThemeBrush("ThemeText"),
-            Title = "Export Sprite", SizeToContent = SizeToContent.WidthAndHeight,
+            Title = several ? "Export Sprites" : "Export Sprite", SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, CanResize = false, ShowInTaskbar = false,
             Content = body,
         };
         ok.Click += (_, _) =>
         {
             result.TrySetResult(new(pcx.IsChecked == true ? SpriteExportFormat.Pcx : SpriteExportFormat.Png,
-                previewBox?.IsChecked == true));
+                previewBox?.IsChecked == true, pad?.IsChecked == true));
             dialog.Close();
         };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };

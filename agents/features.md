@@ -474,6 +474,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   mutation, matching keys overwrite after confirmation, others append. Unexpected failures
   roll back the batch, per-entry failures don't. Palette PNGs keep RGBA; external character
   palettes are not included.
+- **Several sprites selected, Export**: the single-sprite dialog (format, preview palette) plus
+  Export All's "Pad every sprite to the same canvas size". Writes Group_Number files into a
+  picked folder (" (2)" on duplicate keys), asks before overwriting; sprites PCX can't hold
+  are skipped and listed.
 - **Duplicate sprite linking** matches dimensions and pixel bytes; v1 also requires equal
   palette colors and shares the target palette, while v2 allows independent palettes. Links
   are flattened, and manual links may target only earlier sprites.

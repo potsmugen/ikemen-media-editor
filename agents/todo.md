@@ -39,8 +39,6 @@ Select tool gaps against image editor conventions:
 
 ### Animations and Clsn
 
-- Clsn outlines: add Scale with zoom (Preferences > Clsn), so the box lines grow with the canvas
-  zoom and never go below 1 px. Default off. Export Animation follows, scaled by its output scale.
 - Canvas and Export Animation: true arithmetic Subtract (render.go's reverse subtract) instead of
   the Multiply stand-in, also for SubAdd's subtract pass. Needs reading back the drawn background
   (e.g. an offscreen render under the sprite), so it was left out of the easy fixes.
@@ -103,8 +101,6 @@ Select tool gaps against image editor conventions:
 
 - Improve the Export Palette dialog (what to change is undecided).
 - WebP import: an animated WebP imports all frames like GIF does.
-- Multiple sprite export, one file per sprite: offer the shared-canvas option Export All has
-  ("Pad every sprite to the same canvas size").
 
 ### Saving and recovery
 
@@ -209,7 +205,6 @@ Built, but not tried by the maintainer yet.
   kfm-v2.sff (Sort Colors on 9000,1, Swap Colors on 1,1: palette and sprites both restored); try v1.
 - Test hue and saturation sliders in OKLCH against HSV: zero-slider round trip, hue steadiness
   of perceived lightness, out-of-gamut colors, and the PalettePerceptualHue toggle.
-- Export multiple selected sprites as separate files.
 - Verify multi-selection Crop covers what the removed Crop All Sprites command did
   (whole-file crop with links followed).
 - Test JPG/BMP reference images.

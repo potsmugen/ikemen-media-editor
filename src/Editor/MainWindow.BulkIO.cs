@@ -27,6 +27,7 @@ public partial class MainWindow
         if (_current is not { } sprite) return;
         try
         {
+            if (SelectedSpriteTargets() is { Count: > 1 } many) { await ExportSpritesMany(many); return; }
             // PCX stores indexed pixels only, and a true-color sprite's pixels ignore
             // any palette, so it goes straight to the save dialog as PNG instead of
             // into a prompt with nothing to choose.
@@ -57,6 +58,67 @@ public partial class MainWindow
         catch (Exception ex)
         {
             await Failed("OnExportSprite", ex);
+        }
+    }
+
+    /// <summary>Writes each selected sprite as Group_Number.png/.pcx into a picked folder (" (2)" on
+    /// duplicate keys); asks before overwriting. Sprites PCX can't hold are skipped and listed.</summary>
+    private async Task ExportSpritesMany(List<Sprite> many)
+    {
+        if (_file is not { } sff || _busy) return;
+        if (await Dialogs.PromptSpriteFormat(this, _lastSpriteExportFormat,
+                PreviewOverridePalette() is { } preview ? PaletteLabel(preview) : null, several: true) is not { } choice) return;
+        _lastSpriteExportFormat = choice.Format;
+        var format = choice.Format == Dialogs.SpriteExportFormat.Pcx ? BulkSpriteExportFormat.Pcx : BulkSpriteExportFormat.Png;
+
+        var eligible = many.Where(s => s.DecodeError is null && s.HasPixels && (!UsesPcx(s, format) || s.Indexed is not null)).ToList();
+        if (eligible.Count == 0)
+        {
+            LogSkippedSprites("ExportSpritesMany", many, format);
+            await Dialogs.ShowMessage(this, "Nothing to Export", "None of the selected sprites can be exported in that format.");
+            return;
+        }
+        if (await PickFolder("Export Sprites") is not { } dir) return;
+        string ext = format == BulkSpriteExportFormat.Pcx ? "pcx" : "png";
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var paths = new List<string>();
+        foreach (var s in eligible)
+        {
+            string stem = $"{s.Group}_{s.Index}", name = stem;
+            for (int k = 2; !names.Add(name); k++) name = $"{stem} ({k})";
+            paths.Add(Path.Combine(dir, $"{name}.{ext}"));
+        }
+        int existing = paths.Count(File.Exists);
+        if (existing > 0 && !await Dialogs.Confirm(this, "Export Sprites",
+                $"{existing} of these files already exist in that folder and will be overwritten.", "Overwrite")) return;
+
+        var skippedItems = LogSkippedSprites("ExportSpritesMany", many.Except(eligible), format);
+        var canvas = choice.PadCanvas ? CommonCanvas(eligible) : default;
+        var previewPalette = choice.UsePreviewPalette ? ActivePalette() : null;
+        CrashLog.Trace($"[bulk] export {eligible.Count} selected sprites to {dir}; format {format}; padded={choice.PadCanvas}");
+        if (!TryBeginBusy()) return;
+        try
+        {
+            for (int n = 0; n < eligible.Count; n++)
+            {
+                var s = eligible[n];
+                await BusyStep("Exporting sprite", n, eligible.Count, $"{s.Group},{s.Index} {s.Width}x{s.Height}");
+                if (!ReferenceEquals(_file, sff)) { StatusText.Text = "Export stopped \u2014 the file was closed."; return; }
+                var (bytes, _) = EncodeExportSprite(s, format, previewPalette ?? s.Palette, _showMask, choice.PadCanvas, canvas);
+                File.WriteAllBytes(paths[n], bytes);
+            }
+            int skipped = many.Count - eligible.Count;
+            StatusText.Text = $"Exported {eligible.Count} sprites to {dir}" + (skipped > 0 ? $", skipped {skipped} (see errors.log)" : "");
+            ShowSkipped("Sprites Skipped", skippedItems);
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("ExportSpritesMany", ex);
+            await Dialogs.ShowMessage(this, "Export Failed", $"Export failed: {ex.Message} (see errors.log)");
+        }
+        finally
+        {
+            EndBusy();
         }
     }
 

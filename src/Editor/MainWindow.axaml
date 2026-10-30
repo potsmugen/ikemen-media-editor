@@ -442,7 +442,7 @@
                     <Button Grid.Column="0" x:Name="SpriteImportButton" Content="Import" HorizontalAlignment="Stretch" Click="OnAddSprite" ToolTip.Tip="Adds images as new sprites after the selected one." />
                     <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
                     <Button Grid.Column="2" x:Name="SpriteExportButton" Content="Export" HorizontalAlignment="Stretch" Click="OnExportSprite"
-                            ToolTip.Tip="Saves the selected sprite, asking for .png or .pcx." />
+                            ToolTip.Tip="Saves the selected sprites, asking for .png or .pcx." />
                   </Grid>
                   <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*" Margin="{DynamicResource UiGapTop}">
                     <Button Grid.Column="0" x:Name="SpriteReplaceButton" Content="Replace" HorizontalAlignment="Stretch" Click="OnReplaceSprite" ToolTip.Tip="Swaps in a new image, keeping the sprite's group, number and axis." />
