@@ -962,8 +962,9 @@
                   <TextBlock Text="Pending changes" Foreground="{DynamicResource ThemeMutedText}" />
                   <!-- Before = the color Reset restores; After = the live color. Filled by UpdateColorCompare. -->
                   <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="8" HorizontalAlignment="Center">
-                    <StackPanel Grid.Column="0" Spacing="2" ToolTip.Tip="The color Reset restores.">
+                    <StackPanel Grid.Column="0" Spacing="2">
                       <Border x:Name="ColorBeforeSquare" Width="72" Height="56" BorderThickness="1"
+                              ToolTip.Tip="The color Reset restores. Hold to preview the colors before these changes."
                               BorderBrush="{DynamicResource ThemeSeparator}" Background="{DynamicResource ThemeFieldBg}">
                         <Border x:Name="ColorBeforeAlpha" Height="3" VerticalAlignment="Bottom" IsVisible="False" />
                       </Border>

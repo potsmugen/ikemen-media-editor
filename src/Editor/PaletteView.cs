@@ -80,6 +80,17 @@ public class PaletteView : Control
         AddHandler(DragDrop.DropEvent, OnDrop);
     }
 
+    /// <summary>Colors drawn instead of the palette's own while set (the Before preview). Display only.</summary>
+    public Rgba[]? ColorsOverride
+    {
+        get => _colorsOverride;
+        set { _colorsOverride = value; InvalidateVisual(); }
+    }
+    private Rgba[]? _colorsOverride;
+
+    /// <summary>Whether this grid is showing the given palette.</summary>
+    public bool Shows(Palette palette) => ReferenceEquals(_palette, palette);
+
     public void Show(Palette? palette)
     {
         if (!ReferenceEquals(_palette, palette))
@@ -220,7 +231,7 @@ public class PaletteView : Control
             }
             if (i >= count) continue; // past this palette's real colors — left blank, not shrunk away
 
-            var c = _palette.Colors[i];
+            var c = _colorsOverride is { } o && i < o.Length ? o[i] : _palette.Colors[i];
             ctx.FillRectangle(new SolidColorBrush(Color.FromRgb(c.R, c.G, c.B)), r);
             ctx.FillRectangle(new SolidColorBrush(Color.FromRgb(c.A, c.A, c.A)), new Rect(r.X, r.Bottom - 3, r.Width, 3));
 

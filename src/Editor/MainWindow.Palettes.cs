@@ -32,6 +32,7 @@ public partial class MainWindow
     /// </summary>
     private void RefreshPaletteViews(Palette pal)
     {
+        EndBeforePreview(); // a write mid-hold (undo shortcut) shows live colors again
         if (_standalonePalettes.Contains(pal))
             pal.Dirty = _undo.Differs(StandalonePaletteKindFor(pal));
         else if (pal.Source == PaletteSource.External && _file?.Palettes.Contains(pal) == true)
@@ -504,6 +505,55 @@ public partial class MainWindow
         alpha.IsVisible = true;
     }
 
+    // ---- Before preview: hold the Before square to show the colors as they were before the pending changes ----
+
+    /// <summary>The palette the hold is previewing; null when no hold is active.</summary>
+    private Palette? _beforePreviewPalette;
+    private bool _beforePreviewSwappedCanvas;
+
+    private void WireColorBeforePreview()
+    {
+        ColorBeforeSquare.PointerPressed += OnColorBeforePressed;
+        ColorBeforeSquare.PointerReleased += (_, e) => e.Pointer.Capture(null); // capture loss ends it
+        ColorBeforeSquare.PointerCaptureLost += (_, _) => EndBeforePreview();
+        Deactivated += (_, _) => EndBeforePreview();
+    }
+
+    /// <summary>Draws the session-start colors in the grids and previews. Never writes the palette.</summary>
+    private void OnColorBeforePressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(ColorBeforeSquare).Properties.IsLeftButtonPressed) return;
+        if (_adjustSession is not { Count: > 0 } session || _editingPalette is not { } pal || !HasAdjustedColors()) return;
+        var colors = (Rgba[])pal.Colors.Clone();
+        foreach (var (i, c) in session) if (i < colors.Length) colors[i] = c;
+
+        _beforePreviewPalette = pal;
+        foreach (var view in new[] { Swatches, BigSwatches, ScratchSwatches })
+            if (view.Shows(pal)) view.ColorsOverride = colors;
+        _beforePreviewSwappedCanvas = ReferenceEquals(pal, ActivePalette());
+        if (_beforePreviewSwappedCanvas)
+        {
+            var shown = new Palette { Colors = colors };
+            SpriteCanvas.Show(_current, shown, _showMask);
+            PalettePreview.Show(PalettePreviewSprite(), shown, _showMask);
+        }
+        e.Pointer.Capture(ColorBeforeSquare);
+        e.Handled = true;
+    }
+
+    private void EndBeforePreview()
+    {
+        if (_beforePreviewPalette is not { } pal) return;
+        _beforePreviewPalette = null;
+        foreach (var view in new[] { Swatches, BigSwatches, ScratchSwatches }) view.ColorsOverride = null;
+        if (_beforePreviewSwappedCanvas)
+        {
+            SpriteCanvas.Show(_current, pal, _showMask);
+            PalettePreview.Show(PalettePreviewSprite(), pal, _showMask);
+        }
+        _beforePreviewSwappedCanvas = false;
+    }
+
     /// <summary>Saturation of one color as 0-100, in the same model AdjustColor uses.</summary>
     private static double SaturationPercent(Rgba c, bool perceptual) =>
         perceptual ? SaturationPercentOklch(c) : SaturationPercentHsv(c);
@@ -853,6 +903,7 @@ public partial class MainWindow
         ScratchSwatches.ContextRequested += (_, e) => ShowSwatchContextMenu(ScratchSwatches, _scratchPalette, e);
 
         ScratchSwatches.Show(_scratchPalette);
+        WireColorBeforePreview();
         // Read-only preview: can never write to the Sprite it's showing —
         // see SpriteView.ReadOnly's own doc comment for the full guarantee.
         PalettePreview.ReadOnly = true;

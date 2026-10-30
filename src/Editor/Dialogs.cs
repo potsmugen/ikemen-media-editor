@@ -4501,7 +4501,7 @@ public static partial class Dialogs
         Put(Name($"Line thickness (1-{max})"), 5, 0); Put(line, 5, 1); Put(selectedLine, 5, 2); Put(activeLine, 5, 3);
         var scaleWithZoom = new CheckBox { Content = "Scale with zoom", IsChecked = init.ScaleWithZoom, VerticalAlignment = VerticalAlignment.Center };
         ToolTip.SetTip(scaleWithZoom, "Plain thickness follows the canvas zoom, never below 1 px. Selected/Active add their extra over Plain unscaled.");
-        scaleWithZoom.Checked += (_, _) => changed(); scaleWithZoom.Unchecked += (_, _) => changed();
+        scaleWithZoom.IsCheckedChanged += (_, _) => changed();
         Put(scaleWithZoom, 6, 0);
 
         ClsnValues Values() => new(

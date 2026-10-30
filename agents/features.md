@@ -283,7 +283,9 @@ and constraints that are easy to miss when reading one code path in isolation.
 
 - **Before/After squares** top the color panel, with Commit/Reset under them; they cover every
   pending change in the panel. Before is the session start (what Reset restores), After the
-  live color of the selected swatch.
+  live color of the selected swatch. Holding Before draws every session-start color in the
+  swatch grids, sprite canvas and palette preview; display only, nothing is written. Release,
+  capture loss, window deactivation or any palette refresh restores the live colors.
 - **Select Color Here** (sprite preview right-click) is the only way to pick a color from the
   preview; the preview's tooltip hints at it.
 - **Copy to Scratch/Current Palette** (swatch right-click) keeps each color's index, unlike

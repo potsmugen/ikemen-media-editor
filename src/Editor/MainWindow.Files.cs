@@ -286,6 +286,8 @@ public partial class MainWindow
         {
             var lines = new List<(string Text, Action? Jump)>();
             var details = new List<(string Text, Action? Jump)>();
+            // Types a jump as Action? so tuples match Section; a cast alone still infers Action.
+            static Action? Jump(Action jump) => jump;
             void Section(string heading, IEnumerable<(string Text, Action? Jump)> items)
             {
                 var list = items.ToList();
@@ -319,16 +321,16 @@ public partial class MainWindow
                 if (sffFileSize is not null) lines.Add((sffFileSize, null));
                 lines.Add(($"  Sprites: {file.Sprites.Count}", null));
                 lines.Add(($"  Palettes: {embeddedPalettes.Count}", null));
-                Section("Decode failures", bad.Select(s => ($"  Sprite {s.Group},{s.Index}: {s.DecodeError}", (Action?)(() => JumpToSprite(s)))));
-                Section("Duplicate sprite keys (the later ones)", duplicateSprites.Select(s => ($"  Sprite {s.Group},{s.Index}", (Action?)(() => JumpToSprite(s)))));
-                Section("Duplicate SFF palette keys (the later ones)", duplicatePaletteKeys.Select(p => ($"  Palette {PaletteKey(file, p)}", (Action?)(() => JumpToPalette(p)))));
+                Section("Decode failures", bad.Select(s => ($"  Sprite {s.Group},{s.Index}: {s.DecodeError}", Jump(() => JumpToSprite(s)))));
+                Section("Duplicate sprite keys (the later ones)", duplicateSprites.Select(s => ($"  Sprite {s.Group},{s.Index}", Jump(() => JumpToSprite(s)))));
+                Section("Duplicate SFF palette keys (the later ones)", duplicatePaletteKeys.Select(p => ($"  Palette {PaletteKey(file, p)}", Jump(() => JumpToPalette(p)))));
                 Section("Duplicate embedded palette colors (later palettes match the first)", duplicatePaletteColors.Select(x =>
-                    ($"  Palette {PaletteKey(file, x.Palette)} matches {PaletteKey(file, x.Original)}", (Action?)(() => JumpToPalette(x.Palette)))));
-                Section("Unused embedded palettes (group 1 not counted)", unused.Select(p => ($"  Palette {PaletteKey(file, p)}", (Action?)(() => JumpToPalette(p)))));
+                    ($"  Palette {PaletteKey(file, x.Palette)} matches {PaletteKey(file, x.Original)}", Jump(() => JumpToPalette(x.Palette)))));
+                Section("Unused embedded palettes (group 1 not counted)", unused.Select(p => ($"  Palette {PaletteKey(file, p)}", Jump(() => JumpToPalette(p)))));
                 Section("Links to a later sprite (Ikemen GO loads them as blank)", forward.Select(s =>
-                    ($"  Sprite {s.Group},{s.Index} links to {s.SharesWith!.Group},{s.SharesWith.Index}", (Action?)(() => JumpToSprite(s)))));
+                    ($"  Sprite {s.Group},{s.Index} links to {s.SharesWith!.Group},{s.SharesWith.Index}", Jump(() => JumpToSprite(s)))));
                 Section("Links to a later palette (Ikemen GO loads them with the wrong colors)", forwardPalettes.Select(p =>
-                    ($"  Palette {PaletteKey(file, p)} links to {PaletteKey(file, p.LinksTo!)}", (Action?)(() => JumpToPalette(p)))));
+                    ($"  Palette {PaletteKey(file, p)} links to {PaletteKey(file, p.LinksTo!)}", Jump(() => JumpToPalette(p)))));
             }
             if (_air is { } air)
             {
@@ -357,9 +359,9 @@ public partial class MainWindow
                 var both = air.Actions.SelectMany(a => a.FramesWithDefaultAndOwnClsn().Select(i => (Action: a, Frame: i))).ToList();
 
                 Section("Missing sprite references (action, frame: sprite)", missing.Select(x =>
-                    ($"  Action {x.Action.Number}, frame {x.Frame + 1}: {x.Element.Group},{x.Element.Index}", (Action?)(() => JumpToFrame(x.Action, x.Element)))));
+                    ($"  Action {x.Action.Number}, frame {x.Frame + 1}: {x.Element.Group},{x.Element.Index}", Jump(() => JumpToFrame(x.Action, x.Element)))));
                 Section("Frames with both a Clsn default and their own Clsn (invalid; action, frame)", both.Select(x =>
-                    ($"  Action {x.Action.Number}, frame {x.Frame + 1}", (Action?)(() => JumpToFrame(x.Action, x.Action.Elements[x.Frame])))));
+                    ($"  Action {x.Action.Number}, frame {x.Frame + 1}", Jump(() => JumpToFrame(x.Action, x.Action.Elements[x.Frame])))));
                 // Embedded actions keep the .def's encoding and line endings, so only a standalone .air converts.
                 var written = new List<(string Text, Action? Jump)>();
                 if (!_airEmbeddedInDef)
@@ -376,7 +378,7 @@ public partial class MainWindow
                     a.ReorderedComments > 0 ? $"{a.ReorderedComments} comment lines moved" : null,
                     a.DroppedLines > 0 ? $"{a.DroppedLines} unused lines dropped" : null,
                     a.SwappedBoxCorners > 0 ? $"{a.SwappedBoxCorners} Clsn boxes reordered" : null,
-                }.Where(p => p is not null)), (Action?)(() => JumpToAction(a)))));
+                }.Where(p => p is not null)), Jump(() => JumpToAction(a)))));
                 Section("Written differently on save", written);
             }
             if (_snd is { } snd)
@@ -410,8 +412,8 @@ public partial class MainWindow
                     lines.Add(("    " + line, null));
                 if (unreadable.Count > 0)
                     lines.Add(($"    {unreadable.Count} unreadable", null));
-                Section("Unreadable headers", unreadable.Select(s => ($"  Sound {s.Group},{s.Index}: {s.Problem}", (Action?)(() => JumpToSound(s)))));
-                Section("Duplicate sound keys (the later ones)", duplicates.Select(s => ($"  Sound {s.Group},{s.Index}", (Action?)(() => JumpToSound(s)))));
+                Section("Unreadable headers", unreadable.Select(s => ($"  Sound {s.Group},{s.Index}: {s.Problem}", Jump(() => JumpToSound(s)))));
+                Section("Duplicate sound keys (the later ones)", duplicates.Select(s => ($"  Sound {s.Group},{s.Index}", Jump(() => JumpToSound(s)))));
             }
             if (lines.Count == 0)
                 lines.Add(("No media is loaded.", null));
