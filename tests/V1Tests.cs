@@ -190,4 +190,99 @@ public class V1Tests
         }
         finally { File.Delete(tmp); }
     }
+    /// <summary>Each subfile's PCX bytes in list order; links have none.</summary>
+    private static List<byte[]> RawPcx(string path) => RawRecords(path).Select(r => r.Pcx).ToList();
+
+    /// <summary>Each subfile's PCX bytes and same-palette flag, in list order.</summary>
+    private static List<(byte[] Pcx, bool SamePalette)> RawRecords(string path)
+    {
+        var b = File.ReadAllBytes(path);
+        var list = new List<(byte[], bool)>();
+        uint off = BitConverter.ToUInt32(b, 24);
+        while (off != 0 && off + 32 <= b.Length)
+        {
+            uint next = BitConverter.ToUInt32(b, (int)off), length = BitConverter.ToUInt32(b, (int)off + 4);
+            list.Add((b.AsSpan((int)off + 32, (int)length).ToArray(), b[off + 18] != 0));
+            if (next <= off) break;
+            off = next;
+        }
+        return list;
+    }
+
+    /// <summary>A plain v1 save keeps every untouched PCX as read: header fields (DPI, 16-color
+    /// header palette) and palette bytes left in same-palette records survive. A record whose flag
+    /// the save changes may need its own palette (kfm - old.sff's 0,0, shared to individual).</summary>
+    [Theory]
+    [InlineData("kfm-v1.sff")]
+    [InlineData("kfm - old.sff")]
+    public void PlainV1SaveKeepsUntouchedPcxBytes(string name)
+    {
+        var path = WorkingFiles.Find(name);
+        if (path is null) return;
+
+        var before = RawRecords(path);
+        var tmp = Path.Combine(Path.GetTempPath(), $"v1keep-{Guid.NewGuid():N}.sff");
+        try
+        {
+            SffFile.Open(path).Save(tmp, SffVersions.V1);
+            var after = RawRecords(tmp);
+            Assert.Equal(before.Count, after.Count);
+            int kept = 0;
+            for (int i = 0; i < before.Count; i++)
+                if (before[i].SamePalette == after[i].SamePalette) { Assert.Equal(before[i].Pcx, after[i].Pcx); kept++; }
+            Assert.True(kept >= before.Count - 1, $"only {kept} of {before.Count} records kept their flag");
+        }
+        finally { File.Delete(tmp); }
+    }
+
+    /// <summary>An edited sprite is re-encoded; the rest keep their bytes.</summary>
+    [Fact]
+    public void PlainV1SaveReencodesOnlyEditedSprites()
+    {
+        var path = Sample();
+        if (path is null) return;
+
+        var f = SffFile.Open(path);
+        int k = f.Sprites.FindIndex(s => s.SharesWith is null && s.Width * s.Height > 1);
+        var edited = f.Sprites[k].Indexed!.ToArray();
+        edited[0] = (byte)(edited[0] == 7 ? 8 : 7);
+        f.Sprites[k].Indexed = edited;
+        f.Sprites[k].PixelsDirty = true;
+
+        var before = RawPcx(path);
+        var tmp = Path.Combine(Path.GetTempPath(), $"v1edit-{Guid.NewGuid():N}.sff");
+        try
+        {
+            f.Save(tmp, SffVersions.V1);
+            var after = RawPcx(tmp);
+            for (int i = 0; i < before.Count; i++)
+                if (i == k) Assert.NotEqual(before[i], after[i]);
+                else Assert.Equal(before[i], after[i]);
+            Assert.Equal(edited, SffFile.Open(tmp).Sprites[k].Indexed);
+        }
+        finally { File.Delete(tmp); }
+    }
+
+    /// <summary>A palette edit re-encodes the record that carries that palette, so the color reloads.</summary>
+    [Fact]
+    public void PlainV1SaveReencodesSpriteWhosePaletteChanged()
+    {
+        var path = Sample();
+        if (path is null) return;
+
+        var f = SffFile.Open(path);
+        int k = f.Sprites.FindIndex(s => s.SharesWith is null);
+        var pal = f.Sprites[k].Palette!;
+        var old = pal.Colors[5];
+        pal.Colors[5] = new Rgba((byte)(old.R ^ 0xff), old.G, old.B, old.A);
+
+        var tmp = Path.Combine(Path.GetTempPath(), $"v1pal-{Guid.NewGuid():N}.sff");
+        try
+        {
+            f.Save(tmp, SffVersions.V1);
+            Assert.NotEqual(RawPcx(path)[k], RawPcx(tmp)[k]);
+            Assert.Equal(pal.Colors[5].R, SffFile.Open(tmp).Sprites[k].Palette!.Colors[5].R);
+        }
+        finally { File.Delete(tmp); }
+    }
 }

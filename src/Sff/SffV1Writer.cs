@@ -14,7 +14,9 @@ internal static class SffV1Writer
 
     /// <param name="linkPalettes">Plain saves: a link whose palette is the previous sprite's (not its
     /// target's) gets the same-palette flag. Off for Save Like SprMaker 0.97, which keeps the tool's bytes.</param>
-    public static void Save(SffFile f, string path, bool clamp = false, bool linkDuplicatePalettes = false, bool usePreviousPalette = false, List<SprMakerEvent>? events = null, bool linkPalettes = false)
+    /// <param name="keepSourceBytes">Plain saves: a PCX read from a v1 file is written back as read while
+    /// it still decodes to the same sprite. Off for Save Like SprMaker 0.97, which re-encodes like the tool.</param>
+    public static void Save(SffFile f, string path, bool clamp = false, bool linkDuplicatePalettes = false, bool usePreviousPalette = false, List<SprMakerEvent>? events = null, bool linkPalettes = false, bool keepSourceBytes = false)
     {
         var unsupported = Unsupported(f, 5);
         if (unsupported.Count > 0)
@@ -53,7 +55,9 @@ internal static class SffV1Writer
             if (samePalette && events is not null && previousSprite is not null)
                 events.Add(new SprMakerEvent(SprMakerEventKind.PaletteReused,
                     s.Group, s.Index, previousSprite.Group, previousSprite.Index));
-            payloads[i] = PcxWriter.Encode(s.Indexed!, s.Width, s.Height, pal.Colors, !samePalette);
+            payloads[i] = keepSourceBytes && KeepsSource(s, pal, samePalette)
+                ? s.SourceData!
+                : PcxWriter.Encode(s.Indexed!, s.Width, s.Height, pal.Colors, !samePalette);
             previousPalette = pal;
             previousSprite = s;
         }
@@ -103,6 +107,25 @@ internal static class SffV1Writer
             body.Position = 0;
             body.CopyTo(file);
         });
+    }
+
+    /// <summary>
+    /// Whether the PCX read from disk, written with this same-palette flag, reloads as this sprite:
+    /// same size and pixels, and its own palette when unflagged. Keeps header fields and leftover
+    /// palette bytes that re-encoding would drop.
+    /// </summary>
+    private static bool KeepsSource(Sprite s, Palette pal, bool samePalette)
+    {
+        if (s.SharesWith is not null || s.PixelsDirty || s.SrcFormat != SpriteFormat.Pcx
+            || s.SourceData is not { Length: > 0 } source || s.Indexed is not { } pixels) return false;
+        Pcx.Image img;
+        try { img = Pcx.Decode(source, samePalette); }
+        catch (Exception e) when (e is InvalidDataException or NotSupportedException)
+        {
+            return false; // a changed flag moves where pixel data ends; re-encoding is the answer, not an error
+        }
+        return img.Width == s.Width && img.Height == s.Height && img.Indices.AsSpan().SequenceEqual(pixels)
+            && (samePalette || img.Palette is { } own && PcxWriter.SameRgbPalette(own, pal.Colors));
     }
 
     /// <summary>A link reads its target's palette unless flagged; flag it only when its palette is the

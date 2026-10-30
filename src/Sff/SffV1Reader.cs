@@ -60,6 +60,7 @@ internal static class SffV1Reader
                 try
                 {
                     var img = Pcx.Decode(b.AsSpan(start, (int)length), samePalette);
+                    s.SourceData = b.AsSpan(start, (int)length).ToArray(); // a plain save keeps it while it still decodes the same
                     s.Width = img.Width;
                     s.Height = img.Height;
                     s.Indexed = img.Indices;

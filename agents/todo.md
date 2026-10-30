@@ -121,11 +121,6 @@ Select tool gaps against image editor conventions:
 - AIR save changes after Recover: a recovery snapshot is written already converted (LF, UTF-8,
   Clsn lint fixed), so the recovered file shows no save-change notes or Health Report entries.
   Fixing it means storing the original format and counts with the snapshot.
-- Saves that change a file the user didn't edit, like the Global Shared Palette popup;
-  decide per case whether to keep the bytes or tell the user (verified on real files):
-  - Plain Save of SFF v1 re-encodes every PCX (`SffV1Writer`), dropping PCX header
-    fields (DPI, 16-color header palette) and palette bytes left in same-palette
-    records. Pixels and colors are unchanged. Seen in kfm_win's kfm.sff.
 - Autosave still rereads and rehashes the source file on every snapshot, and copies
   unchanged items into each new package. Cache the hash and write only what changed.
 - Autosave writes on the UI thread. Move the disk write to a background thread once
@@ -134,9 +129,12 @@ Select tool gaps against image editor conventions:
   a 350 MB file.
 - Decide whether to use a change event on the undo stack instead of polling for dirty state.
 - After an SFF save, the sprites in memory keep their old SrcFormat, SrcDepth, SourceData and
-  PixelsDirty (`SffWriter.Save` uses the chosen format only for the file; plain Save doesn't
-  reload). Update them from what was written, in both writers, so the next save reuses the bytes
-  and a sprite-format list in the Media Health Report could be trusted. Mind undo snapshots.
+  PixelsDirty, so edited sprites re-encode on every save until reload. Slower only, never wrong;
+  left as is (2026-10-30). Don't clear PixelsDirty after a save unless every undo step also
+  restores SourceData: about a dozen restore only pixels and the dirty flag (SpritePaint,
+  SpriteCrop, color reorder, unlink, batch palette), so undoing an edit after a save would
+  write the edited bytes. Revisit only if save time is measured as a problem; then prefer a
+  pixel-hash cache in the writer. A Health Report format list would need SrcFormat updated too.
 
 ### Performance and lists
 

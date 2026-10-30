@@ -1066,6 +1066,11 @@ The editor's writers follow these tools where applicable.
   Plain v1 saves flag a link whose palette is the previous one and not its target's;
   Save Like SprMaker 0.97 keeps the tool's flag rule above. A v1 save can't keep a link
   palette that is neither (it reloads as the target's); the v2-to-v1 warning lists them.
+  A plain v1 save writes each PCX back as read (`SffV1Writer.KeepsSource`) when those bytes,
+  with the flag the save writes, decode to the sprite's current size and pixels, plus its
+  palette when unflagged; otherwise it re-encodes. That keeps header fields (DPI, 16-color
+  header palette) and palette bytes left in flagged records. Save Like SprMaker 0.97
+  always re-encodes, and the v2 writer never reuses PCX bytes.
 - SprMaker 2.01 (SFF v2, disassembled) links to the first earlier sprite with the
   same file name, or with -f / sprite.detectduplicates the same file size and
   MD5 of the whole source PCX/PNG. The link node copies the target's node

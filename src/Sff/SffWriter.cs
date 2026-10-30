@@ -19,7 +19,7 @@ public static class SffWriter
     /// axis values that don't fit are clamped to the field's range instead of wrapped.</summary>
     public static void Save(SffFile f, string path, SffVersion version, bool clamp = false)
     {
-        if (version.Hi == 1) { SffV1Writer.Save(f, path, clamp, linkPalettes: true); return; }
+        if (version.Hi == 1) { SffV1Writer.Save(f, path, clamp, linkPalettes: true, keepSourceBytes: true); return; }
         Save(f, path, version.Lo2 >= 1 || version.Lo1 > 0, clamp);
     }
 
@@ -491,9 +491,10 @@ public static class SffWriter
 
     private static bool IsPng(SpriteFormat f) => f is SpriteFormat.Png8 or SpriteFormat.Png24 or SpriteFormat.Png32;
 
-    /// <summary>Whether a sprite's original on-disk bytes are written back as they are.</summary>
+    /// <summary>Whether a sprite's original on-disk bytes are written back as they are. A v1 PCX never is.</summary>
     private static bool Reuses(Sprite s, bool allowPng) =>
-        s.SharesWith is null && !s.PixelsDirty && s.SourceData is { Length: > 0 } && (allowPng || !IsPng(s.SrcFormat));
+        s.SharesWith is null && !s.PixelsDirty && s.SourceData is { Length: > 0 } && s.SrcFormat != SpriteFormat.Pcx
+        && (allowPng || !IsPng(s.SrcFormat));
 
     /// <summary>Indexed sprites still stored as PNG from the original file: saving below 2.0.1.0 re-encodes them.</summary>
     public static int StoredAsPng(SffFile f) =>
