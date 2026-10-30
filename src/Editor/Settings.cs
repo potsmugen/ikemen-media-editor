@@ -66,7 +66,8 @@ public sealed class Settings
     public const double DefaultFontScalePercent = 100, DefaultButtonScalePercent = 100,
         DefaultUiScaleMinPercent = 75, DefaultUiScaleMaxPercent = 200;
     public const double DefaultButtonGap = 4, DefaultButtonGapMax = 24;
-    public const double DefaultPanelSeparatorWidth = 2, DefaultPanelSeparatorWidthMax = 10;
+    public const double DefaultPanelSeparatorWidth = 1, DefaultPanelSeparatorWidthMax = 10;
+    public const double DefaultTabAndBarLineWidth = 1, DefaultTabAndBarLineWidthMax = 10;
     public const double DefaultPanelContentInset = 8, DefaultPanelContentInsetMax = 20;
 
     // Canvas
@@ -411,6 +412,8 @@ public sealed class Settings
         public double ButtonGap { get; set; } = DefaultButtonGap;
         /// <summary>Visible thickness and resize-track width of panel separators, in pixels.</summary>
         public double PanelSeparatorWidth { get; set; } = DefaultPanelSeparatorWidth;
+        /// <summary>Tab outlines, tab-strip baselines and the menu/status-bar lines, in pixels (Preferences).</summary>
+        public double TabAndBarLineWidth { get; set; } = DefaultTabAndBarLineWidth;
         /// <summary>Standard inset for panel content, in pixels (Preferences).</summary>
         public double PanelContentInset { get; set; } = DefaultPanelContentInset;
         /// <summary>Buttons and tabs draw with rounded corners (Preferences); off draws them square.</summary>

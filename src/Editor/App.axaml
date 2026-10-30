@@ -96,7 +96,7 @@
       <Setter Property="MinHeight" Value="32" />
       <Setter Property="Margin" Value="{DynamicResource PanelTabMargin}" />
       <Setter Property="BorderBrush" Value="{DynamicResource ThemeSeparator}" />
-      <Setter Property="BorderThickness" Value="{DynamicResource PanelSeparatorTabThickness}" />
+      <Setter Property="BorderThickness" Value="{DynamicResource TabOutlineThickness}" />
       <Setter Property="CornerRadius" Value="{DynamicResource UiTabCornerRadius}" />
     </Style>
     <Style Selector="TabItem:selected">
@@ -121,7 +121,7 @@
                   VerticalAlignment="{TemplateBinding VerticalAlignment}">
             <Grid RowDefinitions="Auto,*">
               <!-- Baseline under the headers, drawn first so the selected (folder-style) tab covers it. -->
-              <Border Height="{DynamicResource PanelSeparatorWidth}" VerticalAlignment="Bottom"
+              <Border Height="{DynamicResource TabAndBarLineWidth}" VerticalAlignment="Bottom"
                       Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
               <ItemsPresenter Name="PART_ItemsPresenter" Margin="4,4,4,0"
                               ItemsPanel="{TemplateBinding ItemsPanel}" />

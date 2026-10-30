@@ -612,7 +612,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   `TabItem` with them, and so does the project-tab strip. Template-bound radii (Fluent parts) win.
 - **Separators**: draggable ones are `PanelSeparatorWidth` bars in `ThemeSeparator`; fixed ones are
   1px `ThemeLine` hairlines, except the menu, tab-strip and status-bar lines, which match the tab
-  outlines. The Paint panel resizes like the other side panels (settings.json `SpritesPaintWidth`;
+  outlines (`TabAndBarLineWidth`, Preferences > Appearance "Tab and bar line width", separate
+  from the panel separators). Floating panel windows outline with `PanelSeparatorWidth`. The Paint panel resizes like the other side panels (settings.json `SpritesPaintWidth`;
   null fits its contents).
 - **Themes**: user themes live under the platform's application-data directory. Dark is
   generated from `Themes.Fallback` when missing, shipped themes are refreshed at startup, and

@@ -259,13 +259,13 @@ public partial class MainWindow : Window
     /// ButtonPadding), plus the one UiButtonGap every button row shares.
     /// Sprite/waveform canvases don't use them. Startup and Preferences OK.
     /// </summary>
-    private void ApplyUiScale() => ApplyUiScale(_settings.Appearance.FontScalePercent, _settings.Appearance.ButtonScalePercent, _settings.Appearance.ButtonGap, _settings.Appearance.PanelSeparatorWidth, _settings.Appearance.PanelContentInset, _settings.Appearance.RoundedCorners);
+    private void ApplyUiScale() => ApplyUiScale(_settings.Appearance.FontScalePercent, _settings.Appearance.ButtonScalePercent, _settings.Appearance.ButtonGap, _settings.Appearance.PanelSeparatorWidth, _settings.Appearance.PanelContentInset, _settings.Appearance.RoundedCorners, _settings.Appearance.TabAndBarLineWidth);
 
     /// <summary>Rounded corner radii: Fluent's ControlCornerRadius for buttons, folder-tab tops for tabs.</summary>
     private const double ButtonCornerRadius = 3, TabCornerRadius = 4;
 
     /// <summary>Takes the values directly so Preferences can preview them before they're saved.</summary>
-    private void ApplyUiScale(double fontPercent, double buttonPercent, double? gap = null, double? separatorWidth = null, double? panelContentInset = null, bool? roundedCorners = null)
+    private void ApplyUiScale(double fontPercent, double buttonPercent, double? gap = null, double? separatorWidth = null, double? panelContentInset = null, bool? roundedCorners = null, double? tabAndBarLineWidth = null)
     {
         if (Application.Current?.Resources is not { } r) return;
         var (min, max) = UiScaleRange();
@@ -306,9 +306,12 @@ public partial class MainWindow : Window
         r["PanelContentMargin"] = new Thickness(contentInset);
         r["PanelSeparatorWidth"] = separatorTrackWidth;
         r["PanelSeparatorTrack"] = new GridLength(separatorTrackWidth);
-        r["PanelSeparatorBottomThickness"] = new Thickness(0, 0, 0, separatorTrackWidth);
-        r["PanelSeparatorTabThickness"] = new Thickness(separatorTrackWidth, separatorTrackWidth, separatorTrackWidth, 0); // folder-style tab outline
-        r["PanelTabMargin"] = new Thickness(0, 0, 2, separatorTrackWidth); // sub-tab headers: gap, and the baseline shows below
+        double tabLine = Settings.Checked(nameof(Settings.AppearanceSection.TabAndBarLineWidth), tabAndBarLineWidth ?? _settings.Appearance.TabAndBarLineWidth,
+            Settings.DefaultTabAndBarLineWidth, v => v >= 1 && v <= Settings.DefaultTabAndBarLineWidthMax);
+        r["TabAndBarLineWidth"] = tabLine; // tab-strip baselines, menu and status-bar lines
+        r["TabLineBottomThickness"] = new Thickness(0, 0, 0, tabLine);
+        r["TabOutlineThickness"] = new Thickness(tabLine, tabLine, tabLine, 0); // folder-style tab outline
+        r["PanelTabMargin"] = new Thickness(0, 0, 2, tabLine); // sub-tab headers: gap, and the baseline shows below
         r["PanelTabSelectedMargin"] = new Thickness(0, 0, 2, 0); // the selected one covers the baseline
         bool rounded = roundedCorners ?? _settings.Appearance.RoundedCorners;
         r["UiButtonCornerRadius"] = new CornerRadius(rounded ? ButtonCornerRadius : 0);
@@ -356,6 +359,7 @@ public partial class MainWindow : Window
             Math.Clamp(s.Appearance.FontScalePercent, min, max), Math.Clamp(s.Appearance.ButtonScalePercent, min, max),
             Math.Clamp(s.Appearance.ButtonGap, 0, Settings.DefaultButtonGapMax),
             Math.Clamp(s.Appearance.PanelSeparatorWidth, 1, Settings.DefaultPanelSeparatorWidthMax),
+            Math.Clamp(s.Appearance.TabAndBarLineWidth, 1, Settings.DefaultTabAndBarLineWidthMax),
             Math.Clamp(s.Appearance.PanelContentInset, 0, Settings.DefaultPanelContentInsetMax), s.Appearance.RoundedCorners,
             _appliedCanvas ?? CanvasValuesFromSettings(), _appliedClsn ?? ClsnValuesFromSettings());
         var d = new Settings();
@@ -364,11 +368,12 @@ public partial class MainWindow : Window
             Math.Clamp(d.Appearance.FontScalePercent, min, max), Math.Clamp(d.Appearance.ButtonScalePercent, min, max),
             Math.Clamp(d.Appearance.ButtonGap, 0, Settings.DefaultButtonGapMax),
             Math.Clamp(d.Appearance.PanelSeparatorWidth, 1, Settings.DefaultPanelSeparatorWidthMax),
+            Math.Clamp(d.Appearance.TabAndBarLineWidth, 1, Settings.DefaultTabAndBarLineWidthMax),
             Math.Clamp(d.Appearance.PanelContentInset, 0, Settings.DefaultPanelContentInsetMax), d.Appearance.RoundedCorners,
             CanvasValuesFromSettings(d), ClsnValuesFromSettings(d));
         string previewTheme = s.General.ThemeName;
         var previewUiScale = (Font: initial.FontScalePercent, Button: initial.ButtonScalePercent,
-            Gap: initial.ButtonGap, Separator: initial.PanelSeparatorWidth, Inset: initial.PanelContentInset, Rounded: initial.RoundedCorners);
+            Gap: initial.ButtonGap, Separator: initial.PanelSeparatorWidth, Inset: initial.PanelContentInset, Rounded: initial.RoundedCorners, TabAndBarLine: initial.TabAndBarLineWidth);
         void Preview(Dialogs.PreferencesValues v)
         {
             try
@@ -379,11 +384,11 @@ public partial class MainWindow : Window
                     ApplyTheme(v.ThemeName);
                 }
                 var uiScale = (Font: v.FontScalePercent, Button: v.ButtonScalePercent,
-                    Gap: v.ButtonGap, Separator: v.PanelSeparatorWidth, Inset: v.PanelContentInset, Rounded: v.RoundedCorners);
+                    Gap: v.ButtonGap, Separator: v.PanelSeparatorWidth, Inset: v.PanelContentInset, Rounded: v.RoundedCorners, TabAndBarLine: v.TabAndBarLineWidth);
                 if (previewUiScale != uiScale)
                 {
                     previewUiScale = uiScale;
-                    ApplyUiScale(v.FontScalePercent, v.ButtonScalePercent, v.ButtonGap, v.PanelSeparatorWidth, v.PanelContentInset, v.RoundedCorners);
+                    ApplyUiScale(v.FontScalePercent, v.ButtonScalePercent, v.ButtonGap, v.PanelSeparatorWidth, v.PanelContentInset, v.RoundedCorners, v.TabAndBarLineWidth);
                 }
                 ApplyCanvasDecor(v.Canvas);
                 ApplyClsnStyle(v.Clsn);
@@ -412,6 +417,7 @@ public partial class MainWindow : Window
         s.Appearance.ButtonScalePercent = p.ButtonScalePercent;
         s.Appearance.ButtonGap = p.ButtonGap;
         s.Appearance.PanelSeparatorWidth = p.PanelSeparatorWidth;
+        s.Appearance.TabAndBarLineWidth = p.TabAndBarLineWidth;
         s.Appearance.PanelContentInset = Settings.Checked(nameof(Settings.AppearanceSection.PanelContentInset), p.PanelContentInset,
             Settings.DefaultPanelContentInset, v => v >= 0 && v <= Settings.DefaultPanelContentInsetMax);
         s.Appearance.RoundedCorners = p.RoundedCorners;

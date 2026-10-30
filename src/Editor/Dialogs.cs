@@ -3748,7 +3748,7 @@ public static partial class Dialogs
 
     public sealed record PreferencesValues(bool SwitchTabOnOpen, bool SyncSprite, string ThemeName, int BackupCount,
         double InfiniteAnimationTimeout, double SilenceThreshold, bool DebugMode,
-        double FontScalePercent, double ButtonScalePercent, double ButtonGap, double PanelSeparatorWidth,
+        double FontScalePercent, double ButtonScalePercent, double ButtonGap, double PanelSeparatorWidth, double TabAndBarLineWidth,
         double PanelContentInset, bool RoundedCorners, CanvasValues Canvas, ClsnValues Clsn);
 
     /// <summary>Preferences > Clsn. Colors are #RRGGBB, opacities 0-100, thicknesses in pixels.</summary>
@@ -3813,6 +3813,8 @@ public static partial class Dialogs
         ToolTip.SetTip(buttonGap, "Space between buttons.");
         var panelSeparatorWidth = Number(initial.PanelSeparatorWidth, 1, 1, "0", Settings.DefaultPanelSeparatorWidthMax);
         ToolTip.SetTip(panelSeparatorWidth, "Sets the visible thickness of panel separators.");
+        var tabAndBarLineWidth = Number(initial.TabAndBarLineWidth, 1, 1, "0", Settings.DefaultTabAndBarLineWidthMax);
+        ToolTip.SetTip(tabAndBarLineWidth, "Sets the thickness of tab outlines and the lines along the tab strips, menu and status bar.");
         var panelContentInset = Number(initial.PanelContentInset, 0, 1, "0", Settings.DefaultPanelContentInsetMax);
         ToolTip.SetTip(panelContentInset, "Sets the standard inset inside panels.");
         var roundedCorners = new CheckBox { Content = "Rounded buttons and tabs", IsChecked = initial.RoundedCorners };
@@ -3878,6 +3880,7 @@ public static partial class Dialogs
                 buttonScale.Value is { } bs ? (double)bs : initial.ButtonScalePercent,
                 buttonGap.Value is { } bg ? (double)bg : initial.ButtonGap,
                 panelSeparatorWidth.Value is { } psm ? (double)psm : initial.PanelSeparatorWidth,
+                tabAndBarLineWidth.Value is { } tlw ? (double)tlw : initial.TabAndBarLineWidth,
                 panelContentInset.Value is { } pci ? (double)pci : initial.PanelContentInset,
                 roundedCorners.IsChecked == true,
                 canvasValues(),
@@ -3889,6 +3892,7 @@ public static partial class Dialogs
         buttonScale.ValueChanged += (_, _) => Changed();
         buttonGap.ValueChanged += (_, _) => Changed();
         panelSeparatorWidth.ValueChanged += (_, _) => Changed();
+        tabAndBarLineWidth.ValueChanged += (_, _) => Changed();
         panelContentInset.ValueChanged += (_, _) => Changed();
         roundedCorners.IsCheckedChanged += (_, _) => Changed();
 
@@ -3922,6 +3926,7 @@ public static partial class Dialogs
             buttonScale.Value = (decimal)Math.Clamp(d.ButtonScalePercent, minScale, maxScale);
             buttonGap.Value = (decimal)Math.Clamp(d.ButtonGap, 0, Settings.DefaultButtonGapMax);
             panelSeparatorWidth.Value = (decimal)Math.Clamp(d.PanelSeparatorWidth, 1, Settings.DefaultPanelSeparatorWidthMax);
+            tabAndBarLineWidth.Value = (decimal)Math.Clamp(d.TabAndBarLineWidth, 1, Settings.DefaultTabAndBarLineWidthMax);
             panelContentInset.Value = (decimal)Math.Clamp(d.PanelContentInset, 0, Settings.DefaultPanelContentInsetMax);
             roundedCorners.IsChecked = d.RoundedCorners;
         });
@@ -3954,6 +3959,7 @@ public static partial class Dialogs
                 Row($"Button size % ({minScale:0}-{maxScale:0})", buttonScale),
                 Row($"Button gap (0-{Settings.DefaultButtonGapMax:0})", buttonGap),
                 Row($"Panel separator width (1-{Settings.DefaultPanelSeparatorWidthMax:0})", panelSeparatorWidth),
+                Row($"Tab and bar line width (1-{Settings.DefaultTabAndBarLineWidthMax:0})", tabAndBarLineWidth),
                 Row($"Panel content inset (0-{Settings.DefaultPanelContentInsetMax:0})", panelContentInset),
                 roundedCorners,
             },
