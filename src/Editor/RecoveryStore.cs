@@ -257,6 +257,24 @@ internal static class RecoveryStore
     public static string? HashFile(string? path) => path is not null && File.Exists(path)
         ? Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) : null;
 
+    private static readonly Dictionary<string, (long Size, DateTime Modified, string Hash)> AutosaveHashes = new();
+
+    /// <summary>HashFile for autosave: rehashes only when the file's size or write time changed.</summary>
+    public static string? CachedHashFile(string? path)
+    {
+        if (path is null) return null;
+        var info = new FileInfo(path);
+        if (!info.Exists) return null;
+        lock (AutosaveHashes)
+            if (AutosaveHashes.TryGetValue(path, out var c) && c.Size == info.Length && c.Modified == info.LastWriteTimeUtc)
+                return c.Hash;
+        CrashLog.Trace($"[recovery] hashing source: {path}");
+        string hash;
+        using (var stream = File.OpenRead(path)) hash = Convert.ToHexString(SHA256.HashData(stream));
+        lock (AutosaveHashes) AutosaveHashes[path] = (info.Length, info.LastWriteTimeUtc, hash);
+        return hash;
+    }
+
     /// <param name="tab">For a new file (no source path), only that tab's snapshot is resolved.</param>
     public static void Resolve(string kind, string? sourcePath, int? group = null, int? index = null, string? tab = null) =>
         Remove(item => item.Kind == kind

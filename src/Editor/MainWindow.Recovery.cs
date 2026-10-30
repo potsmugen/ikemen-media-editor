@@ -98,11 +98,13 @@ public partial class MainWindow
             try
             {
                 string? origin = OriginalSource(kind, sourcePath);
-                byte[]? sourceBytes = origin is not null && File.Exists(origin) ? File.ReadAllBytes(origin) : null;
+                // Only an embedded AIR snapshot is built from the source bytes; the rest need just its hash.
+                byte[]? sourceBytes = embedded && origin is not null && File.Exists(origin) ? File.ReadAllBytes(origin) : null;
                 byte[] data = getBytes(sourceBytes);
                 string ext = kind switch { "sff" => ".sff", "air" => embedded ? ".def" : ".air", "snd" => ".snd", _ => ".rgba" };
                 string fileName = $"{kind}-{Guid.NewGuid():N}{ext}";
-                string? hash = sourceBytes is null ? null : Convert.ToHexString(SHA256.HashData(sourceBytes));
+                string? hash = sourceBytes is not null ? Convert.ToHexString(SHA256.HashData(sourceBytes))
+                    : RecoveryStore.CachedHashFile(origin);
                 snapshots.Add((new(kind, title, origin, hash, fileName, embedded, group, index, dirty,
                     contextPath, contextHash, sessionVersion,
                     Tab: _doc.Id, TabOrder: _docs.IndexOf(_doc), TabDef: _doc.DefPath, TabName: _doc.CustomName), data));
@@ -198,7 +200,7 @@ public partial class MainWindow
                                 bytes[i * 4] = c.R; bytes[i * 4 + 1] = c.G; bytes[i * 4 + 2] = c.B; bytes[i * 4 + 3] = c.A;
                             }
                             return bytes;
-                        }, pal.Group, pal.Index, OriginalSource("sff", _path), RecoveryStore.HashFile(OriginalSource("sff", _path)));
+                        }, pal.Group, pal.Index, OriginalSource("sff", _path), RecoveryStore.CachedHashFile(OriginalSource("sff", _path)));
                 }
             }
         }

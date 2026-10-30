@@ -645,6 +645,9 @@ summaries; treat anything marked unverified as unknown.
 - Opening and saving an SFF or SND, including the SFF and SND that character, stage, and screenpack .def loads read: `RunFileWorkAsync` (`MainWindow.Busy.cs`) writes
   "Opening X…" or "Saving X…" with the elapsed seconds, then runs the load or write on a background thread under
   the busy lock, so the window keeps painting. `RecoveryTick` skips while the lock is held.
+- Autosave hashes sources with `RecoveryStore.CachedHashFile` (rehash only when size or write
+  time changes); only an embedded AIR snapshot reads the source bytes. Save and Recover
+  checks use the uncached `HashFile`/`SourceMatches`.
   Failures write "Could not open/save X.". No popup yet; see todo.md.
 
 ### SFF, palettes, and images

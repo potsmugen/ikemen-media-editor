@@ -113,10 +113,10 @@ Select tool gaps against image editor conventions:
 - AIR save changes after Recover: a recovery snapshot is written already converted (LF, UTF-8,
   Clsn lint fixed), so the recovered file shows no save-change notes or Health Report entries.
   Fixing it means storing the original format and counts with the snapshot.
-- Autosave still rereads and rehashes the source file on every snapshot, and copies
-  unchanged items into each new package. Cache the hash and write only what changed.
-- Autosave writes on the UI thread. Move the disk write to a background thread once
-  the trace shows where the time goes.
+- Autosave copies unchanged items into each new package. Write only what changed.
+- Autosave runs on the UI thread: it serializes each dirty file (a full SFF save to temp and
+  read-back) and writes the package. Trace a large SFF snapshot first; serializing reads live
+  tab state, so only the package write moves off the UI thread easily.
 - Check disk use: each recovery package and each save's backup can be a full copy of
   a 350 MB file.
 - Decide whether to use a change event on the undo stack instead of polling for dirty state.
@@ -178,37 +178,7 @@ Built, but not tried by the maintainer yet.
 
 ### Files and app
 
-- "Open with" (launch argument) routing passed for .sff, .snd, .air, .def and .act. Left: .imesession.
-- Release build: double-clicking the exe opens no console window; Debug still shows one.
-- Close during a large SFF save: the "Still working" popup appears and the save completes.
-- Recovery of an SFF v1 with an imported true-color sprite: the snapshot succeeds (no
-  errors.log entry), recovery restores it as v1 with the same palettes, and Save shows
-  the same "SFF v1 holds 8-bit sprites only" error as before the crash. Make a snapshot
-  fail (e.g. read-only recovery folder): one popup.
-- Windows sound playback after the SoundPlayer removal (WinSound/PlaySound): Play, Play loop,
-  Stop, playing another sound while one plays, a range selection, and a non-PCM sound
-  (shows "Could not play the sound"). No System.Windows.Extensions.dll in the build.
-- Playhead vs. sound on Linux/macOS: PlaybackLatencyMilliseconds defaults to 150 there (a
-  guess; the Windows default of 100 checked out). Tune by ear with the external players.
 - Find more dialogs with tips that could be button tooltips instead
-- Add tooltips to most buttons
-- Test the new refusal and failure popups (linked sprite, axis, palette delete/convert/
-  link, recovery, open/reload/export errors, skipped-sprite list). Check Save All's
-  missing-source palette warning and whether Find Again and Open File work.
-- Test the multi-selection busy lock and status progress: crop, resize canvas,
-  rotate, flip, palette apply/import, Increase Loudness on several sounds,
-  Downsample All, and the bulk export/import commands all disable the menu and
-  tabs while they run and show "what i/n…" in the status bar.
-- Test .def case fallback.
-- Test save clamping.
-- Logging: a caught error writes errors.log and leaves crash.log alone; skipped items point
-  to errors.log; a log past Files.LogMaxKilobytes keeps its newer half; Settings > Open Logs
-  Folder opens the folder.
-- General Save rule: a new document or one whose source file disappeared must
-  use Save As rather than writing to a missing source path.
-- Test AIR moved-comment warnings and reports.
-- Test AIR encoding warnings and reports with a real Windows-1252 or Shift-JIS
-  file.
 
 ### Preferences and look
 
