@@ -413,6 +413,8 @@ public sealed class Settings
         public double PanelSeparatorWidth { get; set; } = DefaultPanelSeparatorWidth;
         /// <summary>Standard inset for panel content, in pixels (Preferences).</summary>
         public double PanelContentInset { get; set; } = DefaultPanelContentInset;
+        /// <summary>Buttons and tabs draw with rounded corners (Preferences); off draws them square.</summary>
+        public bool RoundedCorners { get; set; } = true;
     }
 
     public sealed class CanvasSection

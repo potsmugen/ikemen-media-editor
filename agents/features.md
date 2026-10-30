@@ -604,6 +604,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   skipped or invalid items, and `trace.log` breadcrumbs. Each is capped at settings.json
   `Files LogMaxKilobytes` (default 256, 16–10240 KB); past the cap the newer half is kept.
   Settings > Open Logs Folder opens them.
+- **Rounded corners** (Preferences > Appearance, settings.json `Appearance RoundedCorners`, on by
+  default): `ApplyUiScale` sets `UiButtonCornerRadius` (3, Fluent's) and `UiTabCornerRadius`
+  (4,4,0,0) to the rounded values or 0. App.axaml styles Button/ToggleButton/RepeatButton and
+  `TabItem` with them, and so does the project-tab strip. Template-bound radii (Fluent parts) win.
 - **Separators**: draggable ones are `PanelSeparatorWidth` bars in `ThemeSeparator`; fixed ones are
   1px `ThemeLine` hairlines, except the menu, tab-strip and status-bar lines, which match the tab
   outlines. The Paint panel resizes like the other side panels (settings.json `SpritesPaintWidth`;

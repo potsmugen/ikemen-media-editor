@@ -36,6 +36,8 @@
       <Setter Property="HorizontalContentAlignment" Value="Center" />
       <Setter Property="VerticalContentAlignment" Value="Center" />
       <Setter Property="TextBlock.TextTrimming" Value="CharacterEllipsis" />
+      <!-- Rounded or square, from Preferences (MainWindow.ApplyUiScale). -->
+      <Setter Property="CornerRadius" Value="{DynamicResource UiButtonCornerRadius}" />
     </Style>
     <!-- Disabled button appearance: ensure it looks disabled in both themes -->
     <Style Selector="ListBoxItem:selected > Grid">
@@ -95,7 +97,7 @@
       <Setter Property="Margin" Value="{DynamicResource PanelTabMargin}" />
       <Setter Property="BorderBrush" Value="{DynamicResource ThemeSeparator}" />
       <Setter Property="BorderThickness" Value="{DynamicResource PanelSeparatorTabThickness}" />
-      <Setter Property="CornerRadius" Value="4,4,0,0" />
+      <Setter Property="CornerRadius" Value="{DynamicResource UiTabCornerRadius}" />
     </Style>
     <Style Selector="TabItem:selected">
       <Setter Property="Margin" Value="{DynamicResource PanelTabSelectedMargin}" />
@@ -154,6 +156,9 @@
     <x:Double x:Key="UiFont16">16</x:Double>
     <x:Double x:Key="UiFont20">20</x:Double>
     <Thickness x:Key="UiCompactButtonPadding">8,2</Thickness>
+    <!-- Button and tab corners; MainWindow.ApplyUiScale squares them when Preferences turns rounding off. -->
+    <CornerRadius x:Key="UiButtonCornerRadius">3</CornerRadius>
+    <CornerRadius x:Key="UiTabCornerRadius">4,4,0,0</CornerRadius>
     <!-- The one gap between buttons, used by every panel and tab; MainWindow.ApplyUiScale
          rescales these from Preferences. Fixes the 4/6/8/10 mix the panels had.
          A Grid spacer column can't take a resource directly, so a button row uses an

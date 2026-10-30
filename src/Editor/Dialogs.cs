@@ -3749,7 +3749,7 @@ public static partial class Dialogs
     public sealed record PreferencesValues(bool SwitchTabOnOpen, bool SyncSprite, string ThemeName, int BackupCount,
         double InfiniteAnimationTimeout, double SilenceThreshold, bool DebugMode,
         double FontScalePercent, double ButtonScalePercent, double ButtonGap, double PanelSeparatorWidth,
-        double PanelContentInset, CanvasValues Canvas, ClsnValues Clsn);
+        double PanelContentInset, bool RoundedCorners, CanvasValues Canvas, ClsnValues Clsn);
 
     /// <summary>Preferences > Clsn. Colors are #RRGGBB, opacities 0-100, thicknesses in pixels.</summary>
     public sealed record ClsnValues(string Clsn1, string Clsn2, string Clsn1Default, string Clsn2Default,
@@ -3815,6 +3815,8 @@ public static partial class Dialogs
         ToolTip.SetTip(panelSeparatorWidth, "Sets the visible thickness of panel separators.");
         var panelContentInset = Number(initial.PanelContentInset, 0, 1, "0", Settings.DefaultPanelContentInsetMax);
         ToolTip.SetTip(panelContentInset, "Sets the standard inset inside panels.");
+        var roundedCorners = new CheckBox { Content = "Rounded buttons and tabs", IsChecked = initial.RoundedCorners };
+        ToolTip.SetTip(roundedCorners, "Draws buttons and tabs with rounded corners; off draws them square.");
 
         TextBlock Section(string text)
         {
@@ -3877,6 +3879,7 @@ public static partial class Dialogs
                 buttonGap.Value is { } bg ? (double)bg : initial.ButtonGap,
                 panelSeparatorWidth.Value is { } psm ? (double)psm : initial.PanelSeparatorWidth,
                 panelContentInset.Value is { } pci ? (double)pci : initial.PanelContentInset,
+                roundedCorners.IsChecked == true,
                 canvasValues(),
                 clsnValues());
         }
@@ -3887,6 +3890,7 @@ public static partial class Dialogs
         buttonGap.ValueChanged += (_, _) => Changed();
         panelSeparatorWidth.ValueChanged += (_, _) => Changed();
         panelContentInset.ValueChanged += (_, _) => Changed();
+        roundedCorners.IsCheckedChanged += (_, _) => Changed();
 
         var ok = new Button { Content = "OK", MinWidth = 90, IsDefault = true };
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
@@ -3919,6 +3923,7 @@ public static partial class Dialogs
             buttonGap.Value = (decimal)Math.Clamp(d.ButtonGap, 0, Settings.DefaultButtonGapMax);
             panelSeparatorWidth.Value = (decimal)Math.Clamp(d.PanelSeparatorWidth, 1, Settings.DefaultPanelSeparatorWidthMax);
             panelContentInset.Value = (decimal)Math.Clamp(d.PanelContentInset, 0, Settings.DefaultPanelContentInsetMax);
+            roundedCorners.IsChecked = d.RoundedCorners;
         });
         Action resetBackground = () => ResetTab(() => setBackground(defaults.Canvas));
         Action resetCrosshair = () => ResetTab(() => setCrosshair(defaults.Canvas));
@@ -3950,6 +3955,7 @@ public static partial class Dialogs
                 Row($"Button gap (0-{Settings.DefaultButtonGapMax:0})", buttonGap),
                 Row($"Panel separator width (1-{Settings.DefaultPanelSeparatorWidthMax:0})", panelSeparatorWidth),
                 Row($"Panel content inset (0-{Settings.DefaultPanelContentInsetMax:0})", panelContentInset),
+                roundedCorners,
             },
         };
 

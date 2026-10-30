@@ -176,7 +176,7 @@
       <Border.Styles>
         <Style Selector="Border.projectTab">
           <Setter Property="Padding" Value="10,2,2,2" />
-          <Setter Property="CornerRadius" Value="4,4,0,0" />
+          <Setter Property="CornerRadius" Value="{DynamicResource UiTabCornerRadius}" />
           <Setter Property="BorderThickness" Value="{DynamicResource PanelSeparatorTabThickness}" />
           <Setter Property="BorderBrush" Value="{DynamicResource ThemeSeparator}" />
           <Setter Property="Background" Value="{DynamicResource ThemeListBg}" />
