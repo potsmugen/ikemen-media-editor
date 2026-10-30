@@ -18,6 +18,7 @@ public partial class MainWindow
 
             var selected = SelectedSpriteTargets();
             if (selected.Count == 1 && RefuseBorrowerEdit(sprite, "rotate")) return;
+            if (!await ResolvePendingPaintBeforeSwitch()) return; // the edit changes the pixels and size under the session
 
             // One true-color sprite in the selection is enough to make blending unavailable
             // for all of them, so the dialog is told about the whole set.
@@ -41,6 +42,7 @@ public partial class MainWindow
         {
             if (_current is not { HasPixels: true } sprite) return;
             if (RefuseBorrowerEdit(sprite, "flip")) return;
+            if (!await ResolvePendingPaintBeforeSwitch()) return; // the edit changes the pixels and size under the session
             if (await Dialogs.PromptSpriteFlip(this) is not { } choice) return;
 
             var selected = SelectedSpriteTargets();

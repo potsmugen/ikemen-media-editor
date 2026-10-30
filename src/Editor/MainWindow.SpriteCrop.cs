@@ -67,6 +67,7 @@ public partial class MainWindow
         try
         {
             if (_current is not { HasPixels: true } sprite) return;
+            if (!await ResolvePendingPaintBeforeSwitch()) return; // the edit changes the pixels and size under the session
 
             // Several rows share one dialog answer; a single row keeps the original
             // path, with its own current canvas in the dialog.
@@ -244,9 +245,16 @@ public partial class MainWindow
             + (shifts.Count > 0 ? $" {shifts.Count} linked sprite(s) followed." : ".");
     }
 
-    private void OnCropSprite(object? sender, RoutedEventArgs e)
+    private async void OnCropSprite(object? sender, RoutedEventArgs e)
+    {
+        try { await CropSprite(); }
+        catch (Exception ex) { await Failed("OnCropSprite", ex); }
+    }
+
+    private async Task CropSprite()
     {
         if (_current is null) return;
+        if (!await ResolvePendingPaintBeforeSwitch()) return; // the edit changes the pixels and size under the session
 
         // A single row takes the original path, message and all; only a real
         // multi-selection goes through the batch.

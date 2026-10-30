@@ -35,8 +35,10 @@ Verified unless noted.
 
 ### Paint Mode
 
-- Rotating sprite with pending paint changes messes it up and undo doesn't work. Seen with
-  rectangle selection active.
+- Flip and rotate the selection. Quarter turns and flips are cheap on a floating paste (remap
+  its pixels and mask, re-stamp from Before); a plain selection first needs a lift (cut to
+  floating). Any-angle turns could reuse SpriteRotate.RotateFree, nearest only. Undecided: own
+  buttons vs the sprite Flip/Rotate, what a lift leaves behind, clip vs shift at the edges.
 
 Select tool gaps against image editor conventions:
 - Add and subtract for every Select shape, not just the Magic Wand (Shift adds; Alt subtracts in

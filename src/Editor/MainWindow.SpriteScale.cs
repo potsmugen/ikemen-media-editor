@@ -22,6 +22,7 @@ public partial class MainWindow
             initialPercent = Settings.Checked(nameof(Settings.SpritesSection.SpriteScalePercent), initialPercent,
                 Settings.DefaultSpriteScalePercent, v => v >= minPercent && v <= maxPercent);
             if (targets.Count == 1 && RefuseBorrowerEdit(sprite, "resize")) return;
+            if (!await ResolvePendingPaintBeforeSwitch()) return; // the edit changes the pixels and size under the session
             var choice = await Dialogs.PromptSpriteScale(this,
                 targets.Count == 1 ? sprite.Width : null, targets.Count == 1 ? sprite.Height : null,
                 indexed, initialPercent, minPercent, maxPercent);

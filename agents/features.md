@@ -177,7 +177,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   and changes remain, Undo stops with a status note. Commit records one main step.
 - **Pending sessions**: paint and sound edits apply live, commit as one undo step, and ask
   Commit/Discard/Cancel only when there are changes; Reset discards with no undo. An empty
-  paint session is dropped silently. Color-slider adjustments survive only via Commit.
+  paint session is dropped silently. Rotate, Flip, Crop, Resize Canvas and Resize settle a
+  pending paint session the same way first, since the paint history can't follow a size change. Color-slider adjustments survive only via Commit.
 
 ### Animation editing
 
