@@ -3847,8 +3847,18 @@ public static partial class Dialogs
         dialog.Bind(Window.BackgroundProperty, dialog.GetResourceObservable("ThemePanelBg"));
         dialog.Bind(Window.ForegroundProperty, dialog.GetResourceObservable("ThemeText"));
 
-        bool ready = false;
-        void Changed() { if (ready) preview(Current()); }
+        bool ready = false, closed = false, previewQueued = false;
+        // Coalesced: queued clicks (Input priority) run first, so a burst of changes previews once.
+        void Changed()
+        {
+            if (!ready || previewQueued) return;
+            previewQueued = true;
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                previewQueued = false;
+                if (ready && !closed) preview(Current()); // closed: the caller has applied or reverted
+            }, Avalonia.Threading.DispatcherPriority.Background);
+        }
 
         // Pre-assigned: Changed (and so Current) is handed to BuildCanvasTabs before it returns.
         Func<CanvasValues> canvasValues = () => initial.Canvas;
@@ -4038,7 +4048,7 @@ public static partial class Dialogs
             Spacing = 8,
             Children = { preferenceTabs, buttons },
         };
-        dialog.Closed += (_, _) => result.TrySetResult(null);
+        dialog.Closed += (_, _) => { closed = true; result.TrySetResult(null); };
 
         ready = true;
         dialog.ShowModal(owner);

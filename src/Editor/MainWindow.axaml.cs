@@ -316,12 +316,17 @@ public partial class MainWindow : Window
         bool rounded = roundedCorners ?? _settings.Appearance.RoundedCorners;
         r["UiButtonCornerRadius"] = new CornerRadius(rounded ? ButtonCornerRadius : 0);
         r["UiTabCornerRadius"] = new CornerRadius(rounded ? TabCornerRadius : 0, rounded ? TabCornerRadius : 0, 0, 0);
+        if (font == _tablesFont) return; // table columns follow the font size only
+        _tablesFont = font;
         if (ActionList is not null) RebuildActionList(); // its Number column width follows the font size
         if (FrameTableList is not null) RebuildFrameTable(); // so do the frame table's columns
         if (SpriteList is not null) RebuildSpriteTable(); // and every other table's
         if (PaletteList is not null) RebuildPaletteList();
         if (SoundList is not null) ApplySoundFilter();
     }
+
+    /// <summary>Font scale the tables were last sized for, so other appearance changes skip the rebuild.</summary>
+    private double _tablesFont = double.NaN;
 
     private void ApplyEditorLimits()
     {
