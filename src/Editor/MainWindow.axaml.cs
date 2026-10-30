@@ -831,18 +831,16 @@ public partial class MainWindow : Window
             int selectedCount = PaletteList.SelectedItems?.Count ?? 0;
             bool single = selectedCount <= 1;
             var rowPalette = (PaletteList.SelectedItem as PaletteRow)?.Palette;
+            var selectedPalettes = SelectedPalettesInOrder();
             var items = new List<Control>
             {
-                MenuAction("Duplicate", () => OnDuplicatePalette(null, new RoutedEventArgs()), single),
+                MenuAction("Duplicate", () => OnDuplicatePalette(null, new RoutedEventArgs())),
                 new Separator(),
                 MenuAction("Combine Into New", () => _ = CombinePalettesFrom(clickedPalette), selectedCount >= 2),
                 MenuAction("Merge and Update Sprites", () => _ = MergePalettesInto(clickedPalette), selectedCount >= 2 && _file is not null),
                 new Separator(),
-                MenuAction("Convert Palette Depth", () =>
-                {
-                    if (rowPalette is { } palette) _ = ConvertPaletteDepth(palette);
-                }, single && rowPalette is not null && _file is not null
-                    && PaletteDepth.SupportedColorCounts.Any(colors => PaletteDepth.CanConvert(_file, rowPalette, colors))),
+                MenuAction("Convert Palette Depth", () => _ = ConvertPaletteDepth(selectedPalettes),
+                    _file is not null && selectedPalettes.Count > 0 && DepthsForAll(_file, selectedPalettes).Length > 0),
                 new Separator(),
                 MenuAction("Preview First Sprite Using This Palette", () =>
                 {
@@ -851,9 +849,9 @@ public partial class MainWindow : Window
                 new Separator(),
                 MenuAction("Sort Ascending", () => OnSortPalettesAscending(null, new RoutedEventArgs())),
                 new Separator(),
-                AddToSffMenuItem(single ? rowPalette : null),
+                AddToSffMenuItem(selectedPalettes),
                 MenuAction("Save Original File", () => OnSaveAct(null, new RoutedEventArgs()),
-                    single && rowPalette?.Source == PaletteSource.External && !IsTempPalette(rowPalette)),
+                    selectedPalettes.Any(p => p.Source == PaletteSource.External && !IsTempPalette(p))),
                 MenuAction("Save SFF File", () => OnSave(null, new RoutedEventArgs()),
                     rowPalette?.Source == PaletteSource.Embedded && _file is not null),
             };

@@ -792,13 +792,13 @@
                 <Grid ColumnDefinitions="*,Auto,*">
                   <Button Grid.Column="0" Content="Import" HorizontalAlignment="Stretch" Click="OnImportPaletteFiles" ToolTip.Tip="Loads palette files. They stay external until a sprite uses one." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" x:Name="PaletteExportButton" Content="Export" HorizontalAlignment="Stretch" Click="OnExportPalette" ToolTip.Tip="Saves the active palette, asking for the format." />
+                  <Button Grid.Column="2" x:Name="PaletteExportButton" Content="Export" HorizontalAlignment="Stretch" Click="OnExportPalette" ToolTip.Tip="Saves the active palette, or each selected one, asking for the format." />
                 </Grid>
                 <Grid ColumnDefinitions="*,Auto,*">
                   <Button Grid.Column="0" x:Name="PaletteReplaceButton" Content="Replace" HorizontalAlignment="Stretch" Click="OnReplacePalette"
                           ToolTip.Tip="Loads a palette file over this palette, keeping its number and the sprites that use it." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" x:Name="PaletteDeleteButton" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeletePalette" ToolTip.Tip="Removes the selected palette." />
+                  <Button Grid.Column="2" x:Name="PaletteDeleteButton" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeletePalette" ToolTip.Tip="Removes the selected palettes." />
                 </Grid>
                 <Button Content="New" HorizontalAlignment="Stretch" Click="OnNewPalette" ToolTip.Tip="Adds a blank temp palette." />
               </StackPanel>

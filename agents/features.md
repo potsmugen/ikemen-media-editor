@@ -345,7 +345,8 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Add to SFF** (v2 only) moves an external palette into the SFF at a group and number asked
   for, so alt palettes no sprite uses can be added. A taken key asks to replace that
   palette's colors, keeping its key, sprites and linked palettes. A different color count is
-  refused.
+  refused. Several at once ask once and take the next free numbers from that key, skipping
+  taken ones.
 - **Replace** (palette panel) loads a palette file over the active palette. An SFF palette
   takes the colors in place in one undo step, keeping its key, sprites and linked palettes;
   a palette that links elsewhere gets its own colors. v1 pads the file to 256 with opaque
@@ -359,6 +360,15 @@ and constraints that are easy to miss when reading one code path in isolation.
   their save path. The menu holds only what the panel's buttons cannot do. Right-clicking
   selects the row under the pointer first, unless it is part of a multi-selection, so every
   entry acts on the palette that was clicked.
+- **Several palettes selected**: Delete, Export, Duplicate, Convert Depth, Add to SFF and Save
+  Original File act on all of them, each in one undo step where it edits. Delete moves a deleted
+  palette's sprites to the first surviving palette along its links, else the first surviving
+  palette, and unlinks surviving palettes that link to it with their colors kept; without an
+  SFF it closes the files, asking once if any are unsaved. Export asks the format once, picks a
+  folder, names files as a single export (" (2)" on clashes) and asks before overwriting.
+  Convert Depth offers depths every palette is at or fits, skipping ones already there. Save
+  Original File skips palettes without a file. Replace and Preview First Sprite need one palette.
+  Logic is in `MainWindow.PalettesMulti.cs`.
 - **Palette selection** follows the palette object; a preview can show the active sprite
   without changing the edited palette. Dirty palettes show `*`. The Palettes tab shows `*`
   only when SFF palette tables (set, order, keys, links, colors) differ from the last

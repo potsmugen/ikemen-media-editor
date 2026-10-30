@@ -1315,6 +1315,11 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     {
         try
         {
+            if (MultiSelectedPalettes() is { } many)
+            {
+                await DuplicatePalettes(many);
+                return;
+            }
             if (ActivePalette() is not { } source) return;
             // Every copy is a temp palette; it joins the SFF only when applied to sprites.
             if (_file is null && !await SettlePendingColorAdjust()) return;
@@ -1324,208 +1329,6 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         catch (Exception ex)
         {
             await Failed("OnDuplicatePalette", ex);
-        }
-    }
-
-    private async Task ConvertPaletteDepth(Palette palette)
-    {
-        try
-        {
-            if (_file is not { } file || !file.Palettes.Contains(palette)) return;
-            var available = PaletteDepth.SupportedColorCounts
-                .Where(colors => PaletteDepth.CanConvert(file, palette, colors)).ToArray();
-            if (available.Length == 0)
-            {
-                await Dialogs.ShowMessage(this, "Convert Depth", "No different supported depth fits this palette's sprites.");
-                return;
-            }
-
-            var colors = await Dialogs.PromptPaletteDepth(this, palette.Colors.Length, available);
-            if (colors is null || !ReferenceEquals(_file, file) || !file.Palettes.Contains(palette)) return;
-
-            if (HasPendingColorAdjust() && ReferenceEquals(_editingPalette, palette))
-            {
-                var pending = await Dialogs.AskAboutPendingColorAdjust(this);
-                if (pending == PendingAdjustChoice.Cancel) return;
-                if (!ReferenceEquals(_file, file) || !file.Palettes.Contains(palette)) return;
-                if (pending == PendingAdjustChoice.Commit) CommitPendingColorAdjust();
-                else DiscardPendingColorAdjust();
-            }
-
-            if (!PaletteDepth.CanConvert(file, palette, colors.Value))
-            {
-                await Dialogs.ShowMessage(this, "Convert Depth", "This palette no longer fits the selected depth.");
-                return;
-            }
-
-            var before = (Rgba[])palette.Colors.Clone();
-            var after = PaletteDepth.Convert(palette, colors.Value);
-
-            void Apply(Rgba[] values)
-            {
-                palette.Colors = (Rgba[])values.Clone();
-                if (ReferenceEquals(_editingPalette, palette) && _selectedSwatch >= values.Length)
-                {
-                    _editingPalette = null;
-                    _editingView = null;
-                    _selectedSwatch = -1;
-                    ColorEditor.IsEnabled = false;
-                    ASlider.IsEnabled = false;
-                    ResetColorAdjustBase();
-                }
-            }
-            Edit("convert palette depth", () => Apply(after), () => Apply(before));
-            int bits = Array.IndexOf(PaletteDepth.SupportedColorCounts, colors.Value) + 1;
-            StatusText.Text = $"Converted palette {PaletteLabel(palette)} to {bits}-bit indexed depth.";
-        }
-        catch (Exception ex)
-        {
-            await Failed("ConvertPaletteDepth", ex);
-        }
-    }
-
-    private async void OnDeletePalette(object? sender, RoutedEventArgs e)
-    {
-        try
-        {
-            if (_file is null)
-            {
-                if (_standalonePaletteOverride < 0 || _standalonePaletteOverride >= _standalonePalettes.Count) return;
-                var palette = _standalonePalettes[_standalonePaletteOverride];
-                if (palette.Dirty && !await Dialogs.Confirm(this, "Close Palette File",
-                        $"{Path.GetFileName(palette.SourcePath) ?? "New palette"} has unsaved changes.", "Discard")) return;
-                _standalonePalettes.RemoveAt(_standalonePaletteOverride);
-                _standalonePaletteOverride = Math.Min(_standalonePaletteOverride, _standalonePalettes.Count - 1);
-                _editingPalette = null;
-                _editingView = null;
-                _selectedSwatch = -1;
-                ColorEditor.IsEnabled = false;
-                ASlider.IsEnabled = false;
-                RebuildPaletteList();
-                RefreshPaletteTab();
-                UpdateTitle();
-                return;
-            }
-            if (_paletteOverride < 0 || _paletteOverride >= _file.Palettes.Count)
-            {
-                StatusText.Text = "Choose a palette in the list first; the sprite's own cannot be deleted from here.";
-                return;
-            }
-
-            var file = _file;
-            var pal = file.Palettes[_paletteOverride];
-            var linkers = file.Palettes.Where(p => ReferenceEquals(p.LinksTo, pal)).ToList();
-            int users = file.Sprites.Count(s => ReferenceEquals(s.Palette, pal));
-            Palette? fallback = pal.LinksTo ?? file.Palettes.FirstOrDefault(p => !ReferenceEquals(p, pal));
-
-            bool HasSpriteFallback()
-            {
-                if (users == 0 || fallback is not null && file.Palettes.Contains(fallback)) return true;
-                ShowPopup("Delete Palette", $"Can't delete palette {PaletteLabel(pal)}: sprites use it and no valid fallback palette is available.");
-                string target = fallback is null ? "none" : $"{fallback.Group},{fallback.Index} is not in the palette table";
-                CrashLog.Error("OnDeletePalette", $"refused: sprites use {pal.Group},{pal.Index}, and fallback target is {target}");
-                return false;
-            }
-
-            if (!HasSpriteFallback()) return;
-            if (HasPendingColorAdjust() && _editingPalette is { Source: PaletteSource.Embedded } editingPalette
-                && (ReferenceEquals(editingPalette, pal) || linkers.Contains(editingPalette)))
-            {
-                var pending = await Dialogs.AskAboutPendingColorAdjust(this);
-                if (pending == PendingAdjustChoice.Cancel) return;
-                if (!ReferenceEquals(_file, file) || !file.Palettes.Contains(pal)) return;
-                if (pending == PendingAdjustChoice.Commit) CommitPendingColorAdjust();
-                else DiscardPendingColorAdjust();
-            }
-
-            if (!ReferenceEquals(_file, file) || !file.Palettes.Contains(pal)) return;
-            linkers = file.Palettes.Where(p => ReferenceEquals(p.LinksTo, pal)).ToList();
-            users = file.Sprites.Count(s => ReferenceEquals(s.Palette, pal));
-            fallback = pal.LinksTo ?? file.Palettes.FirstOrDefault(p => !ReferenceEquals(p, pal));
-            if (!HasSpriteFallback()) return;
-
-            if (linkers.Count > 0 || users > 0)
-            {
-                string fallbackName = fallback is { Source: PaletteSource.External }
-                    ? PaletteDisplayName(file, fallback)
-                    : $"palette {PaletteKey(file, fallback)}";
-                var impact = new List<string>();
-                if (linkers.Count == 1)
-                    impact.Add("1 palette links to this palette. It will be unlinked with its current colors preserved.");
-                else if (linkers.Count > 1)
-                    impact.Add($"{linkers.Count} palettes link to this palette. They will be unlinked with their current colors preserved.");
-                if (users == 1)
-                    impact.Add($"1 sprite uses this palette and will be reassigned to {fallbackName}.");
-                else if (users > 1)
-                    impact.Add($"{users} sprites use this palette and will be reassigned to {fallbackName}.");
-                if (users > 0) impact.Add("Their displayed colors may change.");
-                if (!await Dialogs.Confirm(this, "Delete Palette?", string.Join(" ", impact), "Delete"))
-                    return;
-            }
-
-            if (!ReferenceEquals(_file, file) || !file.Palettes.Contains(pal)) return;
-            int at = file.Palettes.IndexOf(pal);
-            bool editingPaletteRemoved = ReferenceEquals(_editingPalette, pal);
-            var editingView = _editingView;
-            int editingSwatch = _selectedSwatch;
-            bool editorWasEnabled = ColorEditor.IsEnabled;
-            var affected = file.Sprites.Where(s => ReferenceEquals(s.Palette, pal)).ToList();
-            var linkStates = linkers.Select(p => PaletteLinkState.Capture(p)).ToList();
-
-            void ClearRemovedPaletteEditor()
-            {
-                if (!editingPaletteRemoved) return;
-                _editingPalette = null;
-                _editingView = null;
-                _selectedSwatch = -1;
-                ColorEditor.IsEnabled = false;
-                ASlider.IsEnabled = false;
-                ResetColorAdjustBase();
-            }
-
-            void RestoreRemovedPaletteEditor()
-            {
-                if (!editingPaletteRemoved || editingView is null
-                    || editingSwatch < 0 || editingSwatch >= pal.Colors.Length) return;
-                _editingPalette = pal;
-                _editingView = editingView;
-                _selectedSwatch = editingSwatch;
-                var color = pal.Colors[editingSwatch];
-                string label = $"Index {editingSwatch}: RGB {color.R}, {color.G}, {color.B}, A {color.A}";
-                SwatchInfo.Text = label;
-                _suppressEvents = true;
-                RSlider.Value = color.R; GSlider.Value = color.G; BSlider.Value = color.B; ASlider.Value = color.A;
-                _suppressEvents = false;
-                ColorEditor.IsEnabled = editorWasEnabled;
-                ASlider.IsEnabled = editorWasEnabled && CanEditPaletteAlpha(pal);
-                SpriteCanvas.PaintColorIndex = editingSwatch;
-                ResetColorAdjustBase();
-            }
-
-            Edit("delete palette",
-                () =>
-                {
-                    for (int i = 0; i < linkers.Count; i++)
-                        new PaletteLinkState(null, linkStates[i].Colors).Restore(linkers[i]);
-                    foreach (var s in affected) s.Palette = fallback;
-                    file.Palettes.Remove(pal);
-                    _paletteOverride = -1;
-                    ClearRemovedPaletteEditor();
-                },
-                () =>
-                {
-                    file.Palettes.Insert(Math.Min(at, file.Palettes.Count), pal);
-                    for (int i = 0; i < linkers.Count; i++)
-                        linkStates[i].Restore(linkers[i]);
-                    foreach (var s in affected) s.Palette = pal;
-                    _paletteOverride = at;
-                    RestoreRemovedPaletteEditor();
-                });
-            CrashLog.Trace($"[palettes] deleted {pal.Group},{pal.Index}; unlinked {linkers.Count} palette(s) with copied colors");
-        }
-        catch (Exception ex)
-        {
-            await Failed("OnDeletePalette", ex);
         }
     }
 
@@ -2791,13 +2594,17 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         if (Tabs is null || Tabs.SelectedIndex == 1) PalettePreview.Show(PalettePreviewSprite(), pal, _showMask);
     }
 
+    private const string ReplacePaletteTip = "Loads a palette file over this palette, keeping its number and the sprites that use it.";
+
     private void UpdatePaletteActionButtons()
     {
         SyncDataCommandMenus();
         if (PaletteExportButton is null) return;
         PaletteExportButton.IsEnabled = ActivePalette() is not null;
         bool hasSelectedPalette = PreviewOverridePalette() is not null;
-        PaletteReplaceButton.IsEnabled = hasSelectedPalette;
+        bool several = (PaletteList?.SelectedItems?.Count ?? 0) > 1;
+        PaletteReplaceButton.IsEnabled = hasSelectedPalette && !several;
+        ToolTip.SetTip(PaletteReplaceButton, several ? "Select one palette to replace." : ReplacePaletteTip);
         PaletteDeleteButton.IsEnabled = hasSelectedPalette;
     }
 
@@ -2990,6 +2797,11 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     {
         try
         {
+            if (MultiSelectedPalettes() is { } many)
+            {
+                await SavePaletteFiles(many);
+                return;
+            }
             if (ActivePalette() is not { } pal)
             {
                 StatusText.Text = "Choose a palette first.";
@@ -3199,6 +3011,11 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     /// <summary>Exports the active palette in one chosen format, warning first when it can't hold everything.</summary>
     private async void OnExportPalette(object? sender, RoutedEventArgs e)
     {
+        if (MultiSelectedPalettes() is { } many)
+        {
+            await ExportPalettesMany(many);
+            return;
+        }
         if (ActivePalette() is not { } pal)
         {
             StatusText.Text = "Choose a palette first.";
@@ -3211,18 +3028,12 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         {
             if (await Dialogs.PromptPaletteFormat(this, _lastExportFormat) is not { } choice) return;
             format = _lastExportFormat = choice;
-            (ext, var type) = format switch
-            {
-                Dialogs.PaletteExportFormat.Pal => ("pal", JascPalType),
-                Dialogs.PaletteExportFormat.Png => ("png", PalettePngType),
-                Dialogs.PaletteExportFormat.Rgba => ("rgba", RgbaType),
-                _ => ("act", ActType),
-            };
+            (ext, var type) = PaletteExportType(format);
 
             var file = await PickSave(new FilePickerSaveOptions
             {
                 Title = "Export Palette",
-                SuggestedFileName = pal.IsCharacterPalette ? $"pal{pal.Index}" : $"{pal.Group}_{pal.Index}",
+                SuggestedFileName = PaletteExportName(pal),
                 DefaultExtension = ext,
                 FileTypeChoices = [type],
             });
@@ -3233,32 +3044,49 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 && !await Dialogs.Confirm(this, "Palette Export Loses Information", loss + " RGBA keeps everything.", "Export"))
                 return;
 
-            switch (format)
-            {
-                case Dialogs.PaletteExportFormat.Rgba:
-                    PaletteRgbaFile.Save(pal, path);
-                    break;
-                case Dialogs.PaletteExportFormat.Pal:
-                    JascPalFile.Save(pal, path);
-                    break;
-                case Dialogs.PaletteExportFormat.Png:
-                    int cell = Settings.Checked(nameof(_settings.Palettes.PalettePngSwatchSize), _settings.Palettes.PalettePngSwatchSize,
-                        Settings.DefaultPalettePngSwatchSize, v => v is >= 1 and <= 64);
-                    PalettePngFile.Save(pal, path, cell);
-                    break;
-                case Dialogs.PaletteExportFormat.ActForward:
-                    ActFile.Save(pal, path, reversed: false, transparent: 0);
-                    break;
-                default:
-                    ActFile.Save(pal, path);
-                    break;
-            }
+            WritePaletteExport(pal, path, format);
             StatusText.Text = $"Wrote {Path.GetFileName(path)}.";
         }
         catch (Exception ex)
         {
             CrashLog.Write("OnExportPalette", ex);
             await Dialogs.ShowMessage(this, "Could Not Export the Palette", ex.Message);
+        }
+    }
+
+    private static (string Ext, FilePickerFileType Type) PaletteExportType(Dialogs.PaletteExportFormat format) => format switch
+    {
+        Dialogs.PaletteExportFormat.Pal => ("pal", JascPalType),
+        Dialogs.PaletteExportFormat.Png => ("png", PalettePngType),
+        Dialogs.PaletteExportFormat.Rgba => ("rgba", RgbaType),
+        _ => ("act", ActType),
+    };
+
+    /// <summary>Export's file name: "pal3" for a 1,n character palette, else "group_index".</summary>
+    private static string PaletteExportName(Palette pal) =>
+        pal.IsCharacterPalette ? $"pal{pal.Index}" : $"{pal.Group}_{pal.Index}";
+
+    private void WritePaletteExport(Palette pal, string path, Dialogs.PaletteExportFormat format)
+    {
+        switch (format)
+        {
+            case Dialogs.PaletteExportFormat.Rgba:
+                PaletteRgbaFile.Save(pal, path);
+                break;
+            case Dialogs.PaletteExportFormat.Pal:
+                JascPalFile.Save(pal, path);
+                break;
+            case Dialogs.PaletteExportFormat.Png:
+                int cell = Settings.Checked(nameof(_settings.Palettes.PalettePngSwatchSize), _settings.Palettes.PalettePngSwatchSize,
+                    Settings.DefaultPalettePngSwatchSize, v => v is >= 1 and <= 64);
+                PalettePngFile.Save(pal, path, cell);
+                break;
+            case Dialogs.PaletteExportFormat.ActForward:
+                ActFile.Save(pal, path, reversed: false, transparent: 0);
+                break;
+            default:
+                ActFile.Save(pal, path);
+                break;
         }
     }
 }

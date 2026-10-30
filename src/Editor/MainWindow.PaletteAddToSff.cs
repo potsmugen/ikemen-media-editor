@@ -8,33 +8,41 @@ namespace Editor;
 /// Add to SFF: moves an external palette (temp, or imported from a file) into an SFF v2 at a
 /// chosen group and number, e.g. a 1,n alt palette that no sprite uses. A taken key asks to
 /// replace that palette's colors; it keeps its key, sprites and the palettes linked to it.
+/// Several at once take the next free numbers from the chosen key, skipping taken ones.
 /// </summary>
 public partial class MainWindow
 {
-    private async void OnAddPaletteToSff(object? sender, RoutedEventArgs e)
-    {
-        if (PaletteList?.SelectedItems?.Count == 1 && (PaletteList.SelectedItem as PaletteRow)?.Palette is { } palette)
-            await AddPaletteToSff(palette);
-    }
+    private async void OnAddPaletteToSff(object? sender, RoutedEventArgs e) => await AddPalettesToSff(SelectedPalettesInOrder());
 
-    private const string AddToSffTip = "Moves this palette into the SFF at a group and number you choose.";
+    private static string AddToSffTip(int count) => count > 1
+        ? "Moves the selected palettes into the SFF, numbered up from a group and number you choose."
+        : "Moves this palette into the SFF at a group and number you choose.";
 
     /// <summary>The palette list's right-click entry; dimmed when it can't run.</summary>
-    private MenuItem AddToSffMenuItem(Palette? palette)
+    private MenuItem AddToSffMenuItem(List<Palette> palettes)
     {
-        string? blocker = palette is null ? "Select one palette." : AddToSffBlocker(palette);
-        var item = MenuAction("Add to SFF", () => { if (palette is not null) _ = AddPaletteToSff(palette); }, blocker is null);
-        ToolTip.SetTip(item, AddToSffTip);
+        var item = MenuAction("Add to SFF", () => _ = AddPalettesToSff(palettes), AddToSffBlocker(palettes) is null);
+        ToolTip.SetTip(item, AddToSffTip(palettes.Count));
         return item;
     }
 
-    /// <summary>Palettes menu: same state as the right-click entry, for the selected palette.</summary>
+    /// <summary>Palettes menu: same state as the right-click entry, for the selected palettes.</summary>
     private void SyncAddToSffMenuItem()
     {
-        var palette = PaletteList?.SelectedItems?.Count == 1 ? (PaletteList.SelectedItem as PaletteRow)?.Palette : null;
-        string? blocker = palette is null ? "Select one palette." : AddToSffBlocker(palette);
-        AddPaletteToSffMenuItem.IsEnabled = blocker is null;
-        ToolTip.SetTip(AddPaletteToSffMenuItem, AddToSffTip);
+        var palettes = SelectedPalettesInOrder();
+        AddPaletteToSffMenuItem.IsEnabled = AddToSffBlocker(palettes) is null;
+        ToolTip.SetTip(AddPaletteToSffMenuItem, AddToSffTip(palettes.Count));
+    }
+
+    /// <summary>Why Add to SFF is unavailable for these palettes, or null when it can run.</summary>
+    private string? AddToSffBlocker(IReadOnlyList<Palette> palettes) =>
+        palettes.Count == 0 ? "Select a palette." : palettes.Select(p => AddToSffBlocker(p)).FirstOrDefault(b => b is not null);
+
+    /// <summary>One palette asks for its key (a taken key offers to replace); several go to AddManyPalettesToSff.</summary>
+    private async Task AddPalettesToSff(List<Palette> palettes)
+    {
+        if (palettes.Count == 1) await AddPaletteToSff(palettes[0]);
+        else if (palettes.Count > 1) await AddManyPalettesToSff(palettes);
     }
 
     /// <summary>Why Add to SFF is unavailable for this palette, or null when it can run.</summary>
@@ -77,6 +85,77 @@ public partial class MainWindow
         catch (Exception ex)
         {
             await Failed("AddPaletteToSff", ex);
+        }
+    }
+
+    /// <summary>One prompt for the group and starting number; each palette takes the next free
+    /// number from there, in list order, in one undo step.</summary>
+    private async Task AddManyPalettesToSff(List<Palette> palettes)
+    {
+        try
+        {
+            if (AddToSffBlocker(palettes) is not null || _file is not { } file || !palettes.All(file.Palettes.Contains))
+            {
+                CrashLog.Error("AddManyPalettesToSff", AddToSffBlocker(palettes) ?? "a palette is not in the list");
+                return;
+            }
+            if (HasPendingColorAdjust() && _editingPalette is { } editing && palettes.Contains(editing))
+            {
+                var pending = await Dialogs.AskAboutPendingColorAdjust(this);
+                if (pending == PendingAdjustChoice.Cancel) return;
+                if (pending == PendingAdjustChoice.Commit) CommitPendingColorAdjust();
+                else DiscardPendingColorAdjust();
+            }
+
+            var characterIndexes = file.Palettes.Where(p => p.Source == PaletteSource.Embedded && p.Group == 1)
+                .Select(p => p.Index).ToHashSet();
+            int nextFree = 1;
+            while (characterIndexes.Contains(nextFree)) nextFree++;
+            if (await Dialogs.PromptNewPaletteKey(this, 1, nextFree, SpriteFieldMax,
+                    "Choose the Group and starting Index. Each palette takes the next free number from there.") is not { } key) return;
+            var (group, start) = key;
+            if (!ReferenceEquals(_file, file)
+                || !palettes.All(p => file.Palettes.Contains(p) && p.Source == PaletteSource.External)) return;
+
+            var taken = file.Palettes.Where(p => p.Source == PaletteSource.Embedded && p.Group == group)
+                .Select(p => p.Index).ToHashSet();
+            var indexes = new List<int>();
+            for (long next = start; indexes.Count < palettes.Count && next <= SpriteFieldMax; next++)
+                if (!taken.Contains((int)next)) indexes.Add((int)next);
+            if (indexes.Count < palettes.Count)
+            {
+                CrashLog.Error("AddManyPalettesToSff", $"refused: group {group} has {indexes.Count} free numbers from {start}, {palettes.Count} needed");
+                await Dialogs.ShowMessage(this, "Cannot Add Palettes",
+                    $"Group {group} has only {indexes.Count} free numbers from {start} for {palettes.Count} palettes.");
+                return;
+            }
+
+            var before = palettes.Select(p => (p.Group, p.Index, p.SourcePath, p.Dirty)).ToList();
+            Edit("add palettes to sff",
+                () =>
+                {
+                    for (int i = 0; i < palettes.Count; i++)
+                    {
+                        palettes[i].Source = PaletteSource.Embedded;
+                        (palettes[i].Group, palettes[i].Index, palettes[i].SourcePath, palettes[i].Dirty) = (group, indexes[i], null, false);
+                    }
+                    SelectPalette(palettes[0]);
+                },
+                () =>
+                {
+                    for (int i = 0; i < palettes.Count; i++)
+                    {
+                        palettes[i].Source = PaletteSource.External;
+                        (palettes[i].Group, palettes[i].Index, palettes[i].SourcePath, palettes[i].Dirty) = before[i];
+                    }
+                    SelectPalette(palettes[0]);
+                });
+            CrashLog.Trace($"[palettes] added {palettes.Count} palettes to the SFF in group {group}: {string.Join(", ", indexes)}");
+            StatusText.Text = $"Added {palettes.Count} palettes to the SFF in group {group}: {string.Join(", ", indexes)}.";
+        }
+        catch (Exception ex)
+        {
+            await Failed("AddManyPalettesToSff", ex);
         }
     }
 

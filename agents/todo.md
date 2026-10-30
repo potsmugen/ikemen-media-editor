@@ -22,16 +22,14 @@ Verified unless noted.
 
 ### Sprites and palettes
 
-- Import Palette into Sprite on several SFF v1 sprites writes the colors into each one's own
-  palette, giving N identical copies. Could look at sharing one palette across runs of
-  consecutive selected sprites (and stop skipping same-palette sprites), like v2.
 - Test and revisit the nearest-color alpha threshold: pixels below
   NearestColorAlphaThreshold (settings.json, default 32) map to index 0. Check
   against real sprites and the official tools.
-- Add a tool to split palettes, the counterpart of Combine Into New and Merge and Update Sprites
-  (design undecided).
-- Palette list is now multi-select: decide whether Delete (and other sidebar buttons) should act
-  on every selected palette; today they act on the first selected one.
+- Add Split Selected Colors (Palettes tab), the counterpart of Merge and Update Sprites. The
+  selected swatches split off into a new SFF palette; sprites using only selected colors (plus
+  index 0) move to it, the rest stay. Refuse when a sprite mixes both parts, listing them.
+  Indexes are kept (no pixel changes; moved slots become padding in the source). v2 only, no
+  temp-only variant. Borrowers/links follow Merge's rules. One undo step.
 
 ### Paint Mode
 

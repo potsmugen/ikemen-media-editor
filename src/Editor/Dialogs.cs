@@ -1472,7 +1472,7 @@ public static partial class Dialogs
 
     /// <summary>Asks for the Group and Index a new palette should get.</summary>
     public static Task<(int Group, int Index)?> PromptNewPaletteKey(Window owner,
-        int initialGroup, int initialIndex, int maximum)
+        int initialGroup, int initialIndex, int maximum, string prompt = "Choose the Group and Index for the new palette.")
     {
         var result = new TaskCompletionSource<(int Group, int Index)?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var group = new NumericUpDown { Minimum = 0, Maximum = maximum, Increment = 1, FormatString = "0", Value = initialGroup, Width = 100 };
@@ -1482,7 +1482,7 @@ public static partial class Dialogs
         var body = new StackPanel { Spacing = 12, Margin = new Avalonia.Thickness(20), MaxWidth = 440 };
         body.Children.Add(new TextBlock
         {
-            Text = "Choose the Group and Index for the new palette.",
+            Text = prompt,
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
         });
         body.Children.Add(new StackPanel
@@ -2710,7 +2710,8 @@ public static partial class Dialogs
         }
     }
 
-    public static Task<int?> PromptPaletteDepth(Window owner, int currentColors, IReadOnlyList<int> availableColors)
+    /// <summary>currentColors: the palette's size, or the smallest of several (paletteCount &gt; 1).</summary>
+    public static Task<int?> PromptPaletteDepth(Window owner, int currentColors, IReadOnlyList<int> availableColors, int paletteCount = 1)
     {
         var result = new TaskCompletionSource<int?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var depths = Sff.PaletteDepth.SupportedColorCounts;
@@ -2736,13 +2737,21 @@ public static partial class Dialogs
                 ? selectedColors > currentColors
                     ? "New entries are filled with opaque black."
                     : "Existing colors and indexes are preserved."
-                : "A sprite using this palette has indexes that exceed this depth, or is undecoded.";
+                : paletteCount > 1
+                    ? "A sprite using one of these palettes has indexes that exceed this depth, or is undecoded."
+                    : "A sprite using this palette has indexes that exceed this depth, or is undecoded.";
             apply.IsEnabled = enabled;
         }
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
         depth.SelectionChanged += (_, _) => Update();
         var body = new StackPanel { Spacing = 12, Margin = new Avalonia.Thickness(20), MaxWidth = 440 };
-        body.Children.Add(new TextBlock { Text = "Choose the indexed depth for this palette." });
+        body.Children.Add(new TextBlock
+        {
+            Text = paletteCount > 1
+                ? $"Choose the indexed depth for the {paletteCount} selected palettes. Ones already at it are skipped."
+                : "Choose the indexed depth for this palette.",
+            TextWrapping = TextWrapping.Wrap,
+        });
         body.Children.Add(depth);
         body.Children.Add(note);
         var buttons = new StackPanel
