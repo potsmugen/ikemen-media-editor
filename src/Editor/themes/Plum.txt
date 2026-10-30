@@ -23,18 +23,18 @@
 # SliderNeutral  filled tracks of the palette H, S, L and A sliders
 # Variant     Dark or Light; also sets the color of native window chrome
 
-Panel   = #29252f
-List    = #1d1923
-Field   = #38313f
-Hover   = #463b51
-Text    = #eeeaf2
-Muted   = #b7a9c3
-Dim     = #897995
-Separator = #38313f
-Canvas  = #24202a
-Accent  = #ad8bd0
-Selection = #49394f
-Active    = #7b6290
+Panel   = #2a2032
+List    = #1e1724
+Field   = #3a2e42
+Hover   = #473851
+Text    = #f0ebf4
+Muted   = #bfafca
+Dim     = #8c7d97
+Separator = #3a2e42
+Canvas  = #251f29
+Accent  = #b98cd9
+Selection = #4a3956
+Active    = #785095
 ActiveText = #ffffff
 SliderRed   = #e5534b
 SliderGreen = #57ab5a

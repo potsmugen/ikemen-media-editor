@@ -999,7 +999,7 @@ summaries; treat anything marked unverified as unknown.
   updating every `Tabs.SelectedIndex` comparison and `SwitchToTab(n)` call.
   `InputGesture` text does nothing by itself; each shortcut also needs an
   `OnKeyDown` case. `ApplyTheme` retints Fluent's `MenuFlyoutPresenter*` and
-  `MenuFlyoutItem*`; scrollbars and plain buttons only follow light/dark.
+  `MenuFlyoutItem*`, and `ToolTip*` with the same menu colors; scrollbars and plain buttons only follow light/dark.
 - Never bind a `BorderBrush` to `ThemeMutedText` or `ThemeDimText`. Use
   `ThemeLine` (1px cells) or `ThemeHeaderLine` (2px header underlines).
   The warning red is picked per variant in code. Loopstart marks (timeline

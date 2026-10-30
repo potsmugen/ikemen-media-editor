@@ -719,6 +719,10 @@ public partial class MainWindow : Window
         res["MenuFlyoutItemForegroundPointerOver"] = textBrush;
         res["MenuFlyoutItemForegroundPressed"] = textBrush;
         res["MenuFlyoutItemForegroundDisabled"] = dimBrush;
+        // Tooltips are popups too, so they match the menus.
+        res["ToolTipBackground"] = panelBrush;
+        res["ToolTipBorderBrush"] = dimBrush;
+        res["ToolTipForeground"] = textBrush;
 
                 // The palette ComboBox is NOT a MenuFlyout: Fluent styles its popup from
                 // a separate ComboBox* key family (Controls/ComboBox.xaml reads
