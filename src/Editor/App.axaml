@@ -72,12 +72,13 @@
                                  HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
                                  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
                                  Padding="{TemplateBinding Padding}" />
+              <!-- Buttons stretch to fill their halves; Fluent centers them at content height, leaving a gap. -->
               <Grid Grid.Column="1" RowDefinitions="*,*" IsVisible="{TemplateBinding ShowButtonSpinner}">
                 <RepeatButton Grid.Row="0" Name="PART_IncreaseButton" Content="+" FontWeight="Bold"
-                              FontSize="9" Padding="0" Width="16" HorizontalAlignment="Stretch"
+                              FontSize="9" Padding="0" Width="16" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                               HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
                 <RepeatButton Grid.Row="1" Name="PART_DecreaseButton" Content="&#8722;" FontWeight="Bold"
-                              FontSize="9" Padding="0" Width="16" HorizontalAlignment="Stretch"
+                              FontSize="9" Padding="0" Width="16" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                               HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
               </Grid>
             </Grid>
