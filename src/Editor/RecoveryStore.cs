@@ -39,6 +39,12 @@ internal static class RecoveryStore
     }
     public static string TempDirectory => Path.Combine(Root, "temp");
     public static string RecoveredDirectory => Path.Combine(BaseRoot, "recovered");
+
+    /// <summary>A copy restored into recovered/ because its source changed; plain Save must not write there.</summary>
+    public static bool IsRecoveredCopy(string path) =>
+        Path.GetFullPath(path).StartsWith(Path.GetFullPath(RecoveredDirectory) + Path.DirectorySeparatorChar,
+            OperatingSystem.IsLinux() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
+
     private static string ActivePathIn(string root) => Path.Combine(root, "active.json");
     private static string ActivePath => ActivePathIn(Root);
 

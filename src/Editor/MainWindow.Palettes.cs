@@ -2817,7 +2817,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 StatusText.Text = "That palette is embedded in the SFF — saving the file saves it.";
                 return;
             }
-            if (pal.SourcePath is null || !File.Exists(pal.SourcePath))
+            if (NeedsSaveAs(pal.SourcePath))
             {
                 OnExportPalette(sender, e);
                 return;
@@ -2867,7 +2867,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
 
     private async Task SaveStandalonePalette(Palette palette, bool askPath)
     {
-        if (!askPath && palette.SourcePath is not null && File.Exists(palette.SourcePath))
+        if (!askPath && !NeedsSaveAs(palette.SourcePath))
         {
             await SavePaletteDocument(palette);
             return;

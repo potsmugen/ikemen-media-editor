@@ -9,9 +9,6 @@ before a release. Remove items once they're done or checked.
 
 Verified unless noted.
 
-- Questions: after Recover, the command-line file is skipped silently (by design per
-  App.axaml.cs, but nothing tells the user). A recovered changed-source file opens from
-  data/recovery/recovered/ under a GUID name, so plain Save writes into the app folder.
 - At 200% font and button scale (window 1580x960) fixed-width buttons and fields clip:
   Paint Tools (Commit, Reset, Pencil, Eraser, Eyedropper, Replace, Select), onion-skin
   Group/Number and Pin frame boxes, Palettes Commit, Scratch label,

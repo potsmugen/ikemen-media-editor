@@ -50,7 +50,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   every five minutes the app snapshots committed dirty files into `data/recovery` without
   touching sources. After an unclean exit, one list appears before command-line opening;
   matching sources restore as dirty documents, changed or missing ones become separate
-  files. Saves retire matching items. Each copy works in its own locked `run-<guid>/`
+  files in `data/recovery/recovered/`. Save treats those like a missing source and asks
+  for a path (SFF Save As suggests the original name). When a session is restored, the
+  command-line file is not opened and the status bar says so. Saves retire matching items. Each copy works in its own locked `run-<guid>/`
   folder, so a crashed run's snapshots merge into the next run and another copy's are
   skipped. A v1 SFF holding true-color sprites is snapshotted as v2 and put back to v1 on
   recovery. Saving an `.air` warns if its bytes changed on disk since load.

@@ -210,7 +210,7 @@ public partial class MainWindow
             if (_snd is null) return;
 
             string? savePath = _sndPath;
-            if (savePath is null || !File.Exists(savePath) || askPath)
+            if (NeedsSaveAs(savePath) || askPath)
             {
                 var file = await PickSave(new FilePickerSaveOptions
                 {

@@ -307,6 +307,13 @@ public partial class MainWindow
         StatusText.Text = "Recovered unsaved files. Save them to keep the recovered changes.";
     }
 
+    /// <summary>A restored session takes the place of the launch file; say so instead of dropping it silently.</summary>
+    internal void NoteSkippedLaunchFile(string path)
+    {
+        CrashLog.Trace($"[recovery] launch file skipped: {path}");
+        StatusText.Text += $" {Path.GetFileName(path)} was not opened because a session was recovered.";
+    }
+
     private void RestoreRecoveryTab(List<RecoverySnapshot> items)
     {
         foreach (var item in items)
@@ -406,6 +413,10 @@ public partial class MainWindow
             CrashLog.Error("Recovery", $"Unreadable session version '{item.SessionVersion}'; kept {file.Version}");
         return file;
     }
+
+    /// <summary>True when Save has no file to write over: no path, a missing file, or a recovered copy.</summary>
+    private static bool NeedsSaveAs([System.Diagnostics.CodeAnalysis.NotNullWhen(false)] string? path) =>
+        path is null || !File.Exists(path) || RecoveryStore.IsRecoveredCopy(path);
 
     private static string PersistRecoveredCopy(string snapshot, string? extension = null)
     {

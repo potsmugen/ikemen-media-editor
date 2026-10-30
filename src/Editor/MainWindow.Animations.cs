@@ -351,7 +351,7 @@ public partial class MainWindow
             if (_air is null) return;
             if (!await ConfirmClsnRewrite()) return;
             string? path = _airPath;
-            if (path is null || !File.Exists(path) || askPath)
+            if (NeedsSaveAs(path) || askPath)
             {
                 bool definition = _airEmbeddedInDef;
                 var file = await PickSave(new FilePickerSaveOptions

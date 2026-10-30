@@ -1018,27 +1018,27 @@ public partial class MainWindow
             else DiscardPendingColorAdjust();
         }
         var saved = new List<string>();
-        if (_dirty && _file is not null && (_path is null || !File.Exists(_path))) await AskVersionAndSaveAs();
+        if (_dirty && _file is not null && NeedsSaveAs(_path)) await AskVersionAndSaveAs();
         else if (_dirty && _file is not null && await SaveSprites()) saved.Add("sprites");
         var linted = LintedActions();
         var encoding = EncodingChangeNote(done: true);
         bool airSaved = false;
         if (_airDirty)
         {
-            await SaveAir(askPath: _airPath is null || !File.Exists(_airPath));
+            await SaveAir(askPath: NeedsSaveAs(_airPath));
             airSaved = !_airDirty;
         }
         if (airSaved) saved.Add("animations");
         if (_sndDirty)
         {
-            await SaveSnd(askPath: _sndPath is null || !File.Exists(_sndPath));
+            await SaveSnd(askPath: NeedsSaveAs(_sndPath));
             if (!_sndDirty) saved.Add("sounds");
         }
         // Temp palettes are saved or exported deliberately, never by Save All.
         int temps = (_file?.Palettes ?? _standalonePalettes).Count(p => p.Dirty && IsTempPalette(p));
         foreach (var palette in _file?.Palettes.Where(p => p.Source == PaletteSource.External && p.Dirty && !IsTempPalette(p)).ToList() ?? [])
         {
-            if (palette.SourcePath is null || !File.Exists(palette.SourcePath))
+            if (NeedsSaveAs(palette.SourcePath))
             {
                 await Dialogs.ShowMessage(this, "Palette Not Saved", $"Palette {PaletteLabel(palette)} has no available source file. Use Save As from the Palettes tab.");
                 continue;
@@ -1048,7 +1048,7 @@ public partial class MainWindow
         }
         foreach (var palette in _standalonePalettes.Where(p => p.Dirty && !IsTempPalette(p)).ToList())
         {
-            await SaveStandalonePalette(palette, askPath: palette.SourcePath is null || !File.Exists(palette.SourcePath));
+            await SaveStandalonePalette(palette, askPath: NeedsSaveAs(palette.SourcePath));
             if (!palette.Dirty) saved.Add(Path.GetFileName(palette.SourcePath) ?? "palette");
         }
 
@@ -1120,7 +1120,7 @@ public partial class MainWindow
             if (choice == StandalonePaletteOpenChoice.Cancel) return false;
             if (choice == StandalonePaletteOpenChoice.Save)
                 foreach (var palette in _standalonePalettes.Where(p => p.Dirty).ToList())
-                    await SaveStandalonePalette(palette, askPath: palette.SourcePath is null || !File.Exists(palette.SourcePath));
+                    await SaveStandalonePalette(palette, askPath: NeedsSaveAs(palette.SourcePath));
             if (HasDirtyStandalonePalettes()) return false;
         }
         if (!_dirty && !_airDirty && !_sndDirty && !HasDirtyExternalPalettes() && !HasDirtyStandalonePalettes()) return true;
@@ -1184,7 +1184,7 @@ public partial class MainWindow
     private async Task<bool> SaveSprites()
     {
         if (_file is null) return false;
-        if (_path is null || !File.Exists(_path)) { await AskVersionAndSaveAs(); return false; }
+        if (NeedsSaveAs(_path)) { await AskVersionAndSaveAs(); return false; }
 
         try
         {
@@ -1250,7 +1250,7 @@ public partial class MainWindow
         var file = await PickSave(new FilePickerSaveOptions
         {
             Title = $"Save as SFF {version}",
-            SuggestedFileName = Path.GetFileNameWithoutExtension(_path ?? "character") + ".sff",
+            SuggestedFileName = Path.GetFileNameWithoutExtension(OriginalSource("sff", _path) ?? "character") + ".sff",
             DefaultExtension = "sff",
             FileTypeChoices = [SffType],
         });
@@ -1498,7 +1498,7 @@ public partial class MainWindow
             var picked = await PickSave(new FilePickerSaveOptions
             {
                 Title = v2 ? "Save like SprMaker 2.01" : "Save like SprMaker 0.97",
-                SuggestedFileName = Path.GetFileNameWithoutExtension(_path ?? "character") + ".sff",
+                SuggestedFileName = Path.GetFileNameWithoutExtension(OriginalSource("sff", _path) ?? "character") + ".sff",
                 DefaultExtension = "sff",
                 FileTypeChoices = [SffType],
             });

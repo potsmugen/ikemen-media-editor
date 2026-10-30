@@ -97,6 +97,8 @@ public partial class App : Application
                 string? startupPath = desktop.Args?.FirstOrDefault(a => a != "--test-recovery");
                 if (startupPath is not null && !recovered)
                     await window.OpenLaunchFile(startupPath);
+                else if (startupPath is not null)
+                    window.NoteSkippedLaunchFile(startupPath);
                 if (window.RecoveryTestMode) window.CaptureRecoveryForTest();
             }
             base.OnFrameworkInitializationCompleted();
