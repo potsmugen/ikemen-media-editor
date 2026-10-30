@@ -131,16 +131,18 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Selection and paste**: Paste floats the block where it was copied and switches to Select.
   Dragging it past the sprite's edge clips the off-canvas part until Commit, and transparent
   pasted pixels leave the pixels under them. The selection shows only with the Select tool;
-  switching tools or leaving Paint Mode clears it. Copy needs a selection, Paste a copied
-  block.
+  switching tools or leaving Paint Mode clears it. With every Select shape, Esc cancels a
+  shape in progress (a Rectangle or Lasso drag, Polygon corners), else clears the selection;
+  it can't be undone, and a selection being moved ignores it. Copy needs a selection, Paste a
+  copied block.
 - **Lasso**: Select's Rectangle/Lasso/Polygon/Magic Wand toggle is session-only, Rectangle by default. A lasso
   closes on release, and a pixel is in when its center is inside the path (nonzero winding,
   so loops stay filled). The path is clamped to the sprite, and an empty lasso clears the
   selection. Copy leaves pixels outside the mask transparent and Paste restores the shape.
 - **Polygon**: Select's third toggle, Polygon, builds a polygonal lasso with discrete corner
   points. Click corners; double-click, Enter, or a click near the first point (snap radius from
-  settings.json `PolygonLassoSnapRadiusPixels`) closes it. Backspace removes the last point;
-  Esc cancels the shape in progress, else clears the selection. While a shape is in progress, a
+  settings.json `PolygonLassoSnapRadiusPixels`) closes it. Backspace removes the last point.
+  While a shape is in progress, a
   click off the sprite adds a corner clamped to its edge (as in Photoshop); otherwise a click off
   the sprite clears the selection and a drag pans. Closing with under 3 points or enclosing no
   pixel center clears the selection.

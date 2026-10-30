@@ -1201,26 +1201,31 @@ public class SpriteView : Control
     {
         if (e.Key is Key.LeftShift or Key.RightShift) SetInverseHeld(true);
         RefreshHoverCursorForKey(e, true);
+        // Every Select shape: Esc cancels a shape in progress, else clears the selection.
+        // A selection being moved is left alone, and with nothing to clear the key passes on.
+        if (PaintMode && ActiveTool == PaintTool.Selection && e.Key == Key.Escape && !_movingSelection
+            && (_polygonPoints is not null || _selecting || _selection is not null))
+        {
+            if (_polygonPoints is not null)
+            {
+                _polygonPoints = null;
+                InvalidateVisual();
+            }
+            else
+            {
+                _selecting = false; // a Rectangle or Lasso press already dropped the old selection
+                _lassoPoints = null;
+                ClearSelectionByClick();
+            }
+            e.Handled = true;
+            return;
+        }
         if (PaintMode && ActiveTool == PaintTool.Selection && PolygonSelect)
         {
             if (e.Key == Key.Back && _polygonPoints is not null && _polygonPoints.Count > 0)
             {
                 _polygonPoints.RemoveAt(_polygonPoints.Count - 1);
                 InvalidateVisual();
-                e.Handled = true;
-                return;
-            }
-            if (e.Key == Key.Escape)
-            {
-                if (_polygonPoints is not null)
-                {
-                    _polygonPoints = null;
-                    InvalidateVisual();
-                }
-                else
-                {
-                    ClearSelectionByClick();
-                }
                 e.Handled = true;
                 return;
             }

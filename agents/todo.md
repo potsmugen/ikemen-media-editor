@@ -9,13 +9,9 @@ before a release. Remove items once they're done or checked.
 
 Verified unless noted.
 
-- At 200% font and button scale (window 1580x960) fixed-width buttons and fields clip:
-  Paint Tools (Commit, Reset, Pencil, Eraser, Eyedropper, Replace, Select), onion-skin
-  Group/Number and Pin frame boxes, Palettes Commit, Scratch label,
-  Animations Play / |< / Special Flags, Sounds Play/Loop/Stop. Palettes Color R/G/B/A sliders
-  collapse to nothing, the Sprites tab palette grid under Preview with disappears, and the
-  float/collapse icons render as other glyphs.
-- Unverified (sandbox has no window manager): Escape doesn't close the Alt+F4 refusal popup.
+- Low priority: at the 200% font and button scale maximum, some controls break or clip
+  (found in the Linux sandbox, not reported by users). Either fix what breaks, or lower
+  UiScaleMaxPercent to the highest scale where nothing does.
 
 ### Sprites and palettes
 
@@ -40,10 +36,6 @@ Select tool gaps against image editor conventions:
   Photoshop, Ctrl in GIMP). Decide the modifiers, and how they fit Ctrl/Shift box selection.
 - Polygon: Shift locks the next edge to 45° steps.
 - Lasso and Polygon: Alt switches between freehand and polygon mid-shape.
-- Magic Wand: a Contiguous toggle (off = every pixel with that index).
-- Decide Esc: today it clears the selection only with Polygon (when no shape is in progress).
-  Either every Select shape clears on Esc, or none does and deselect gets its own shortcut
-  (Ctrl+D in Photoshop, GIMP and Aseprite, where Esc only cancels a shape in progress).
 
 ### Animations and Clsn
 
