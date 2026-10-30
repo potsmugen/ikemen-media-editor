@@ -297,7 +297,7 @@
                   <TextBox Grid.Column="0" x:Name="FilterBox"
                            Watermark="Filter, e.g. 5000 or 5000,10"
                            TextChanged="OnFilterChanged" KeyDown="OnFilterKeyDown" />
-                  <Button Grid.Column="1" Content="Clear" Tag="FilterBox" Click="OnClearFilterClick" Margin="4,0,0,0" />
+                  <Button Grid.Column="1" Content="Clear" Tag="FilterBox" Click="OnClearFilterClick" Margin="4,0,0,0" ToolTip.Tip="Removes the filter and shows the whole list." />
                 </Grid>
 
                 <Grid Grid.Row="1" RowDefinitions="Auto,*">
@@ -439,15 +439,15 @@
 
                 <Grid Grid.Row="2" RowDefinitions="Auto,Auto" Margin="0,6,0,0">
                   <Grid Grid.Row="0" ColumnDefinitions="*,Auto,*">
-                    <Button Grid.Column="0" x:Name="SpriteImportButton" Content="Import" HorizontalAlignment="Stretch" Click="OnAddSprite" />
+                    <Button Grid.Column="0" x:Name="SpriteImportButton" Content="Import" HorizontalAlignment="Stretch" Click="OnAddSprite" ToolTip.Tip="Adds images as new sprites after the selected one." />
                     <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
                     <Button Grid.Column="2" x:Name="SpriteExportButton" Content="Export" HorizontalAlignment="Stretch" Click="OnExportSprite"
                             ToolTip.Tip="Saves the selected sprite, asking for .png or .pcx." />
                   </Grid>
                   <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*" Margin="{DynamicResource UiGapTop}">
-                    <Button Grid.Column="0" x:Name="SpriteReplaceButton" Content="Replace" HorizontalAlignment="Stretch" Click="OnReplaceSprite" />
+                    <Button Grid.Column="0" x:Name="SpriteReplaceButton" Content="Replace" HorizontalAlignment="Stretch" Click="OnReplaceSprite" ToolTip.Tip="Swaps in a new image, keeping the sprite's group, number and axis." />
                     <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                    <Button Grid.Column="2" x:Name="SpriteDeleteButton" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeleteSprite" />
+                    <Button Grid.Column="2" x:Name="SpriteDeleteButton" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeleteSprite" ToolTip.Tip="Removes the selected sprites." />
                   </Grid>
                 </Grid>
               </Grid>
@@ -482,7 +482,7 @@
               <Grid Grid.Row="1" x:Name="OnionPanelBody">
                 <Border Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
                   <StackPanel Orientation="Horizontal" Spacing="10">
-                    <ToggleButton x:Name="OnionEnabledBox" Content="Show" Click="OnToggleOnion" />
+                    <ToggleButton x:Name="OnionEnabledBox" Content="Show" Click="OnToggleOnion" ToolTip.Tip="Shows the previous or pinned sprite faded behind this one." />
                     <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
                     <StackPanel x:Name="OnionOptionsPanel" Orientation="Horizontal" Spacing="10">
                     <TextBlock Text="Pin sprite" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center"
@@ -530,7 +530,7 @@
                 </Grid>
                 <ScrollViewer Grid.Row="1" x:Name="PaintPanelBody" Margin="{DynamicResource PanelContentBleed}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                   <StackPanel Width="210" Margin="{DynamicResource PanelContentSides}" Spacing="{DynamicResource UiButtonGap}">
-                    <ToggleButton x:Name="PaintModeToggle" Content="Paint Mode" Click="OnTogglePaintMode" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                    <ToggleButton x:Name="PaintModeToggle" Content="Paint Mode" Click="OnTogglePaintMode" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" ToolTip.Tip="Lets the paint tools edit the sprite." />
                     <Grid ColumnDefinitions="*,Auto,*">
                       <Button Grid.Column="0" x:Name="PaintCommitButton" Content="Commit" Click="OnCommitPaint" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                               ToolTip.Tip="Keeps the paint strokes." />
@@ -541,14 +541,14 @@
                     <Border Height="1" Background="{DynamicResource ThemeLine}" Margin="0,4" IsHitTestVisible="False" />
                     <TextBlock Text="Tools" Foreground="{DynamicResource ThemeMutedText}" />
                     <Grid ColumnDefinitions="*,Auto,*">
-                      <ToggleButton Grid.Column="0" x:Name="PencilToolButton" Content="Pencil" Tag="Pencil" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                      <ToggleButton Grid.Column="0" x:Name="PencilToolButton" Content="Pencil" Tag="Pencil" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" ToolTip.Tip="Paints with the chosen color." />
                       <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                      <ToggleButton Grid.Column="2" x:Name="EraserToolButton" Content="Eraser" Tag="Eraser" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                      <ToggleButton Grid.Column="2" x:Name="EraserToolButton" Content="Eraser" Tag="Eraser" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" ToolTip.Tip="Paints with the transparent color." />
                     </Grid>
                     <Grid ColumnDefinitions="*,Auto,*">
-                      <ToggleButton Grid.Column="0" x:Name="FillToolButton" Content="Fill" Tag="Fill" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                      <ToggleButton Grid.Column="0" x:Name="FillToolButton" Content="Fill" Tag="Fill" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" ToolTip.Tip="Fills the connected area of one color with the chosen color." />
                       <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                      <ToggleButton Grid.Column="2" x:Name="EyedropperToolButton" Content="Eyedropper" Tag="Eyedropper" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                      <ToggleButton Grid.Column="2" x:Name="EyedropperToolButton" Content="Eyedropper" Tag="Eyedropper" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" ToolTip.Tip="Picks the paint color from the sprite." />
                     </Grid>
                     <Grid ColumnDefinitions="*,Auto,*">
                       <ToggleButton Grid.Column="0" x:Name="ReplaceToolButton" Content="Replace" Tag="Replace" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
@@ -614,7 +614,7 @@
                           <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}" HorizontalAlignment="Center">
                             <Button Content="Swap" Click="OnSwapReplaceSquares"
                                     ToolTip.Tip="Swaps Old and New in every pair. Shift-drag paints New to Old without swapping." />
-                            <Button Content="Clear" Click="OnClearReplaceSquares" />
+                            <Button Content="Clear" Click="OnClearReplaceSquares" ToolTip.Tip="Empties every Old and New square." />
                           </StackPanel>
                           <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}" HorizontalAlignment="Center">
                             <TextBlock Text="Brush" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
@@ -627,11 +627,11 @@
                     </StackPanel>
                     <Border Height="1" Background="{DynamicResource ThemeLine}" Margin="0,4" IsHitTestVisible="False" />
                     <TextBlock Text="Layers" Foreground="{DynamicResource ThemeMutedText}" />
-                    <ToggleButton x:Name="LayersToggle" Content="Layers" Click="OnToggleLayers" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                    <ToggleButton x:Name="LayersToggle" Content="Layers" Click="OnToggleLayers" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" ToolTip.Tip="Shows the layer tools. Turning it off merges the visible layers." />
                     <Border x:Name="LayerPanel" IsVisible="False">
                       <StackPanel Spacing="{DynamicResource UiButtonGap}">
                         <Grid ColumnDefinitions="*,Auto,*">
-                          <ToggleButton Grid.Column="0" x:Name="BottomLayerButton" Content="Bottom" Tag="Bottom" Click="OnSelectPaintLayer" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                          <ToggleButton Grid.Column="0" x:Name="BottomLayerButton" Content="Bottom" Tag="Bottom" Click="OnSelectPaintLayer" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" ToolTip.Tip="Paint tools draw on the bottom layer." />
                           <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
                           <ToggleButton Grid.Column="2" x:Name="TopLayerButton" Content="Top" Tag="Top" Click="OnSelectPaintLayer" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                                         ToolTip.Tip="Paint tools draw on the top layer, which Commit merges into the sprite." />
@@ -790,23 +790,23 @@
               <DockPanel Grid.Row="1" x:Name="PaletteListBody">
               <StackPanel DockPanel.Dock="Bottom" Spacing="{DynamicResource UiButtonGap}" Margin="0,8,0,0">
                 <Grid ColumnDefinitions="*,Auto,*">
-                  <Button Grid.Column="0" Content="Import" HorizontalAlignment="Stretch" Click="OnImportPaletteFiles" />
+                  <Button Grid.Column="0" Content="Import" HorizontalAlignment="Stretch" Click="OnImportPaletteFiles" ToolTip.Tip="Loads palette files. They stay external until a sprite uses one." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" x:Name="PaletteExportButton" Content="Export" HorizontalAlignment="Stretch" Click="OnExportPalette" />
+                  <Button Grid.Column="2" x:Name="PaletteExportButton" Content="Export" HorizontalAlignment="Stretch" Click="OnExportPalette" ToolTip.Tip="Saves the active palette, asking for the format." />
                 </Grid>
                 <Grid ColumnDefinitions="*,Auto,*">
                   <Button Grid.Column="0" x:Name="PaletteReplaceButton" Content="Replace" HorizontalAlignment="Stretch" Click="OnReplacePalette"
                           ToolTip.Tip="Loads a palette file over this palette, keeping its number and the sprites that use it." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" x:Name="PaletteDeleteButton" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeletePalette" />
+                  <Button Grid.Column="2" x:Name="PaletteDeleteButton" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeletePalette" ToolTip.Tip="Removes the selected palette." />
                 </Grid>
-                <Button Content="New" HorizontalAlignment="Stretch" Click="OnNewPalette" />
+                <Button Content="New" HorizontalAlignment="Stretch" Click="OnNewPalette" ToolTip.Tip="Adds a blank temp palette." />
               </StackPanel>
               <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,6">
                 <TextBox Grid.Column="0" x:Name="PaletteFilterBox"
                          Watermark="Filter, e.g. 1,2 or F1"
                          TextChanged="OnPaletteFilterChanged" />
-                <Button Grid.Column="1" Content="Clear" Tag="PaletteFilterBox" Click="OnClearFilterClick" Margin="4,0,0,0" />
+                <Button Grid.Column="1" Content="Clear" Tag="PaletteFilterBox" Click="OnClearFilterClick" Margin="4,0,0,0" ToolTip.Tip="Removes the filter and shows the whole list." />
               </Grid>
               <Grid RowDefinitions="Auto,*">
                 <!-- Widths set in code (TextTableWidths); SharedSizeGroup did not keep the virtualized rows aligned. -->
@@ -934,7 +934,7 @@
               <TextBlock DockPanel.Dock="Top" Text="Scratch (not saved)" Foreground="{DynamicResource ThemeMutedText}"
                          Margin="0,0,0,4" />
               <Button DockPanel.Dock="Bottom" Content="Clear" Click="OnClearScratch" HorizontalAlignment="Stretch"
-                      Margin="0,4,0,0" />
+                      Margin="0,4,0,0" ToolTip.Tip="Empties every scratch swatch." />
               <Border Background="{DynamicResource ThemePanelBg}" Padding="4">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
                   <local:PaletteView x:Name="ScratchSwatches" CellSize="0" HorizontalAlignment="Center" VerticalAlignment="Center" ColorsDropped="OnScratchColorsDropped" ToolTip.Tip="Click to select; Shift or Ctrl-click for more. Drag onto another palette." />
@@ -1162,9 +1162,9 @@
                   <!-- Under the image; with no image open it sits right under the title. -->
                   <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
                     <Button Content="Open" Click="OnOpenScratchImage" Padding="{DynamicResource UiCompactButtonPadding}"
-                            Margin="{DynamicResource UiGapRight}" />
+                            Margin="{DynamicResource UiGapRight}" ToolTip.Tip="Loads an image to pick colors from." />
                     <Button x:Name="CloseReferenceButton" Content="Close" Click="OnCloseScratchImage" Padding="{DynamicResource UiCompactButtonPadding}"
-                            IsEnabled="False" />
+                            IsEnabled="False" ToolTip.Tip="Removes the reference image." />
                   </StackPanel>
                   <Border x:Name="ReferenceImageBody" IsVisible="False" Background="{DynamicResource ThemePanelBg}" Padding="2">
                     <local:ScratchImageView x:Name="ScratchImage" ColorPicked="OnScratchImageColorPicked" />
@@ -1212,7 +1212,7 @@
                     <TextBox Grid.Column="0" x:Name="ActionFilterBox"
                              Watermark="Filter, e.g. 200 or punch"
                              TextChanged="OnActionFilterChanged" />
-                    <Button Grid.Column="1" Content="Clear" Tag="ActionFilterBox" Click="OnClearFilterClick" Margin="4,0,0,0" />
+                    <Button Grid.Column="1" Content="Clear" Tag="ActionFilterBox" Click="OnClearFilterClick" Margin="4,0,0,0" ToolTip.Tip="Removes the filter and shows the whole list." />
                   </Grid>
                   <Grid Grid.Row="1">
                     <Grid.ColumnDefinitions>
@@ -1268,9 +1268,9 @@
                   </ListBox>
                 </Grid>
                 <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*" Margin="0,6,0,0">
-                  <Button Grid.Column="0" x:Name="NewActionButton" Content="New" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="OnNewAction" />
+                  <Button Grid.Column="0" x:Name="NewActionButton" Content="New" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="OnNewAction" ToolTip.Tip="Adds an action with the first free number after the selected one." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" x:Name="DeleteActionButton" Content="Delete" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="OnDeleteAction" />
+                  <Button Grid.Column="2" x:Name="DeleteActionButton" Content="Delete" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="OnDeleteAction" ToolTip.Tip="Removes the selected actions." />
                 </Grid>
               </Grid>
             </Grid>
@@ -1295,7 +1295,7 @@
             </Border>
             <Border Grid.Row="1" x:Name="AnimOnionPanelBody" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
               <StackPanel Orientation="Horizontal" Spacing="10">
-                <ToggleButton x:Name="AnimOnionEnabledBox" Content="Show" Click="OnToggleAnimOnion" />
+                <ToggleButton x:Name="AnimOnionEnabledBox" Content="Show" Click="OnToggleAnimOnion" ToolTip.Tip="Shows the previous or pinned frame faded behind this one." />
                 <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
                 <StackPanel x:Name="AnimOnionOptionsPanel" Orientation="Horizontal" Spacing="10">
                 <TextBlock Text="Pin frame" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center"
@@ -1340,11 +1340,11 @@
                 <ScrollBar x:Name="TimelineScroll" Orientation="Horizontal" AllowAutoHide="False" Margin="0,4,0,0" />
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
-                <ToggleButton x:Name="PlayButton" Content="Play" Click="OnPlayPause" Width="80" />
+                <ToggleButton x:Name="PlayButton" Content="Play" Click="OnPlayPause" Width="80" ToolTip.Tip="Plays or pauses the action." />
                 <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
-                <Button x:Name="FirstFrameButton" Content="|&lt;" Click="OnFirstFrame" Width="44" />
-                <Button x:Name="PrevFrameButton" Content="&lt;" Click="OnPrevFrame" Width="44" />
-                <Button x:Name="NextFrameButton" Content="&gt;" Click="OnNextFrame" Width="44" />
+                <Button x:Name="FirstFrameButton" Content="|&lt;" Click="OnFirstFrame" Width="44" ToolTip.Tip="First frame" />
+                <Button x:Name="PrevFrameButton" Content="&lt;" Click="OnPrevFrame" Width="44" ToolTip.Tip="Previous frame" />
+                <Button x:Name="NextFrameButton" Content="&gt;" Click="OnNextFrame" Width="44" ToolTip.Tip="Next frame" />
                 <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
                 <Button x:Name="ExportAnimationButton" Content="Export Animation" Click="OnExportAnimation"
                         ToolTip.Tip="Saves this action as a looping WebP or GIF." />
@@ -1694,16 +1694,16 @@
               <ScrollViewer Grid.Row="2" Margin="0,8,0,0">
               <StackPanel Spacing="{DynamicResource UiButtonGap}">
                 <Grid ColumnDefinitions="*,Auto,*,Auto,*">
-                  <Button Grid.Column="0" x:Name="FrameInsertButton" Content="Insert" HorizontalAlignment="Stretch" Click="OnInsertFrame" />
+                  <Button Grid.Column="0" x:Name="FrameInsertButton" Content="Insert" HorizontalAlignment="Stretch" Click="OnInsertFrame" ToolTip.Tip="Adds a frame after the selection, based on the last selected frame." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" x:Name="FrameDuplicateButton" Content="Duplicate" HorizontalAlignment="Stretch" Click="OnDuplicateFrame" />
+                  <Button Grid.Column="2" x:Name="FrameDuplicateButton" Content="Duplicate" HorizontalAlignment="Stretch" Click="OnDuplicateFrame" ToolTip.Tip="Copies the selected frames after the last of them." />
                   <Border Grid.Column="3" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="4" x:Name="FrameRemoveButton" Content="Remove" HorizontalAlignment="Stretch" Click="OnRemoveFrame" />
+                  <Button Grid.Column="4" x:Name="FrameRemoveButton" Content="Remove" HorizontalAlignment="Stretch" Click="OnRemoveFrame" ToolTip.Tip="Removes the selected frames. An action keeps at least one." />
                 </Grid>
                 <Grid ColumnDefinitions="*,Auto,*,Auto,*">
-                  <Button Grid.Column="0" x:Name="FrameUpButton" Content="Up" HorizontalAlignment="Stretch" Click="OnMoveFrameUp" />
+                  <Button Grid.Column="0" x:Name="FrameUpButton" Content="Up" HorizontalAlignment="Stretch" Click="OnMoveFrameUp" ToolTip.Tip="Moves the selected frames up one row." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" x:Name="FrameDownButton" Content="Down" HorizontalAlignment="Stretch" Click="OnMoveFrameDown" />
+                  <Button Grid.Column="2" x:Name="FrameDownButton" Content="Down" HorizontalAlignment="Stretch" Click="OnMoveFrameDown" ToolTip.Tip="Moves the selected frames down one row." />
                   <Border Grid.Column="3" Width="{DynamicResource UiButtonGap}" />
                   <Button Grid.Column="4" x:Name="FrameFlagsButton" Content="Special Flags" HorizontalAlignment="Stretch" Click="OnSpecialFlags"
                           ToolTip.Tip="Sets Loopstart and interpolation for the selected frames." />
@@ -1717,12 +1717,12 @@
                           IsChecked="True" Click="OnToggleBoxes" />
                 <TextBlock x:Name="BoxInfo" Text="No Clsn selected" Foreground="{DynamicResource ThemeMutedText}" TextWrapping="Wrap" />
                 <Grid ColumnDefinitions="*,Auto,*">
-                  <Button Grid.Column="0" x:Name="AddAttackBoxButton" Content="Add Clsn1" HorizontalAlignment="Stretch" Click="OnAddAttackBox" />
+                  <Button Grid.Column="0" x:Name="AddAttackBoxButton" Content="Add Clsn1" HorizontalAlignment="Stretch" Click="OnAddAttackBox" ToolTip.Tip="Adds a hitbox to this frame." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" x:Name="AddHurtBoxButton" Content="Add Clsn2" HorizontalAlignment="Stretch" Click="OnAddHurtBox" />
+                  <Button Grid.Column="2" x:Name="AddHurtBoxButton" Content="Add Clsn2" HorizontalAlignment="Stretch" Click="OnAddHurtBox" ToolTip.Tip="Adds a hurtbox to this frame." />
                 </Grid>
                 <Grid ColumnDefinitions="*,Auto,*">
-                  <Button Grid.Column="0" x:Name="DeleteBoxButton" Content="Delete Box" HorizontalAlignment="Stretch" Click="OnDeleteBox" />
+                  <Button Grid.Column="0" x:Name="DeleteBoxButton" Content="Delete Box" HorizontalAlignment="Stretch" Click="OnDeleteBox" ToolTip.Tip="Removes the selected boxes. Boxes from an earlier frame's default stay." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
                   <Button Grid.Column="2" x:Name="MakeDefaultButton" Content="Toggle Default" HorizontalAlignment="Stretch" Click="OnMakeBoxDefault"
                           ToolTip.Tip="Makes this frame's boxes the default for later frames." />
@@ -1782,13 +1782,13 @@
                   <Button Grid.Column="0" x:Name="SoundReplaceButton" Content="Replace" HorizontalAlignment="Stretch" Click="OnReplaceSound"
                           ToolTip.Tip="Replaces the sound with a .wav." />
                   <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" x:Name="SoundDeleteButton" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeleteSound" />
+                  <Button Grid.Column="2" x:Name="SoundDeleteButton" Content="Delete" HorizontalAlignment="Stretch" Click="OnDeleteSound" ToolTip.Tip="Removes the selected sounds." />
                 </Grid>
               </Grid>
               <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,6">
                 <TextBox Grid.Column="0" x:Name="SoundFilterBox" Watermark="Filter, e.g. 0 or 0,1"
                          TextChanged="OnSoundFilterChanged" />
-                <Button Grid.Column="1" Content="Clear" Tag="SoundFilterBox" Click="OnClearFilterClick" Margin="4,0,0,0" />
+                <Button Grid.Column="1" Content="Clear" Tag="SoundFilterBox" Click="OnClearFilterClick" Margin="4,0,0,0" ToolTip.Tip="Removes the filter and shows the whole list." />
               </Grid>
               <Grid RowDefinitions="Auto,*">
                 <!-- Widths set in code (TextTableWidths); SharedSizeGroup did not keep the virtualized rows aligned. -->
@@ -1895,9 +1895,9 @@
                              TextTrimming="CharacterEllipsis" ToolTip.Tip="Drag to select, click to clear." />
                 </Grid>
                 <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="{DynamicResource UiButtonGap}" Margin="0,4,0,0">
-                  <Button x:Name="SoundPlayButton" Content="Play" Click="OnPlaySound" Width="70" />
-                  <Button x:Name="SoundLoopButton" Content="Loop" Click="OnPlaySoundLoop" Width="70" />
-                  <Button x:Name="SoundStopButton" Content="Stop" Click="OnStopSound" Width="70" />
+                  <Button x:Name="SoundPlayButton" Content="Play" Click="OnPlaySound" Width="70" ToolTip.Tip="Plays the selected sound once." />
+                  <Button x:Name="SoundLoopButton" Content="Loop" Click="OnPlaySoundLoop" Width="70" ToolTip.Tip="Repeats the sound until Stop. Windows only; elsewhere it plays once." />
+                  <Button x:Name="SoundStopButton" Content="Stop" Click="OnStopSound" Width="70" ToolTip.Tip="Stops playback." />
                 </StackPanel>
                 <ScrollBar DockPanel.Dock="Bottom" x:Name="WaveformScroll" Orientation="Horizontal" AllowAutoHide="False" Margin="0,4,0,0" />
                 <local:WaveformView x:Name="Waveform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
