@@ -175,6 +175,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   (default; settings file only, no Preferences control); off, they keep the axis in place like
   Ctrl++/Ctrl+- and the View menu (the reference image: its top-left). The waveform always
   zooms at the pointer.
+  A canvas with nothing to zoom (no sprite shown, e.g. none loaded) resets to 100% and ignores
+  zoom; an animation frame whose sprite is missing keeps its zoom (`Show(preserveZoom)`).
 - **Paint history**: the pending session has its own undo, one step per stroke, fill, paste,
   selection drag, layer operation or layer show/hide. Undo past the start closes the empty
   session and continues in the main history. If `PaintUndoLimit` (default 100) dropped steps

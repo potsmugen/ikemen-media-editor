@@ -438,7 +438,10 @@ public class SpriteView : Control
     /// </summary>
     public Blend ElementBlend { get; set; } = Blend.None;
 
-    public double Zoom => _sprite is null ? 1 : ZoomLevels[_zoomIdx];
+    public double Zoom => _zoomable ? ZoomLevels[_zoomIdx] : 1;
+
+    /// <summary>Something to zoom: a sprite, or a view kept without one (an animation frame whose sprite is missing).</summary>
+    private bool _zoomable;
 
     /// <summary>Raised whenever the zoom level changes, so a status line can follow.</summary>
     public event Action? ZoomChanged;
@@ -454,11 +457,13 @@ public class SpriteView : Control
     }
 
     /// <summary>Shows a sprite, rebuilding the bitmap from the given palette.</summary>
+    /// <param name="preserveZoom">Keep the view zoomable even without a sprite; otherwise a null sprite resets the zoom.</param>
     public void Show(Sprite? sprite, Palette? palette, bool showMask, bool preserveZoom = false)
     {
         bool changedSprite = !ReferenceEquals(_sprite, sprite);
         _sprite = sprite;
-        if (sprite is null && !preserveZoom && _zoomIdx != ZoomOne)
+        _zoomable = sprite is not null || preserveZoom;
+        if (!_zoomable && _zoomIdx != ZoomOne)
         {
             _zoomIdx = ZoomOne;
             _pan = default;
@@ -577,9 +582,10 @@ public class SpriteView : Control
     /// <param name="anchor">Point in view coordinates that stays put (wheel and pinch); null keeps the axis in place.</param>
     public void StepZoom(int delta, Point? anchor = null)
     {
+        if (!_zoomable) return; // nothing to zoom
         int next = Math.Clamp(_zoomIdx + delta, 0, ZoomLevels.Length - 1);
         if (next == _zoomIdx) return;
-        if (anchor is { } a && _sprite is not null)
+        if (anchor is { } a)
         {
             // Keep the sprite point under the anchor: new origin = anchor - (anchor - origin) * ratio.
             var o = Origin;
