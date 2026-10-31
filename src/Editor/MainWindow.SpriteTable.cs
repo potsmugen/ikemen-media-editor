@@ -643,16 +643,15 @@ public partial class MainWindow
         if (suppressEvents) _suppressEvents = true;
         try
         {
-            var wanted = selectedRows.Distinct().Order().ToList();
-            // One batch, so the clear and the adds raise a single SelectionChanged.
-            SpriteList.Selection.BeginBatchUpdate();
-            try
-            {
-                selectedItems.Clear();
-                foreach (int row in wanted)
-                    if (row >= 0 && row < rows.Count) selectedItems.Add(rows[row]);
-            }
-            finally { SpriteList.Selection.EndBatchUpdate(); }
+            var wanted = selectedRows.Where(row => row >= 0 && row < rows.Count)
+                .Select(row => rows[row]).ToHashSet();
+            // Only touch rows that change, so a step raises few events. No BatchUpdate: Avalonia
+            // applies batched SelectedItems edits twice, leaving duplicates (features.md).
+            foreach (var row in selectedItems.OfType<SpriteTableRow>().Where(r => !wanted.Contains(r)).ToList())
+                selectedItems.Remove(row);
+            var current = selectedItems.OfType<SpriteTableRow>().ToHashSet();
+            foreach (var row in wanted.OrderBy(r => r.VisibleRow))
+                if (!current.Contains(row)) selectedItems.Add(row);
         }
         finally { _suppressEvents = wasSuppressed; }
     }
@@ -707,6 +706,8 @@ public partial class MainWindow
         int pressToken = ++_spritePointerPressToken;
         _spriteCollapsePending = -1;
         e.Pointer.Capture(c);
+        // Read before ActivateSpriteRow moves _current to the clicked row: the Shift fallback anchor.
+        int previousRow = CurrentSpriteRow();
 
         try
         {
@@ -723,7 +724,7 @@ public partial class MainWindow
             // undo restores an older set, a right-click elsewhere re-anchors on its own row — which
             // leaves a stale anchor behind, and extending from that picks a range nobody asked for.
             if (shift && (anchor < 0 || anchor >= _visible.Count || !selected.Contains(anchor)))
-                anchor = CurrentSpriteRow() >= 0 ? CurrentSpriteRow() : row.VisibleRow;
+                _spriteSelectionAnchor = anchor = previousRow >= 0 && previousRow < _visible.Count ? previousRow : row.VisibleRow;
 
             if (shift)
             {
