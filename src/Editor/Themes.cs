@@ -4,12 +4,12 @@ using Avalonia.Styling;
 namespace Editor;
 
 /// <summary>One theme's colors plus whether native Fluent chrome should follow it as light or dark.</summary>
-public sealed record ThemeDef(string Name, string Panel, string List, string Field, string Hover, string Text, string Muted, string Dim, string Separator, string Canvas, string Accent, string Selection, string Active, string ActiveText, string SliderRed, string SliderGreen, string SliderBlue, string SliderNeutral, ThemeVariant Variant);
+public sealed record ThemeDef(string Name, string Panel, string Chrome, string List, string Field, string Hover, string Text, string Muted, string Dim, string Separator, string Canvas, string Accent, string Selection, string Active, string ActiveText, string SliderRed, string SliderGreen, string SliderBlue, string SliderNeutral, ThemeVariant Variant);
 
 /// <summary>
 /// Every theme is a plain file in the themes folder, same "external file beats
 /// a recompile" pattern as Strings.LoadOverrides and Settings/action-names.txt:
-/// MyTheme.txt holding Panel = / List = / Field = / Text = / Muted = / Dim = /
+/// MyTheme.txt holding Panel = / Chrome = / List = / Field = / Text = / Muted = / Dim = /
 /// Separator = / Canvas = / Accent = / Selection = / Active = / ActiveText = / SliderRed = / SliderGreen = / SliderBlue = / SliderNeutral = / Variant = (Dark|Light) lines,
 /// the file name (minus .txt) becomes the theme's name in the menu. Canvas is the
 /// backdrop behind sprite pixels. Separator is
@@ -33,7 +33,7 @@ public static class Themes
     /// on first run. That way there is no second copy to drift out of step.
     /// </summary>
     public static readonly ThemeDef Fallback =
-        new("Dark", "#36393f", "#2f3136", "#40444b", "#484d55", "#f2f3f5", "#b9bbbe", "#949ba4", "#4f545c", "#2b2d31", "#168fe8", "#454b58", "#168fe8", "#ffffff", "#e5534b", "#57ab5a", "#4a8fe8", "#c0c0c0", ThemeVariant.Dark);
+        new("Dark", "#36393f", "#292b2f", "#2f3136", "#40444b", "#484d55", "#f2f3f5", "#b9bbbe", "#949ba4", "#4f545c", "#2b2d31", "#168fe8", "#454b58", "#168fe8", "#ffffff", "#e5534b", "#57ab5a", "#4a8fe8", "#c0c0c0", ThemeVariant.Dark);
 
     /// <summary>The alternate themes shipped as plain files next to the exe (see the copy rule in Editor.csproj).</summary>
     private static string ShippedFolder => Path.Combine(AppContext.BaseDirectory, "themes");
@@ -115,6 +115,7 @@ public static class Themes
     private static string ToFileContents(ThemeDef t) =>
         Header +
         $"Panel   = {t.Panel}\n" +
+        $"Chrome  = {t.Chrome}\n" +
         $"List    = {t.List}\n" +
         $"Field   = {t.Field}\n" +
         $"Hover   = {t.Hover}\n" +
@@ -143,7 +144,8 @@ public static class Themes
         "#\n" +
         "# Colors are #RRGGBB.\n" +
         "#\n" +
-        "# Panel       window, menu bar, and panel backgrounds\n" +
+        "# Panel       panel and tab backgrounds\n" +
+        "# Chrome      window, menu bar, project tab strip, status bar, and unselected tabs; a shade apart from Panel\n" +
         "# List        list boxes\n" +
         "# Field       input backgrounds (text boxes, number boxes)\n" +
         "# Hover       button hover backgrounds\n" +
@@ -185,7 +187,7 @@ public static class Themes
     private static bool TryParse(string path, string name, out ThemeDef theme)
     {
         theme = null!;
-        string? panel = null, list = null, field = null, hover = null, text = null, muted = null, dim = null,
+        string? panel = null, chrome = null, list = null, field = null, hover = null, text = null, muted = null, dim = null,
                     separator = null, canvas = null, accent = null, selection = null, active = null, activeText = null,
                     sliderRed = null, sliderGreen = null, sliderBlue = null, sliderNeutral = null;
         string? variant = null;
@@ -209,6 +211,7 @@ public static class Themes
             switch (key.ToLowerInvariant())
             {
                 case "panel": panel = value; break;
+                case "chrome": chrome = value; break;
                 case "list": list = value; break;
                 case "field": field = value; break;
                 case "hover": hover = value; break;
@@ -229,17 +232,17 @@ public static class Themes
             }
         }
 
-        if (panel is null || list is null || field is null || hover is null || text is null || muted is null || dim is null
+        if (panel is null || chrome is null || list is null || field is null || hover is null || text is null || muted is null || dim is null
             || separator is null || canvas is null || accent is null || selection is null || active is null || activeText is null
             || sliderRed is null || sliderGreen is null || sliderBlue is null || sliderNeutral is null
             || variant is null) return false;
-        foreach (var c in (string[])[panel, list, field, hover, text, muted, dim, separator, canvas, accent, selection, active, activeText, sliderRed, sliderGreen, sliderBlue, sliderNeutral])
+        foreach (var c in (string[])[panel, chrome, list, field, hover, text, muted, dim, separator, canvas, accent, selection, active, activeText, sliderRed, sliderGreen, sliderBlue, sliderNeutral])
             if (!Color.TryParse(c, out _)) return false; // one bad color and the whole file is skipped, not partially applied
 
         if (!variant.Equals("Dark", StringComparison.OrdinalIgnoreCase)
             && !variant.Equals("Light", StringComparison.OrdinalIgnoreCase)) return false;
 
-        theme = new ThemeDef(name, panel, list, field, hover, text, muted, dim, separator, canvas, accent, selection, active, activeText,
+        theme = new ThemeDef(name, panel, chrome, list, field, hover, text, muted, dim, separator, canvas, accent, selection, active, activeText,
             sliderRed, sliderGreen, sliderBlue, sliderNeutral,
             variant.Equals("Light", StringComparison.OrdinalIgnoreCase) ? ThemeVariant.Light : ThemeVariant.Dark);
         return true;

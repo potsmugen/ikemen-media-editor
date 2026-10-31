@@ -492,7 +492,7 @@ public partial class MainWindow : Window
             /// Covers the states the app can actually reach; a control that gained a new
             /// state later shows Fluent's color for that one state only.
             /// </summary>
-            private static void ApplyControlColors(IResourceDictionary res, IBrush panel, IBrush list, IBrush field, IBrush hover, IBrush text, IBrush muted, IBrush dim, IBrush accent, IBrush activeButton, IBrush activeText)
+            private static void ApplyControlColors(IResourceDictionary res, IBrush panel, IBrush chrome, IBrush field, IBrush hover, IBrush text, IBrush muted, IBrush dim, IBrush accent, IBrush activeButton, IBrush activeText)
             {
                 // Button (and ToggleButton, whose theme is based on it).
                 res["ButtonBackground"] = field;
@@ -567,9 +567,9 @@ public partial class MainWindow : Window
                 res["TextControlBackgroundDisabled"] = field;
                 res["TextControlBorderBrushDisabled"] = dim;
 
-                // Tab headers, folder-style: unselected on the list color, the selected one on the
+                // Tab headers, folder-style: unselected on the chrome color, the selected one on the
                 // panel color so it joins its content. The outline is set on TabItem in MainWindow.axaml.
-                res["TabItemHeaderBackgroundUnselected"] = list;
+                res["TabItemHeaderBackgroundUnselected"] = chrome;
                 res["TabItemHeaderBackgroundSelected"] = panel;
                 res["TabItemHeaderForegroundUnselected"] = muted;
                 res["TabItemHeaderForegroundSelected"] = text;
@@ -697,6 +697,8 @@ public partial class MainWindow : Window
                 // feel slower after the theming work.
                 var res = new ResourceDictionary();
         res["ThemePanelBg"] = panelBrush;
+        var chromeBrush = new SolidColorBrush(Color.Parse(theme.Chrome));
+        res["ThemeChromeBg"] = chromeBrush;
         res["ThemeListBg"] = listBrush;
         res["ThemeSeparator"] = new SolidColorBrush(Color.Parse(theme.Separator));
         res["ThemeText"] = textBrush;
@@ -706,7 +708,7 @@ public partial class MainWindow : Window
         res["ThemeFieldBg"] = fieldBrush;
 
         // Menu bar (File, Edit, ...) and its dropdowns: idle background comes
-        // from MainMenu's own Background="{DynamicResource ThemePanelBg}" in
+        // from MainMenu's own Background="{DynamicResource ThemeChromeBg}" in
         // XAML already; these are the Fluent brushes that don't have a themed
         // XAML setter reaching them otherwise — the dropdown panel itself and
         // every row's hover/pressed/disabled state, top-level and submenu
@@ -755,7 +757,7 @@ public partial class MainWindow : Window
                 res["ComboBoxDropDownBackground"] = panelBrush;
                 res["ComboBoxDropDownBorderBrush"] = dimBrush;
 
-                ApplyControlColors(res, panelBrush, listBrush, fieldBrush, hoverBrush, textBrush, mutedBrush, dimBrush, accentBrush, activeButtonBrush, new SolidColorBrush(Color.Parse(theme.ActiveText)));
+                ApplyControlColors(res, panelBrush, chromeBrush, fieldBrush, hoverBrush, textBrush, mutedBrush, dimBrush, accentBrush, activeButtonBrush, new SolidColorBrush(Color.Parse(theme.ActiveText)));
 
         if (variantChanged) Application.Current!.RequestedThemeVariant = theme.Variant;
 

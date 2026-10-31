@@ -6,7 +6,8 @@
 #
 # Colors are #RRGGBB.
 #
-# Panel       window, menu bar, and panel backgrounds
+# Panel       panel and tab backgrounds
+# Chrome      window, menu bar, project tab strip, status bar, and unselected tabs; a shade apart from Panel
 # List        list boxes
 # Field       input backgrounds (text boxes, number boxes)
 # Hover       button hover backgrounds
@@ -24,6 +25,7 @@
 # Variant     Dark or Light; also sets the color of native window chrome
 
 Panel   = #f3f3f3
+Chrome  = #e5e5e5
 List    = #ffffff
 Field   = #f9f9f9
 Hover   = #e5eff8

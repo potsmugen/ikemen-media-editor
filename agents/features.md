@@ -615,7 +615,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   outlines (`TabAndBarLineWidth`, Preferences > Appearance "Tab and bar line width", separate
   from the panel separators). Floating panel windows outline with `PanelSeparatorWidth`. The Paint panel resizes like the other side panels (settings.json `SpritesPaintWidth`;
   null fits its contents).
-- **Themes**: themes live in `themes/` beside the exe, user ones included. Dark is
+- **Themes**: themes live in `themes/` beside the exe, user ones included. `Chrome` (`ThemeChromeBg`)
+  colors the window, menu bar, project tab strip, status bar and unselected project and sub-tabs a shade
+  apart from `Panel`; the
+  sub-tab header row stays on `Panel` so the selected project tab still joins it. Dark is
   generated from `Themes.Fallback` when missing, shipped themes are refreshed at startup, and
   custom ones are never overwritten. Every key is required, missing ones are not defaulted,
   and `Theme*` keys stay out of `App.axaml` because local resources shadow merged themes. Swap

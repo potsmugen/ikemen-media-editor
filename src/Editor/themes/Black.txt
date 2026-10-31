@@ -6,7 +6,8 @@
 #
 # Colors are #RRGGBB.
 #
-# Panel       window, menu bar, and panel backgrounds
+# Panel       panel and tab backgrounds
+# Chrome      window, menu bar, project tab strip, status bar, and unselected tabs; a shade apart from Panel
 # List        list boxes
 # Field       input backgrounds (text boxes, number boxes)
 # Hover       button hover backgrounds
@@ -23,19 +24,20 @@
 # SliderNeutral  filled tracks of the palette H, S, L and A sliders
 # Variant     Dark or Light; also sets the color of native window chrome
 #
-# GitHub's own dark palette (Primer): canvas #0d1117, subtle #161b22, border
-# #30363d, fg #e6edf3, muted #8b949e, subtle fg #6e7681. List sits a shade
-# above Panel, as in Black, so the sprite list reads as its own surface.
+# GitHub's own dark palette (Primer): inset #010409, canvas #0d1117, subtle
+# #161b22, border #30363d, fg #e6edf3, muted #8b949e, subtle fg #6e7681.
+# Panel is "subtle" so the darker layers (chrome, tabs, lists) stay visible.
 
-Panel   = #0d1117
-List    = #161b22
+Panel   = #161b22
+Chrome  = #010409
+List    = #0d1117
 Field   = #21262d
-Hover   = #2f3945
+Hover   = #30363d
 Text    = #e6edf3
 Muted   = #8b949e
 Dim     = #6e7681
 Separator = #30363d
-Canvas  = #161b22
+Canvas  = #0d1117
 Accent  = #f0883e
 Selection = #334252
 Active    = #b85c00

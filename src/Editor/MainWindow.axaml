@@ -4,11 +4,11 @@
         xmlns:conv="using:Avalonia.Data.Converters"
         x:Class="Editor.MainWindow"
         Width="1180" Height="740" MinWidth="820" MinHeight="520"
-        Title="Ikemen Media Editor" Background="{DynamicResource ThemePanelBg}">
+        Title="Ikemen Media Editor" Background="{DynamicResource ThemeChromeBg}">
 
   <DockPanel>
 
-    <Menu x:Name="MainMenu" DockPanel.Dock="Top" Background="{DynamicResource ThemePanelBg}">
+    <Menu x:Name="MainMenu" DockPanel.Dock="Top" Background="{DynamicResource ThemeChromeBg}">
       <MenuItem Header="_File">
         <MenuItem Header="_Open .def" x:Name="OpenDefItem" Click="OnOpenDef"
                   ToolTip.Tip="Opens a character, stage, screenpack, lifebar or storyboard .def with the files it points to." />
@@ -150,7 +150,7 @@
       </MenuItem>
     </Menu>
 
-    <Border x:Name="StatusBar" DockPanel.Dock="Bottom" Background="{DynamicResource ThemePanelBg}" Padding="8,4">
+    <Border x:Name="StatusBar" DockPanel.Dock="Bottom" Background="{DynamicResource ThemeChromeBg}" Padding="8,4">
       <Grid ColumnDefinitions="*,Auto">
         <TextBlock Grid.Column="0" x:Name="StatusText" Text="No file loaded" Foreground="{DynamicResource ThemeMutedText}"
                    TextTrimming="CharacterEllipsis" />
@@ -171,7 +171,7 @@
     <Border DockPanel.Dock="Top" Height="{DynamicResource TabAndBarLineWidth}" Background="{DynamicResource ThemeSeparator}"
             IsHitTestVisible="False" />
     <!-- Bottom margin offsets the Sprites/Palettes tab strip's negative top margin. -->
-    <Border x:Name="ProjectTabBar" DockPanel.Dock="Top" Background="{DynamicResource ThemePanelBg}"
+    <Border x:Name="ProjectTabBar" DockPanel.Dock="Top" Background="{DynamicResource ThemeChromeBg}"
             Margin="0,0,0,4">
       <Border.Styles>
         <Style Selector="Border.projectTab">
@@ -179,7 +179,7 @@
           <Setter Property="CornerRadius" Value="{DynamicResource UiTabCornerRadius}" />
           <Setter Property="BorderThickness" Value="{DynamicResource TabOutlineThickness}" />
           <Setter Property="BorderBrush" Value="{DynamicResource ThemeSeparator}" />
-          <Setter Property="Background" Value="{DynamicResource ThemeListBg}" />
+          <Setter Property="Background" Value="{DynamicResource ThemeChromeBg}" />
           <!-- Stops short of the baseline, which shows under it. -->
           <Setter Property="Margin" Value="{DynamicResource TabLineBottomThickness}" />
         </Style>
