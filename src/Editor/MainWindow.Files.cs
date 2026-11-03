@@ -251,6 +251,7 @@ public partial class MainWindow
         _dirty = false;
         _savedPalettes = _file is null ? null : SffPaletteSnapshot.Take(_file);
         _paletteOverride = -1;
+        _paletteFollowedSprite = null;
         _undo.Clear(() =>
         {
             if (_file is not null) _dirty = false;
@@ -265,7 +266,7 @@ public partial class MainWindow
         _suppressEvents = false;
 
         RebuildPaletteList();
-        PaletteBox.SelectedIndex = 0;
+        SyncPreviewPaletteBox();
 
         ApplyFilter();
         SpriteCanvas.ResetView();
@@ -955,6 +956,7 @@ public partial class MainWindow
         _editingView = null;
         _dirty = false;
         _paletteOverride = -1;
+        _paletteFollowedSprite = null;
         _current = null;
         _undo.Clear();
         foreach (var palette in _standalonePalettesPendingSff)

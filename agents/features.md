@@ -377,6 +377,11 @@ and constraints that are easy to miss when reading one code path in isolation.
   Convert Depth offers depths every palette is at or fits, skipping ones already there. Save
   Original File skips palettes without a file. Replace and Preview First Sprite need one palette.
   Logic is in `MainWindow.PalettesMulti.cs`.
+- **Sprites tab Preview with** lists the SFF palettes. Follow sprite (on at launch, not saved)
+  drops a pick and shows the current sprite's own palette whenever the current sprite changes or
+  the tab is entered; blank for a true-color sprite. Off, the pick stays, and turning it off pins
+  the shown palette. Apply Preview Palette applies whatever the box shows; it is disabled when
+  the only selected sprite already uses that palette.
 - **Palette selection** follows the palette object; a preview can show the active sprite
   without changing the edited palette. Dirty palettes show `*`. The Palettes tab shows `*`
   only when SFF palette tables (set, order, keys, links, colors) differ from the last

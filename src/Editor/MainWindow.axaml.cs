@@ -1387,6 +1387,8 @@ public partial class MainWindow : Window
 
     private void RefreshSprite()
     {
+        FollowSpritePalette();
+        SyncPreviewPaletteBox();
         UpdateSpriteActionButtons();
         if (_current is null)
         {
@@ -1426,17 +1428,55 @@ public partial class MainWindow : Window
     private void RefreshAssignPaletteButton()
     {
         if (AssignPaletteButton is null) return;
-        Palette? chosen = _file is not null && _paletteOverride >= 0 && _paletteOverride < _file.Palettes.Count
-            ? _file.Palettes[_paletteOverride] : null;
+        Palette? chosen = PreviewBoxPalette();
+        var targets = SelectedSpriteTargets();
+        // A lone sprite already on this palette has nothing to apply, even an external one.
         AssignPaletteButton.IsEnabled = chosen is not null
-            && SelectedSpriteTargets().Any(sprite => !ReferenceEquals(sprite.Palette, chosen)
+            && !(targets.Count == 1 && ReferenceEquals(targets[0].Palette, chosen))
+            && targets.Any(sprite => !ReferenceEquals(sprite.Palette, chosen)
                 || chosen.Source == PaletteSource.External);
     }
 
     private void OnPaletteSelected(object? sender, SelectionChangedEventArgs e)
     {
-        if (_suppressEvents) return;
-        _paletteOverride = PaletteBox.SelectedIndex - 1;
+        if (_suppressEvents || _file is null || PaletteBox.SelectedIndex < 0) return;
+        _paletteOverride = PaletteBox.SelectedIndex;
+        RefreshSprite();
+    }
+
+    private bool FollowsSpritePalette => FollowSpritePaletteBox?.IsChecked == true;
+
+    /// <summary>While Follow sprite is on, a new current sprite on the Sprites tab drops the preview pick.</summary>
+    private void FollowSpritePalette()
+    {
+        if (!FollowsSpritePalette || (Tabs?.SelectedIndex ?? 0) != 0 || ReferenceEquals(_current, _paletteFollowedSprite)) return;
+        _paletteFollowedSprite = _current;
+        _paletteOverride = -1;
+    }
+
+    /// <summary>The palette Preview with shows: the pick, or the current sprite's own while following.</summary>
+    private Palette? PreviewBoxPalette() =>
+        OverriddenPalette()
+        ?? (FollowsSpritePalette && _file is { } f && _current?.Palette is { } own && f.Palettes.Contains(own) ? own : null);
+
+    /// <summary>Shows PreviewBoxPalette in the Preview with box without firing its selection handler.</summary>
+    private void SyncPreviewPaletteBox()
+    {
+        if (_file is null || PaletteBox is null) return;
+        int index = PreviewBoxPalette() is { } pal ? _file.Palettes.IndexOf(pal) : -1;
+        if (index >= PaletteBox.ItemCount) index = -1;
+        if (PaletteBox.SelectedIndex == index) return;
+        bool wasSuppressed = _suppressEvents;
+        _suppressEvents = true;
+        PaletteBox.SelectedIndex = index;
+        _suppressEvents = wasSuppressed;
+    }
+
+    private void OnToggleFollowSpritePalette(object? sender, RoutedEventArgs e)
+    {
+        if (FollowsSpritePalette) { _paletteFollowedSprite = _current; _paletteOverride = -1; }
+        // Turning it off pins the shown palette, so the preview doesn't change.
+        else if (_file is not null && OverriddenPalette() is null && _current?.Palette is { } own) _paletteOverride = _file.Palettes.IndexOf(own);
         RefreshSprite();
     }
 
@@ -1574,10 +1614,8 @@ public partial class MainWindow : Window
             }
             if (tab == 0 && _lastTab != 0)
             {
-                _paletteOverride = -1;
-                _suppressEvents = true;
-                PaletteBox.SelectedIndex = 0;
-                _suppressEvents = false;
+                // Following restarts from the sprite's own palette; otherwise the pick stays.
+                if (FollowsSpritePalette) { _paletteOverride = -1; _paletteFollowedSprite = _current; }
                 RefreshSprite();
             }
             _lastTab = tab;

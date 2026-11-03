@@ -744,6 +744,9 @@
                         <ComboBox x:Name="PaletteBox" HorizontalAlignment="Stretch"
                                   SelectionChanged="OnPaletteSelected"
                                   ToolTip.Tip="Chooses the palette used to preview this sprite." />
+                        <CheckBox x:Name="FollowSpritePaletteBox" Content="Follow sprite" IsChecked="True"
+                                  Click="OnToggleFollowSpritePalette"
+                                  ToolTip.Tip="Switches the preview to each sprite's own palette when the sprite changes." />
                       </StackPanel>
                       <StackPanel Grid.Row="2" Spacing="{DynamicResource UiButtonGap}" Margin="0,8,0,0">
                         <Border Height="{DynamicResource UiSwatchInfoHeight}" ClipToBounds="True">

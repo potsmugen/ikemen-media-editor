@@ -238,7 +238,8 @@ public partial class MainWindow
         if (_file is not null || _standalonePalettes.Count > 0) RebuildPaletteList();
         if (_file is not null)
         {
-            if (PaletteBox.ItemCount > 0) PaletteBox.SelectedIndex = Math.Clamp(keepOverride + 1, 0, PaletteBox.ItemCount - 1);
+            _paletteOverride = keepOverride < PaletteBox.ItemCount ? keepOverride : -1;
+            SyncPreviewPaletteBox();
             ApplyFilter(); // keeps _current selected
         }
         if (_doc.SpriteView is { } view) SpriteCanvas.View = view;

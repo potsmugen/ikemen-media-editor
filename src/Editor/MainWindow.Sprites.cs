@@ -900,15 +900,21 @@ public partial class MainWindow
     }
 
 
+    /// <summary>After Apply the sprite's own palette is the applied one: follow it, or pin it when not following.</summary>
+    private void ResetPreviewAfterAssign()
+    {
+        _paletteOverride = FollowsSpritePalette || _file is null || _current?.Palette is not { } own ? -1 : _file.Palettes.IndexOf(own);
+        RefreshSprite();
+    }
+
     private async void OnAssignPalette(object? sender, RoutedEventArgs e)
     {
-        if (_file is null || _paletteOverride < 0 || _paletteOverride >= _file.Palettes.Count) return;
+        if (_file is null || PreviewBoxPalette() is not { } chosen) return;
 
         try
         {
             var selected = SelectedSpriteTargets();
             if (selected.Count == 0) return;
-            var chosen = _file.Palettes[_paletteOverride];
             if (IsTempPalette(chosen))
             {
                 if (!await Dialogs.Confirm(this, "Move Temp Palette",
@@ -921,13 +927,11 @@ public partial class MainWindow
             if (selected.Count > 1)
             {
                 if (!await AssignPaletteToSelectedSprites(chosen, selected)) return;
-                _paletteOverride = -1;
-                PaletteBox.SelectedIndex = 0;
+                ResetPreviewAfterAssign();
                 return;
             }
             if (!await AssignSpritePalette(selected[0], chosen)) return;
-            _paletteOverride = -1;
-            PaletteBox.SelectedIndex = 0;
+            ResetPreviewAfterAssign();
         }
         catch (Exception ex) { await Failed("OnAssignPalette", ex); }
     }
@@ -2118,9 +2122,7 @@ public partial class MainWindow
                 _paletteOverride = paletteOverrideDeleted || paletteOverride is null
                     ? -1
                     : file.Palettes.IndexOf(paletteOverride);
-                _suppressEvents = true;
-                PaletteBox.SelectedIndex = _paletteOverride + 1;
-                _suppressEvents = false;
+                SyncPreviewPaletteBox();
 
                 int firstAt = positions.Min();
                 _current = firstAt < file.Sprites.Count ? file.Sprites[firstAt]
@@ -2140,9 +2142,7 @@ public partial class MainWindow
                 for (int i = 0; i < spritesToDelete.Count; i++) file.Insert(positions[i], spritesToDelete[i]);
                 _current = spritesToDelete[0];
                 _paletteOverride = paletteOverride is null ? -1 : file.Palettes.IndexOf(paletteOverride);
-                _suppressEvents = true;
-                PaletteBox.SelectedIndex = _paletteOverride + 1;
-                _suppressEvents = false;
+                SyncPreviewPaletteBox();
                 RestoreDeletedPaletteEditor();
             }
 

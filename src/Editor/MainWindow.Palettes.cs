@@ -1652,9 +1652,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                         new PaletteLinkState(null, state.Colors).Restore(palette);
                     file.Palettes.RemoveAll(targets.Contains);
                     _paletteOverride = selected is null ? -1 : file.Palettes.IndexOf(selected);
-                    _suppressEvents = true;
-                    PaletteBox.SelectedIndex = _paletteOverride + 1;
-                    _suppressEvents = false;
+                    SyncPreviewPaletteBox();
                     ClearDeletedPaletteEditor();
                 },
                 () =>
@@ -1664,9 +1662,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                     foreach (var (palette, state) in linkStates)
                         state.Restore(palette);
                     _paletteOverride = selected is null ? -1 : file.Palettes.IndexOf(selected);
-                    _suppressEvents = true;
-                    PaletteBox.SelectedIndex = _paletteOverride + 1;
-                    _suppressEvents = false;
+                    SyncPreviewPaletteBox();
                     RestoreDeletedPaletteEditor();
                 });
 
@@ -1877,9 +1873,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             RebuildPaletteList();
         }
 
-        _suppressEvents = true;
-        PaletteBox.SelectedIndex = _paletteOverride + 1;
-        _suppressEvents = false;
+        SyncPreviewPaletteBox();
         RefreshPaletteTab();
         if (ActivePalette() is { } selectedPalette)
         {
@@ -2090,9 +2084,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         // real (same class of bug ApplyFilter had).
         bool wasSuppressed = _suppressEvents;
         _suppressEvents = true;
-        int keepCombo = PaletteBox.SelectedIndex;
-        PaletteBox.ItemsSource = new[] { "Sprite's own" }.Concat(labels).ToList();
-        if (keepCombo >= 0 && keepCombo <= labels.Count) PaletteBox.SelectedIndex = keepCombo;
+        PaletteBox.ItemsSource = labels;
+        SyncPreviewPaletteBox();
 
         if (PaletteList is not null)
         {

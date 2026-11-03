@@ -34,6 +34,8 @@ internal sealed class Document
     public Sprite? Current;
     /// <summary>-1 means the sprite's own palette.</summary>
     public int PaletteOverride = -1;
+    /// <summary>The sprite Follow sprite last synced to; another current sprite drops the preview pick.</summary>
+    public Sprite? PaletteFollowedSprite;
     public int SpriteSelectionAnchor = -1;
     // Null means "automatic" (previous sprite/frame); set means always use this one sprite.
     public int? OnionGroup;

@@ -20,6 +20,7 @@ public partial class MainWindow
     private int _standalonePaletteOverride { get => _doc.StandalonePaletteOverride; set => _doc.StandalonePaletteOverride = value; }
     private Sprite? _current { get => _doc.Current; set => _doc.Current = value; }
     private int _paletteOverride { get => _doc.PaletteOverride; set => _doc.PaletteOverride = value; }
+    private Sprite? _paletteFollowedSprite { get => _doc.PaletteFollowedSprite; set => _doc.PaletteFollowedSprite = value; }
     private int _spriteSelectionAnchor { get => _doc.SpriteSelectionAnchor; set => _doc.SpriteSelectionAnchor = value; }
     private int? _onionGroup { get => _doc.OnionGroup; set => _doc.OnionGroup = value; }
     private int? _onionIndex { get => _doc.OnionIndex; set => _doc.OnionIndex = value; }
