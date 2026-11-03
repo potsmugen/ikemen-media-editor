@@ -256,6 +256,62 @@ public class PaletteTests
         Assert.Same(copy, c.Palette);
     }
 
+    private static (SffFile F, Sprite[] S, Palette[] P) MakeV1Repeats()
+    {
+        Palette Pal(int i, byte v) => new() { Group = 1, Index = i, Colors = [new(0, 0, 0, 0), C(v)] };
+        var p = new[] { Pal(1, 10), Pal(2, 10), Pal(3, 20), Pal(4, 10) }; // p2 repeats p1; p4 matches p1 after p3
+        var f = new SffFile { Version = SffVersions.V1, Palettes = [.. p] };
+        Sprite Make(int i, Palette pal) => new()
+        {
+            Group = 0, Index = i, Width = 1, Height = 1, Indexed = [1], PixelsDirty = true, Palette = pal,
+        };
+        var s = new[] { Make(0, p[0]), Make(1, p[0]), Make(2, p[1]), Make(3, p[1]), Make(4, p[2]), Make(5, p[3]) };
+        f.Sprites.AddRange(s);
+        return (f, s, p);
+    }
+
+    [Fact]
+    public void V1DuplicatePalettesAreOnlyRunsRepeatingThePreviousPalette()
+    {
+        var (f, _, p) = MakeV1Repeats();
+
+        var sets = f.FindDuplicatePalettes();
+
+        var set = Assert.Single(sets);
+        Assert.Equal(new[] { p[0], p[1] }, set);
+    }
+
+    [Fact]
+    public void V1DuplicatePaletteRunsSkipLinks()
+    {
+        var (f, s, p) = MakeV1Repeats();
+        f.Share(s[1], s[0]);
+        s[1].Palette = p[2]; // a flagged link's palette doesn't change the chain
+
+        Assert.Equal(new[] { p[0], p[1] }, Assert.Single(f.FindDuplicatePalettes()));
+    }
+
+    [Fact]
+    public void MergingV1DuplicatePalettesMovesTheRunOntoThePreviousPalette()
+    {
+        var (f, s, p) = MakeV1Repeats();
+
+        int changed = f.ShareDuplicatePalettes(f.FindDuplicatePalettes(), discard: true);
+
+        Assert.Equal(1, changed);
+        Assert.All(s[..4], x => Assert.Same(p[0], x.Palette));
+        Assert.Same(p[3], s[5].Palette); // not next to p1, so v1 must store it again
+        Assert.DoesNotContain(p[1], f.Palettes);
+        Assert.Empty(f.FindDuplicatePalettes());
+    }
+
+    [Fact]
+    public void LinkingV1DuplicatePalettesIsRefused()
+    {
+        var (f, _, _) = MakeV1Repeats();
+        Assert.Throws<InvalidOperationException>(() => f.ShareDuplicatePalettes(f.FindDuplicatePalettes()));
+    }
+
     [Fact]
     public void AV1PixelLinkCannotCarryAPalette()
     {

@@ -1437,7 +1437,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                     () => reportChoice.TrySetResult(DuplicatePaletteAction.Merge)),
                 ("Link", "The later palettes become linked to the first.",
                     () => reportChoice.TrySetResult(DuplicatePaletteAction.Link)),
-            });
+            }, SffVersions.IsV1(file.Version) ? new[] { "Link" } : null); // SFF v1 has no palette links
             report.Closed += (_, _) => reportChoice.TrySetResult(null);
             var action = await reportChoice.Task;
             if (action is null || !ReferenceEquals(_file, file)) return;

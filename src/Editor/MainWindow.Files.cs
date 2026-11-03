@@ -323,7 +323,7 @@ public partial class MainWindow
                 Section("Decode failures", bad.Select(s => ($"  Sprite {s.Group},{s.Index}: {s.DecodeError}", Jump(() => JumpToSprite(s)))));
                 Section("Duplicate sprite keys (the later ones)", duplicateSprites.Select(s => ($"  Sprite {s.Group},{s.Index}", Jump(() => JumpToSprite(s)))));
                 Section("Duplicate SFF palette keys (the later ones)", duplicatePaletteKeys.Select(p => ($"  Palette {PaletteKey(file, p)}", Jump(() => JumpToPalette(p)))));
-                Section("Duplicate embedded palette colors (later palettes match the first)", duplicatePaletteColors.Select(x =>
+                Section("Duplicate embedded palettes (the later ones)", duplicatePaletteColors.Select(x =>
                     ($"  Palette {PaletteKey(file, x.Palette)} matches {PaletteKey(file, x.Original)}", Jump(() => JumpToPalette(x.Palette)))));
                 Section("Unused embedded palettes (group 1 not counted)", unused.Select(p => ($"  Palette {PaletteKey(file, p)}", Jump(() => JumpToPalette(p)))));
                 Section("Links to a later sprite (Ikemen GO loads them as blank)", forward.Select(s =>

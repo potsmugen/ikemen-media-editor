@@ -123,6 +123,12 @@ plus every line above it that belongs to it (Clsn defaults and boxes, Interpolat
 flags, Loopstart, comments). Any operation on a frame (move, drag, copy, duplicate,
 remove, insert) carries that whole block, as moving the text would. Don't ask.
 
+A linked sprite has its own palette, in SFF v1 too, and it can differ from its target's:
+a flagged v1 link uses the previous palette, an unflagged one its target's. Every
+palette operation (find, merge, sort, delete, save) must treat a link's palette as its
+own. Settled; don't reopen it or argue it from engine source. See **Linked sprites and
+palettes** in `agents/features.md`.
+
 Supported platforms are Windows, Linux, and macOS. Guard Windows-only code
 with `OperatingSystem.IsWindows()` and provide a fallback. Sound uses
 `WinSound` (winmm `PlaySound`) on Windows and `afplay` (macOS), then `paplay`/`aplay` (Linux);

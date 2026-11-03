@@ -534,7 +534,11 @@ and constraints that are easy to miss when reading one code path in isolation.
   `PaletteTemplatePaddingPixels` and `PaletteTemplateSwatchSize` (default 8) set the count,
   spacing and swatch cell. Logic is in `Sff/PaletteTemplate.cs`.
 - **Find Duplicate Palettes** shows a clickable report, then the usual Merge/Link/Cancel
-  choice.
+  choice. In v1 a sprite can only reuse the palette before it (links skipped, as on save), so
+  only a run whose palette matches the previous run's counts; a match further back would be
+  stored again on save. Merge moves those runs onto the earlier palette (Use Previous Palette
+  rules) and Link is dimmed, since v1 has no palette links. The Media Health Report uses the
+  same rule. Report actions that don't apply are dimmed and keep their tooltip.
 
 ### Sounds
 
@@ -707,6 +711,20 @@ summaries; treat anything marked unverified as unknown.
   long-packet path adds 1). Verified by histogramming decoded back-reference
   distances against sprite width.
   Header compatibility bytes 24-27 remain unverified.
+- **Linked sprites and palettes** (settled 2026-10-22, reaffirmed twice on 2026-11-03; agents
+  got this wrong repeatedly, so don't reopen it):
+  - A linked sprite has its own palette, which can differ from its target's. In v2 the link
+    node names it. In v1 a flagged link uses the previous palette and an unflagged one uses
+    its target's.
+  - Never treat a link as having no palette or as always using its target's. A 2026-11-03
+    change did that, citing MUGEN `Sff1_Load` and Ikemen `shareCopy`, and turned
+    `working/sprites_org.sff` 6001,7-11 gray. It was reverted. Don't argue it from engine
+    source again.
+  - Any palette operation (find duplicates, merge, sort, delete, link direction, save) must
+    check what each link's palette is and keep it.
+  - In v1 a link record stores no palette bytes, so it doesn't change which palette is
+    "previous" for the sprites after it (writer and `PaletteBefore`). That is a separate
+    fact; it doesn't mean the link has no palette.
 - SFF v1 is a linked list of PCX subfiles that carry palettes. A sprite uses
   its own palette; a same-palette-flagged one uses the preceding stored palette (MUGEN,
   SprMaker); header byte 32 doesn't change that, and a link takes its target's. See

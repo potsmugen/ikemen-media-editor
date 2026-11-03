@@ -2024,7 +2024,8 @@ public static partial class Dialogs
     /// and closes the report.
     /// </summary>
     public static Window ShowReport(Window owner, string title, IReadOnlyList<(string Text, Action? Jump)> lines,
-        IReadOnlyList<(string Label, string Tip, Action Click)>? actions = null)
+        IReadOnlyList<(string Label, string Tip, Action Click)>? actions = null,
+        IReadOnlyCollection<string>? disabledActions = null)
     {
         // One text block for the whole report, so a selection can span lines.
         // Runs are joined by "\n", so starts[i] is the text offset of line i.
@@ -2110,7 +2111,7 @@ public static partial class Dialogs
         buttons.Children.Add(copy);
         foreach (var (label, tip, click) in actions ?? Array.Empty<(string Label, string Tip, Action Click)>())
         {
-            var b = new Button { Content = label, MinWidth = 90 };
+            var b = new Button { Content = label, MinWidth = 90, IsEnabled = disabledActions?.Contains(label) != true };
             ToolTip.SetTip(b, tip);
             b.Click += (_, _) => { click(); dialog.Close(); };
             buttons.Children.Add(b);

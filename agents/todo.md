@@ -24,6 +24,10 @@ Verified unless noted.
   Indexes are kept (no pixel changes; moved slots become padding in the source). v2 only, no
   temp-only variant. Borrowers/links follow Merge's rules. One undo step.
 
+### Tooltips
+
+- Audit the "Double-click to" tooltips: check wording and consistency across cells and grids.
+
 ### Paint Mode
 
 - Flip and rotate the selection. Quarter turns and flips are cheap on a floating paste (remap

@@ -264,7 +264,7 @@ public static class SprMakerSave
     {
         if (!detect && !discard) return;
         var kind = discard ? SprMakerEventKind.PaletteDiscarded : SprMakerEventKind.PaletteLinked;
-        var sets = f.FindDuplicatePalettes(ignoreTransparentMaskRgb: false);
+        var sets = f.FindDuplicatePalettes(ignoreTransparentMaskRgb: false, v1: false); // writes SFF v2
         foreach (var set in sets)
         {
             var keep = set[0];
@@ -274,7 +274,7 @@ public static class SprMakerSave
                     events.Add(new SprMakerEvent(kind, p.Group, p.Index, keep.Group, keep.Index));
             }
         }
-        f.ShareDuplicatePalettes(sets, discard: discard);
+        f.ShareDuplicatePalettes(sets, discard: discard, v1: false);
     }
 
     // Links first, so a crop runs once per shared image and its borrowers follow.

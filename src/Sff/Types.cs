@@ -715,14 +715,17 @@ public sealed class SffFile
     /// is ignored when both alpha values are zero; set
     /// <paramref name="ignoreTransparentMaskRgb"/> to false for exact RGBA matching.
     /// The first palette in file order is kept; only duplicate sets are returned.
+    /// SFF v1 (<paramref name="v1"/>, default from <see cref="Version"/>) can only reuse the palette
+    /// before a sprite, so there a palette counts only where its run follows a matching run.
     /// </summary>
-    public List<List<Palette>> FindDuplicatePalettes(bool ignoreTransparentMaskRgb = true) =>
-        FindDuplicatePalettes(Palettes, ignoreTransparentMaskRgb);
+    public List<List<Palette>> FindDuplicatePalettes(bool ignoreTransparentMaskRgb = true, bool? v1 = null) =>
+        FindDuplicatePalettes(Palettes, ignoreTransparentMaskRgb, v1);
 
     /// <summary>Finds duplicate palettes within the supplied collection.</summary>
     public List<List<Palette>> FindDuplicatePalettes(
-        IEnumerable<Palette> palettes, bool ignoreTransparentMaskRgb = true)
+        IEnumerable<Palette> palettes, bool ignoreTransparentMaskRgb = true, bool? v1 = null)
     {
+        if (v1 ?? SffVersions.IsV1(Version)) return FindRepeatedV1Palettes(palettes.ToHashSet(), ignoreTransparentMaskRgb);
         var buckets = new Dictionary<(int Count, int Hash), List<List<Palette>>>();
         var sets = new List<List<Palette>>();
         foreach (var p in palettes)
@@ -745,25 +748,45 @@ public sealed class SffFile
             else set.Add(p);
         }
         return sets.Where(s => s.Count > 1).ToList();
+    }
 
-        static Rgba[] ResolveColors(Palette p)
+    /// <summary>v1: palettes whose run follows a run of a matching palette, chained to the first.
+    /// Links take no part in the palette chain, as on save.</summary>
+    private List<List<Palette>> FindRepeatedV1Palettes(HashSet<Palette> palettes, bool ignoreTransparentMaskRgb)
+    {
+        var sets = new List<List<Palette>>();
+        var setOf = new Dictionary<Palette, List<Palette>>();
+        Palette? previous = null;
+        foreach (var s in Sprites)
         {
-            if (p.LinksTo is { } target) return ResolveColors(target);
-            return p.Colors;
-        }
-
-        static bool ResolvedColorsMatch(Palette a, Palette b, bool ignoreTransparentMaskRgb)
-        {
-            var ca = ResolveColors(a);
-            var cb = ResolveColors(b);
-            if (ca.Length != cb.Length) return false;
-            for (int i = 0; i < ca.Length; i++)
+            if (s.SharesWith is not null) continue;
+            var p = s.Palette;
+            if (p is not null && previous is not null && !ReferenceEquals(p, previous)
+                && palettes.Contains(p) && palettes.Contains(previous) && !setOf.ContainsKey(p)
+                && ResolvedColorsMatch(previous, p, ignoreTransparentMaskRgb))
             {
-                if (ignoreTransparentMaskRgb && i == 0 && ca[i].A == 0 && cb[i].A == 0) continue;
-                if (ca[i] != cb[i]) return false;
+                if (!setOf.TryGetValue(previous, out var set)) { set = [previous]; sets.Add(set); setOf[previous] = set; }
+                set.Add(p);
+                setOf[p] = set;
             }
-            return true;
+            previous = p;
         }
+        return sets;
+    }
+
+    private static Rgba[] ResolveColors(Palette p) => p.LinksTo is { } target ? ResolveColors(target) : p.Colors;
+
+    private static bool ResolvedColorsMatch(Palette a, Palette b, bool ignoreTransparentMaskRgb)
+    {
+        var ca = ResolveColors(a);
+        var cb = ResolveColors(b);
+        if (ca.Length != cb.Length) return false;
+        for (int i = 0; i < ca.Length; i++)
+        {
+            if (ignoreTransparentMaskRgb && i == 0 && ca[i].A == 0 && cb[i].A == 0) continue;
+            if (ca[i] != cb[i]) return false;
+        }
+        return true;
     }
 
     /// <summary>
@@ -771,9 +794,15 @@ public sealed class SffFile
     /// When <paramref name="discard"/> is true, discarded palettes are removed from the file and
     /// every sprite pointing at one is repointed at the kept palette. Returns how many
     /// palettes got a new link target or were removed.
+    /// SFF v1 has no palette links, so it only merges: each listed run takes the palette before it.
     /// </summary>
-    public int ShareDuplicatePalettes(IEnumerable<List<Palette>> sets, bool discard = false)
+    public int ShareDuplicatePalettes(IEnumerable<List<Palette>> sets, bool discard = false, bool? v1 = null)
     {
+        if (v1 ?? SffVersions.IsV1(Version))
+        {
+            if (!discard) throw new InvalidOperationException("Palette links are only available in SFF v2.");
+            return MergeRepeatedV1Palettes(sets);
+        }
         int linked = 0;
         var removed = new HashSet<Palette>();
         var replacements = new Dictionary<Palette, Palette>();
@@ -818,6 +847,45 @@ public sealed class SffFile
             palette.LinksTo = null;
             palette.Colors = colors;
         }
+    }
+
+    /// <summary>v1 merge: a later set member's run that follows its set's palette takes that palette
+    /// (<see cref="UsePreviousPalette"/>); palettes left unused are removed. Returns how many palettes changed.</summary>
+    private int MergeRepeatedV1Palettes(IEnumerable<List<Palette>> sets)
+    {
+        var keepOf = new Dictionary<Palette, Palette>();
+        foreach (var set in sets)
+            foreach (var p in set) keepOf.TryAdd(p, set[0]);
+
+        var merged = new HashSet<Palette>();
+        Palette? previous = null;
+        foreach (var s in Sprites)
+        {
+            if (s.SharesWith is not null) continue;
+            var p = s.Palette;
+            if (p is not null && previous is not null && !ReferenceEquals(p, previous)
+                && keepOf.TryGetValue(p, out var keep) && !ReferenceEquals(keep, p)
+                && keepOf.TryGetValue(previous, out var previousKeep) && ReferenceEquals(previousKeep, keep)
+                && ReferenceEquals(PreviousPalette(s), previous))
+            {
+                UsePreviousPalette(s);
+                merged.Add(p);
+            }
+            previous = s.Palette;
+        }
+
+        var used = Sprites.Select(x => x.Palette).OfType<Palette>().ToHashSet();
+        var removed = merged.Where(p => !used.Contains(p)).ToHashSet();
+        foreach (var p in Palettes)
+        {
+            if (p.LinksTo is { } target && removed.Contains(target))
+            {
+                p.Colors = ResolveColors(p).ToArray();
+                p.LinksTo = null;
+            }
+        }
+        Palettes.RemoveAll(removed.Contains);
+        return merged.Count;
     }
 
     /// <summary>
