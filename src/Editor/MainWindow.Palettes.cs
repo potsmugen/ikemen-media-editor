@@ -901,6 +901,7 @@ public partial class MainWindow
 
         BigSwatches.ContextRequested += (_, e) => ShowSwatchContextMenu(BigSwatches, ActivePalette(), e);
         ScratchSwatches.ContextRequested += (_, e) => ShowSwatchContextMenu(ScratchSwatches, _scratchPalette, e);
+        Swatches.ContextRequested += (_, e) => ShowSpriteSwatchContextMenu(e);
 
         ScratchSwatches.Show(_scratchPalette);
         WireColorBeforePreview();
@@ -1848,6 +1849,31 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 if (!ReferenceEquals(row.Palette, current) && palettes.Contains(row.Palette)) items.Add(row);
         }
         finally { _suppressEvents = wasSuppressed; }
+    }
+
+    /// <summary>Sprites tab swatch menu: jumps to the shown palette with the right-clicked color selected.</summary>
+    private void ShowSpriteSwatchContextMenu(ContextRequestedEventArgs e)
+    {
+        if (_file is null || ActivePalette() is not { } pal) return;
+        int index = e.TryGetPosition(Swatches, out var pos) ? Swatches.IndexAt(pos) : -1;
+        if (index < 0 || index >= pal.Colors.Length) index = Swatches.Selection.Count > 0 ? Swatches.Selection.First() : 0;
+        OpenContextMenu(Swatches, new ContextMenu
+        {
+            ItemsSource = new List<Control>
+            {
+                MenuAction("Show in Palettes Tab", () => ShowPaletteInPalettesTab(pal, index), _file.Palettes.Contains(pal)),
+            },
+        });
+        e.Handled = true;
+    }
+
+    private void ShowPaletteInPalettesTab(Palette pal, int index)
+    {
+        JumpToPalette(pal);
+        // The tab switch can be refused (a pending paint session) or the palette gone; then leave the editor alone.
+        if (Tabs.SelectedIndex != 1 || !ReferenceEquals(ActivePalette(), pal) || index < 0 || index >= pal.Colors.Length) return;
+        BigSwatches.SelectOnly(index);
+        OnSwatchClicked(pal, BigSwatches, index);
     }
 
     private void SelectPalette(Palette pal)

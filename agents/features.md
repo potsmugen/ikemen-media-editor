@@ -382,6 +382,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   the tab is entered; blank for a true-color sprite. Off, the pick stays, and turning it off pins
   the shown palette. Apply Preview Palette applies whatever the box shows; it is disabled when
   the only selected sprite already uses that palette.
+  Right-click its swatches > Show in Palettes Tab selects that palette there, with the
+  right-clicked color picked for editing.
 - **Palette selection** follows the palette object; a preview can show the active sprite
   without changing the edited palette. Dirty palettes show `*`. The Palettes tab shows `*`
   only when SFF palette tables (set, order, keys, links, colors) differ from the last
