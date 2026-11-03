@@ -98,25 +98,25 @@ public class V1Tests
     }
 
     /// <summary>Shared file shaped like kfm_win: 9000,1 has its own palette and 0,0 follows it
-    /// flagged, yet 0,0 and later flagged sprites take 9000,0's (the first) palette.</summary>
+    /// flagged. As in MUGEN and Ikemen GO, byte 32 changes nothing: flagged sprites take the previous palette.</summary>
     [Fact]
-    public void SharedFileGivesFlaggedSpritesTheFirstPalette()
+    public void SharedFileGivesFlaggedSpritesThePreviousPalette()
     {
         var f = ReadV1(1, (9000, 0, false), (9000, 1, false), (0, 0, true), (0, 1, true));
-        Assert.True(f.V1SharedPalette);
+        Assert.Equal(1, f.V1PaletteType);
         Assert.NotSame(f.Sprites[0].Palette, f.Sprites[1].Palette);
-        Assert.Same(f.Sprites[0].Palette, f.Sprites[2].Palette);
-        Assert.Same(f.Sprites[0].Palette, f.Sprites[3].Palette);
+        Assert.Same(f.Sprites[1].Palette, f.Sprites[2].Palette);
+        Assert.Same(f.Sprites[1].Palette, f.Sprites[3].Palette);
     }
 
-    /// <summary>Shared file shaped like Donald: an unflagged 0,0 keeps its stored palette;
-    /// the flagged sprites after it still take the first palette.</summary>
+    /// <summary>Shared file shaped like Donald: an unflagged 0,0 keeps its stored palette,
+    /// and the flagged sprites after it take that one.</summary>
     [Fact]
-    public void SharedFileKeepsUnflaggedSpritePalettes()
+    public void SharedFileGivesFlaggedSpritesAnUnflaggedSpritesPalette()
     {
         var f = ReadV1(1, (9000, 0, false), (0, 0, false), (0, 1, true));
         Assert.NotSame(f.Sprites[0].Palette, f.Sprites[1].Palette);
-        Assert.Same(f.Sprites[0].Palette, f.Sprites[2].Palette);
+        Assert.Same(f.Sprites[1].Palette, f.Sprites[2].Palette);
     }
 
     /// <summary>Individual file: a flagged sprite (SprMaker -p) takes the previous palette.</summary>
@@ -124,9 +124,42 @@ public class V1Tests
     public void IndividualFileGivesFlaggedSpritesThePreviousPalette()
     {
         var f = ReadV1(0, (9000, 0, false), (9000, 1, false), (0, 0, true));
-        Assert.False(f.V1SharedPalette);
+        Assert.Equal(0, f.V1PaletteType);
         Assert.NotSame(f.Sprites[0].Palette, f.Sprites[1].Palette);
         Assert.Same(f.Sprites[1].Palette, f.Sprites[2].Palette);
+    }
+
+    /// <summary>A flagged first sprite has no palette to reuse, so it reads its own, as in MUGEN and Ikemen GO.</summary>
+    [Fact]
+    public void FlaggedFirstSpriteReadsItsOwnPalette()
+    {
+        var f = ReadV1(0, (0, 0, true), (0, 1, true));
+        Assert.Single(f.Palettes);
+        Assert.Same(f.Palettes[0], f.Sprites[0].Palette);
+        Assert.Same(f.Palettes[0], f.Sprites[1].Palette);
+        Assert.Equal(10, f.Palettes[0].Colors[1].R);
+    }
+
+    /// <summary>A plain save writes header byte 32 as 0 (Individual) whatever was read; Save Like
+    /// SprMaker 0.97 writes its own mode.</summary>
+    [Theory]
+    [InlineData((byte)0)]
+    [InlineData((byte)1)]
+    public void PlainV1SaveWritesIndividualPaletteType(byte type)
+    {
+        var f = ReadV1(type, (9000, 0, false), (0, 0, true));
+        Assert.Equal(type, f.V1PaletteType);
+        var tmp = Path.Combine(Path.GetTempPath(), $"v1type-{Guid.NewGuid():N}.sff");
+        try
+        {
+            f.Save(tmp, SffVersions.V1);
+            Assert.Equal(0, File.ReadAllBytes(tmp)[32]);
+            SprMakerSave.Save(f, tmp, new SprMakerOptions { UsePreviousPalette = true });
+            Assert.Equal(1, File.ReadAllBytes(tmp)[32]);
+            SprMakerSave.Save(f, tmp, new SprMakerOptions { UsePreviousPalette = false });
+            Assert.Equal(0, File.ReadAllBytes(tmp)[32]);
+        }
+        finally { File.Delete(tmp); }
     }
 
     /// <summary>Writing v1 back out and reading it again keeps every sprite.</summary>
@@ -202,6 +235,8 @@ public class V1Tests
         while (off != 0 && off + 32 <= b.Length)
         {
             uint next = BitConverter.ToUInt32(b, (int)off), length = BitConverter.ToUInt32(b, (int)off + 4);
+            // Trimmed like the reader: kfm - old.sff's last record claims the 768 palette bytes SprMaker dropped.
+            length = (uint)Math.Min(length, b.Length - (off + 32));
             list.Add((b.AsSpan((int)off + 32, (int)length).ToArray(), b[off + 18] != 0));
             if (next <= off) break;
             off = next;
@@ -211,7 +246,7 @@ public class V1Tests
 
     /// <summary>A plain v1 save keeps every untouched PCX as read: header fields (DPI, 16-color
     /// header palette) and palette bytes left in same-palette records survive. A record whose flag
-    /// the save changes may need its own palette (kfm - old.sff's 0,0, shared to individual).</summary>
+    /// the save changes may need its own palette. Links have no PCX and keep their flag.</summary>
     [Theory]
     [InlineData("kfm-v1.sff")]
     [InlineData("kfm - old.sff")]
@@ -227,10 +262,14 @@ public class V1Tests
             SffFile.Open(path).Save(tmp, SffVersions.V1);
             var after = RawRecords(tmp);
             Assert.Equal(before.Count, after.Count);
-            int kept = 0;
+            int kept = 0, images = 0;
             for (int i = 0; i < before.Count; i++)
+            {
+                if (before[i].Pcx.Length == 0) { Assert.Equal(before[i].SamePalette, after[i].SamePalette); continue; }
+                images++;
                 if (before[i].SamePalette == after[i].SamePalette) { Assert.Equal(before[i].Pcx, after[i].Pcx); kept++; }
-            Assert.True(kept >= before.Count - 1, $"only {kept} of {before.Count} records kept their flag");
+            }
+            Assert.True(kept >= images - 1, $"only {kept} of {images} images kept their flag");
         }
         finally { File.Delete(tmp); }
     }

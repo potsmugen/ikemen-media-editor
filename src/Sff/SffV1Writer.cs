@@ -12,11 +12,11 @@ internal static class SffV1Writer
     private const int HeaderSize = 512;
     private const int SubHeaderSize = 32;
 
-    /// <param name="linkPalettes">Plain saves: a link whose palette is the previous sprite's (not its
-    /// target's) gets the same-palette flag. Off for Save Like SprMaker 0.97, which keeps the tool's bytes.</param>
     /// <param name="keepSourceBytes">Plain saves: a PCX read from a v1 file is written back as read while
     /// it still decodes to the same sprite. Off for Save Like SprMaker 0.97, which re-encodes like the tool.</param>
-    public static void Save(SffFile f, string path, bool clamp = false, bool linkDuplicatePalettes = false, bool usePreviousPalette = false, List<SprMakerEvent>? events = null, bool linkPalettes = false, bool keepSourceBytes = false)
+    /// <param name="linkPalettes">Plain saves: a link whose palette is the previous sprite's (not its
+    /// target's, or flagged as read) gets the same-palette flag. Off for Save Like SprMaker 0.97.</param>
+    public static void Save(SffFile f, string path, bool clamp = false, bool linkDuplicatePalettes = false, bool usePreviousPalette = false, List<SprMakerEvent>? events = null, bool keepSourceBytes = false, bool linkPalettes = false)
     {
         var unsupported = Unsupported(f, 5);
         if (unsupported.Count > 0)
@@ -98,7 +98,9 @@ internal static class SffV1Writer
         BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(20), (uint)f.Sprites.Count);
         BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(24), HeaderSize);
         BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(28), SubHeaderSize);
-        header[32] = (byte)(usePreviousPalette ? 1 : 0); // SprMaker "Shared palette": flagged sprites use the first palette
+        // SprMaker 0.97's palette type, which no engine reads: 1 Shared for its shared mode, else 0
+        // Individual, which is what a plain save writes (own palettes, flagged only on an exact repeat).
+        header[32] = (byte)(usePreviousPalette ? 1 : 0);
         // Bytes 36-511 stay zero: SprMaker 0.97 clears them and writes nothing there.
 
         AtomicFile.Write(path, file =>
@@ -128,10 +130,10 @@ internal static class SffV1Writer
             && (samePalette || img.Palette is { } own && PcxWriter.SameRgbPalette(own, pal.Colors));
     }
 
-    /// <summary>A link reads its target's palette unless flagged; flag it only when its palette is the
-    /// previous one and not the target's, so links that match their target keep the old bytes.</summary>
+    /// <summary>A link reads its target's palette unless flagged; flag it when its palette is the previous one
+    /// and not the target's, or was flagged as read, so links keep their bytes when colors match both.</summary>
     private static bool LinkUsesPrevious(Sprite link, Sprite target, Palette previous) =>
-        link.Palette is { } own && !SameColors(own, target.Palette) && SameColors(own, previous);
+        link.Palette is { } own && SameColors(own, previous) && (link.V1LinkFlag || !SameColors(own, target.Palette));
 
     private static bool SameColors(Palette a, Palette? b) =>
         b is not null && (ReferenceEquals(a, b) || PcxWriter.SameRgbPalette(a.Colors, b.Colors));

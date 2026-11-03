@@ -198,6 +198,10 @@ public sealed class Sprite
     /// <summary>Set once the pixels differ from what was read, forcing a re-encode.</summary>
     public bool PixelsDirty;
 
+    /// <summary>SFF v1 same-palette flag as read on a link. A plain save keeps it while the link's
+    /// palette is still the previous one, even when that also matches the target's.</summary>
+    public bool V1LinkFlag;
+
     public bool HasPixels => Indexed is not null || Direct is not null;
 
     /// <summary>
@@ -236,7 +240,7 @@ public sealed class Sprite
         Group = Group, Index = Index, AxisX = AxisX, AxisY = AxisY,
         _width = _width, _height = _height, _indexed = _indexed?.ToArray(), _direct = _direct?.ToArray(),
         Palette = palette, SrcFormat = SrcFormat, SrcDepth = SrcDepth,
-        DecodeError = DecodeError, SourceData = SourceData, PixelsDirty = PixelsDirty,
+        DecodeError = DecodeError, SourceData = SourceData, PixelsDirty = PixelsDirty, V1LinkFlag = V1LinkFlag,
     };
 
     /// <summary>
@@ -281,9 +285,9 @@ public sealed class SffFile
 {
     public SffVersion Version;
     public SffVersion CompatVersion;
-    /// <summary>Read from SFF v1 header byte 32 (SprMaker "Shared palette"), only to tell the
-    /// user; saving always writes the standard "use previous palette" format.</summary>
-    public bool V1SharedPalette;
+    /// <summary>SFF v1 header byte 32 as read: SprMaker 0.97's palette type (1 Shared, 0 Individual).
+    /// No engine reads it; a plain save writes 0 (Individual), listed in the Media Health Report.</summary>
+    public byte V1PaletteType;
     /// <summary>Links read pointing at a later sprite, which Ikemen GO loads as blank. Saving turns
     /// them around (SffWriter.LinkTargets), so the editor warns; cleared once saved.</summary>
     public List<Sprite> ForwardLinksOnLoad = [];
@@ -321,7 +325,7 @@ public sealed class SffFile
             return c;
         }
 
-        var copy = new SffFile { Version = Version, CompatVersion = CompatVersion, V1SharedPalette = V1SharedPalette };
+        var copy = new SffFile { Version = Version, CompatVersion = CompatVersion, V1PaletteType = V1PaletteType };
         foreach (var p in Palettes) copy.Palettes.Add(Map(p));
 
         var spr = new Dictionary<Sprite, Sprite>(Sprites.Count);

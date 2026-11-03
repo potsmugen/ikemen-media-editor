@@ -593,7 +593,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   the info lines it lists only the problems that exist, one section each headed with its count
   (`Heading (N):`); with nothing wrong it says "No problems found." An
   AIR "Written differently on save" section names a legacy encoding becoming UTF-8 and CRLF
-  becoming LF, then lists the actions a save would rewrite. Frames with both a Clsn default and
+  becoming LF, then lists the actions a save would rewrite. For an SFF v1, "Written differently
+  on save (no engine reads these)" names a nonzero palette type byte becoming Individual (0).
+  Frames with both a Clsn default and
   their own Clsn get their own section, labeled invalid. The unused palette count leaves group 1 out, since a character can select it
   without a sprite.
   **Find Unused Palettes** lists unreferenced embedded palettes as clickable rows, and offers
@@ -699,8 +701,9 @@ summaries; treat anything marked unverified as unknown.
   distances against sprite width.
   Header compatibility bytes 24-27 remain unverified.
 - SFF v1 is a linked list of PCX subfiles that carry palettes. A sprite uses
-  its own palette; a same-palette-flagged one uses the file's first palette when
-  header byte 32 = 1 (shared), else the preceding sprite's. Linked records share the
+  its own palette; a same-palette-flagged one uses the preceding stored palette (MUGEN,
+  SprMaker); header byte 32 doesn't change that, and a link takes its target's. See
+  Official tools for the evidence and the open display question. Linked records share the
   palette object, so undo must restore palette references as well as colors.
   PCX data may lack the `0x0c` marker, so the final 768 bytes
   of the subfile contain its palette. Incomplete scanlines are decode errors;
@@ -1051,42 +1054,98 @@ The editor's writers follow these tools where applicable.
 - SFF version names: the editor follows the SprMaker 2.01 doc page (Elecbyte, sprmake2), which uses "SFF v1" and
   "SFF v2". Elecbyte's MUGEN update history (`working/history.html`) uses "SFFv1" in places, so it is not used as the
   reference. The UI text and code comments use "SFF v1" and "SFF v2" (decided 2026-10-26).
-- SprMaker 0.97's file-wide palette type is 1 (Individual palette, header byte
-  32 = 0) or 2 (Shared palette, byte 32 = 1); "Use previous sprite's palette" is
-  the per-sprite override menu. Disassembled: the type lives at 0x55aec and is
-  copied to byte 32 (0x28b1). In shared mode every sprite after the first gets
-  the same-palette flag (0x2114) unless overridden as individual, and a flagged
-  sprite's last 768 PCX bytes are dropped (0x252f), so the flag only means "no
-  palette stored". mtools.txt: shared means "all sprites will use the palette
-  data of the first sprite", with individual sprites (e.g. 9000,1) as the
-  exception. So in shared files flagged sprites use the first palette, not the
-  previous one: with an individual 9000,1, "previous" would give every later
-  sprite the portrait's palette. Individual files only get the flag from -p,
-  where it means "same as previous". The engine's own reading is unverified.
-  Opening such a file sets `SffFile.V1SharedPalette` and shows a one-time
-  "Global Shared Palette" popup saying a Save writes the standard "use previous
-  palette" format; the flag is never used for saving.
-  Samples (byte 32 = 1): `working/kfm - old.sff` (0,0 flagged, takes 9000,0's
-  palette) and `working/Donald.sff` (0,0 keeps its own; 0,1 onward take
-  9000,0's, which equals Donald01.act). Flagged records in both still carry
-  palette bytes; the flag makes them redundant. V1Tests covers both layouts
-  and the individual case with synthetic files.
+- SFF v1 header byte 32 and the same-palette flag (findings 2026-11-03; MUGEN and
+  SprMaker are the source of truth).
+  - SprMaker 0.97 (disassembled, `working/sprmaker.asm`): the menu's palette type
+    (1 Individual, 2 Shared) is stored at 0x55aec. It is used twice: while building
+    (0x2114), shared mode flags every sprite after the first and drops its last 768 PCX
+    bytes (0x252f) unless the sprite is overridden as individual; when writing the header
+    (0x28b1) it is copied to byte 32, and the end-of-run summary prints the mode (0x294b).
+    SprMaker never reads byte 32 back; it always builds a new SFF from its list.
+  - mtools.txt names the per-sprite choices "1. Individual palette" and "2. Use previous
+    sprite's palette", and in shared mode shows "Choose(was 2)": the flag means "previous"
+    in both modes. Its line "shared means all sprites will use the palette data of the first
+    sprite" describes the result when only the first sprite stores a palette. The one
+    sanctioned exception is an individual 9000,1 portrait.
+  - MUGEN 1.1b1 (mugen-unleashed `src/sff.c` Sff1_Load) reads byte 32 into `palette_type`
+    and never uses it. A flagged sprite takes `last_pal`, the palette of the last record that
+    stored one (links and flagged records don't change it). Ikemen GO (`src/image.go`
+    SffHeader.Read, Sprite.read) never reads byte 32 and takes `prev.palidx`, `prev` being
+    the last non-link record. Older MUGEN versions (WinMUGEN, 1.0) are unverified.
+  - So byte 32 only records the mode that built the file; it never changes which palette a
+    sprite uses. The flag means "previous" in every file.
+  - Characters look right in game through a character-only hack. MUGEN's "SFF v1.01 palette
+    hack" (`src/char.c`): when the .def's .act palettes give a palette 1,1, every sprite using
+    9000,0's or 0,0's palette is switched to 1,1, which round start remaps to the chosen
+    palette. Ikemen sets 0,0's palidx to 0 (the character palette) before later records
+    copy it.
+  - Samples (byte 32 = 1). `working/kfm - old.sff` stores palettes only on 9000,0 and
+    9000,1, so all 210 flagged sprites take 9000,1's palette by the file rule. `working/Donald.sff`
+    stores 9000,0 and 0,0 (then 4000-4210 and 9000,1 later); 0,0's palette differs from
+    9000,0's in colors 1-14, colors 4-14 are black, and 0,0's pixels use all of them. By the
+    file rule 0,1 onward take 0,0's palette. In game the hack draws them with the .act
+    (unverified for Donald: his .def and .act files aren't in `working/`, and the game wasn't run).
+    `working/kfm-2000.sff` (the mtools.txt layout) stores only 9000,0 and an individual 9000,1;
+    all 157 flagged sprites and all 41 links are flagged. The palettes differ in colors 237-255,
+    and every flagged sprite uses 240-255 (skin and clothes), so by the file rule they all
+    show 9000,1's portrait palette. In MUGEN 1.1 the hack catches that palette through 0,0 and
+    draws them, and 9000,1 itself, with the .act.
+  - In game, two steps decide a character sprite's colors. First the SFF loader (`sff.c`)
+    gives each flagged sprite the previous palette (old KFM: 9000,1's). Then the character
+    hack (`char.c`) switches every sprite on 9000,0's or 0,0's palette to the .act. So old
+    KFM and Donald show the .act in game, never the file palette their flagged sprites carry.
+    Prediction from the same source, unverified in game: MUGEN 1.1 also draws old KFM's large
+    portrait 9000,1 with the .act (colors 237-255 wrong), since it holds the palette the hack
+    catches. If the portrait looks right in MUGEN 1.1, recheck this reading.
+  - The former rule (until 2026-11-03): flagged sprites took the first palette when byte
+    32 = 1, with a one-time "Global Shared Palette" popup on open. It fixed Donald only
+    because the first sprite in shared character files is conventionally 9000,0, whose palette
+    matches the .act, close to what the hack shows. It was wrong on non-character files with
+    byte 32 = 1 (the game uses "previous"), when 9000,0 differs from the .act, and on save,
+    which rewrote the file to mean "first".
+  - Current rule (2026-11-03, built, untested): `SffV1Reader` gives a flagged sprite the last
+    palette stored before it; with none stored yet it reads its own (`sff.c`: `last_pal == -1`;
+    Ikemen: `prev == nil`). A flagged link takes that same palette; an unflagged one takes its
+    target's (maintainer, 2026-11-03: linked sprites can use different palettes).
+  - Saving (decided 2026-11-03): a plain v1 save writes what makes sense for this tool rather
+    than carrying dead values. Byte 32 = 0, SprMaker's Individual mode, which is what a plain
+    save writes (each sprite's own palette, flagged only on an exact repeat; 1 would claim
+    Shared mode). No engine reads it, so like AIR box corners and CRLF (AGENTS.md exception)
+    it's listed only in the Media Health Report ("Written differently on save (no engine reads
+    these)"), not in save popups. The value read is kept in `SffFile.V1PaletteType` for that
+    report and reset after a save (`ForwardLinksSaved`). A link keeps its flag as read
+    (`Sprite.V1LinkFlag`) while its palette is still the previous one, and is flagged when its
+    palette is the previous one and not its target's. Save Like SprMaker 0.97 writes its own mode
+    (`SprMakerOptions.UsePreviousPalette`: byte 32 = 1 and flagged later records, links
+    included). V1Tests and PaletteTests cover the shared, Donald-shaped, individual,
+    flagged-first and link cases.
+  - Consequence: by the file rule alone the editor shows old KFM in 9000,1's portrait colors
+    and Donald with 0,0's black colors, unlike the game.
+  - Display, not decided yet: (A) when the .def's .act palettes are loaded, draw sprites on
+    9000,0's or 0,0's palette with pal1, as MUGEN's hack does, keeping the sprite's real
+    palette and saying so in the palette cell tooltip; the existing preview override
+    (`_paletteOverride`) still replaces it. (B) rely on the existing preview override only.
+    Open as well: an SFF opened without its .def can only show the file's colors, unless the
+    editor looks for the .def beside it. No Media Health Report entry either way: it can't
+    tell a stored palette is wrong, since differing 0,0 and 9000,0 palettes are common in
+    valid files.
 - SprMaker 0.97 -p (disassembled) compares the previous palette with the
   current PCX's final 768 RGB bytes; on a match it omits the palette and sets
   the same-palette flag. The check runs only for non-link sprites. SprMaker
   links to the first earlier non-link sprite with the same file name, or with
   -f a byte-identical PCX (palette included). A link is written with length 0,
   axis shifted by the target's crop, and leaves the same-palette flag as selected
-  by palette mode (type 1 clear; type 2 set on later records). Whether a linked
-  sprite uses the preceding palette or its link target's palette remains
-  unverified against the engine (Ikemen GO's loadSff copies the target's). Decided: the
-  flag means the same on a link as on any sprite (previous palette, or the first in a
-  shared file); an unflagged link uses its target's. Other tools flag links in individual
-  files, e.g. `working/sprites_org.sff` 6001,7-17 (purple/green dust linked to the gray
-  frames); in `kfm-v1.sff` and `kfm - old.sff` the rule changes no link's colors.
-  Plain v1 saves flag a link whose palette is the previous one and not its target's;
-  Save Like SprMaker 0.97 keeps the tool's flag rule above. A v1 save can't keep a link
-  palette that is neither (it reloads as the target's); the v2-to-v1 warning lists them.
+  by palette mode (type 1 clear; type 2 set on later records). Decided (2026-10-22,
+  reaffirmed 2026-11-03): the flag means the same on a link as on any sprite, so a flagged
+  link uses the previous palette and an unflagged one its target's. Other tools flag links
+  in individual files to recolor them, e.g. `working/sprites_org.sff` 6001,7-11 (links to the
+  gray 6001,1-5 right after 6001,6's own purple palette) and 6001,13-17 (after 6001,12's
+  green). A 2026-11-03 change gave every link its target's palette and cleared link flags on
+  save, citing MUGEN `Sff1_Load` and Ikemen `shareCopy`; it turned those frames gray and was
+  reverted the same day. Save Like SprMaker 0.97 keeps the tool's flag rule above. A v1 save
+  can't keep a link palette that is neither its target's nor the previous one (it reloads as
+  the target's); the v2-to-v1 warning, the links-turned-around warning and the sort refusal
+  list them.
   A plain v1 save writes each PCX back as read (`SffV1Writer.KeepsSource`) when those bytes,
   with the flag the save writes, decode to the sprite's current size and pixels, plus its
   palette when unflagged; otherwise it re-encodes. That keeps header fields (DPI, 16-color

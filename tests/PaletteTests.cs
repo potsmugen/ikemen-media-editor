@@ -367,6 +367,7 @@ public class PaletteTests
             var r = SffFile.Open(tmp);
             Assert.Same(r.Sprites[0], r.Sprites[2].SharesWith);
             Assert.Same(r.Sprites[1].Palette, r.Sprites[2].Palette); // purple, not the target's gray
+            Assert.True(r.Sprites[2].V1LinkFlag);
         }
         finally { File.Delete(tmp); }
     }
@@ -388,6 +389,29 @@ public class PaletteTests
             Assert.NotEqual(r.Sprites[0].Palette!.Colors[1], r.Sprites[2].Palette!.Colors[1]);
         }
         finally { File.Delete(v1); File.Delete(v2); }
+    }
+
+    /// <summary>A flagged link whose colors match both its target and the previous palette keeps its flag.</summary>
+    [Fact]
+    public void AV1LinkKeepsItsFlagWhenColorsMatchBoth()
+    {
+        var (f, link, gray, _) = MakeV1LinkAfterOtherPalette();
+        f.Sprites[1].Palette = gray;
+        link.Palette = gray;
+        var tmp = Path.Combine(Path.GetTempPath(), $"v1link-{Guid.NewGuid():N}.sff");
+        try
+        {
+            f.Save(tmp, SffVersions.V1);
+            var bytes = File.ReadAllBytes(tmp);
+            int off = BitConverter.ToInt32(bytes, 24);
+            for (int i = 0; i < 2; i++) off = BitConverter.ToInt32(bytes, off);
+            bytes[off + 18] = 1;
+            File.WriteAllBytes(tmp, bytes);
+
+            SffFile.Open(tmp).Save(tmp, SffVersions.V1);
+            Assert.Equal(1, V1SamePaletteFlag(File.ReadAllBytes(tmp), 2));
+        }
+        finally { File.Delete(tmp); }
     }
 
     [Fact]

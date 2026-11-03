@@ -56,10 +56,6 @@ public partial class MainWindow
         var summary = $"SFF {_file.Version}: {_file.Sprites.Count} sprites, {_file.Palettes.Count} palettes";
         if (failed > 0) summary += $", {failed} failed to decode";
         StatusText.Text = summary;
-        if (_file.V1SharedPalette)
-            ShowPopup("Global Shared Palette",
-                "This SFF file uses a global shared palette: sprites marked to reuse a palette use the first one.\n"
-                + "Saving it in the editor will convert it to the standard \u201cuse previous palette\u201d format.");
         if (ForwardLinkNote(_file.Version, done: false) is { } forward)
         {
             CrashLog.Trace($"[sff] {_file.ForwardLinksOnLoad.Count} link(s) point at a later sprite");
@@ -131,7 +127,8 @@ public partial class MainWindow
                 string.Join(Environment.NewLine + Environment.NewLine, notes), "Save");
     }
 
-    /// <summary>After a save: traces what happened to loaded forward links and clears them. A status suffix, or "".</summary>
+    /// <summary>After a save: traces what happened to loaded forward links and clears them, and drops the
+    /// SFF v1 palette type byte the save rewrote. A status suffix, or "".</summary>
     private string ForwardLinksSaved(string? note, string? paletteNote)
     {
         if (_file is null) return "";
@@ -150,6 +147,7 @@ public partial class MainWindow
             if (n > 0) suffix += $" {n} link{(n == 1 ? "" : "s")} to later palettes turned around.";
         }
         _file.ForwardPaletteLinksOnLoad = []; // a v1 save drops palette links, so nothing is left to warn about
+        _file.V1PaletteType = 0; // written as Individual
         return suffix;
     }
 
@@ -331,6 +329,14 @@ public partial class MainWindow
                     ($"  Sprite {s.Group},{s.Index} links to {s.SharesWith!.Group},{s.SharesWith.Index}", Jump(() => JumpToSprite(s)))));
                 Section("Links to a later palette (Ikemen GO loads them with the wrong colors)", forwardPalettes.Select(p =>
                     ($"  Palette {PaletteKey(file, p)} links to {PaletteKey(file, p.LinksTo!)}", Jump(() => JumpToPalette(p)))));
+                // No engine reads these; a plain v1 save writes SprMaker's Individual mode.
+                var v1Written = new List<(string Text, Action? Jump)>();
+                if (SffVersions.IsV1(file.Version))
+                {
+                    if (file.V1PaletteType != 0)
+                        v1Written.Add(($"  Palette type byte: {(file.V1PaletteType == 1 ? "Shared (1)" : file.V1PaletteType.ToString())} becomes Individual (0)", null));
+                }
+                Section("Written differently on save (no engine reads these)", v1Written);
             }
             if (_air is { } air)
             {

@@ -11,8 +11,6 @@ internal static class SffV1Reader
 {
     private const int HeaderSize = 512;
     private const int SubHeaderSize = 32;
-    /// <summary>Header byte 32: SprMaker 0.97's "Shared palette" type.</summary>
-    private const byte SharedPalette = 1;
 
 
     public static SffFile Decode(byte[] b, SffVersion version)
@@ -22,9 +20,7 @@ internal static class SffV1Reader
 
         uint imageCount = BinaryPrimitives.ReadUInt32LittleEndian(b.AsSpan(20));
         uint first = BinaryPrimitives.ReadUInt32LittleEndian(b.AsSpan(24));
-        bool shared = b[32] == SharedPalette;
-
-        var f = new SffFile { Version = version, CompatVersion = version, V1SharedPalette = shared };
+        var f = new SffFile { Version = version, CompatVersion = version, V1PaletteType = b[32] };
         var linkTo = new List<int>();
 
         // Walk the list. Each subheader points at the next; a pointer that does
@@ -50,8 +46,12 @@ internal static class SffV1Reader
 
             f.Sprites.Add(s);
             linkTo.Add(length == 0 ? previousCopy : -1);
-            // The same-palette flag means the same on a link as on any sprite; unflagged, ResolveLinks gives the target's.
-            if (length == 0 && samePalette) s.Palette = ChoosePalette(f, null, samePalette: true, shared);
+            if (length == 0)
+            {
+                s.V1LinkFlag = samePalette;
+                // A flagged link takes the palette stored before it; unflagged, ResolveLinks gives the target's.
+                if (samePalette && f.Palettes.Count > 0) s.Palette = f.Palettes[^1];
+            }
 
             if (length > 0)
             {
@@ -59,12 +59,14 @@ internal static class SffV1Reader
                 if (start + length > b.Length) length = b.Length - start;
                 try
                 {
-                    var img = Pcx.Decode(b.AsSpan(start, (int)length), samePalette);
+                    // With no palette stored yet, a flagged sprite reads its own, as in MUGEN and Ikemen GO.
+                    bool usePrevious = samePalette && f.Palettes.Count > 0;
+                    var img = Pcx.Decode(b.AsSpan(start, (int)length), usePrevious);
                     s.SourceData = b.AsSpan(start, (int)length).ToArray(); // a plain save keeps it while it still decodes the same
                     s.Width = img.Width;
                     s.Height = img.Height;
                     s.Indexed = img.Indices;
-                    s.Palette = ChoosePalette(f, img.Palette, samePalette, shared);
+                    s.Palette = ChoosePalette(f, img.Palette, usePrevious);
                 }
                 catch (Exception e)
                 {
@@ -81,11 +83,12 @@ internal static class SffV1Reader
     }
 
     /// <summary>A sprite carries its own palette, or its subheader flag says it has none: then it uses
-    /// the first palette in a shared-palette file, else the previous one (see Official tools in features.md).</summary>
-    private static Palette? ChoosePalette(SffFile f, Rgba[]? own, bool samePalette, bool shared)
+    /// the last palette stored before it, as MUGEN and Ikemen GO do. Header byte 32 doesn't change
+    /// that (see Official tools in features.md).</summary>
+    private static Palette? ChoosePalette(SffFile f, Rgba[]? own, bool usePrevious)
     {
-        if (samePalette || own is null)
-            return f.Palettes.Count == 0 ? null : shared ? f.Palettes[0] : f.Palettes[^1];
+        if (usePrevious || own is null)
+            return f.Palettes.Count == 0 ? null : f.Palettes[^1];
 
         var p = new Palette { Group = 1, Index = f.Palettes.Count + 1, Colors = own };
         f.Palettes.Add(p);

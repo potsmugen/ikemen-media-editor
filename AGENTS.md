@@ -25,7 +25,8 @@ and keep them current. Open, unchecked work is in `agents/todo.md`.
   If a save changes data the user didn't edit, warn on load, list it in the
   Media Health Report, ask Save/Cancel before saving, and report what changed.
   Exception: harmless changes nearly every old file has (AIR box corners rewritten
-  top-left first, CRLF to LF) go in the Media Health Report only, not the save popups.
+  top-left first, CRLF to LF, the SFF v1 palette type byte no engine reads) go in the
+  Media Health Report only, not the save popups.
 - Give honest opinions, not agreeable ones. When asked "what do you think", pick
   one option and say why; don't drift toward the latest suggestion or defend work
   already done. Disagree plainly when a request seems worse than an alternative.
@@ -184,3 +185,8 @@ Read the relevant feature and implementation-note sections in
 `agents/features.md`. In particular, read **Auto Clsn2 experiments** before
 adding options to Auto Clsn2. `agents/todo.md` tracks open work not yet checked
 in the app.
+
+For how the engine reads a format, check the engine source before relying on tool
+docs: https://github.com/zxmarcos/mugen-unleashed (C reconstruction of MUGEN 1.1 Beta 1,
+e.g. `src/sff.c`, `src/char.c`) and https://github.com/ikemen-engine/Ikemen-GO
+(e.g. `src/image.go`). Cite the file and function when recording a finding.

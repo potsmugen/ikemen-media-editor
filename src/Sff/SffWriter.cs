@@ -19,7 +19,7 @@ public static class SffWriter
     /// axis values that don't fit are clamped to the field's range instead of wrapped.</summary>
     public static void Save(SffFile f, string path, SffVersion version, bool clamp = false)
     {
-        if (version.Hi == 1) { SffV1Writer.Save(f, path, clamp, linkPalettes: true, keepSourceBytes: true); return; }
+        if (version.Hi == 1) { SffV1Writer.Save(f, path, clamp, keepSourceBytes: true, linkPalettes: true); return; }
         Save(f, path, version.Lo2 >= 1 || version.Lo1 > 0, clamp);
     }
 
