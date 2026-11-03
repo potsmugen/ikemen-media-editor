@@ -509,7 +509,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   borrowers, undecoded and fully transparent sprites. Thresholds are minimum matching shares
   of the union of visible positions, and palette matching defaults by SFF version.
 - **Duplicate palette comparison** ignores index-0 RGB only when both palettes' index 0 is
-  fully transparent. SprMaker's deduplication compares all RGBA including index 0.
+  fully transparent. SprMaker's deduplication compares all RGBA including index 0. Deliberate
+  difference from SprMaker (the editor's finder, not the tool); Save Like SprMaker keeps the
+  tool's exact match.
 - **SFF v2 palette links** may only target earlier independent embedded palettes; after a
   reorder or Sort Palettes, a save makes the set's earliest palette store the colors. Merging
   redirects sprites and links; unlinking copies the colors. Deleting a used palette
@@ -711,20 +713,6 @@ summaries; treat anything marked unverified as unknown.
   long-packet path adds 1). Verified by histogramming decoded back-reference
   distances against sprite width.
   Header compatibility bytes 24-27 remain unverified.
-- **Linked sprites and palettes** (settled 2026-10-22, reaffirmed twice on 2026-11-03; agents
-  got this wrong repeatedly, so don't reopen it):
-  - A linked sprite has its own palette, which can differ from its target's. In v2 the link
-    node names it. In v1 a flagged link uses the previous palette and an unflagged one uses
-    its target's.
-  - Never treat a link as having no palette or as always using its target's. A 2026-11-03
-    change did that, citing MUGEN `Sff1_Load` and Ikemen `shareCopy`, and turned
-    `working/sprites_org.sff` 6001,7-11 gray. It was reverted. Don't argue it from engine
-    source again.
-  - Any palette operation (find duplicates, merge, sort, delete, link direction, save) must
-    check what each link's palette is and keep it.
-  - In v1 a link record stores no palette bytes, so it doesn't change which palette is
-    "previous" for the sprites after it (writer and `PaletteBefore`). That is a separate
-    fact; it doesn't mean the link has no palette.
 - SFF v1 is a linked list of PCX subfiles that carry palettes. A sprite uses
   its own palette; a same-palette-flagged one uses the preceding stored palette (MUGEN,
   SprMaker); header byte 32 doesn't change that, and a link takes its target's. See
@@ -1146,14 +1134,10 @@ The editor's writers follow these tools where applicable.
     flagged-first and link cases.
   - Consequence: by the file rule alone the editor shows old KFM in 9000,1's portrait colors
     and Donald with 0,0's black colors, unlike the game.
-  - Display, not decided yet: (A) when the .def's .act palettes are loaded, draw sprites on
-    9000,0's or 0,0's palette with pal1, as MUGEN's hack does, keeping the sprite's real
-    palette and saying so in the palette cell tooltip; the existing preview override
-    (`_paletteOverride`) still replaces it. (B) rely on the existing preview override only.
-    Open as well: an SFF opened without its .def can only show the file's colors, unless the
-    editor looks for the .def beside it. No Media Health Report entry either way: it can't
-    tell a stored palette is wrong, since differing 0,0 and 9000,0 palettes are common in
-    valid files.
+  - Display (decided 2026-11-03, final): the editor never applies MUGEN's character .act hack,
+    in display, palette tools or reports. SFF stays isolated from ACT palettes; an SFF shows
+    its own colors, and the existing preview override (`_paletteOverride`) is the only way to
+    view it with an .act. Don't propose it again. No Media Health Report entry either.
 - SprMaker 0.97 -p (disassembled) compares the previous palette with the
   current PCX's final 768 RGB bytes; on a match it omits the palette and sets
   the same-palette flag. The check runs only for non-link sprites. SprMaker
@@ -1167,7 +1151,9 @@ The editor's writers follow these tools where applicable.
   gray 6001,1-5 right after 6001,6's own purple palette) and 6001,13-17 (after 6001,12's
   green). A 2026-11-03 change gave every link its target's palette and cleared link flags on
   save, citing MUGEN `Sff1_Load` and Ikemen `shareCopy`; it turned those frames gray and was
-  reverted the same day. Save Like SprMaker 0.97 keeps the tool's flag rule above. A v1 save
+  reverted the same day. It was tried again later that day and reverted again: the
+  sprites_org dust frames look different from their targets (maintainer), so a reading of
+  `Sff1_Load` (a link copies its target sprite) or `shareCopy` doesn't override this rule. Save Like SprMaker 0.97 keeps the tool's flag rule above. A v1 save
   can't keep a link palette that is neither its target's nor the previous one (it reloads as
   the target's); the v2-to-v1 warning, the links-turned-around warning and the sort refusal
   list them.

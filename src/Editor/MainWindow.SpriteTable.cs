@@ -54,13 +54,13 @@ public partial class MainWindow
                 continue;
             }
             if (sprite.Palette is not { } palette) { paletteText[sprite] = ""; continue; }
-            if (v1 && sprite.SharesWith is null && ReferenceEquals(palette, previousPalette))
+            if (v1 && ReferenceEquals(palette, previousPalette))
                 paletteText[sprite] = "Previous";
             else if (palette.Source == PaletteSource.External)
                 paletteText[sprite] = externalOrdinals.TryGetValue(palette, out int externalIndex) ? $"{ExternalGroup(palette)}{externalIndex}" : ExternalGroup(palette);
             else
                 paletteText[sprite] = v1Ordinals.TryGetValue(palette, out int sn) ? $"S{sn}" : $"{palette.Group},{palette.Index}";
-            // Pixel links carry no palette in v1, so they don't advance the chain.
+            // Links store no palette in v1, so they don't advance the chain.
             if (sprite.SharesWith is null) previousPalette = palette;
         }
 

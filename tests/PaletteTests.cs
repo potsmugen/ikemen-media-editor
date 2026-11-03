@@ -306,6 +306,21 @@ public class PaletteTests
     }
 
     [Fact]
+    public void MergingV1DuplicatePalettesMovesFlaggedLinksInTheRun()
+    {
+        var (f, s, p) = MakeV1Repeats();
+        var link = new Sprite { Group = 0, Index = 9, Palette = p[1] };
+        f.Sprites.Insert(3, link); // inside p2's run, flagged: it uses the previous palette
+        f.Share(link, s[0]);
+        link.V1LinkFlag = true;
+
+        f.ShareDuplicatePalettes(f.FindDuplicatePalettes(), discard: true);
+
+        Assert.Same(p[0], link.Palette);
+        Assert.DoesNotContain(p[1], f.Palettes);
+    }
+
+    [Fact]
     public void LinkingV1DuplicatePalettesIsRefused()
     {
         var (f, _, _) = MakeV1Repeats();

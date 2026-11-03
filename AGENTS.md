@@ -27,6 +27,11 @@ and keep them current. Open, unchecked work is in `agents/todo.md`.
   Exception: harmless changes nearly every old file has (AIR box corners rewritten
   top-left first, CRLF to LF, the SFF v1 palette type byte no engine reads) go in the
   Media Health Report only, not the save popups.
+- The original tools are the reference: SprMaker 0.97 and 2.01 (disassembly in `working/`),
+  MUGEN (mugen-unleashed) and Ikemen GO source (see Reference notes). When they answer a format
+  or behavior question, follow them: don't invent rules, don't show data differently from how
+  the engines read it, and don't ask the maintainer to decide what they already answer. Ask
+  only about what they leave open (UI, wording, workflow). Record findings in features.md.
 - Give honest opinions, not agreeable ones. When asked "what do you think", pick
   one option and say why; don't drift toward the latest suggestion or defend work
   already done. Disagree plainly when a request seems worse than an alternative.
@@ -111,6 +116,31 @@ and keep them current. Open, unchecked work is in `agents/todo.md`.
 - If an edit was made without verification, revert it before adding anything else.
 - If the app cannot run here, say the fix is untested and list what the maintainer should check.
 
+## Past mistakes (don't repeat)
+
+From the 2026-11-03 session on SFF v1 duplicate palettes and links:
+
+- Asked the maintainer to decide things the original tools already answer (how a v1 link
+  picks its palette). Read the engine source and SprMaker disassembly first, then follow them.
+- Changed the v1 link palette rule (a flagged link uses the previous palette) twice from a
+  reading of engine source, though features.md records it as decided and the sprites_org
+  dust shows it. Don't change a recorded decision from a code reading; when a reading
+  disagrees with a decision or a sample, report it and leave the code alone.
+- Recorded a rule in AGENTS.md as "settled" with "don't argue it from engine source", which
+  contradicts the rule above. Never write a rule as settled without the evidence behind it.
+- Explained format behavior from memory and said the engine source was unreachable without
+  trying every route. The device shell can't reach GitHub, but the cloud workspace can clone
+  mugen-unleashed and Ikemen-GO.
+- Built unasked extras: links following their target after a merge, and a duplicate-finder
+  exclusion based on MUGEN's character .act hack. The second hid real duplicates from the
+  report. Don't add rules or filters nobody asked for, and never hide data from a report.
+- Mixed ACT palettes into SFF logic. SFF behavior stays isolated from ACT palettes and
+  character .def handling. The editor will never apply MUGEN's character .act hack.
+- Reverted several changes before listing them when asked to specify first, and left extras
+  out of summaries until asked. List every change, extras included, before and after acting.
+- Long answers and repeated questions. Keep replies short; ask one question only when the
+  references leave it open.
+
 ## Project
 
 Ikemen Media Editor ("Media", not "Asset") is an MIT-licensed C#/Avalonia
@@ -122,12 +152,6 @@ An AIR frame is the whole block of text that ends in its main line: the main lin
 plus every line above it that belongs to it (Clsn defaults and boxes, Interpolate
 flags, Loopstart, comments). Any operation on a frame (move, drag, copy, duplicate,
 remove, insert) carries that whole block, as moving the text would. Don't ask.
-
-A linked sprite has its own palette, in SFF v1 too, and it can differ from its target's:
-a flagged v1 link uses the previous palette, an unflagged one its target's. Every
-palette operation (find, merge, sort, delete, save) must treat a link's palette as its
-own. Settled; don't reopen it or argue it from engine source. See **Linked sprites and
-palettes** in `agents/features.md`.
 
 Supported platforms are Windows, Linux, and macOS. Guard Windows-only code
 with `OperatingSystem.IsWindows()` and provide a fallback. Sound uses
