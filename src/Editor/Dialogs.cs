@@ -409,6 +409,9 @@ public static partial class Dialogs
         relative.IsCheckedChanged += (_, _) => UpdateMode();
 
         var ok = new Button { Content = "Resize", MinWidth = 90, IsDefault = true };
+        ToolTip.SetTip(ok, single
+            ? "Keeps the existing pixels centered and moves the axis with them. New indexed pixels use the transparent index."
+            : "Keeps each sprite's existing pixels centered and moves the axis with them. A relative change applies to each sprite's own size.");
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
         var body = new StackPanel { Spacing = 8, Margin = new Avalonia.Thickness(16) };
         if (single) body.Children.Add(new TextBlock { Text = $"Current canvas: {curW} × {curH}" });
@@ -419,13 +422,6 @@ public static partial class Dialogs
             new TextBlock { Text = "Width", VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, Width = 55 }, width,
             new TextBlock { Text = "Height", VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, Width = 55 }, height,
         }});
-        body.Children.Add(new TextBlock
-        {
-            Text = single
-                ? "The existing pixels stay centered; the axis moves with them. New indexed pixels use the transparent index."
-                : "Each sprite's existing pixels stay centered; the axis moves with them. A relative change applies to each sprite's own size.",
-            TextWrapping = TextWrapping.Wrap, MaxWidth = 420,
-        });
         var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8 };
         row.Children.Add(ok); row.Children.Add(cancel); body.Children.Add(row);
         var dialog = new Window
@@ -472,6 +468,9 @@ public static partial class Dialogs
         if (indexed) ToolTip.SetTip(sampling, "Bilinear is available for true-color sprites only.");
 
         var ok = new Button { Content = "Resize", MinWidth = 90, IsDefault = true };
+        ToolTip.SetTip(ok, single
+            ? "Scales pixels and axis coordinates. Indexed sprites keep their palette and indexes."
+            : "Percentages apply to each sprite's own dimensions. Indexed sprites keep their palette and indexes.");
         void UpdateMode()
         {
             bool isPercentage = percentage.IsChecked == true;
@@ -504,13 +503,6 @@ public static partial class Dialogs
         {
             new TextBlock { Text = "Sampling", VerticalAlignment = VerticalAlignment.Center, Width = 55 }, sampling,
         }});
-        body.Children.Add(new TextBlock
-        {
-            Text = single
-                ? "Scales pixels and axis coordinates. Indexed sprites keep their palette and indexes."
-                : "Percentages apply to each sprite's own dimensions. Indexed sprites keep their palette and indexes.",
-            TextWrapping = TextWrapping.Wrap, MaxWidth = 420,
-        });
         body.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
             Spacing = 8, Children = { ok, cancel } });
         var dialog = new Window
@@ -1283,14 +1275,10 @@ public static partial class Dialogs
         var image = new TextBox { Text = initialImage, MinWidth = 90 };
         var chooseTarget = new Button { Content = "Choose Target", MinWidth = 100, IsDefault = true };
         var pickFromList = new Button { Content = "Pick from List", MinWidth = 100 };
+        ToolTip.SetTip(pickFromList, "Picks the target from the sprite list instead of typing it.");
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
         var error = new TextBlock { Foreground = ThemeBrush("ThemeMutedText"), TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         var body = new StackPanel { Spacing = 12, Margin = new Avalonia.Thickness(20), MaxWidth = 440 };
-        body.Children.Add(new TextBlock
-        {
-            Text = "Choose a target by Group and Image, or pick one from the list.",
-            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-        });
         var fields = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions("*,8,*,8,Auto"),
@@ -1400,14 +1388,10 @@ public static partial class Dialogs
         var index = new TextBox { Text = initialIndex, MinWidth = 90 };
         var usePair = new Button { Content = "Choose Target", MinWidth = 100, IsDefault = true };
         var pickFromList = new Button { Content = "Pick from List", MinWidth = 100 };
+        ToolTip.SetTip(pickFromList, "Picks the target from the palette list instead of typing it.");
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
         var error = new TextBlock { Foreground = ThemeBrush("ThemeMutedText"), TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         var body = new StackPanel { Spacing = 12, Margin = new Avalonia.Thickness(20), MaxWidth = 440 };
-        body.Children.Add(new TextBlock
-        {
-            Text = "Choose a target by Group and Index, or pick one from the list.",
-            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-        });
         var fields = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions("*,8,*,8,Auto"),
@@ -2170,7 +2154,9 @@ public static partial class Dialogs
         {
             GroupName = "ImportIndex", Content = "Keep the image's indexes", IsEnabled = imagesIndexed,
         };
-        ToolTip.SetTip(keep, "Keeps pixel indexes, using the chosen palette.");
+        ToolTip.SetTip(keep, framesGif
+            ? "A GIF's frames have no palette of their own, so they cannot keep its indexes."
+            : "Keeps pixel indexes, using the chosen palette.");
         var nearest = new RadioButton
         {
             GroupName = "ImportIndex", Content = "Match the nearest color",
@@ -2194,6 +2180,7 @@ public static partial class Dialogs
 
         var groupBox = new NumericUpDown { Minimum = 0, Maximum = 65535, Increment = 1, FormatString = "0", Value = group, Width = 100 };
         var numberBox = new NumericUpDown { Minimum = 0, Maximum = 65535, Increment = 1, FormatString = "0", Value = number, Width = 100 };
+        if (imageCount > 1) ToolTip.SetTip(numberBox, "Numbered upward from here, skipping numbers already taken.");
         var palGroupBox = new NumericUpDown { Minimum = 0, Maximum = 65535, Increment = 1, FormatString = "0", Value = initial.PaletteGroup != 0 || initial.PaletteIndex != 0 ? initial.PaletteGroup : paletteGroup, Width = 100 };
         var palIndexBox = new NumericUpDown { Minimum = 0, Maximum = 65535, Increment = 1, FormatString = "0", Value = initial.PaletteGroup != 0 || initial.PaletteIndex != 0 ? initial.PaletteIndex : paletteIndex, Width = 100 };
 
@@ -2308,8 +2295,6 @@ public static partial class Dialogs
                     },
                 },
             });
-            if (imageCount > 1)
-                body.Children.Add(new TextBlock { Text = "Numbered upward from here, skipping numbers already taken.", Foreground = ThemeBrush("ThemeMutedText") });
         }
         body.Children.Add(Section("Color depth"));
         body.Children.Add(bitDepth);
@@ -2342,12 +2327,6 @@ public static partial class Dialogs
         body.Children.Add(keep);
         body.Children.Add(nearest);
         body.Children.Add(keepMask);
-        if (framesGif)
-            body.Children.Add(new TextBlock
-            {
-                Text = "A GIF's frames have no palette of their own, so they cannot keep its indexes.",
-                Foreground = ThemeBrush("ThemeMutedText"),
-            });
         var buttons = new StackPanel
         {
             Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
@@ -2449,6 +2428,7 @@ public static partial class Dialogs
 
         var detected = new TextBlock { Foreground = ThemeBrush("ThemeMutedText") };
         var foundBox = new NumericUpDown { Minimum = 0, Maximum = 4096, Increment = 1, FormatString = "0", Value = floor, Width = 100 };
+        ToolTip.SetTip(foundBox, "Raising this drops the stray pixels a keyed sheet leaves behind; lowering it keeps sprites too small to be real.");
         var foundLabel = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
 
         // The picker shows two choices when detection had to guess: the most
@@ -2592,7 +2572,7 @@ public static partial class Dialogs
         var body = new Grid
         {
             Margin = new Avalonia.Thickness(20),
-            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*,Auto,Auto,Auto,Auto"),
+            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*,Auto,Auto,Auto"),
         };
         body.RowSpacing = 10;
         body.Children.Add(new TextBlock { Text = name });
@@ -2642,13 +2622,6 @@ public static partial class Dialogs
         };
         Grid.SetRow(minimumSize, 4);
         body.Children.Add(minimumSize);
-        var minimumNote = new TextBlock
-        {
-            Text = "Raising this drops the stray pixels a keyed sheet leaves behind; lowering it keeps sprites too small to be real.",
-            Foreground = ThemeBrush("ThemeMutedText"),
-        };
-        Grid.SetRow(minimumNote, 5);
-        body.Children.Add(minimumNote);
         if (layout.AssumedBackground)
         {
             var backgroundRow = new StackPanel
@@ -2660,7 +2633,7 @@ public static partial class Dialogs
                     background,
                 },
             };
-            Grid.SetRow(backgroundRow, 6);
+            Grid.SetRow(backgroundRow, 5);
             body.Children.Add(backgroundRow);
         }
         var buttons = new StackPanel
@@ -2668,7 +2641,7 @@ public static partial class Dialogs
             Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
             Spacing = 8, Margin = new Avalonia.Thickness(0, 8, 0, 0), Children = { ok, cancel },
         };
-        Grid.SetRow(buttons, 7);
+        Grid.SetRow(buttons, 6);
         body.Children.Add(buttons);
 
         dialog.Content = body;
@@ -2732,18 +2705,19 @@ public static partial class Dialogs
             initial = availableColors.Contains(256) ? Array.IndexOf(depths, 256)
                 : Array.FindIndex(depths, availableColors.Contains);
         depth.SelectedIndex = initial;
-        var note = new TextBlock { Foreground = ThemeBrush("ThemeMutedText"), TextWrapping = TextWrapping.Wrap };
         void Update()
         {
             int selectedColors = depth.SelectedItem is ComboBoxItem { Tag: int count } ? count : 0;
             bool enabled = selectedColors > 0 && availableColors.Contains(selectedColors);
-            note.Text = enabled
+            // The button's tip says what the conversion does, or why it is blocked; a disabled
+            // button still shows its tip.
+            ToolTip.SetTip(apply, enabled
                 ? selectedColors > currentColors
-                    ? "New entries are filled with opaque black."
-                    : "Existing colors and indexes are preserved."
+                    ? "Fills the new entries with opaque black."
+                    : "Keeps the existing colors and indexes."
                 : paletteCount > 1
                     ? "A sprite using one of these palettes has indexes that exceed this depth, or is undecoded."
-                    : "A sprite using this palette has indexes that exceed this depth, or is undecoded.";
+                    : "A sprite using this palette has indexes that exceed this depth, or is undecoded.");
             apply.IsEnabled = enabled;
         }
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
@@ -2757,7 +2731,6 @@ public static partial class Dialogs
             TextWrapping = TextWrapping.Wrap,
         });
         body.Children.Add(depth);
-        body.Children.Add(note);
         var buttons = new StackPanel
         {
             Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8,
@@ -2850,6 +2823,8 @@ public static partial class Dialogs
             ShowInTaskbar = false,
         };
         var apply = new Button { Content = "Continue", MinWidth = 90, IsDefault = true };
+        // The notice is a caveat on continuing, so it rides on the button that continues.
+        if (!string.IsNullOrWhiteSpace(notice)) ToolTip.SetTip(apply, notice);
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
         apply.Click += (_, _) =>
         {
@@ -2872,12 +2847,6 @@ public static partial class Dialogs
         });
         body.Children.Add(keep);
         body.Children.Add(nearest);
-        if (!string.IsNullOrWhiteSpace(notice))
-            body.Children.Add(new TextBlock
-            {
-                Text = notice, Foreground = ThemeBrush("ThemeMutedText"),
-                MaxWidth = 340, TextWrapping = TextWrapping.Wrap,
-            });
         body.Children.Add(new StackPanel
         {
             Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
@@ -3167,6 +3136,8 @@ public static partial class Dialogs
         var ascending = new RadioButton { GroupName = "ColorSortOrder", Content = "Ascending", IsChecked = true };
         var descending = new RadioButton { GroupName = "ColorSortOrder", Content = "Descending" };
         var update = new CheckBox { Content = "Update sprites that use this palette", IsEnabled = canUpdateSprites };
+        // A disabled control still shows its tip, so the reason it is off rides along with it.
+        if (!canUpdateSprites && disabledReason is not null) ToolTip.SetTip(update, disabledReason);
 
         var dialog = new Window
         {
@@ -3205,7 +3176,6 @@ public static partial class Dialogs
                 update,
             },
         };
-        if (!canUpdateSprites && disabledReason is not null) panel.Children.Add(new TextBlock { Text = disabledReason });
         panel.Children.Add(new StackPanel
         {
             Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
@@ -3276,6 +3246,8 @@ public static partial class Dialogs
     {
         var result = new TaskCompletionSource<bool?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var update = new CheckBox { Content = "Update sprites that use this palette", IsEnabled = canUpdateSprites };
+        // A disabled control still shows its tip, so the reason it is off rides along with it.
+        if (!canUpdateSprites && disabledReason is not null) ToolTip.SetTip(update, disabledReason);
 
         var dialog = new Window
         {
@@ -3300,7 +3272,6 @@ public static partial class Dialogs
             Spacing = 8,
             Children = { new TextBlock { Text = $"Swap colors {first} and {second}." }, update },
         };
-        if (!canUpdateSprites && disabledReason is not null) panel.Children.Add(new TextBlock { Text = disabledReason });
         panel.Children.Add(new StackPanel
         {
             Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,

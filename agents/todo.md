@@ -163,7 +163,8 @@ Select tool gaps against image editor conventions:
   Escape-in-a-text-box were three, fixed with the shortcuts).
 - Dialog option descriptions: consider a smaller muted line under each option in dialogs with
   radio options (Find Similar Sprites, Align With Onion Skin), instead of tooltips. Both used
-  that once (a SemiBold label over a ThemeMutedText line).
+  that once (a SemiBold label over a ThemeMutedText line). The SFF v1 Palette dialog explains
+  its two options in one line above them, which is a third shape to weigh.
 
 ### Other
 
@@ -194,10 +195,6 @@ Built, but not tried by the maintainer yet.
 ### Save Like SprMaker
 
 - Test reloading after saving over the open file.
-
-### Files and app
-
-- Find more dialogs with tips that could be button tooltips instead
 
 ### Preferences and look
 
