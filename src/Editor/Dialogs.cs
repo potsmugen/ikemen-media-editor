@@ -2416,6 +2416,9 @@ public static partial class Dialogs
     /// <summary>What the sheet dialog collected: a background, size floor, and excluded cells.</summary>
     public sealed record SheetDetectChoices(Rgba? Background, int MinimumSize, IReadOnlyList<Sff.SheetCell> Excluded);
 
+    /// <summary>One background color the sheet dialog offers, shown by its label.</summary>
+    public sealed record SheetBackgroundChoice(string Label, Rgba? Value);
+
     /// <summary>
     /// Reports what sheet detection found and lets its background and size floor
     /// be corrected before importing. Detected cells can also be excluded from
@@ -2440,11 +2443,11 @@ public static partial class Dialogs
             var firstPixel = Sff.SheetImport.FirstPixelColor(bytes);
             var choices = new[]
             {
-                new { Label = $"Most common color ({Describe(guessed)})", Value = (Rgba?)guessed },
-                new { Label = $"First pixel ({Describe(firstPixel)})", Value = (Rgba?)firstPixel },
+                new SheetBackgroundChoice($"Most common color ({Describe(guessed)})", guessed),
+                new SheetBackgroundChoice($"First pixel ({Describe(firstPixel)})", firstPixel),
             };
             background.ItemsSource = choices;
-            background.DisplayMemberBinding = new Avalonia.Data.Binding("Label");
+            background.ItemTemplate = new FuncDataTemplate<SheetBackgroundChoice>((c, _) => new TextBlock { Text = c?.Label });
             background.SelectedIndex = 0;
         }
 
@@ -2482,7 +2485,7 @@ public static partial class Dialogs
         {
             int size = (int)(foundBox.Value ?? floor);
             var picked = background.SelectedIndex >= 0 && background.ItemCount > 0
-                ? (background.SelectedItem as dynamic)?.Value as Rgba?
+                ? (background.SelectedItem as SheetBackgroundChoice)?.Value
                 : null;
             var newLayout = LayoutWith(bytes, picked, size);
             int again = newLayout?.Count ?? 0;
@@ -2562,7 +2565,7 @@ public static partial class Dialogs
         ok.Click += (_, _) =>
         {
             var picked = background.SelectedIndex >= 0 && background.ItemCount > 0
-                ? (background.SelectedItem as dynamic)?.Value as Rgba?
+                ? (background.SelectedItem as SheetBackgroundChoice)?.Value
                 : null;
             result.TrySetResult(new SheetDetectChoices(picked, (int)(foundBox.Value ?? floor), excluded.ToList()));
             dialog.Close();

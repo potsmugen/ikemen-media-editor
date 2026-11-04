@@ -2,7 +2,6 @@ using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
-using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
@@ -174,13 +173,8 @@ public static partial class Dialogs
         list.ItemTemplate = new FuncDataTemplate<ShortcutRow>((_, _) =>
         {
             var grid = RowGrid();
-            TextBlock Text(string path)
-            {
-                var t = new TextBlock { TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
-                t.Bind(TextBlock.TextProperty, new Binding(path));
-                return t;
-            }
-            var label = Text(nameof(ShortcutRow.Label));
+            static TextBlock Text() => new() { TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
+            var label = Text();
             void UpdateCommandTip()
             {
                 if (label.Text is not { Length: > 0 } command || label.Bounds.Width <= 0) return;
@@ -192,11 +186,35 @@ public static partial class Dialogs
                 try { UpdateCommandTip(); }
                 catch (Exception ex) { CrashLog.Write("ShortcutsPage.CommandTooltip", ex); }
             };
-            var key = Text(nameof(ShortcutRow.ShortcutText));
+            var key = Text();
             key.HorizontalAlignment = HorizontalAlignment.Center;
-            key.Bind(TextBlock.FontWeightProperty, new Binding(nameof(ShortcutRow.ShortcutWeight)));
-            var whereText = Text(nameof(ShortcutRow.Where));
+            var whereText = Text();
             whereText.Bind(TextBlock.ForegroundProperty, whereText.GetResourceObservable("ThemeMutedText"));
+
+            // The list recycles row controls, so fill them from whichever row is attached now
+            // instead of a reflection binding, which trimming can break.
+            ShortcutRow? row = null;
+            void Changed(object? sender, PropertyChangedEventArgs e)
+            {
+                if (row is null) return;
+                try
+                {
+                    if (e.PropertyName is nameof(ShortcutRow.ShortcutText) or null) key.Text = row.ShortcutText;
+                    if (e.PropertyName is nameof(ShortcutRow.ShortcutWeight) or null) key.FontWeight = row.ShortcutWeight;
+                }
+                catch (Exception ex) { CrashLog.Write("ShortcutsPage.RowChanged", ex); }
+            }
+            void Apply(ShortcutRow? next)
+            {
+                if (row is not null) row.PropertyChanged -= Changed;
+                row = next;
+                label.Text = next?.Label;
+                key.Text = next?.ShortcutText;
+                key.FontWeight = next?.ShortcutWeight ?? FontWeight.Normal;
+                whereText.Text = next?.Where;
+                if (next is not null) next.PropertyChanged += Changed;
+            }
+            grid.DataContextChanged += (_, _) => Apply(grid.DataContext as ShortcutRow);
 
             var keyCell = Cell(key, 2, header: false);
             grid.Cursor = new Cursor(StandardCursorType.Hand);

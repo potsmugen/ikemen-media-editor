@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.v.outputs.version }}
       sha: ${{ steps.v.outputs.sha }}
@@ -47,7 +47,7 @@ jobs:
           - rid: win-x64
             os: windows-latest
           - rid: linux-x64
-            os: ubuntu-latest
+            os: ubuntu-24.04
           # Mac host ad-hoc signs the binary, which Apple Silicon requires.
           - rid: osx-arm64
             os: macos-latest
@@ -55,10 +55,10 @@ jobs:
             os: macos-latest
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.version.outputs.full_sha }}
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x
       - name: Publish
@@ -77,16 +77,16 @@ jobs:
       - name: Package (tar.gz)
         if: matrix.rid != 'win-x64'
         run: tar -czf ikemen-media-editor-${{ matrix.rid }}.tar.gz -C out/${{ matrix.rid }} .
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.rid }}
           path: ikemen-media-editor-${{ matrix.rid }}.*
 
   release:
     needs: [version, build]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
