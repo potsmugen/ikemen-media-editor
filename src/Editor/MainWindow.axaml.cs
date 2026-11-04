@@ -869,7 +869,7 @@ public partial class MainWindow : Window
                 MenuAction("Preview First Sprite Using This Palette", () =>
                 {
                     if (rowPalette is { } p) PreviewFirstSpriteUsingPalette(p);
-                }, single),
+                }, single && rowPalette?.Source == PaletteSource.Embedded),
                 new Separator(),
                 MenuAction("Sort Ascending", () => OnSortPalettesAscending(null, new RoutedEventArgs())),
                 new Separator(),

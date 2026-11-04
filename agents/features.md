@@ -378,7 +378,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   Temp palettes have no original file, so neither applies; the panel's Export button is
   their save path. The menu holds only what the panel's buttons cannot do. Right-clicking
   selects the row under the pointer first, unless it is part of a multi-selection, so every
-  entry acts on the palette that was clicked.
+  entry acts on the palette that was clicked. Preview First Sprite Using This Palette is
+  disabled for file and temp palettes, which no sprite references.
 - **Several palettes selected**: Delete, Export, Duplicate, Convert Depth, Add to SFF and Save
   Original File act on all of them, each in one undo step where it edits. Delete moves a deleted
   palette's sprites to the first surviving palette along its links, else the first surviving
