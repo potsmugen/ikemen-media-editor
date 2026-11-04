@@ -1,5 +1,7 @@
 # One release per UTC commit date (tag YYYY.MM.DD); same-day builds replace it, older dates stay.
 # About shows date+commit so same-day builds differ. Dispatch with a ref to rebuild an older commit.
+# The release is created empty before the builds, then each platform uploads its own asset,
+# so a platform that fails or hangs leaves its asset missing instead of holding up the others.
 name: Release
 
 on:
@@ -21,7 +23,7 @@ permissions:
   contents: write
 
 jobs:
-  version:
+  prepare:
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.v.outputs.version }}
@@ -37,66 +39,13 @@ jobs:
           echo "version=$(date -u -d "$date" +%Y.%m.%d)" >> "$GITHUB_OUTPUT"
           echo "sha=${full::7}" >> "$GITHUB_OUTPUT"
           echo "full_sha=$full" >> "$GITHUB_OUTPUT"
-
-  build:
-    needs: version
-    strategy:
-      matrix:
-        include:
-          # Windows host needed for the exe icon and no-console subsystem.
-          - rid: win-x64
-            os: windows-latest
-          - rid: linux-x64
-            os: ubuntu-24.04
-          # Mac host ad-hoc signs the binary, which Apple Silicon requires.
-          - rid: osx-arm64
-            os: macos-latest
-          - rid: osx-x64
-            os: macos-latest
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.version.outputs.full_sha }}
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: 8.0.x
-      - name: Publish
-        shell: bash
-        run: >
-          dotnet publish src/Editor -c Release -r ${{ matrix.rid }} --self-contained
-          -p:PublishSingleFile=true
-          -p:Version=${{ needs.version.outputs.version }}
-          -p:InformationalVersion=${{ needs.version.outputs.version }}+${{ needs.version.outputs.sha }}
-          -o out/${{ matrix.rid }}
-      - name: Package (zip)
-        if: matrix.rid == 'win-x64'
-        shell: pwsh
-        run: Compress-Archive -Path out/${{ matrix.rid }}/* -DestinationPath ikemen-media-editor-${{ matrix.rid }}.zip
-      # tar keeps the executable bit, which zip loses.
-      - name: Package (tar.gz)
-        if: matrix.rid != 'win-x64'
-        run: tar -czf ikemen-media-editor-${{ matrix.rid }}.tar.gz -C out/${{ matrix.rid }} .
-      - uses: actions/upload-artifact@v7
-        with:
-          name: ${{ matrix.rid }}
-          path: ikemen-media-editor-${{ matrix.rid }}.*
-
-  release:
-    needs: [version, build]
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/download-artifact@v8
-        with:
-          path: dist
-          merge-multiple: true
-      - name: Replace this date's release
+      - name: Create this date's release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          VERSION: ${{ needs.version.outputs.version }}
-          SHA: ${{ needs.version.outputs.sha }}
-          FULL_SHA: ${{ needs.version.outputs.full_sha }}
+          VERSION: ${{ steps.v.outputs.version }}
+          SHA: ${{ steps.v.outputs.sha }}
+          FULL_SHA: ${{ steps.v.outputs.full_sha }}
         run: |
           tag="$VERSION"
           # Legacy releases from older schemes.
@@ -117,8 +66,60 @@ jobs:
           newest=$(gh release list --limit 1000 --json tagName --jq '.[].tagName' | grep -E '^[0-9]{4}\.[0-9]{2}\.[0-9]{2}$' | sort | tail -n 1)
           latest=true
           [[ -n "$newest" && "$newest" > "$tag" ]] && latest=false
-          gh release create "$tag" dist/* \
+          gh release create "$tag" \
             "${target[@]}" \
             --title "$VERSION ($SHA)" \
             --notes "Built from ${FULL_SHA} on ${VERSION}." \
             --latest=$latest
+
+  build:
+    needs: prepare
+    strategy:
+      # A failed platform must not cancel the ones still building.
+      fail-fast: false
+      matrix:
+        include:
+          # Windows host needed for the exe icon and no-console subsystem.
+          - rid: win-x64
+            os: windows-latest
+          - rid: linux-x64
+            os: ubuntu-24.04
+          # Mac host ad-hoc signs the binary, which Apple Silicon requires.
+          - rid: osx-arm64
+            os: macos-latest
+          - rid: osx-x64
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    # Bounds a hung runner; the other platforms no longer wait on this one.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.full_sha }}
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+      - name: Publish
+        shell: bash
+        run: >
+          dotnet publish src/Editor -c Release -r ${{ matrix.rid }} --self-contained
+          -p:PublishSingleFile=true
+          -p:Version=${{ needs.prepare.outputs.version }}
+          -p:InformationalVersion=${{ needs.prepare.outputs.version }}+${{ needs.prepare.outputs.sha }}
+          -o out/${{ matrix.rid }}
+      - name: Package (zip)
+        if: matrix.rid == 'win-x64'
+        shell: pwsh
+        run: Compress-Archive -Path out/${{ matrix.rid }}/* -DestinationPath ikemen-media-editor-${{ matrix.rid }}.zip
+      # tar keeps the executable bit, which zip loses.
+      - name: Package (tar.gz)
+        if: matrix.rid != 'win-x64'
+        run: tar -czf ikemen-media-editor-${{ matrix.rid }}.tar.gz -C out/${{ matrix.rid }} .
+      - name: Attach to this date's release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          RID: ${{ matrix.rid }}
+        shell: bash
+        run: gh release upload "$VERSION" ikemen-media-editor-"$RID".* --clobber

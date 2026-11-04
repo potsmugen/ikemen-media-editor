@@ -930,6 +930,10 @@ summaries; treat anything marked unverified as unknown.
   is marked Latest. Manual runs take an optional `ref` to rebuild an older commit under its
   own date. About shows `date+commit`. Assets: `ikemen-media-editor-win-x64.zip` and
   `-linux-x64.tar.gz`, undated so `/releases/latest/download/` links stay stable.
+  The `prepare` job creates the empty release first, then each platform job builds, packages
+  and uploads its own asset (`--clobber`), so a platform that fails, hangs (45-minute job cap)
+  or gets a bad runner just leaves its asset missing: it doesn't hold up or cancel the others
+  (`fail-fast: false`). There is no aggregating release job.
 - **Release build** (local): from the repo root, into a fresh folder so no stale files ship:
   `dotnet publish src/Editor -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o build/publish/win-x64`
   (`linux-x64`, `osx-arm64`, `osx-x64` for the others). Zip the folder's contents into
