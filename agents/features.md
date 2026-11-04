@@ -37,8 +37,12 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Atomic writes**: SFF, SND, AIR and embedded-AIR .def saves write a temp file beside the
   target, flush it, then move it over, so a failed write leaves the old file intact. Palette
   and export writes are still direct.
-- **Open Recent**: Delete removes the hovered entry and keeps the menu open; the file is
-  untouched. Clicking an entry whose file is gone removes it and says so.
+- **Open Recent**: holds whatever was opened from a path — .sff, .def, .air, .snd and
+  sessions — and each entry opens the way its own menu does. Delete removes the hovered entry
+  and keeps the menu open; the file is untouched. Clicking an entry whose file is gone removes
+  it and says so.
+- **Dropping a file** on the window opens it by extension too: session, .sff, .def, .air,
+  .snd, or a palette file, each asking about that document's unsaved changes first.
 - **Open .def** is one entry for every kind. `DetectDefKind` reads the sprite line:
   character, stage, or screenpack/lifebar/storyboard. A .def matching none, or unreadable,
   gets a popup before the tab prompt, so the tab is untouched.

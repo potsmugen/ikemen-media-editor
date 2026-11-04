@@ -51,16 +51,6 @@ Select tool gaps against image editor conventions:
   the Multiply stand-in, also for SubAdd's subtract pass. Needs reading back the drawn background
   (e.g. an offscreen render under the sprite), so it was left out of the easy fixes.
 
-### Canvas
-
-- Reported, not reproduced (2026-10-24): on the Sprites canvas at 16px per sprite pixel, a
-  user screenshot shows 1px steps partway along a sprite row (one row drawn at y 240-255 on
-  the left, 239-254 on the right). Plain DrawImage path, no transform or blend. The guide lines
-  suggest a half-pixel Origin (Bounds/2 + pan, unrounded). A Skia half-pixel test showed no
-  steps. Cause unknown; the maintainer can't reproduce it either. Origin is now snapped to
-  device pixels as hardening (features.md "Canvas pixel snapping"); checked by the maintainer.
-  Waiting for the reporter's feedback on the next build; close if it doesn't recur.
-
 ### Sounds
 
 - Add a low-pass filter for sounds (slope and dialog design undecided).
@@ -135,9 +125,6 @@ Select tool gaps against image editor conventions:
 ### Performance and lists
 
 - Loading is much slower than saving for large SFFs. Find out why.
-- Lists: the window-wide arrow fallback steps the sprite list from anywhere unless
-  something else handles the key; it caused the palette-list bug and is patched with a
-  list exception. Decide whether to narrow it (e.g. only when the Sprites canvas has focus).
 - Lists: compiled bindings (x:DataType) for the row templates instead of reflection.
   The row classes are nested in MainWindow; they may need moving out for XAML to reach them.
 - Lists: lighter rows. A sprite row builds 12 Borders, 5 hover-only fill handles and
@@ -156,8 +143,6 @@ Select tool gaps against image editor conventions:
 - Customizable shortcuts: see features.md "Keyboard shortcuts". It compiles, and column widths
   measure at the largest of the dialog, window and tab font sizes. Left:
   - Check the "Animations tab" command fits at large font scales.
-- Audit for Sprites-only assumptions left from when SFF was the only format (Ctrl+O, Ctrl+F and
-  Escape-in-a-text-box were three, fixed with the shortcuts).
 - Dialog option descriptions: consider a smaller muted line under each option in dialogs with
   radio options (Find Similar Sprites, Align With Onion Skin), instead of tooltips. Both used
   that once (a SemiBold label over a ThemeMutedText line). The SFF v1 Palette dialog explains

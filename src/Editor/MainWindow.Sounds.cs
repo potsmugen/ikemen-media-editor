@@ -157,6 +157,10 @@ public partial class MainWindow
         }
         StatusText.Text = $"Loaded {_snd!.Sounds.Count} sounds from {Path.GetFileName(path)}";
         SwitchToTab(3);
+        // Sounds keep their own place in Open Recent, as .sff, .air and .def do.
+        _settings.AddRecent(path);
+        _settings.Save();
+        RebuildRecentMenu();
     }
 
     /// <summary>Reads a .snd on a background thread under the busy lock. Null when it can't be read; LoadSnd then reports the error.</summary>

@@ -1652,7 +1652,18 @@ public partial class MainWindow
             if (e.Data.GetFiles()?.FirstOrDefault()?.TryGetLocalPath() is not { } p) return;
             if (IsSessionPath(p)) { if (!_projectOpening) await LoadSessionFile(p); return; }
             if (IsSndPath(p)) { await OpenSndFromPath(p); return; }
-            bool opensSff = Path.GetExtension(p).Equals(".sff", StringComparison.OrdinalIgnoreCase);
+            // Routed by extension like OpenLaunchFile. Anything but a session or a .snd used
+            // to go to the SFF reader, so a dropped .air, .def or palette file failed to open.
+            string ext = Path.GetExtension(p).ToLowerInvariant();
+            if (ext == ".def") { await OpenDefWithTabPrompt(p); return; }
+            if (ext == ".air")
+            {
+                if (_airDirty && !await AskToSaveAir()) return;
+                await OpenAirPath(p);
+                return;
+            }
+            if (ext is ".act" or ".pal" or ".rgba") { await ImportPaletteFiles([(Path.GetFileName(p), p)]); return; }
+            bool opensSff = ext == ".sff";
             if (!await ConfirmDiscard(resolveStandalone: !opensSff)) return;
             if (opensSff && !await ConfirmStandalonePalettesForSff()) return;
             await OpenFileInBackground(p);
@@ -1772,12 +1783,18 @@ public partial class MainWindow
                     return;
                 }
                 MainMenu.Close(); // before any prompt, so the menu doesn't sit over it
-                if (Path.GetExtension(path).Equals(".def", StringComparison.OrdinalIgnoreCase))
+                // Each format opens the way its own menu does; before, only .def was routed
+                // and everything else went to the SFF reader.
+                string ext = Path.GetExtension(path).ToLowerInvariant();
+                if (ext == ".def") { await OpenDefWithTabPrompt(path); return; }
+                if (IsSndPath(path)) { await OpenSndFromPath(path); return; }
+                if (ext == ".air")
                 {
-                    await OpenDefWithTabPrompt(path);
+                    if (_airDirty && !await AskToSaveAir()) return;
+                    await OpenAirPath(path);
                     return;
                 }
-                bool opensSff = Path.GetExtension(path).Equals(".sff", StringComparison.OrdinalIgnoreCase);
+                bool opensSff = ext == ".sff";
                 if (!await ConfirmDiscard(resolveStandalone: !opensSff)) return;
                 if (opensSff && !await ConfirmStandalonePalettesForSff()) return;
                 await OpenFileInBackground(path);

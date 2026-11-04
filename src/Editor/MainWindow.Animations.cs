@@ -149,6 +149,10 @@ public partial class MainWindow
             : $"Loaded {_air!.Actions.Count} actions from {Path.GetFileName(path)}";
         SwitchToTab(2);
         CrashLog.Trace("OnOpenAir: done");
+        // Animations keep their own place in Open Recent, as .sff, .snd and .def do.
+        _settings.AddRecent(path);
+        _settings.Save();
+        RebuildRecentMenu();
     }
 
     /// <summary>Loads a standalone .air or a definition containing embedded [Begin Action] blocks.</summary>
