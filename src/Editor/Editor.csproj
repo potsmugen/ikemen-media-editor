@@ -26,6 +26,11 @@
     <PackageReference Include="Avalonia.Diagnostics" Version="11.3.2" Condition="'$(Configuration)' == 'Debug'" />
     <!-- Avalonia's own Skia version, referenced directly for WebP frame encoding (MainWindow.AnimGif.cs). -->
     <PackageReference Include="SkiaSharp" Version="2.88.9" />
+    <!-- Lifts Avalonia.FreeDesktop's 0.21.2 (a minimum, not a pin) to the patch that
+         fixes CVE-2026-39959 (GHSA-xrw6-gwf8-vvr9): D-Bus peers could spoof signals,
+         exhaust file descriptors, or crash the app. Linux only: the package is
+         unused elsewhere and the trimmer drops it. -->
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.21.3" />
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\app.ico" />

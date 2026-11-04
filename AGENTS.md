@@ -90,14 +90,14 @@ and keep them current. Open, unchecked work is in `agents/todo.md`.
   suggested commit message for the maintainer to copy, in a code block: a
   Conventional Commits title under 72 characters (`feat:`, `fix:`, `refactor:`,
   `docs:`, ...), a blank line, then one or two lines on the general idea, not a
-  list of every change. The title names what is new to the user, not what
+  list of every change. Don't hard-wrap the body: one point per line, never a
+  break inside a sentence. The title names what is new to the user, not what
   already existed. Example:
 
   ```
   feat: show live interpolated values in animation info line
 
-  While an animation interpolates, the line under the canvas shows the current
-  offset, scale, angle and alpha, and now also shows the time.
+  While an animation interpolates, the line under the canvas shows the current offset, scale, angle and alpha, and now also shows the time.
   ```
 - Line endings follow the GitHub convention: the repo stores LF, and the Windows
   checkout has CRLF (Git autocrlf). Keep each file's existing line endings when

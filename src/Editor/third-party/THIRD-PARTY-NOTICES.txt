@@ -24,7 +24,7 @@ MicroCom.Runtime 0.11.0
   https://github.com/kekekeks/MicroCom
   MicroCom-LICENSE.txt
 
-Tmds.DBus.Protocol 0.21.2 (Linux desktop integration)
+Tmds.DBus.Protocol 0.21.3 (Linux desktop integration)
   MIT. Copyright 2006 Alp Toker, 2010 Other Contributors, 2016 Tom Deseyn.
   https://github.com/tmds/Tmds.DBus
   Tmds.DBus-LICENSE.txt
