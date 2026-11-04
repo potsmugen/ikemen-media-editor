@@ -75,3 +75,12 @@ Third-party licenses are in the app's `lib` folder.
 ## Notes
 
 This project is an AI-assisted work.
+
+
+## Thanks
+
+Special thanks to the following people, whose feedback, testing, and suggestions helped improve this project:
+
+- Jesuszilla
+- Rakíel
+- yarrmateys
