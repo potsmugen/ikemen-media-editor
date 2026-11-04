@@ -605,7 +605,8 @@ public partial class MainWindow
         int idx = FrameList.SelectedIndex;
         if (idx < 0 || idx >= _frameTableRows.Count || SelectedFrameRows().Contains(idx)) return;
         ApplyFrameRowSelection([idx]);
-        FrameTableList.ScrollIntoView(idx);
+        // Timeline clicks and frame steps land the selected frame in the middle of the table.
+        ScrollListRowIntoView(FrameTableList, () => idx);
     }
 
     /// <summary>Draws the selected frame with its sprite and its boxes.</summary>
@@ -2397,7 +2398,7 @@ public partial class MainWindow
         }
         int idx = ((List<ActionRow>)ActionList.ItemsSource!).IndexOf(row);
         ActionList.SelectedIndex = idx;
-        ActionList.ScrollIntoView(idx);
+        ScrollListRowIntoView(ActionList, () => ((List<ActionRow>)ActionList.ItemsSource!).IndexOf(row));
     }
 
     /// <summary>Selects these actions, the first as the current one.</summary>

@@ -1884,6 +1884,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 if (!ReferenceEquals(row.Palette, current) && palettes.Contains(row.Palette)) items.Add(row);
         }
         finally { _suppressEvents = wasSuppressed; }
+        ScrollListRowIntoView(PaletteList, () => PaletteRowOf(current));
     }
 
     /// <summary>Sprites tab swatch menu: jumps to the shown palette with the right-clicked color selected.</summary>
@@ -1952,6 +1953,9 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             }
             ResetColorAdjustBase();
         }
+
+        // A jump to a palette lands in the middle of the list, like the sprite table's.
+        ScrollListRowIntoView(PaletteList, () => PaletteRowOf(pal));
     }
 
     private static Dictionary<Palette, Sprite> V1PaletteCarriers(SffFile file)
@@ -2592,6 +2596,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             ReselectPaletteRow(pal);
         }
         _suppressEvents = wasSuppressed;
+        ScrollListRowIntoView(PaletteList, () => PaletteRowOf(pal));
     }
 
     private void OnPaletteFilterChanged(object? sender, TextChangedEventArgs e)
@@ -2666,10 +2671,14 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     /// <summary>Selects a palette's row in the current (possibly filtered) PaletteList without touching the filter — for reverting a canceled selection change, not for jumping to a palette the filter may be hiding (see SelectPalette for that).</summary>
     private void ReselectPaletteRow(Palette pal)
     {
-        if (PaletteList?.ItemsSource is not IEnumerable<PaletteRow> rows) return;
-        int idx = rows.ToList().FindIndex(r => ReferenceEquals(r.Palette, pal));
-        if (idx >= 0) PaletteList.SelectedIndex = idx;
+        if (PaletteRowOf(pal) is var idx and >= 0) PaletteList.SelectedIndex = idx;
     }
+
+    /// <summary>The palette's row in the current (possibly filtered) list, or -1 when it isn't shown.</summary>
+    private int PaletteRowOf(Palette pal) =>
+        PaletteList?.ItemsSource is IEnumerable<PaletteRow> rows
+            ? rows.ToList().FindIndex(r => ReferenceEquals(r.Palette, pal))
+            : -1;
 
     /// <summary>The row under the pointer, from the hit test: the event source does not
     /// always point into the row.</summary>

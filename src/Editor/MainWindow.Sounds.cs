@@ -2302,6 +2302,14 @@ public partial class MainWindow
         UpdateTitle();
     }
 
+    /// <summary>The sound's row in the filtered list, or -1 when it isn't shown or no longer in the file.</summary>
+    private int SoundRowOf(SoundEntry sound)
+    {
+        if (_snd is null) return -1;
+        int index = _snd.Sounds.IndexOf(sound);
+        return index < 0 ? -1 : _visibleSounds.IndexOf(index);
+    }
+
     /// <summary>
     /// Selects these sounds in the list, clearing the filter if it hides one, then refreshes the
     /// waveform and buttons. Duplicate uses it so the copies, not the originals, stay selected.
@@ -2330,7 +2338,8 @@ public partial class MainWindow
 
         if (selectedItems.Count > 0)
         {
-            SoundList.ScrollIntoView(SoundList.SelectedIndex);
+            // The first of the batch, so a duplicate shows the copies rather than the originals.
+            ScrollListRowIntoView(SoundList, () => SoundRowOf(sounds[0]));
             ShowSound();
             UpdateSoundButtonStates();
         }

@@ -135,9 +135,6 @@ Select tool gaps against image editor conventions:
 ### Performance and lists
 
 - Loading is much slower than saving for large SFFs. Find out why.
-- Lists: time RebuildFrameTable on a long action (it rebuilds fully from 18 places)
-  before deciding whether it needs incremental updates. (Frame table rows now update in
-  place, which fixed the measured edit and scroll slowness; a full rebuild measured 5–35 ms.)
 - Lists: the window-wide arrow fallback steps the sprite list from anywhere unless
   something else handles the key; it caused the palette-list bug and is patched with a
   list exception. Decide whether to narrow it (e.g. only when the Sprites canvas has focus).

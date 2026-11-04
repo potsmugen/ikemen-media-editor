@@ -517,30 +517,8 @@ public partial class MainWindow
         CenterSpriteRow(row);
     }
 
-    /// <summary>Scrolls the sprite table so the row sits in the middle of the visible area,
-    /// clamped to the ends of the list. A row already fully in view stays where it is.</summary>
-    private void CenterSpriteRow(int row)
-    {
-        if (SpriteList.FindDescendantOfType<ScrollViewer>() is { } view && SpriteList.ContainerFromIndex(row) is Control shown
-            && shown.TranslatePoint(new Point(0, 0), view) is { } at && at.Y >= 0 && at.Y + shown.Bounds.Height <= view.Viewport.Height)
-            return;
-        // Bring the row into view first so its container is realized, then center it.
-        SpriteList.ScrollIntoView(row);
-        SpriteList.UpdateLayout();
-        if (SpriteList.ContainerFromIndex(row) is not Control item) return;
-        if (SpriteList.FindDescendantOfType<ScrollViewer>() is not { } scroller) return;
-        if (item.TranslatePoint(new Point(0, 0), scroller) is not { } top) return;
-
-        double rowHeight = item.Bounds.Height;
-        double target = scroller.Offset.Y + top.Y + rowHeight / 2 - scroller.Viewport.Height / 2;
-        double max = Math.Max(0, scroller.Extent.Height - scroller.Viewport.Height);
-        // Keep the first visible row whole. Centering at an arbitrary pixel offset can
-        // leave the top row half hidden after a table rebuild (for example, Sort or Duplicate).
-        double alignedMax = rowHeight > 0 ? Math.Floor(max / rowHeight) * rowHeight : max;
-        double alignedTarget = rowHeight > 0 ? Math.Round(target / rowHeight) * rowHeight : target;
-        scroller.Offset = new Vector(scroller.Offset.X, Math.Clamp(alignedTarget, 0, alignedMax));
-        SpriteList.UpdateLayout();
-    }
+    /// <summary>Scrolls the sprite table so the row sits in the middle of the visible area.</summary>
+    private void CenterSpriteRow(int row) => CenterListRow(SpriteList, row);
 
     // ---- editing ----------------------------------------------------------
 

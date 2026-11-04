@@ -284,7 +284,7 @@ public partial class MainWindow
             _suppressEvents = true;
             SoundList.SelectedIndex = soundRow;
             _suppressEvents = false;
-            SoundList.ScrollIntoView(soundRow);
+            ScrollListRowIntoView(SoundList, () => SoundRowOf(keepSound));
         }
         ShowSound();
         UpdateTitle();

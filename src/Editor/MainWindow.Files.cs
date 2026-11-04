@@ -522,7 +522,7 @@ public partial class MainWindow
         }
         if (row < 0) return;
         SoundList.SelectedIndex = row;
-        SoundList.ScrollIntoView(row);
+        ScrollListRowIntoView(SoundList, () => SoundRowOf(sound));
     }
 
     private async void OnOpen(object? sender, RoutedEventArgs e)
