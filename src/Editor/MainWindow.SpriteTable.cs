@@ -162,7 +162,7 @@ public partial class MainWindow
                 {
                     if (row.Sprite.SharesWith is not null)
                     {
-                        StatusText.Text = "A linked sprite uses its link target's palette; unlink it first.";
+                        StatusText.Text = "A linked sprite's palette can't be changed; unlink it first.";
                         return;
                     }
                     var previous = file.PreviousPalette(row.Sprite);
@@ -820,6 +820,8 @@ public partial class MainWindow
         var file = _file;
         var before = file.Sprites.ToList();
         if (MovedAsBlock(before, moving, to) is not { } after) return;
+        if (RefuseV1PaletteLoss(after, "Move")) return;
+
         void Apply(List<Sprite> order)
         {
             CrashLog.Trace($"[sprite reorder] apply: moving={moving.Count}, first={moving[0].Group},{moving[0].Index}, to={to}, count={file.Sprites.Count}");
@@ -881,28 +883,7 @@ public partial class MainWindow
             return;
         }
 
-        if (SffVersions.IsV1(file.Version))
-        {
-            // Only links this order breaks; ones a save already can't keep are the save's warning.
-            var lostBefore = SffWriter.V1LinksLosingPalette(before).ToHashSet();
-            var lost = SffWriter.V1LinksLosingPalette(after).Where(x => !lostBefore.Contains(x)).ToList();
-            if (lost.Count > 0)
-            {
-                CrashLog.Error("SortSprites", $"refused: {lost.Count} SFF v1 link(s) would lose their palette");
-                var lines = new List<(string Text, Action? Jump)>
-                {
-                    ($"Sorting would make {lost.Count} linked {(lost.Count == 1 ? "sprite" : "sprites")} lose {(lost.Count == 1 ? "its" : "their")} palette.", null),
-                    ("An SFF v1 link can only use its linked sprite's palette or the previous sprite's.", null),
-                    ("Unlink them, or save as SFF v2, then sort again.", null),
-                    ("", null),
-                };
-                foreach (var sprite in lost)
-                    lines.Add(($"Sprite {sprite.Group},{sprite.Index}", () => JumpToSprite(sprite)));
-                Dialogs.ShowReport(this, "Can't Sort Sprites", lines);
-                StatusText.Text = "Sort canceled: some links would lose their palette.";
-                return;
-            }
-        }
+        if (RefuseV1PaletteLoss(after, "Sort")) return;
 
         void Apply(List<Sprite> order)
         {
@@ -916,5 +897,30 @@ public partial class MainWindow
             : _settings.Sprites.SortPortraitsFirst
                 ? "Sprites sorted by group and number, group 9000 first."
                 : "Sprites sorted by group and number.";
+    }
+
+    /// <summary>Refuses a sprite order that would make SFF v1 links lose their palette (a link can only
+    /// use its target's or the previous sprite's) and lists them; true when refused. Only new losses
+    /// count, so a file that already has them is not blocked.</summary>
+    private bool RefuseV1PaletteLoss(IReadOnlyList<Sprite> order, string action)
+    {
+        if (_file is not { } file || !SffVersions.IsV1(file.Version)) return false;
+        var lostBefore = SffWriter.V1LinksLosingPalette(file.Sprites).ToHashSet();
+        var lost = SffWriter.V1LinksLosingPalette(order).Where(sprite => !lostBefore.Contains(sprite)).ToList();
+        if (lost.Count == 0) return false;
+
+        CrashLog.Error(action, $"refused: {lost.Count} SFF v1 link(s) would lose their palette");
+        var lines = new List<(string Text, Action? Jump)>
+        {
+            ($"This would make {lost.Count} linked {(lost.Count == 1 ? "sprite" : "sprites")} lose {(lost.Count == 1 ? "its" : "their")} palette.", null),
+            ("An SFF v1 link can only use its linked sprite's palette or the previous sprite's.", null),
+            ("Unlink them, or save as SFF v2, then try again.", null),
+            ("", null),
+        };
+        foreach (var sprite in lost)
+            lines.Add(($"Sprite {sprite.Group},{sprite.Index}", () => JumpToSprite(sprite)));
+        Dialogs.ShowReport(this, $"Can't {action} Sprites", lines);
+        StatusText.Text = $"{action} canceled: some links would lose their palette.";
+        return true;
     }
 }

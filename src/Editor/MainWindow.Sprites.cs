@@ -1307,7 +1307,7 @@ public partial class MainWindow
     {
         if (SffVersions.IsV1(file.Version) && sprite.SharesWith is not null)
         {
-            ShowPopup("Linked Sprite", "A linked sprite uses the palette of its link target; unlink it first.");
+            ShowPopup("Linked Sprite", "A linked sprite's palette can't be changed; unlink it first.");
             return;
         }
         var previous = file.PreviousPalette(sprite);
@@ -1519,6 +1519,9 @@ public partial class MainWindow
         var added = built.Select(b => b.Sprite).ToList();
         var addedPalettes = added.Select(s => s.Palette)
             .OfType<Palette>().Where(p => !file.Palettes.Contains(p)).Distinct().ToList();
+        var order = file.Sprites.ToList();
+        order.InsertRange(at, added);
+        if (RefuseV1PaletteLoss(order, "Add")) return false;
 
         Edit(added.Count == 1 ? "add sprite" : $"add {added.Count} sprites",
             () => { for (int i = 0; i < added.Count; i++) file.Insert(at + i, added[i]); _current = added[^1]; },
@@ -1711,6 +1714,9 @@ public partial class MainWindow
 
             var copy = DuplicateOf(source, index);
             int at = file.PositionOf(source) + 1;
+            var order = file.Sprites.ToList();
+            order.Insert(at, copy);
+            if (RefuseV1PaletteLoss(order, "Duplicate")) return;
             Edit("duplicate sprite",
                 () => { file.Insert(at, copy); _current = copy; },
                 () => { file.Remove(copy); _current = source; });
@@ -1769,6 +1775,11 @@ public partial class MainWindow
 
         var all = blocks.SelectMany(b => b.Copies).ToList();
         var before = _current;
+        // Same positions the edit uses: each block after its group's last original, looked up as it stands.
+        var order = file.Sprites.ToList();
+        foreach (var (after, copies) in blocks)
+            order.InsertRange(order.IndexOf(after) + 1, copies);
+        if (RefuseV1PaletteLoss(order, "Duplicate")) return;
         Edit(all.Count == 1 ? "duplicate sprite" : $"duplicate {all.Count} sprites",
             () =>
             {
@@ -2011,6 +2022,9 @@ public partial class MainWindow
                     + $". Unlink {(one ? "it" : "them")} first, or select {(one ? "it" : "them")} too.");
                 return;
             }
+
+            if (RefuseV1PaletteLoss(file.Sprites.Where(sprite => !selectedSet.Contains(sprite)).ToList(), "Delete"))
+                return;
 
             bool v1 = SffVersions.IsV1(file.Version);
             var palettesToDelete = spritesToDelete.Select(sprite => sprite.Palette).OfType<Palette>()

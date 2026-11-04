@@ -1384,6 +1384,25 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         }
     }
 
+    /// <summary>Duplicate embedded palettes for a report. On SFF v1, Sets holds only the runs a merge can
+    /// join (a run right after a matching one); StoredAgain holds equal palettes elsewhere, which v1 must
+    /// store again. Empty for v2, where every equal palette can link.</summary>
+    private static (List<List<Palette>> Sets, List<(Palette Palette, Palette Original)> StoredAgain)
+        DuplicatePaletteReport(SffFile file, IReadOnlyList<Palette> embedded)
+    {
+        var sets = file.FindDuplicatePalettes(embedded);
+        var stored = new List<(Palette Palette, Palette Original)>();
+        if (SffVersions.IsV1(file.Version))
+        {
+            var listed = sets.SelectMany(set => set.Skip(1)).ToHashSet();
+            stored = file.FindDuplicatePalettes(embedded, ignoreTransparentMaskRgb: true, v1: false)
+                .SelectMany(set => set.Skip(1).Select(p => (Palette: p, Original: set[0])))
+                .Where(x => !listed.Contains(x.Palette))
+                .ToList();
+        }
+        return (sets, stored);
+    }
+
     private async void OnFindDuplicatePalettes(object? sender, RoutedEventArgs e)
     {
         try
@@ -1406,38 +1425,54 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             }
 
             var embedded = file.Palettes.Where(p => p.Source == PaletteSource.Embedded).ToList();
-            var sets = file.FindDuplicatePalettes(embedded);
+            var (sets, storedAgain) = DuplicatePaletteReport(file, embedded);
             int duplicateCount = sets.Sum(set => set.Count - 1);
-            if (duplicateCount == 0)
+            if (duplicateCount == 0 && storedAgain.Count == 0)
             {
                 StatusText.Text = "No duplicate embedded palettes found.";
                 CrashLog.Trace("[palettes] duplicate check found none");
                 return;
             }
 
-            var lines = new List<(string Text, Action? Jump)>
+            var lines = new List<(string Text, Action? Jump)>();
+            if (duplicateCount > 0)
             {
-                ("Duplicate embedded palettes found:", null),
-                ("", null),
-            };
-            foreach (var set in sets)
+                lines.Add(("Duplicate embedded palettes found:", null));
+                lines.Add(("", null));
+                foreach (var set in sets)
+                    foreach (var duplicate in set.Skip(1))
+                        lines.Add(($"{PaletteLabel(duplicate)} matches {PaletteLabel(set[0])}",
+                            () => JumpToPalette(duplicate)));
+            }
+            if (storedAgain.Count > 0)
             {
-                foreach (var duplicate in set.Skip(1))
-                    lines.Add(($"{PaletteLabel(duplicate)} matches {PaletteLabel(set[0])}",
-                        () => JumpToPalette(duplicate)));
+                lines.Add(("", null));
+                lines.Add((duplicateCount > 0
+                    ? "Equal palettes SFF v1 stores again (not next to the first):"
+                    : "Equal palettes found, but SFF v1 stores them again (not next to the first):", null));
+                lines.Add(("", null));
+                foreach (var (palette, original) in storedAgain)
+                    lines.Add(($"{PaletteLabel(palette)} matches {PaletteLabel(original)}",
+                        () => JumpToPalette(palette)));
+                lines.Add(("", null));
+                lines.Add(("Move the sprites together to merge them.", null));
             }
             lines.Add(("", null));
             lines.Add(("The mask color is ignored if its alpha is 0.", null));
             lines.Add(("External palettes are ignored.", null));
 
+            bool v1 = SffVersions.IsV1(file.Version);
             var reportChoice = new TaskCompletionSource<DuplicatePaletteAction?>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var report = Dialogs.ShowReport(this, "Duplicate Palettes", lines, new (string Label, string Tip, Action Click)[]
+            (string Label, string Tip, Action Click)[]? actions = duplicateCount == 0 ? null : new (string Label, string Tip, Action Click)[]
             {
                 ("Merge", "Make all sprites use the first palette. Delete the later ones.",
                     () => reportChoice.TrySetResult(DuplicatePaletteAction.Merge)),
-                ("Link", "The later palettes become linked to the first.",
+                ("Link", v1 ? "Not available in SFF v1: palettes are stored with the sprites."
+                    : "The later palettes become linked to the first.",
                     () => reportChoice.TrySetResult(DuplicatePaletteAction.Link)),
-            }, SffVersions.IsV1(file.Version) ? new[] { "Link" } : null); // SFF v1 has no palette links
+            };
+            var report = Dialogs.ShowReport(this, "Duplicate Palettes", lines, actions,
+                v1 ? new[] { "Link" } : null); // SFF v1 has no palette links
             report.Closed += (_, _) => reportChoice.TrySetResult(null);
             var action = await reportChoice.Task;
             if (action is null || !ReferenceEquals(_file, file)) return;

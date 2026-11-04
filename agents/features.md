@@ -492,8 +492,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   are flattened, and manual links may target only earlier sprites.
 - **Sort sprites** orders the whole file by group, then number, with group 9000 first unless
   settings.json `Sprites SortPortraitsFirst` is false; Sort Selected Ascending sorts only the
-  selection among its positions. Ties keep their order. On v1 it refuses an order that would
-  make a link lose its palette and lists the sprites instead.
+  selection among its positions. Ties keep their order. On v1 an edit that would make a link
+  lose its palette is refused and the sprites are listed instead: sort, drag-move, add,
+  duplicate and delete all use the same check.
 - **Link direction on save**: Ikemen loads a link to a later sprite as blank, so both writers
   make the earliest sprite of each linked set store the pixels and link the rest back. In v1
   a sprite that turns into a link keeps its palette only if it is the new target's or the
@@ -539,8 +540,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   choice. In v1 a sprite can only reuse the palette before it (links skipped, as on save), so
   only a run whose palette matches the previous run's counts; a match further back would be
   stored again on save. Merge moves those runs onto the earlier palette (Use Previous Palette
-  rules) and Link is dimmed, since v1 has no palette links. The Media Health Report uses the
-  same rule. Report actions that don't apply are dimmed and keep their tooltip.
+  rules) and Link is dimmed, since v1 has no palette links. A match further back is still
+  listed, under a separate heading with no action, so the report hides nothing. The Media
+  Health Report uses the same two lists. Report actions that don't apply are dimmed, and
+  their tip says why.
 
 ### Sounds
 
@@ -715,9 +718,10 @@ summaries; treat anything marked unverified as unknown.
   Header compatibility bytes 24-27 remain unverified.
 - SFF v1 is a linked list of PCX subfiles that carry palettes. A sprite uses
   its own palette; a same-palette-flagged one uses the preceding stored palette (MUGEN,
-  SprMaker); header byte 32 doesn't change that, and a link takes its target's. See
-  Official tools for the evidence and the open display question. Linked records share the
-  palette object, so undo must restore palette references as well as colors.
+  SprMaker); header byte 32 doesn't change that. A flagged link uses the preceding stored
+  palette too, an unflagged one its target's; see Official tools for the evidence and the
+  recorded disagreement with `Sff1_Load`. Linked records share the palette object, so undo
+  must restore palette references as well as colors.
   PCX data may lack the `0x0c` marker, so the final 768 bytes
   of the subfile contain its palette. Incomplete scanlines are decode errors;
   palette bytes must not be consumed as missing pixels. For a same-palette
@@ -1069,11 +1073,12 @@ The editor's writers follow these tools where applicable.
   reference. The UI text and code comments use "SFF v1" and "SFF v2" (decided 2026-10-26).
 - SFF v1 header byte 32 and the same-palette flag (findings 2026-11-03; MUGEN and
   SprMaker are the source of truth).
-  - SprMaker 0.97 (disassembled, `working/sprmaker.asm`): the menu's palette type
-    (1 Individual, 2 Shared) is stored at 0x55aec. It is used twice: while building
-    (0x2114), shared mode flags every sprite after the first and drops its last 768 PCX
-    bytes (0x252f) unless the sprite is overridden as individual; when writing the header
-    (0x28b1) it is copied to byte 32, and the end-of-run summary prints the mode (0x294b).
+  - SprMaker 0.97 (disassembled, `working/sprmaker.asm`): the menu's palette type choice
+    (1 Individual, 2 Shared) is stored at 0x55aec as 0 for Individual and 1 for Shared. It
+    is used twice: while building (0x2114), shared mode flags every sprite after the first
+    and drops its last 768 PCX bytes (0x252f) unless the sprite is overridden as individual;
+    when writing the header (0x28b1) it is copied to byte 32, and the end-of-run summary
+    prints the mode (0x294b).
     SprMaker never reads byte 32 back; it always builds a new SFF from its list.
   - mtools.txt names the per-sprite choices "1. Individual palette" and "2. Use previous
     sprite's palette", and in shared mode shows "Choose(was 2)": the flag means "previous"
@@ -1155,8 +1160,8 @@ The editor's writers follow these tools where applicable.
   sprites_org dust frames look different from their targets (maintainer), so a reading of
   `Sff1_Load` (a link copies its target sprite) or `shareCopy` doesn't override this rule. Save Like SprMaker 0.97 keeps the tool's flag rule above. A v1 save
   can't keep a link palette that is neither its target's nor the previous one (it reloads as
-  the target's); the v2-to-v1 warning, the links-turned-around warning and the sort refusal
-  list them.
+  the target's); the v2-to-v1 warning, the links-turned-around warning and the order refusals
+  (sort, move, add, duplicate, delete) list them.
   A plain v1 save writes each PCX back as read (`SffV1Writer.KeepsSource`) when those bytes,
   with the flag the save writes, decode to the sprite's current size and pixels, plus its
   palette when unflagged; otherwise it re-encodes. That keeps header fields (DPI, 16-color

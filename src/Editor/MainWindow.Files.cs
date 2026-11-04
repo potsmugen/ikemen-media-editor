@@ -304,7 +304,8 @@ public partial class MainWindow
                 var duplicatePaletteKeys = file.Palettes.Where(p => p.Source == PaletteSource.Embedded)
                     .GroupBy(p => (p.Group, p.Index)).SelectMany(g => g.Skip(1)).ToList();
                 var embeddedPalettes = file.Palettes.Where(p => p.Source == PaletteSource.Embedded).ToList();
-                var duplicatePaletteColors = file.FindDuplicatePalettes(embeddedPalettes)
+                var (duplicatePaletteSets, storedAgainPalettes) = DuplicatePaletteReport(file, embeddedPalettes);
+                var duplicatePaletteColors = duplicatePaletteSets
                     .SelectMany(set => set.Skip(1).Select(p => (Palette: p, Original: set[0]))).ToList();
                 // Group 1 is where a character keeps its selectable palettes.
                 // The game allocates the one the player picked at 1,1, so an
@@ -324,6 +325,8 @@ public partial class MainWindow
                 Section("Duplicate sprite keys (the later ones)", duplicateSprites.Select(s => ($"  Sprite {s.Group},{s.Index}", Jump(() => JumpToSprite(s)))));
                 Section("Duplicate SFF palette keys (the later ones)", duplicatePaletteKeys.Select(p => ($"  Palette {PaletteKey(file, p)}", Jump(() => JumpToPalette(p)))));
                 Section("Duplicate embedded palettes (the later ones)", duplicatePaletteColors.Select(x =>
+                    ($"  Palette {PaletteKey(file, x.Palette)} matches {PaletteKey(file, x.Original)}", Jump(() => JumpToPalette(x.Palette)))));
+                Section("Equal palettes SFF v1 stores again (not next to the first)", storedAgainPalettes.Select(x =>
                     ($"  Palette {PaletteKey(file, x.Palette)} matches {PaletteKey(file, x.Original)}", Jump(() => JumpToPalette(x.Palette)))));
                 Section("Unused embedded palettes (group 1 not counted)", unused.Select(p => ($"  Palette {PaletteKey(file, p)}", Jump(() => JumpToPalette(p)))));
                 Section("Links to a later sprite (Ikemen GO loads them as blank)", forward.Select(s =>

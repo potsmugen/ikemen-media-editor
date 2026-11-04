@@ -23,6 +23,10 @@ Verified unless noted.
   index 0) move to it, the rest stay. Refuse when a sprite mixes both parts, listing them.
   Indexes are kept (no pixel changes; moved slots become padding in the source). v2 only, no
   temp-only variant. Borrowers/links follow Merge's rules. One undo step.
+- Replacing a v1 sprite's image with its own palette gives it a new palette object, so flagged
+  links after it keep the old one and lose it on a plain save (sprites_org.sff 6001,6). Order
+  edits refuse this now; replace does not. Decide: make the run follow the new palette, or
+  refuse/warn like an order edit.
 
 ### Tooltips
 
@@ -232,6 +236,18 @@ Built, but not tried by the maintainer yet.
 - Test the reference image's wheel zoom, middle-drag pan, middle-click reset and
   Center Image in Canvas, including color picking at a zoomed scale and after
   panning.
+- Sprites tab palette preview: Follow sprite (on by default, not saved) swaps the box to each
+  sprite's own palette when the sprite changes or the tab is entered; turning it off pins the
+  shown palette; Apply Preview Palette is disabled for one sprite already on that palette.
+- Right-click the sprites tab swatches > Show in Palettes Tab: selects that palette with the
+  color under the pointer picked; disabled when the preview isn't the file's own palette.
+- SFF v1 order edits: move, add, duplicate or delete a sprite between a flagged link and the
+  sprite whose palette it uses (sprites_org.sff, 6001,6 before 6001,7) — each is refused with
+  the link listed. Sort already did this; check the four share the same report.
+- Find Duplicate Palettes on a v1 file (kfm - old.sff, sprites_org.sff): Merge moves only runs
+  that sit right after a matching run, Link is dimmed and its tip says why, and equal palettes
+  elsewhere are listed under their own heading with no action. The colors look the same after
+  a reload.
 
 ### Animations
 
