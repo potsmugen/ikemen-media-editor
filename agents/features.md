@@ -339,6 +339,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   target keeps its key, the other chosen palettes are removed and their sprites redirected,
   and links to them relink or copy the colors; in v1 every chosen palette gets the colors and
   nothing is removed.
+- **Palette list columns** are #, Group, Index, Source, Depth and Link. Depth is the palette's
+  bit depth, the same scale as Convert Depth (8-bit for 256 colors); a count that isn't a supported
+  depth shows as its color count. Palette dropdown labels add the same depth.
 - **Palette rows drag to reorder** in one undo step; only the list order, the F/T numbers
   and (v2) the saved palette table order change.
 - **Temp palettes** are made in the editor with no file yet: New, Create From Images, or
@@ -347,7 +350,7 @@ and constraints that are easy to miss when reading one code path in isolation.
   Save All skips them but closing still warns. They are labeled T, file palettes F, and v1
   SFF palettes S, each numbered in list order; real keys appear only after v1 → v2
   conversion. Dialogs name a palette by that label, adding the file name for imported ones
-  (F1 kfm01.act), never the color count. Saving asks for a location and offers RGBA, ACT or
+  (F1 kfm01.act); lists of palettes add the depth. Saving asks for a location and offers RGBA, ACT or
   JASC-PAL. Applying one in v2 moves it into the SFF as one shared palette; in v1 its colors
   are copied into each sprite's palette and the temp leaves the list, in the same undo step.
 - **Add to SFF** (v2 only) moves an external palette into the SFF at a group and number asked

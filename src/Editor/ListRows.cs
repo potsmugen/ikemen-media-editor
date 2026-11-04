@@ -85,7 +85,7 @@ public sealed class SpriteTableRow(Sprite sprite, int visibleRow, int spriteInde
 }
 
 /// <summary>One row of the Palettes tab's table: group, index, source ("sff" or
-/// import format, plain text), color count and linked palette — same virtualizing-ListBox
+/// import format, plain text), bit depth and linked palette — same virtualizing-ListBox
 /// model as the sprite table.</summary>
 internal sealed class PaletteRow : INotifyPropertyChanged
 {
@@ -103,7 +103,7 @@ internal sealed class PaletteRow : INotifyPropertyChanged
     public required string GroupToolTip { get; set; }
     public required string IndexToolTip { get; set; }
     public required string SourceText { get; set; }
-    public required string ColorCountText { get; set; }
+    public required string DepthText { get; set; }
     public required string LinkText { get; set; }
     public required string LinkToolTip { get; set; }
     public required string Kind { get; set; }
@@ -120,7 +120,7 @@ internal sealed class PaletteRow : INotifyPropertyChanged
         GroupToolTip = from.GroupToolTip;
         IndexToolTip = from.IndexToolTip;
         SourceText = from.SourceText;
-        ColorCountText = from.ColorCountText;
+        DepthText = from.DepthText;
         LinkText = from.LinkText;
         LinkToolTip = from.LinkToolTip;
         Kind = from.Kind;

@@ -4,6 +4,9 @@ public static class PaletteDepth
 {
     public static readonly int[] SupportedColorCounts = [2, 4, 8, 16, 32, 64, 128, 256];
 
+    /// <summary>The depth a palette of this many colors stores, 1-8 bits; 0 when the count is not one of the supported depths.</summary>
+    public static int BitsForColorCount(int colors) => Array.IndexOf(SupportedColorCounts, colors) + 1;
+
     public static bool CanConvert(SffFile file, Palette palette, int colors)
     {
         ArgumentNullException.ThrowIfNull(file);

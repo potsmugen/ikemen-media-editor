@@ -837,7 +837,7 @@
                     <TextBlock Text="Source" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
                   </Border>
                   <Border Grid.Column="4" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2">
-                    <TextBlock Text="Colors" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
+                    <TextBlock Text="Depth" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
                   </Border>
                   <Border Grid.Column="5" BorderBrush="{DynamicResource ThemeHeaderLine}" BorderThickness="0,0,1,2" Padding="4,2"
                           ToolTip.Tip="Linked palettes use the same colors.">
@@ -886,7 +886,7 @@
                           <TextBlock Text="{Binding SourceText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <Border Grid.Column="4" Width="{Binding Widths[4]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1">
-                          <TextBlock Text="{Binding ColorCountText}" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont13}"
+                          <TextBlock Text="{Binding DepthText}" Foreground="{DynamicResource ThemeMutedText}" FontSize="{DynamicResource UiFont13}"
                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <Border Grid.Column="5" Width="{Binding Widths[5]}" BorderBrush="{DynamicResource ThemeLine}" BorderThickness="0,0,1,1" Padding="4,1"

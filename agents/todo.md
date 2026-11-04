@@ -178,14 +178,12 @@ Built, but not tried by the maintainer yet.
 
 ### SFF v1 same-palette flag read as "previous"
 
-- Build and run the Sff tests (V1Tests, PaletteTests); nothing was compiled here.
 - `kfm - old.sff`, `kfm-2000.sff`: flagged sprites show 9000,1's palette; no "Global Shared
   Palette" popup. `Donald.sff`: 0,1 onward show 0,0's palette.
 - `sprites_org.sff` 6001,7-11 show 6001,6's purple and 6001,13-17 show 6001,12's green.
 - Media Health Report on `kfm - old.sff`: "Written differently on save (no engine reads these)"
   lists only "Palette type byte: Shared (1) becomes Individual (0)"; no save popup for it;
   after Save the section is gone. A plain v1 save writes byte 32 = 0 and keeps link flags.
-- `PlainV1SaveKeepsUntouchedPcxBytes` checks links keep their flag; check it passes on both samples.
 - In MUGEN 1.1, check old KFM's large portrait 9000,1: the source predicts .act colors there.
 
 ### Palette links to later palettes

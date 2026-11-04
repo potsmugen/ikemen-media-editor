@@ -2013,27 +2013,36 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     }
 
     /// <summary>Dropdown label: "1,1", "S3: sprite 6001,6" (first sprite carrying it), "F1: kfm01.act", "T1: temp",
-    /// each with its color count.</summary>
+    /// each with its depth.</summary>
     private static string PaletteDropdownName(SffFile file, Palette palette,
         IReadOnlyDictionary<Palette, int>? externalOrdinals = null, IReadOnlyDictionary<Palette, Sprite>? carriers = null)
     {
-        string colors = $" ({palette.Colors.Length} colors)";
+        string depth = $" ({PaletteDepthText(palette)})";
         if (palette.Source == PaletteSource.External)
         {
             externalOrdinals ??= ExternalPaletteOrdinals(file);
             string what = IsTempPalette(palette) ? "temp" : Path.GetFileName(palette.SourcePath) ?? "temp";
-            return (externalOrdinals.TryGetValue(palette, out int n) ? $"{ExternalGroup(palette)}{n}: " : "") + what + colors;
+            return (externalOrdinals.TryGetValue(palette, out int n) ? $"{ExternalGroup(palette)}{n}: " : "") + what + depth;
         }
         string key = PaletteKey(file, palette);
-        if (!key.StartsWith('S')) return key + colors;
+        if (!key.StartsWith('S')) return key + depth;
         carriers ??= V1PaletteCarriers(file);
-        return key + (carriers.TryGetValue(palette, out var sprite) ? $": sprite {sprite.Group},{sprite.Index}" : ": unused") + colors;
+        return key + (carriers.TryGetValue(palette, out var sprite) ? $": sprite {sprite.Group},{sprite.Index}" : ": unused") + depth;
     }
 
     private static int SpriteOrdinal(SffFile file, Sprite sprite, IReadOnlyDictionary<Sprite, int>? ordinals = null) =>
         ordinals is not null && ordinals.TryGetValue(sprite, out int ordinal)
             ? ordinal
             : file.Sprites.IndexOf(sprite) + 1;
+
+    /// <summary>A palette's depth in bits (8-bit for 256 colors), or its count when the depth isn't a supported one.</summary>
+    private static string PaletteDepthText(Palette p)
+    {
+        int bits = PaletteDepth.BitsForColorCount(p.Colors.Length);
+        return bits > 0
+            ? $"{bits}-bit"
+            : $"{p.Colors.Length} colors";
+    }
 
     private PaletteRow ToRow(Palette p, int number, bool v1,
         IReadOnlyDictionary<Palette, int> v1Ordinals,
@@ -2058,7 +2067,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         SourceText = p.Source == PaletteSource.External
             ? IsTempPalette(p) ? "temp" : "file"
             : v1 && carriers.ContainsKey(p) ? "sprite" : "sff",
-        ColorCountText = p.Colors.Length.ToString(CultureInfo.InvariantCulture),
+        DepthText = PaletteDepthText(p),
         // Same convention as the sprites' Shared column: the target's # in this list.
         LinkText = p.LinksTo is { } t && _file?.Palettes.IndexOf(t) is int ti and >= 0 ? $"{ti + 1}" : "",
         LinkToolTip = p.Source == PaletteSource.External ? "Only embedded palettes can be linked or merged."
@@ -2104,13 +2113,13 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 GroupToolTip = ExternalGroupToolTip,
                 IndexToolTip = ExternalIndexToolTip,
                 SourceText = IsTempPalette(p) ? "temp" : Path.GetExtension(p.SourcePath ?? "").TrimStart('.').ToUpperInvariant(),
-                ColorCountText = p.Colors.Length.ToString(CultureInfo.InvariantCulture),
+                DepthText = PaletteDepthText(p),
                 LinkText = "",
                 LinkToolTip = "",
                 Kind = Path.GetFileName(p.SourcePath) ?? TempPaletteKind,
             }).ToList();
             var widths = TextTableWidths(PaletteTableHeader, all.Select(r => new[]
-                { r.NumberText, r.GroupText, r.IndexText, r.SourceText, r.ColorCountText, r.LinkText }).ToList());
+                { r.NumberText, r.GroupText, r.IndexText, r.SourceText, r.DepthText, r.LinkText }).ToList());
             foreach (var row in all) row.Widths = widths;
             string filter = (PaletteFilterBox?.Text ?? "").Trim();
             var visible = all.Where(r => filter.Length == 0 || MatchesPalette(r, filter)
@@ -2160,7 +2169,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             var all = _file.Palettes.Select((p, i) => ToRow(p, i + 1, v1, v1Ordinals, carriers, externalOrdinals, spriteOrdinals)).ToList();
             // Widths over every palette, so filtering doesn't move the columns.
             var widths = TextTableWidths(PaletteTableHeader, all.Select(r => new[]
-                { r.NumberText, r.GroupText, r.IndexText, r.SourceText, r.ColorCountText, r.LinkText }).ToList());
+                { r.NumberText, r.GroupText, r.IndexText, r.SourceText, r.DepthText, r.LinkText }).ToList());
             foreach (var r in all) r.Widths = widths;
             var visible = all
                 .Select((r, i) => (Row: r, Index: i))
