@@ -1129,13 +1129,16 @@
           <!-- Right: just the sprite preview now — the color editor moved beside the swatches. -->
           <Border Grid.Column="4" Background="{DynamicResource ThemePanelBg}" Padding="{DynamicResource PanelContentPadding}">
             <Grid RowDefinitions="Auto,*">
-              <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*" Margin="0,0,0,4">
+              <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto" Margin="0,0,0,4">
                 <Button x:Name="PaletteRightToggle" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#9654;" Width="22" Height="22" Padding="0"
                         Click="OnTogglePaletteRightPanel" ToolTip.Tip="Collapse panel" />
                 <Button Grid.Column="1" x:Name="PaletteRightFloat" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="&#10697;" Width="22" Height="22" Padding="0" Margin="4,0,0,0"
                         Click="OnFloatPanel" ToolTip.Tip="Float panel" />
                 <TextBlock Grid.Column="2" x:Name="PaletteRightLabel" Text="Sprite Preview" Foreground="{DynamicResource ThemeMutedText}"
                            VerticalAlignment="Center" Margin="6,0,0,0" />
+                <CheckBox Grid.Column="3" x:Name="FollowPaletteBox" Content="Follow palette" IsChecked="True"
+                          VerticalAlignment="Center" Margin="6,0,0,0" Click="OnToggleFollowPalette"
+                          ToolTip.Tip="Switches the preview to the first visible sprite using the selected palette when the palette changes." />
               </Grid>
               <!-- Preview (with its nav bar, so the splitter trades space between
                    preview and reference image, not the nav bar) and the reference

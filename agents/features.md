@@ -402,6 +402,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   load/save, or external/standalone palettes are dirty; sprite-only edits mark Sprites only.
   Embedded v2 palettes convert among 1–8 bits, shrinking only when every sprite using them is decoded and its indexes fit;
   growing fills with opaque black. Depth changes undo and keep indexes and colors.
+- **Follow palette** (right of the Palettes tab's Sprite Preview title, on at launch, not
+  saved) moves the preview to the first visible sprite using the selected palette whenever
+  the palette selection changes or the toggle is turned on. File and temp palettes, unused
+  palettes and palettes with no visible sprite leave the preview where it is.
 - **Pending color edits** apply live, form one undoable session, and compose with prior
   edits; Reset restores the baseline and Commit records the result. One swatch grid is
   selected at a time.

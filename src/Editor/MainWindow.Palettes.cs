@@ -2661,6 +2661,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 _suppressEvents = false;
             }
             ResetColorAdjustBase();
+            if (FollowsPalette && PaletteList.SelectedItem is PaletteRow followed)
+                await FollowPalette(followed.Palette);
         }
         catch (Exception ex)
         {
@@ -2709,6 +2711,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     {
         UpdatePaletteActionButtons();
         if (BigSwatches is null || PalettePreview is null) return;
+        FollowPaletteBox.IsEnabled = _file is not null;
         var pal = ActivePalette();
         BigSwatches.Show(pal);
         SyncPalettePreviewNav();
@@ -2729,6 +2732,62 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         PaletteReplaceButton.IsEnabled = hasSelectedPalette && !several;
         ToolTip.SetTip(PaletteReplaceButton, several ? "Select one palette to replace." : ReplacePaletteTip);
         PaletteDeleteButton.IsEnabled = hasSelectedPalette;
+    }
+
+    /// <summary>Follow palette: the sprite preview tracks the palette selection instead of the sprite selection.</summary>
+    private bool FollowsPalette => FollowPaletteBox?.IsChecked == true;
+
+    private async void OnToggleFollowPalette(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            // Turning it on follows the palette that is already selected; turning it off leaves the preview where it is.
+            if (FollowsPalette && PaletteList.SelectedItem is PaletteRow row)
+                await FollowPalette(row.Palette);
+        }
+        catch (Exception ex)
+        {
+            await Failed("OnToggleFollowPalette", ex);
+        }
+    }
+
+    /// <summary>
+    /// Moves the Palettes tab preview to the first visible sprite using
+    /// <paramref name="pal"/>; file/temp palettes and palettes with no visible
+    /// sprite leave the preview alone.
+    /// </summary>
+    private async Task FollowPalette(Palette pal)
+    {
+        if (_file is not { } file || pal.Source == PaletteSource.External) return;
+        var sprite = file.Sprites.FirstOrDefault(s =>
+            ReferenceEquals(s.Palette, pal) && VisibleRowOf(s) >= 0);
+        if (sprite is null || ReferenceEquals(PalettePreviewSprite(), sprite)) return;
+
+        int row = VisibleRowOf(sprite);
+        if (row < 0) return;
+        if (_settings.General.SyncSpriteAcrossTabs && !ReferenceEquals(_current, sprite) && HasPendingColorAdjust())
+        {
+            var choice = await Dialogs.AskAboutPendingColorAdjust(this);
+            if (choice == PendingAdjustChoice.Cancel || !ReferenceEquals(_file, file)
+                || !file.Palettes.Contains(pal) || !file.Sprites.Contains(sprite)) return;
+            if (choice == PendingAdjustChoice.Commit) CommitPendingColorAdjust();
+            else DiscardPendingColorAdjust();
+        }
+        if (!ReferenceEquals(PreviewOverridePalette(), pal)) return;
+
+        if (_settings.General.SyncSpriteAcrossTabs)
+        {
+            if (!await ActivateSpriteRow(row)
+                || !ReferenceEquals(_file, file) || !file.Palettes.Contains(pal) || !file.Sprites.Contains(sprite)) return;
+            SelectOnlySpriteRow(row, suppressEvents: true);
+            ScrollSpriteIntoView(sprite);
+        }
+
+        // A slow dialog may have let another palette take the selection.
+        if (!ReferenceEquals(PreviewOverridePalette(), pal)) return;
+        _palettePreviewSprite = sprite;
+        SyncPalettePreviewNav();
+        RefreshPaletteTab();
     }
 
     /// <summary>
