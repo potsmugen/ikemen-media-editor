@@ -101,6 +101,19 @@ and constraints that are easy to miss when reading one code path in isolation.
   the visible layers into the bottom and stays pending, as does closing the panel; Delete
   Layer drops the top and Reset drops everything. Commit makes the merge one undo step.
   Leaving Paint Mode with changes asks Commit/Discard/Cancel. Layers are never saved.
+- **Paint on true color**: Eraser and Select reach true-color (24/32-bit) sprites
+  (`Sprite.Direct`, always 4-byte BGRA — 24-bit sources arrive with alpha 255). The eraser
+  writes all four bytes of the pixel to zero, which is what the decoder normalizes loaded
+  transparent true-color pixels to; a pixel the sprite draws transparent stands in for
+  index 0 (paste leaves the spot of any alpha-0 pixel unchanged, the wand compares 4 bytes
+  exact). Pencil, Fill, Replace and
+  Eyedropper stay disabled on true color until a color picker exists, and a session there
+  has no layers (Add Layer is disabled with them). Copy keeps the sprite's kind, so an
+  indexed paste can't land on true color or the reverse (Paste stays dimmed instead).
+  If a palette mapping, import or Sprite Replace changes a sprite's pixels under a pending
+  session, the session settles first where the change is chosen (Assign/Import palette,
+  Replace), and commit/drop dissolve with a status note when a conversion still slips
+  through, since the session's baseline no longer matches the sprite.
 - **Canvas cursors** (`SpriteView.HoverCursor`) show on hover what a left press would do,
   using built-in cursors only: four-way move over a draggable sprite, box body or pixel
   selection; directional resize arrows on box handles; crosshair for paint/select tools and an
@@ -153,8 +166,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   The near-first-point snap applies from 3 points, and a ring on the first point shows when the
   next click would close. Switching tools, shapes or sprites, or leaving
   Paint Mode, drops a shape in progress.
-- **Magic Wand**: Select's fourth toggle, Magic Wand, picks the contiguous same-index pixels
-  under the click as a lasso-style mask cropped to the region (exact index, no tolerance;
+- **Magic Wand**: Select's fourth toggle, Magic Wand, picks the contiguous same-color pixels
+  under the click as a lasso-style mask cropped to the region (exact match, no tolerance —
+  the index on indexed sprites, all four bytes on true color;
   contiguous like the Fill tool's flood fill). A click selects; a drag does not reshape it, so
   the wand can make a 1×1 selection. Shift+click (the cursor shows a plus) unions the new region with the current
   selection instead of replacing it; a plain click replaces. Copy leaves pixels outside the mask

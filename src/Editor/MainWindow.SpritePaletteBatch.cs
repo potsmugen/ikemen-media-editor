@@ -38,6 +38,8 @@ public partial class MainWindow
         var skipped = new List<string>();
         var plans = new List<SpritePaletteBatchPlan>();
         int unchanged = 0;
+        // Plans capture the sprites' pixels, so settle a pending paint session before any of it.
+        if (!await ResolvePendingPaintBeforeSwitch()) return false;
 
         foreach (var sprite in selected)
         {
@@ -173,6 +175,8 @@ public partial class MainWindow
         bool v1 = SffVersions.IsV1(file.Version);
         var skipped = new List<string>();
         var plans = new List<SpritePaletteBatchPlan>();
+        // Plans capture the sprites' pixels, so settle a pending paint session before any of it.
+        if (!await ResolvePendingPaintBeforeSwitch()) return;
 
         foreach (var sprite in selected)
         {

@@ -70,6 +70,79 @@ public readonly record struct PixelSelection(int X, int Y, int Width, int Height
 }
 
 /// <summary>
+/// The pixel data Paint Mode edits: a sprite's indexed bytes (one per pixel,
+/// index 0 transparent) or its true-color bytes (BGRA, four per pixel, a zeroed
+/// pixel transparent — what the eraser writes and what 24-bit sources arrive
+/// with). Layers are indexed-only, so a true-color paint session never has one.
+/// </summary>
+public sealed class PaintPixels(byte[] data, bool trueColor)
+{
+    public byte[] Data { get; } = data;
+    public bool TrueColor { get; } = trueColor;
+
+    /// <summary>Wraps the sprite's pixel array without copying it, so edits write straight to the sprite. Null when undecoded.</summary>
+    public static PaintPixels? From(Sprite sprite) =>
+        sprite.Direct is { } direct ? new PaintPixels(direct, true) :
+        sprite.Indexed is { } indexed ? new PaintPixels(indexed, false) : null;
+
+    public PaintPixels Snapshot() => new((byte[])Data.Clone(), TrueColor);
+
+    /// <summary>Byte-for-byte equality, kind included so an indexed array can't equal a true-color one.</summary>
+    public bool Same(PaintPixels other) => TrueColor == other.TrueColor && other.Data.AsSpan().SequenceEqual(Data);
+
+    /// <summary>Whether the pixel's stored bytes are already the transparent form. It ignores alpha alone: the eraser clears to 0,0,0,0 even when a true-color pixel has RGB left under alpha 0.</summary>
+    public bool IsCleared(int i) =>
+        TrueColor ? i * 4 + 3 < Data.Length && Data[i * 4] == 0 && Data[i * 4 + 1] == 0 && Data[i * 4 + 2] == 0 && Data[i * 4 + 3] == 0
+                  : Data[i] == Sprite.TransparentIndex;
+
+    /// <summary>4-connected flood fill of the region matching the start pixel's bytes. With a mask it marks the region instead of writing <paramref name="replacement"/>; false when nothing would change.</summary>
+    public static bool FloodFill(byte[] data, int w, int h, int bpp, int startX, int startY, byte[]? replacement, bool[]? mask = null)
+    {
+        int start = (startY * w + startX) * bpp;
+        byte[] target = new byte[bpp];
+        Array.Copy(data, start, target, 0, bpp);
+        if (mask is null && SamePixel(data, bpp, start, replacement!)) return false;
+
+        var stack = new Stack<(int X, int Y)>();
+        stack.Push((startX, startY));
+        while (stack.Count > 0)
+        {
+            var (x, y) = stack.Pop();
+            if (x < 0 || x >= w || y < 0 || y >= h) continue;
+            int i = y * w + x;
+            if (!SamePixel(data, bpp, i * bpp, target)) continue;
+            if (mask is not null)
+            {
+                if (mask[i]) continue;
+                mask[i] = true;
+            }
+            else Array.Copy(replacement!, 0, data, i * bpp, bpp);
+            stack.Push((x + 1, y)); stack.Push((x - 1, y));
+            stack.Push((x, y + 1)); stack.Push((x, y - 1));
+        }
+        return true;
+    }
+
+    private static bool SamePixel(byte[] data, int bpp, int offset, byte[] pixel)
+    {
+        for (int k = 0; k < bpp; k++)
+            if (data[offset + k] != pixel[k]) return false;
+        return true;
+    }
+
+    /// <summary>Makes the pixel at sprite-linear index i transparent, in the kind's own transparent form.</summary>
+    public void Erase(int i)
+    {
+        if (TrueColor)
+        {
+            int o = i * 4;
+            if (o + 3 < Data.Length) { Data[o] = Data[o + 1] = Data[o + 2] = Data[o + 3] = 0; }
+        }
+        else Data[i] = Sprite.TransparentIndex;
+    }
+}
+
+/// <summary>
 /// Draws one sprite with its axis at a crosshair, an optional translucent
 /// "onion skin" sprite behind it, and any collision boxes over it.
 ///
@@ -1365,39 +1438,75 @@ public class SpriteView : Control
         }
     }
 
-    /// <summary>Runs the active paint tool at a screen point, on an indexed sprite only.</summary>
+    /// <summary>Runs the active paint tool at a screen point.</summary>
     private void ApplyTool(Point p)
     {
         if (ReadOnly) return; // belt-and-braces: OnPointerPressed already can't reach this when ReadOnly
-        if (_sprite?.Indexed is not { } flattened) return;
+        if (_sprite is not { Width: int w, Height: int h } sprite) return;
         if (!TryPixelAt(p, out int x, out int y)) return;
-        int i = y * _sprite.Width + x;
+        int i = y * w + x;
 
         if (ActiveTool == PaintTool.Eyedropper)
         {
-            PaintColorIndex = flattened[i];
+            // Indexed reports its index; true color picks later, with the color picker.
+            if (sprite.Indexed is not { } flat) return;
+            PaintColorIndex = flat[i];
             ColorPicked?.Invoke(PaintColorIndex);
             return;
         }
 
-        byte[] idx = PaintTarget ?? flattened;
-        byte target = (byte)PaintColorIndex;
-        bool changed = ActiveTool switch
+        bool changed;
+        if (sprite.Direct is { } direct)
         {
-            PaintTool.Pencil => PaintBrush(idx, x, y, _ => target),
-            PaintTool.Eraser => PaintBrush(idx, x, y, _ => Sprite.TransparentIndex),
-            PaintTool.Fill => FloodFill(idx, x, y, target),
-            PaintTool.Replace => PaintBrush(idx, x, y,
-                v => (_inverseStroke ? InverseReplaceMap : ReplaceMap) is { } m && m.TryGetValue(v, out byte to) ? to : v),
-            _ => false,
-        };
+            if (ActiveTool != PaintTool.Eraser) return; // true color: Eraser and Select only until the color picker
+            changed = EraseBrush(new PaintPixels(direct, true), w, h, x, y);
+        }
+        else if (sprite.Indexed is { } flattened)
+        {
+            byte[] idx = PaintTarget ?? flattened;
+            byte target = (byte)PaintColorIndex;
+            changed = ActiveTool switch
+            {
+                PaintTool.Pencil => PaintBrush(idx, x, y, _ => target),
+                PaintTool.Eraser => PaintBrush(idx, x, y, _ => Sprite.TransparentIndex),
+                PaintTool.Fill => FloodFill(idx, 1, x, y, [target]),
+                PaintTool.Replace => PaintBrush(idx, x, y,
+                    v => (_inverseStroke ? InverseReplaceMap : ReplaceMap) is { } m && m.TryGetValue(v, out byte to) ? to : v),
+                _ => false,
+            };
+        }
+        else return; // undecoded sprite: nothing to edit
         if (!changed) return;
 
-        _sprite.PixelsDirty = true;
+        sprite.PixelsDirty = true;
         PixelsPainted?.Invoke();
         if (_bitmapCache?.Remove((_sprite, _palette, _showMask)) == true) _bitmapCached = false; // stale now
         RefreshBitmap();
         InvalidateVisual();
+    }
+
+    /// <summary>
+    /// Stamps a BrushSize x BrushSize square centered on the clicked pixel,
+    /// clipped to the sprite, clearing each covered pixel (all four true-color
+    /// bytes to zero). BrushSize 1 is a single pixel.
+    /// </summary>
+    private bool EraseBrush(PaintPixels pixels, int w, int h, int cx, int cy)
+    {
+        int half = BrushSize / 2;
+        bool changed = false;
+        for (int y = cy - half; y < cy - half + BrushSize; y++)
+        {
+            if (y < 0 || y >= h) continue;
+            for (int x = cx - half; x < cx - half + BrushSize; x++)
+            {
+                if (x < 0 || x >= w) continue;
+                int i = y * w + x;
+                if (pixels.IsCleared(i)) continue;
+                pixels.Erase(i);
+                changed = true;
+            }
+        }
+        return changed;
     }
 
     /// <summary>
@@ -1429,36 +1538,10 @@ public class SpriteView : Control
         return changed;
     }
 
-    /// <summary>4-connected flood fill of the region matching the start pixel's index. BrushSize does not apply here.</summary>
-    /// <param name="mask">When given, marks the region into it instead of replacing the pixels — the Magic Wand's selection mask.</param>
-    private bool FloodFill(byte[] idx, int startX, int startY, byte replacement, bool[]? mask = null)
-    {
-        int w = _sprite!.Width, h = _sprite.Height;
-        byte target = idx[startY * w + startX];
-        if (mask is null && target == replacement) return false;
-
-        var stack = new Stack<(int X, int Y)>();
-        stack.Push((startX, startY));
-        while (stack.Count > 0)
-        {
-            var (x, y) = stack.Pop();
-            if (x < 0 || x >= w || y < 0 || y >= h) continue;
-            int i = y * w + x;
-            if (idx[i] != target) continue;
-            if (mask is not null)
-            {
-                if (mask[i]) continue;
-                mask[i] = true;
-            }
-            else
-            {
-                idx[i] = replacement;
-            }
-            stack.Push((x + 1, y)); stack.Push((x - 1, y));
-            stack.Push((x, y + 1)); stack.Push((x, y - 1));
-        }
-        return true;
-    }
+    /// <summary>4-connected flood fill of the region matching the start pixel's bytes. BrushSize does not apply here.</summary>
+    /// <param name="replacement">The bytes to write per pixel; null when <paramref name="mask"/> only marks the region — the Magic Wand's selection mask.</param>
+    private bool FloodFill(byte[] data, int bpp, int startX, int startY, byte[]? replacement, bool[]? mask = null) =>
+        PaintPixels.FloodFill(data, _sprite!.Width, _sprite.Height, bpp, startX, startY, replacement, mask);
 
     private static readonly Cursor MoveCursor = new(StandardCursorType.SizeAll);
     private static readonly Cursor CrossCursor = new(StandardCursorType.Cross);
@@ -2105,9 +2188,10 @@ public class SpriteView : Control
     /// </summary>
     private void StartMagicWand(Point point, bool addToSelection = false)
     {
-        if (_sprite?.Indexed is not { } flattened) return;
+        if (_sprite is not { } sprite || PaintPixels.From(sprite) is not { } pixels) return; // layers are indexed-only, so on true color the wand reads the sprite
         if (!TryPixelAt(point, out int x, out int y)) return;
-        var wand = MagicWandSelection(PaintTarget ?? flattened, x, y);
+        byte[] data = pixels.TrueColor ? pixels.Data : PaintTarget ?? pixels.Data;
+        var wand = MagicWandSelection(data, pixels.TrueColor ? 4 : 1, x, y);
         _selection = addToSelection && _selection is { } existing
             ? UnionSelections(existing, wand)
             : wand;
@@ -2164,14 +2248,15 @@ public class SpriteView : Control
     }
 
     /// <summary>
-    /// Magic Wand: the contiguous same-index pixels around a start pixel, cropped to their bounds.
-    /// Exact index match, no tolerance; contiguous like the Fill tool's flood fill.
+    /// Magic Wand: selects the contiguous same-color pixels under the point, cropped to their bounds.
+    /// Exact match, no tolerance; contiguous like the Fill tool's flood fill. One or four bytes
+    /// per pixel compare, so it works on indexed and true color data alike.
     /// </summary>
-    private PixelSelection MagicWandSelection(byte[] idx, int startX, int startY)
+    private PixelSelection MagicWandSelection(byte[] data, int bpp, int startX, int startY)
     {
         int w = _sprite!.Width, h = _sprite!.Height;
         var mask = new bool[w * h];
-        FloodFill(idx, startX, startY, idx[startY * w + startX], mask);
+        FloodFill(data, bpp, startX, startY, null, mask);
         int minX = w, minY = h, maxX = -1, maxY = -1;
         for (int i = 0; i < mask.Length; i++)
         {

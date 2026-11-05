@@ -769,6 +769,7 @@ public partial class MainWindow
         if (SpriteRotateButton is not null) SpriteRotateButton.IsEnabled = hasSelection;
         if (ImportPaletteIntoSpriteButton is not null) ImportPaletteIntoSpriteButton.IsEnabled = hasSelection;
         if (PaintModeToggle is not null) PaintModeToggle.IsEnabled = _current is not null || _paintBaselineSprite is not null;
+        SyncPaintToolButtons();
         if (NudgeUpButton is not null) NudgeUpButton.IsEnabled = NudgeLeftButton.IsEnabled =
             NudgeRightButton.IsEnabled = NudgeDownButton.IsEnabled = hasSelection;
         if (AlignOnionButton is not null) AlignOnionButton.IsEnabled = hasSelection && ShownSpriteOnion() is not null;
@@ -1039,6 +1040,8 @@ public partial class MainWindow
                 return;
             }
 
+            // The mapping may remap or convert the pixels under a pending paint session; settle it first.
+            if (!await ResolvePendingPaintBeforeSwitch()) return;
             var prepared = await PreparePaletteForSprite(sprite, imported.Colors, v1);
             if (prepared is null) return;
             imported.Colors = prepared.Value.Colors;
@@ -1117,6 +1120,8 @@ public partial class MainWindow
         var file = _file;
         var current = sprite.Palette;
         if (ReferenceEquals(current, chosen) && chosen.Source != PaletteSource.External) return true;
+        // The palette mapping may remap pixels under a pending paint session; settle it first.
+        if (!await ResolvePendingPaintBeforeSwitch()) return false;
 
         if (chosen.Source == PaletteSource.External && SffVersions.IsV1(file.Version))
         {
@@ -1857,6 +1862,8 @@ public partial class MainWindow
         try
         {
             if (RefuseBorrowerEdit(_current, "replace")) return;
+            // Replace swaps the pixel arrays under a pending paint session; settle it first.
+            if (!await ResolvePendingPaintBeforeSwitch()) return;
             if (await PickImages($"Replace {_current.Group},{_current.Index}", allowMultiple: false) is not { } picked) return;
             var gif = Sff.GifDecoder.LooksLikeGif(picked[0].Bytes);
             int total = gif ? Sff.GifImport.FrameCount(picked[0].Bytes) : 0;

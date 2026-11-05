@@ -10,8 +10,8 @@ namespace Editor;
 /// </summary>
 public partial class MainWindow
 {
-    /// <summary>The sprite's pixels and the layers at one point in the session.</summary>
-    private sealed record PaintState(byte[] Pixels, bool Dirty, byte[]? Base, byte[]? Top, bool TopVisible, bool BottomVisible);
+    /// <summary>The sprite's pixels and the layers at one point in the session. Layers stay indexed-only.</summary>
+    private sealed record PaintState(PaintPixels Pixels, bool Dirty, byte[]? Base, byte[]? Top, bool TopVisible, bool BottomVisible);
 
     private readonly List<PaintState> _paintStates = [];
     /// <summary>_paintStepNames[i] turns _paintStates[i] into _paintStates[i + 1].</summary>
@@ -27,15 +27,15 @@ public partial class MainWindow
 
     private static byte[]? CloneOrNull(byte[]? b) => b is null ? null : (byte[])b.Clone();
 
-    private PaintState? CapturePaintState() => _current is { Indexed: { } pixels } sprite
-        ? new PaintState((byte[])pixels.Clone(), sprite.PixelsDirty, CloneOrNull(_paintBaseLayer), CloneOrNull(_paintTopLayer),
+    private PaintState? CapturePaintState() => _current is { } sprite && PaintPixels.From(sprite) is { } pixels
+        ? new PaintState(pixels.Snapshot(), sprite.PixelsDirty, CloneOrNull(_paintBaseLayer), CloneOrNull(_paintTopLayer),
             _paintTopVisible, _paintBottomVisible)
         : null;
 
     private static bool Same(byte[]? a, byte[]? b) => a is null ? b is null : b is not null && a.AsSpan().SequenceEqual(b);
 
     private static bool SameState(PaintState a, PaintState b) =>
-        Same(a.Pixels, b.Pixels) && Same(a.Base, b.Base) && Same(a.Top, b.Top)
+        a.Pixels.Same(b.Pixels) && Same(a.Base, b.Base) && Same(a.Top, b.Top)
         && a.TopVisible == b.TopVisible && a.BottomVisible == b.BottomVisible;
 
     /// <summary>Call before a change: makes sure the history starts at the current state of this sprite.</summary>
@@ -79,23 +79,30 @@ public partial class MainWindow
     {
         string name = _paintStepNames[_paintStatePos - 1];
         _paintStatePos--;
-        RestorePaintState(_paintStates[_paintStatePos]);
-        StatusText.Text = $"Undid {name}.";
+        var undone = RestorePaintState(_paintStates[_paintStatePos]);
+        if (undone) StatusText.Text = $"Undid {name}.";
     }
 
     private void PaintRedo()
     {
         string name = _paintStepNames[_paintStatePos];
         _paintStatePos++;
-        RestorePaintState(_paintStates[_paintStatePos]);
-        StatusText.Text = $"Redid {name}.";
+        var redone = RestorePaintState(_paintStates[_paintStatePos]);
+        if (redone) StatusText.Text = $"Redid {name}.";
     }
 
-    /// <summary>Puts the sprite and layers back as the snapshot has them. The session stays open, so redo still works.</summary>
-    private void RestorePaintState(PaintState state)
+    /// <summary>Puts the sprite and layers back as the snapshot has them. The session stays open, so redo still works. False when the session dissolved instead, e.g. after a palette mapping converted the sprite.</summary>
+    private bool RestorePaintState(PaintState state)
     {
-        if (_current is not { } sprite) return;
-        sprite.Indexed = (byte[])state.Pixels.Clone();
+        if (_current is not { } sprite) return true;
+        if (!SessionMatchesSprite(state.Pixels, sprite))
+        {
+            // The sprite's pixels were replaced under the session; drop it instead of restoring.
+            DissolvePaintSession();
+            return false;
+        }
+        if (state.Pixels.TrueColor) sprite.Direct = (byte[])state.Pixels.Data.Clone();
+        else sprite.Indexed = (byte[])state.Pixels.Data.Clone();
         sprite.PixelsDirty = state.Dirty;
         _paintBaseLayer = CloneOrNull(state.Base);
         _paintTopLayer = CloneOrNull(state.Top);
@@ -111,6 +118,7 @@ public partial class MainWindow
         SyncDirtyFromUndo();
         ResetPlaybackCaches();
         SyncUndoMenu();
+        return true;
     }
 
     /// <summary>Commit and Reset only while the session has changes; undoing back to the start greys them out.</summary>

@@ -34,6 +34,17 @@ Verified unless noted.
 
 ### Paint Mode
 
+- Make paint mode work on 24-bit and 32-bit (true color) sprites. Decided: Eraser and Select
+  (Rectangle/Lasso/Polygon/Magic Wand, move/copy/paste/erase selection) first; Pencil, Fill and
+  Replace (and the Eyedropper) stay disabled on true color. Eraser writes the pixel's four bytes to 0 — same as what the
+  decoder already normalizes true-color transparent pixels to on load (Decoder.FromRaw).
+  Sprite.Direct is always 4-byte BGRA, 24-bit included (24-bit sources arrive with alpha 255),
+  so both depths take one code path. Later: layers (BGRA, "alpha > 0 top pixel wins"), and
+  Pencil/Fill/Replace/Eyedropper need a true-color color picker (next item).
+- True color brush tools need a color selection of their own: a free RGBA color picker for
+  Pencil/Fill/Replace (the palette-based color path doesn't exist for true color), and the
+  eyedropper wired up — SpriteCanvas.ColorPickedValue already reports a picked pixel but has
+  no listener. Design the picker (where it lives, recent colors, access from Pencil/Fill/Replace).
 - Flip and rotate the selection. Quarter turns and flips are cheap on a floating paste (remap
   its pixels and mask, re-stamp from Before); a plain selection first needs a lift (cut to
   floating). Any-angle turns could reuse SpriteRotate.RotateFree, nearest only. Undecided: own
@@ -44,6 +55,27 @@ Select tool gaps against image editor conventions:
   Photoshop, Ctrl in GIMP). Decide the modifiers, and how they fit Ctrl/Shift box selection.
 - Polygon: Shift locks the next edge to 45° steps.
 - Lasso and Polygon: Alt switches between freehand and polygon mid-shape.
+
+- Investigate sprites appearing to reorder themselves during Paint Mode (reported
+  2026-11-05). Trace (`build/Debug/logs/trace.log`, 22:19–22:22, SunsetRiverbank.sff,
+  7 sprites) shows `[sprite reorder] apply` at 22:20:02, 22:20:35 and 22:21:17, each
+  moving one sprite (`first=0,1 to=5`, `0,2 to=1`, `0,0 to=6`) with no `[undo] begin`
+  before it, so each came from a list drop (`OnSpriteListDrop` → `MoveSprites`,
+  MainWindow.SpriteTable.cs), never from paint code or an undo. The first Undo after
+  each reorder reverted it (verified), so Undo falling through to the main history
+  (`TryPaintUndo` false after `DropPendingPaint`) did not create them. The drop
+  boundaries are far from the dragged row, so a 6px click wobble does not explain them;
+  the maintainer also doubts the pointer movement was enough to drag (not sure).
+  Verified in code: a drag starts only in `OnSpriteRowPointerMoved` (6px threshold) and
+  nothing checks the left button is down there; `_spriteDragArmed` is cleared only by
+  `PointerReleased`, a double-click or a finished drag (no capture-lost handler), and
+  `ActivateSpriteRow` can open the Commit/Discard dialog (`ResolvePendingPaintBeforeSwitch`)
+  between press and release. Unverified: that a lost release left the drag armed and a
+  later pointer move started a button-less drag carrying the last-pressed sprite.
+  Verified logging gaps: no paint step, commit or reset is traced (MainWindow.PaintHistory.cs
+  has no CrashLog), drag start and drop details are not traced, and `MoveSprites` logs the
+  same line on the undo path, so an undo line looks like the drag it reverses. No code
+  changed; the maintainer chose not to add trace lines for now.
 
 ### Animations and Clsn
 
@@ -136,9 +168,17 @@ Select tool gaps against image editor conventions:
   Double-click stays the trigger; Tab walks Group/Number/X/Y. Errors go to the status bar;
   the palette group/index collision keeps its confirm. Loses the +/- spinners. The sprite
   table comments mention "old inline cells"; find out why they were replaced first.
+- Lists: let the mouse wheel scroll the list while a drag is in progress, so moving many
+  selected rows a long way doesn't need repeated grab-scroll-grab cycles (Sprites, Sounds,
+  palettes, and anywhere else rows are dragged). Decide whether it also auto-scrolls when
+  the pointer nears the edge.
 
 ### Controls and layout
 
+- The marching ants selection outline appears to scale with zoom (reported while looking for
+  what else to fix in paint mode). Reading the drawing code, the dash pattern itself is fixed
+  screen pixels (`new DashStyle([3, 3], offset)`, outline geometry built in screen
+  coordinates), so check what actually changes when zooming before assuming the dash size.
 - Some way to increase/decrease values faster with the mouse (Shift+wheel?); design undecided.
 - Customizable shortcuts: see features.md "Keyboard shortcuts". It compiles, and column widths
   measure at the largest of the dialog, window and tab font sizes. Left:
@@ -147,6 +187,10 @@ Select tool gaps against image editor conventions:
   radio options (Find Similar Sprites, Align With Onion Skin), instead of tooltips. Both used
   that once (a SemiBold label over a ThemeMutedText line). The SFF v1 Palette dialog explains
   its two options in one line above them, which is a third shape to weigh.
+- Rename the View > Show Transparency Mask command (Strings.ViewShowMask, Ctrl+M). Name what
+  it actually does: it forces every pixel opaque so index 0 and palette-alpha pixels show
+  their color (Sprite.ToBgra, showMask). Likely "Show Sprite Alpha" or "Render Sprite Alpha";
+  settle the wording and its tooltip.
 
 ### Other
 
@@ -158,6 +202,21 @@ Select tool gaps against image editor conventions:
 ## Not yet checked in the app
 
 Built, but not tried by the maintainer yet.
+
+### Paint on true color
+
+- Eraser and Select on a true-color sprite (use a real true-color sample, e.g. a PNG import):
+  Paint Mode opens on Eraser, erasing zeroes pixels (check them with Show Mask: cleared pixels
+  turn black), Commit/Discard/undo and the paint history follow, Copy/Paste/Move work and a
+  true-color copy won't paste into an indexed sprite (Paste stays dimmed).
+- Pencil, Fill, Replace and Eyedropper are disabled on true color; layers are too.
+- An indexed sprite's session keeps working as before: Pencil default, paint history, layers.
+- Magic Wand on true color picks contiguous pixels with the same 4 bytes.
+- Switching sprites (or converting the current one) while Paint Mode is on refreshes the
+  tool buttons; if the active tool got muted by the kind change, the first working tool
+  (Pencil first) is selected instead.
+- With a pending session, applying or importing a palette, or replacing a sprite on the
+  Sprites tab, settles the session first (Commit/Discard/Cancel, as Crop and Rotate do).
 
 ### SFF v1 same-palette flag read as "previous"
 
