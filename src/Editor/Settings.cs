@@ -49,6 +49,7 @@ public sealed class Settings
     // General
     public const int DefaultMaxRecentFiles = 10, DefaultUndoLimit = 200, DefaultSplashMilliseconds = 1000;
     public const double DefaultUndoMergeSeconds = 1, DefaultTabDragThresholdPixels = 6;
+    public const double DefaultDragScrollEdgePixels = 32, DefaultDragScrollRowsPerSecond = 30;
     /// <summary>Scroll bars shrink to a thin line when the pointer leaves (Avalonia's auto-hide).
     /// Read at startup; false keeps them full width.</summary>
     public const bool DefaultScrollBarsAutoHide = true;
@@ -340,6 +341,10 @@ public sealed class Settings
         public int MaxRecentFiles { get; set; } = DefaultMaxRecentFiles;
         /// <summary>How far a pressed project tab must move before it is dragged to a new position.</summary>
         public double TabDragThresholdPixels { get; set; } = DefaultTabDragThresholdPixels;
+        /// <summary>Height of the band at the top and bottom of a list where dragging rows scrolls it.</summary>
+        public double DragScrollEdgePixels { get; set; } = DefaultDragScrollEdgePixels;
+        /// <summary>List scroll speed, in rows per second, with the pointer at the very edge while dragging rows; it ramps up from zero across the edge band.</summary>
+        public double DragScrollRowsPerSecond { get; set; } = DefaultDragScrollRowsPerSecond;
         public bool ScrollBarsAutoHide { get; set; } = DefaultScrollBarsAutoHide;
         /// <summary>Shortest time the splash screen shows at startup; it also stays until the main window is open.</summary>
         public int SplashMilliseconds { get; set; } = DefaultSplashMilliseconds;

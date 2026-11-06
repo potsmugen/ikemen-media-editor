@@ -245,7 +245,7 @@ public partial class MainWindow
             _frameDragAction = action;
             var data = new DataObject();
             data.Set(FrameDragFormat, rows.Select(r => action.Elements[r]).ToArray());
-            await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
+            await DragRows(FrameTableList, e, data);
         }
         catch (Exception ex)
         {
@@ -263,7 +263,7 @@ public partial class MainWindow
     }
 
     private void OnFrameTableDragOver(object? sender, DragEventArgs e) =>
-        e.DragEffects = e.Data.Contains(FrameDragFormat) ? DragDropEffects.Move : DragDropEffects.None;
+        ListDragOver(FrameTableList, e, FrameDragFormat);
 
     private async void OnFrameTableDrop(object? sender, DragEventArgs e)
     {

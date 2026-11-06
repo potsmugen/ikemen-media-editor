@@ -2211,7 +2211,7 @@ public partial class MainWindow
 
             var data = new DataObject();
             data.Set(ActionDragFormat, DraggedItems(SelectedActionsInOrder(), pressed));
-            await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
+            await DragRows(ActionList, e, data);
         }
         catch (Exception ex)
         {
@@ -2231,7 +2231,7 @@ public partial class MainWindow
     }
 
     private void OnActionListDragOver(object? sender, DragEventArgs e) =>
-        e.DragEffects = e.Data.Contains(ActionDragFormat) ? DragDropEffects.Move : DragDropEffects.None;
+        ListDragOver(ActionList, e, ActionDragFormat);
 
     /// <summary>Drop boundary for a hovered row: before it on its top half, after it on its bottom half.</summary>
     private static int DropBoundary(DragEventArgs e, ListBoxItem item, int index) =>

@@ -453,7 +453,7 @@ public partial class MainWindow
 
             var data = new DataObject();
             data.Set(SoundDragFormat, DraggedItems(GetSelectedSounds(), pressed));
-            await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
+            await DragRows(SoundList, e, data);
         }
         catch (Exception ex)
         {
@@ -473,7 +473,7 @@ public partial class MainWindow
     }
 
     private void OnSoundListDragOver(object? sender, DragEventArgs e) =>
-        e.DragEffects = e.Data.Contains(SoundDragFormat) ? DragDropEffects.Move : DragDropEffects.None;
+        ListDragOver(SoundList, e, SoundDragFormat);
 
     private async void OnSoundListDrop(object? sender, DragEventArgs e)
     {

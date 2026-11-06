@@ -896,15 +896,19 @@ public partial class MainWindow : Window
         DragDrop.SetAllowDrop(ActionList, true);
         ActionList.AddHandler(DragDrop.DragOverEvent, OnActionListDragOver);
         ActionList.AddHandler(DragDrop.DropEvent, OnActionListDrop);
+        ActionList.AddHandler(DragDrop.DragLeaveEvent, OnListDragLeave);
         DragDrop.SetAllowDrop(SpriteList, true);
         SpriteList.AddHandler(DragDrop.DragOverEvent, OnSpriteListDragOver);
         SpriteList.AddHandler(DragDrop.DropEvent, OnSpriteListDrop);
+        SpriteList.AddHandler(DragDrop.DragLeaveEvent, OnListDragLeave);
         DragDrop.SetAllowDrop(PaletteList, true);
         PaletteList.AddHandler(DragDrop.DragOverEvent, OnPaletteListDragOver);
         PaletteList.AddHandler(DragDrop.DropEvent, OnPaletteListDrop);
+        PaletteList.AddHandler(DragDrop.DragLeaveEvent, OnListDragLeave);
         DragDrop.SetAllowDrop(SoundList, true);
         SoundList.AddHandler(DragDrop.DragOverEvent, OnSoundListDragOver);
         SoundList.AddHandler(DragDrop.DropEvent, OnSoundListDrop);
+        SoundList.AddHandler(DragDrop.DragLeaveEvent, OnListDragLeave);
 
         // FrameList itself is permanently hidden now that List view is retired
         // (see MainWindow.FrameText.cs) — the context menu moved to the Table
@@ -914,6 +918,7 @@ public partial class MainWindow : Window
         DragDrop.SetAllowDrop(FrameTableList, true);
         FrameTableList.AddHandler(DragDrop.DragOverEvent, OnFrameTableDragOver);
         FrameTableList.AddHandler(DragDrop.DropEvent, OnFrameTableDrop);
+        FrameTableList.AddHandler(DragDrop.DragLeaveEvent, OnListDragLeave);
         FrameTableList.ContextRequested += (_, e) =>
         {
             SelectFrameRowForContext(e.Source);

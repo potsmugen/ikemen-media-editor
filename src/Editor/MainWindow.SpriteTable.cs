@@ -775,7 +775,7 @@ public partial class MainWindow
 
             var data = new DataObject();
             data.Set(SpriteDragFormat, DraggedItems(SelectedSpriteTargets(), pressed));
-            await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
+            await DragRows(SpriteList, e, data);
         }
         catch (Exception ex)
         {
@@ -795,7 +795,7 @@ public partial class MainWindow
     }
 
     private void OnSpriteListDragOver(object? sender, DragEventArgs e) =>
-        e.DragEffects = e.Data.Contains(SpriteDragFormat) ? DragDropEffects.Move : DragDropEffects.None;
+        ListDragOver(SpriteList, e, SpriteDragFormat);
 
     private void OnSpriteListDrop(object? sender, DragEventArgs e)
     {

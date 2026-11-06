@@ -1799,7 +1799,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
 
             var data = new DataObject();
             data.Set(PaletteDragFormat, DraggedItems(SelectedPalettesInOrder(), pressed));
-            await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
+            await DragRows(PaletteList, e, data);
         }
         catch (Exception ex)
         {
@@ -1819,7 +1819,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     }
 
     private void OnPaletteListDragOver(object? sender, DragEventArgs e) =>
-        e.DragEffects = e.Data.Contains(PaletteDragFormat) ? DragDropEffects.Move : DragDropEffects.None;
+        ListDragOver(PaletteList, e, PaletteDragFormat);
 
     private void OnPaletteListDrop(object? sender, DragEventArgs e)
     {

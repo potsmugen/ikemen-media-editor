@@ -168,10 +168,6 @@ Select tool gaps against image editor conventions:
   Double-click stays the trigger; Tab walks Group/Number/X/Y. Errors go to the status bar;
   the palette group/index collision keeps its confirm. Loses the +/- spinners. The sprite
   table comments mention "old inline cells"; find out why they were replaced first.
-- Lists: let the mouse wheel scroll the list while a drag is in progress, so moving many
-  selected rows a long way doesn't need repeated grab-scroll-grab cycles (Sprites, Sounds,
-  palettes, and anywhere else rows are dragged). Decide whether it also auto-scrolls when
-  the pointer nears the edge.
 
 ### Controls and layout
 

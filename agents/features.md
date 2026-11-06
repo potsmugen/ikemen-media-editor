@@ -613,6 +613,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   at the drop point, in one undo step. A plain press on a multi-selection keeps it until
   release, so a click without a drag still narrows to that row. Shared code is in
   `MainWindow.ListDrag.cs`.
+  **Drag scrolling**: while rows are dragged, the list scrolls when the pointer is within
+  settings.json `DragScrollEdgePixels` (default 32) of its top or bottom, faster the closer it
+  gets to the edge, up to `DragScrollRowsPerSecond` (default 30). The mouse wheel does not scroll
+  during a drag on Windows 10 (Avalonia's OS drag loop sends no wheel events), so there is no wheel support.
 
 ### Reports and configuration
 
