@@ -247,7 +247,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   inside the box (canvas and export), so the drawn box covers exactly the pixels it covers in game.
 - **Onion skins** use the ghost sprite's own palette while the active palette stays selected
   for editing. Each panel has its own Show toggle. Copying Clsn from an onion frame copies
-  the shown boxes as owned boxes.
+  the shown boxes as owned boxes. The Animations onion sprite is drawn with its frame's flip, scale
+  and angle, like the main sprite (the ghost Clsn boxes are not transformed).
 - **Sort Boxes For All** sorts own boxes and defaults across actions, clearing Clsn
   numbering/count warnings in one step.
 - **AIR save changes**: loading reports what a save would change even without edits (Clsn

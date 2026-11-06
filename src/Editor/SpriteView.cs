@@ -386,6 +386,8 @@ public class SpriteView : Control
     private Point _onionOffset;
     private Palette? _onionPalette;
     private bool _onionGrayscale;
+    private bool _onionFlipH, _onionFlipV;
+    private double _onionScaleX = 1, _onionScaleY = 1, _onionAngle;
 
     private int _zoomIdx = ZoomOne;
     private readonly ZoomSteps _zoomSteps = new();
@@ -615,8 +617,11 @@ public class SpriteView : Control
     /// reference rather than competing with the current sprite's own colors.
     /// </summary>
     /// <param name="reuse">Keep the current bitmap when sprite, palette and grayscale match; only safe while pixels can't change (playback).</param>
-    public void ShowOnion(Sprite? sprite, Palette? palette, Point offset = default, bool grayscale = false, bool reuse = false)
+    /// <param name="flipH">Flip, scale and angle (degrees, counter-clockwise) of the ghost frame, drawn like the main sprite's.</param>
+    public void ShowOnion(Sprite? sprite, Palette? palette, Point offset = default, bool grayscale = false, bool reuse = false,
+        bool flipH = false, bool flipV = false, double scaleX = 1, double scaleY = 1, double angle = 0)
     {
+        _onionFlipH = flipH; _onionFlipV = flipV; _onionScaleX = scaleX; _onionScaleY = scaleY; _onionAngle = angle;
         bool same = reuse && _onionBitmap is not null && ReferenceEquals(_onionSprite, sprite)
             && ReferenceEquals(_onionPalette, palette) && _onionGrayscale == grayscale;
         _onionSprite = sprite;
@@ -898,6 +903,14 @@ public class SpriteView : Control
         return new Rect(o.X - _sprite.AxisX * z, o.Y - _sprite.AxisY * z, _sprite.Width * z, _sprite.Height * z);
     }
 
+    private Rect OnionLocalRect()
+    {
+        if (_onionSprite is null || _onionBitmap is null) return default;
+        double z = Zoom;
+        var o = Origin;
+        return new Rect(o.X - _onionSprite.AxisX * z, o.Y - _onionSprite.AxisY * z, _onionSprite.Width * z, _onionSprite.Height * z);
+    }
+
     private Rect OnionRect()
     {
         if (_onionSprite is null || _onionBitmap is null) return default;
@@ -917,20 +930,22 @@ public class SpriteView : Control
     /// The offset is added into this matrix's translation terms directly, after
     /// the pivot math, rather than baked into the pivot itself.
     /// </summary>
-    private Matrix ElementTransform()
+    private Matrix ElementTransform() => ElementTransform(ElementOffset, FlipH, FlipV, ElementScaleX, ElementScaleY, ElementAngle);
+
+    private Matrix ElementTransform(Point offset, bool flipH, bool flipV, double scaleX, double scaleY, double angle)
     {
         var pivot = Origin;
         double z = Zoom;
-        double sx = ElementScaleX * (FlipH ? -1 : 1);
-        double sy = ElementScaleY * (FlipV ? -1 : 1);
+        double sx = scaleX * (flipH ? -1 : 1);
+        double sy = scaleY * (flipV ? -1 : 1);
         // Engine angle is counter-clockwise; screen Y grows downward, so
         // negate before feeding the standard (screen-space) rotation matrix.
-        double rad = -ElementAngle * Math.PI / 180.0;
+        double rad = -angle * Math.PI / 180.0;
         double cos = Math.Cos(rad), sin = Math.Sin(rad);
 
         double a = cos * sx, b = sin * sx, c = -sin * sy, d = cos * sy;
-        double e = pivot.X - (a * pivot.X + c * pivot.Y) + ElementOffset.X * z;
-        double f = pivot.Y - (b * pivot.X + d * pivot.Y) + ElementOffset.Y * z;
+        double e = pivot.X - (a * pivot.X + c * pivot.Y) + offset.X * z;
+        double f = pivot.Y - (b * pivot.X + d * pivot.Y) + offset.Y * z;
         return new Matrix(a, b, c, d, e, f);
     }
 
@@ -1179,8 +1194,15 @@ public class SpriteView : Control
 
         if (ShowOnionSkin && _onionBitmap is not null && _onionSprite is not null)
         {
+            var onionSrc = new Rect(0, 0, _onionSprite.Width, _onionSprite.Height);
             using (ctx.PushOpacity(OnionOpacityOverride ?? OnionOpacity))
-                ctx.DrawImage(_onionBitmap, new Rect(0, 0, _onionSprite.Width, _onionSprite.Height), OnionRect());
+            {
+                if (_onionFlipH || _onionFlipV || _onionScaleX != 1 || _onionScaleY != 1 || _onionAngle != 0)
+                    using (ctx.PushTransform(ElementTransform(_onionOffset, _onionFlipH, _onionFlipV, _onionScaleX, _onionScaleY, _onionAngle)))
+                        ctx.DrawImage(_onionBitmap, onionSrc, OnionLocalRect()); // the transform carries the offset
+                else
+                    ctx.DrawImage(_onionBitmap, onionSrc, OnionRect());
+            }
         }
 
         if (_bitmap is not null && _sprite is not null)

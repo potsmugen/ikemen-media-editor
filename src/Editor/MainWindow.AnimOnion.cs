@@ -35,7 +35,8 @@ public partial class MainWindow
         var src = _animOnion ? AnimOnionSource() : null;
         var sprite = src is null ? null : FindAnimSprite(src.Group, src.Index);
         AnimCanvas.ShowOnion(sprite, sprite?.Palette, src is null ? default : new Point(src.OffsetX, src.OffsetY), _animOnionGrayscale,
-            reuse: _clock is not null); // nothing edits pixels during playback
+            reuse: _clock is not null, // nothing edits pixels during playback
+            flipH: src?.FlipH ?? false, flipV: src?.FlipV ?? false, scaleX: src?.ScaleX ?? 1, scaleY: src?.ScaleY ?? 1, angle: src?.Angle ?? 0);
         AnimCanvas.GhostBoxes = src is null || !_animOnionClsn ? new List<BoxOverlay>() : BoxesFor(src);
     }
 
