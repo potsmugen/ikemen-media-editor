@@ -48,8 +48,8 @@ public partial class MainWindow
         ["NextSprite"] = () => StepSprite(1),
         ["PreviousPalette"] = () => StepPalette(-1),
         ["NextPalette"] = () => StepPalette(1),
-        ["PreviousFrame"] = () => StepFrame(-1),
-        ["NextFrame"] = () => StepFrame(1),
+        ["PreviousAction"] = () => StepAction(-1),
+        ["NextAction"] = () => StepAction(1),
         ["PreviousSound"] = () => StepSound(-1),
         ["NextSound"] = () => StepSound(1),
     };

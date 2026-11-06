@@ -133,8 +133,8 @@ public static class Shortcuts
         new("NextSprite", NavigationSection, "Next sprite", ShortcutScope.SpritesTab, "Alt+Down"),
         new("PreviousPalette", NavigationSection, "Previous palette", ShortcutScope.PalettesTab, "Alt+Up"),
         new("NextPalette", NavigationSection, "Next palette", ShortcutScope.PalettesTab, "Alt+Down"),
-        new("PreviousFrame", NavigationSection, "Previous frame", ShortcutScope.AnimationsTab, "Alt+Up"),
-        new("NextFrame", NavigationSection, "Next frame", ShortcutScope.AnimationsTab, "Alt+Down"),
+        new("PreviousAction", NavigationSection, "Previous action", ShortcutScope.AnimationsTab, "Alt+Up"),
+        new("NextAction", NavigationSection, "Next action", ShortcutScope.AnimationsTab, "Alt+Down"),
         new("PreviousSound", NavigationSection, "Previous sound", ShortcutScope.SoundsTab, "Alt+Up"),
         new("NextSound", NavigationSection, "Next sound", ShortcutScope.SoundsTab, "Alt+Down"),
     ];

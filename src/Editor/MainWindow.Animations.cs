@@ -2152,6 +2152,15 @@ public partial class MainWindow
     private void OnPrevFrame(object? sender, RoutedEventArgs e) => StepFrame(-1);
     private void OnNextFrame(object? sender, RoutedEventArgs e) => StepFrame(1);
 
+    /// <summary>Previous/Next action shortcut: selects only the neighbor row, as a click would.</summary>
+    private void StepAction(int delta)
+    {
+        if (ActionList.ItemsSource is not IList<ActionRow> rows || rows.Count == 0) return;
+        int row = Math.Clamp(ActionList.SelectedIndex + delta, 0, rows.Count - 1);
+        ActionList.SelectedIndex = row;
+        ActionList.ScrollIntoView(row);
+    }
+
     private void StepFrame(int delta)
     {
         Pause();

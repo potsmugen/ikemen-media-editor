@@ -625,9 +625,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   Help > Keyboard Shortcuts. Settings hold only changed bindings, and bad entries fall back
   and are logged. Scopes are Everywhere and one per tab, and the more specific wins.
   Previous/Next (Alt+Up/Down by default, as Photoshop's Alt+[ / Alt+]) step the tab's list
-  (sprites, palettes, frames, sounds) without moving focus, so canvas arrows keep nudging between
+  (sprites, palettes, actions, sounds) without moving focus, so canvas arrows keep nudging between
   steps. A focused list takes Alt+arrows itself (Avalonia's ListBox treats them as plain arrows),
-  so on Animations a focused action list steps actions. Canvas arrows take no modifiers.
+  so on Animations the shortcut steps actions, never frames. Canvas arrows take no modifiers.
   Built-in navigation (arrows, Page/Home/End, Delete, Escape, Enter/Tab in tables, Shift-drag,
   Ctrl/Shift-click) isn't in the table. Preferences > Shortcuts lists Where, Command and
   Shortcut; double-clicking anywhere in a row or choosing Change Shortcut from its context menu
