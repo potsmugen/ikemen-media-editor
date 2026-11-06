@@ -516,7 +516,10 @@
               </Grid>
 
               <Border Grid.Row="2" Height="1" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
-              <local:SpriteView Grid.Row="3" x:Name="SpriteCanvas" />
+              <Grid Grid.Row="3">
+                <local:SpriteView x:Name="SpriteCanvas" />
+                <local:CanvasScrollBars Target="{Binding #SpriteCanvas}" />
+              </Grid>
             </Grid>
             <Border Grid.Column="1" x:Name="PaintPanelSeparator" Width="{DynamicResource PanelSeparatorWidth}" HorizontalAlignment="Center" Background="{DynamicResource ThemeSeparator}" IsHitTestVisible="False" />
             <GridSplitter x:Name="PaintPanelSplitter" Grid.Column="1" Width="{DynamicResource PanelSeparatorWidth}" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" ResizeDirection="Columns" />
@@ -1335,7 +1338,10 @@
               </StackPanel>
             </Border>
             <Border Grid.Row="2" Height="1" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
-            <local:SpriteView Grid.Row="3" x:Name="AnimCanvas" />
+            <Grid Grid.Row="3">
+              <local:SpriteView x:Name="AnimCanvas" />
+              <local:CanvasScrollBars Target="{Binding #AnimCanvas}" />
+            </Grid>
           </Grid>
 
           <Border Grid.Column="2" Grid.Row="1" Height="1" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />

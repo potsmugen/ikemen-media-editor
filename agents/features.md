@@ -953,6 +953,11 @@ summaries; treat anything marked unverified as unknown.
 
 ### Avalonia and C#
 
+- **Canvas scroll bars** (`CanvasScrollBars`, Sprites and Animations canvases) overlay the right and bottom edges
+  and pan the view. Per axis the range is the viewport start relative to the image start, from aligned starts to
+  aligned ends, so the image always touches the viewport; the thumb clamps to it while a drag-pan has gone beyond.
+  A bar is disabled while the whole image (with flip, scale and rotation) is visible, but stays enabled while pressed.
+  `SpriteView.ScrollInfoChanged` is posted from Render when an axis changes; no zoom event, no pan clamping.
 - **Canvas pixel snapping** (`SpriteView`): `Origin` (canvas center + pan) is rounded to whole
   device pixels, so sprite pixels never straddle screen pixels; the pan itself stays fractional.
   Odd-width outlines (boxes, bounds, selection, brush) shift half a device pixel onto the pixels

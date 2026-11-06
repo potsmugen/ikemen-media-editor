@@ -715,6 +715,20 @@ public class SpriteView : Control
     {
         if (_sprite is not { Width: > 0, Height: > 0 } || _bitmap is null) return;
 
+        var image = ImageBounds();
+
+        var imageCenter = new Point(image.X + image.Width / 2, image.Y + image.Height / 2);
+        var canvasCenter = new Point(Bounds.Width / 2, Bounds.Height / 2);
+        _pan += canvasCenter - imageCenter;
+        RefreshCursorPosition();
+        InvalidateVisual();
+    }
+
+    /// <summary>The displayed sprite's bounds on the canvas, including flip, scale and rotation.</summary>
+    private Rect ImageBounds()
+    {
+        if (_sprite is not { Width: > 0, Height: > 0 } || _bitmap is null) return default;
+
         var image = SpriteRect();
         if (FlipH || FlipV || ElementScaleX != 1 || ElementScaleY != 1 || ElementAngle != 0)
         {
@@ -731,12 +745,44 @@ public class SpriteView : Control
             double top = corners.Min(p => p.Y), bottom = corners.Max(p => p.Y);
             image = new Rect(left, top, right - left, bottom - top);
         }
+        return image;
+    }
 
-        var imageCenter = new Point(image.X + image.Width / 2, image.Y + image.Height / 2);
-        var canvasCenter = new Point(Bounds.Width / 2, Bounds.Height / 2);
-        _pan += canvasCenter - imageCenter;
+    /// <summary>One scroll axis: viewport start relative to the image start, over the range that keeps the image touching the viewport.</summary>
+    public readonly record struct ScrollAxis(double Min, double Max, double Value, double Viewport, bool Needed);
+
+    /// <summary>Raised after a render when a scroll axis changed.</summary>
+    public event Action? ScrollInfoChanged;
+    private (ScrollAxis, ScrollAxis) _scrollInfo;
+
+    /// <summary>Scroll state for a bar; Needed is false when the whole image is visible.</summary>
+    public ScrollAxis GetScrollAxis(bool horizontal)
+    {
+        var img = ImageBounds();
+        double view = horizontal ? Bounds.Width : Bounds.Height;
+        if (img.Width <= 0 || img.Height <= 0 || view <= 0) return default;
+        double start = horizontal ? img.X : img.Y, size = horizontal ? img.Width : img.Height;
+        double end = size - view;
+        return new ScrollAxis(Math.Min(0, end), Math.Max(0, end), -start, view, start < -0.5 || start + size > view + 0.5);
+    }
+
+    /// <summary>Pans so the viewport starts at this value on the axis, as GetScrollAxis reports it.</summary>
+    public void ScrollTo(bool horizontal, double value)
+    {
+        var img = ImageBounds();
+        if (img.Width <= 0 || img.Height <= 0) return;
+        double d = -value - (horizontal ? img.X : img.Y);
+        _pan = horizontal ? new Point(_pan.X + d, _pan.Y) : new Point(_pan.X, _pan.Y + d);
         RefreshCursorPosition();
         InvalidateVisual();
+    }
+
+    private void NotifyScrollInfo()
+    {
+        var info = (GetScrollAxis(true), GetScrollAxis(false));
+        if (info == _scrollInfo) return;
+        _scrollInfo = info;
+        Dispatcher.UIThread.Post(() => ScrollInfoChanged?.Invoke());
     }
 
     public void SelectBox(int index) => SelectBoxes(
@@ -1119,6 +1165,7 @@ public class SpriteView : Control
     {
         var full = new Rect(Bounds.Size);
         ctx.FillRectangle(Background, full);
+        NotifyScrollInfo();
 
         if (Checkerboard)
         {

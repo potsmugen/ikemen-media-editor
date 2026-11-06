@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Primitives;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -34,6 +35,10 @@ public partial class App : Application
             style.Setters.Add(new Setter(ScrollViewer.AllowAutoHideProperty, false));
             Styles.Add(style);
         }
+        // The standalone canvas bars (CanvasScrollBars) are not inside a ScrollViewer.
+        var bars = new Style(x => x.OfType<CanvasScrollBars>().Descendant().OfType<ScrollBar>());
+        bars.Setters.Add(new Setter(ScrollBar.AllowAutoHideProperty, false));
+        Styles.Add(bars);
     }
 
     public override async void OnFrameworkInitializationCompleted()

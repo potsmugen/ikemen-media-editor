@@ -156,6 +156,7 @@ Select tool gaps against image editor conventions:
 
 ### Performance and lists
 
+- Option to move selected items to top or bottom of list
 - Loading is much slower than saving for large SFFs. Find out why.
 - Lists: compiled bindings (x:DataType) for the row templates instead of reflection.
   The row classes are nested in MainWindow; they may need moving out for XAML to reach them.
@@ -171,8 +172,6 @@ Select tool gaps against image editor conventions:
 
 ### Controls and layout
 
-- Sprite canvas scroll bars: horizontal and vertical, active only when the sprite doesn't fit the canvas
-  or isn't visible (zoomed in or panned off). Design undecided (range, whether they follow panning).
 - The marching ants selection outline appears to scale with zoom (reported while looking for
   what else to fix in paint mode). Reading the drawing code, the dash pattern itself is fixed
   screen pixels (`new DashStyle([3, 3], offset)`, outline geometry built in screen
