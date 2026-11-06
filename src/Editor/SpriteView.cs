@@ -972,7 +972,7 @@ public class SpriteView : Control
         void DrawSprite() => DrawBitmap(_bitmap!);
 
         var blend = ElementBlend;
-        if (blend.Mode == BlendMode.None) { DrawSprite(); return; }
+        if (blend.Mode == BlendMode.None || _showMask) { DrawSprite(); return; } // mask on: raw opaque sprite, no blend
 
         double srcW = Math.Clamp(blend.Source / 255.0, 0, 1);
         double dstW = Math.Clamp(blend.Destination / 255.0, 0, 1);

@@ -427,7 +427,7 @@ public sealed class Settings
 
     public sealed class CanvasSection
     {
-        public bool ShowMask { get; set; }
+        public bool RenderBlending { get; set; } = true;
         public bool FullCrosshair { get; set; } = true;
         /// <summary>Sprite canvas zoom steps (1 = actual size; Actual Size picks the step nearest 1).</summary>
         public double[] ZoomLevels { get; set; } = DefaultZoomLevels;

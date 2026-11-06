@@ -28,7 +28,7 @@ public static class Strings
     public static string ViewZoomOut = "Zoom _Out";
     public static string ViewActualSize = "Actual _Size";
     public static string ViewZoomToFit = "Zoom to _Fit";
-    public static string ViewShowMask = "Show Transparency _Mask";
+    public static string ViewRenderBlending = "Render Sprite B_lending";
     public static string ViewSpriteBounds = "Sprite _Bounds";
     public static string ViewAxisGuides = "Full-canvas Axis _Guides";
     public static string ViewResetPanelSizes = "_Reset Panel Sizes";

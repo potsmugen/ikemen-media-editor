@@ -102,7 +102,7 @@ public partial class MainWindow
                 emitted += delay;
                 var frame = background is null
                     ? RenderGifFrame(placements[i], left, top, (int)width, (int)height, scale)
-                    : RenderBlendedFrame(background, placements[i], runs[i].State.Blend, left, top, (int)width, (int)height, scale);
+                    : RenderBlendedFrame(background, placements[i], _showMask ? Blend.None : runs[i].State.Blend, left, top, (int)width, (int)height, scale);
                 DrawGifBoxes(frame, boxes[i], left, top, (int)width, (int)height, scale);
                 pixels.Add(frame);
                 delays.Add(delay);
@@ -161,7 +161,7 @@ public partial class MainWindow
         if (sx == 0 || sy == 0) return null;
         double rad = -state.Angle * Math.PI / 180.0; // engine angle is counter-clockwise, screen Y points down
         double cos = Math.Cos(rad), sin = Math.Sin(rad);
-        return new GifPlacement(sprite, sprite.ToBgra(sprite.Palette, false),
+        return new GifPlacement(sprite, sprite.ToBgra(sprite.Palette, _showMask),
             cos * sx, sin * sx, -sin * sy, cos * sy, state.OffsetX, state.OffsetY);
     }
 

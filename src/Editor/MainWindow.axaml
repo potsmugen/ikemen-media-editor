@@ -42,7 +42,7 @@
         <MenuItem Header="{x:Static local:Strings.ViewActualSize}" x:Name="ActualSizeItem" Click="OnResetView" />
         <MenuItem Header="{x:Static local:Strings.ViewZoomToFit}" x:Name="ZoomFitItem" Click="OnZoomFit" />
         <Separator />
-        <MenuItem Header="{x:Static local:Strings.ViewShowMask}" x:Name="MaskItem" Click="OnToggleMask"
+        <MenuItem Header="{x:Static local:Strings.ViewRenderBlending}" x:Name="BlendingItem" Click="OnToggleBlending"
                   ToggleType="CheckBox" />
         <MenuItem Header="{x:Static local:Strings.ViewSpriteBounds}" x:Name="BoundsItem" Click="OnToggleBounds"
                   ToggleType="CheckBox" />

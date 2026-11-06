@@ -26,10 +26,10 @@ public class SettingsTests
     public void BadArrayItemDropsTheArray()
     {
         var notes = new List<string>();
-        var s = Settings.Parse("""{ "Canvas": { "ZoomLevels": [1, "two", 3], "ShowMask": true } }""", notes);
+        var s = Settings.Parse("""{ "Canvas": { "ZoomLevels": [1, "two", 3], "RenderBlending": false } }""", notes);
         Assert.NotNull(s);
         Assert.Equal(Settings.DefaultZoomLevels, s.Canvas.ZoomLevels);
-        Assert.True(s.Canvas.ShowMask);
+        Assert.False(s.Canvas.RenderBlending);
     }
 
     [Fact]

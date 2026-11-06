@@ -146,7 +146,7 @@ public partial class MainWindow : Window
             Settings.DefaultWindowHeight, v => double.IsFinite(v) && v >= MinHeight && v <= 16384);
         if (_settings.Layout.Maximized) WindowState = WindowState.Maximized;
 
-        _showMask = _settings.Canvas.ShowMask;
+        _showMask = !_settings.Canvas.RenderBlending;
         _fullCrosshair = _settings.Canvas.FullCrosshair;
         _onionSkin = _settings.Sprites.OnionSkin;
         _onionGrayscale = _settings.Sprites.OnionGrayscale;
@@ -1234,7 +1234,7 @@ public partial class MainWindow : Window
     /// <summary>Ticks the View menu to match the options actually in force.</summary>
     private void SyncViewMenu()
     {
-        if (MaskItem is { } m) m.IsChecked = _showMask;
+        if (BlendingItem is { } m) m.IsChecked = !_showMask;
         if (BoundsItem is { } b) b.IsChecked = _showBounds;
         if (GuidesItem is { } g) g.IsChecked = _fullCrosshair;
         if (StatusBarItem is { } sb) sb.IsChecked = StatusBar.IsVisible;
@@ -1822,13 +1822,14 @@ public partial class MainWindow : Window
         box.Focus();
     }
 
-    private void OnToggleMask(object? sender, RoutedEventArgs e)
+    private void OnToggleBlending(object? sender, RoutedEventArgs e)
     {
         _showMask = !_showMask;
-        _settings.Canvas.ShowMask = _showMask;
+        _settings.Canvas.RenderBlending = !_showMask;
         _settings.Save();
         SyncViewMenu();
         RefreshSprite();
+        if (AnimCanvas is not null && CurrentElement is not null) AnimCanvas.Show(_animSprite, _animSprite?.Palette, _showMask, preserveZoom: true);
     }
 
     /// <summary>Every canvas in the window, so a View setting applies everywhere at once.</summary>

@@ -4255,10 +4255,10 @@ public static partial class Dialogs
         var chLines = new RadioButton { GroupName = "CrosshairStyle", Content = "Lines", IsChecked = !init.CrosshairImageStyle };
         var chImage = new RadioButton { GroupName = "CrosshairStyle", Content = "Image", IsChecked = init.CrosshairImageStyle };
         var chPicker = new ColorPicker(Parse(init.Color) ?? CrosshairStyle.DefaultColor);
-        ToolTip.SetTip(chPicker.View, "Also used by the axis guides (Ctrl+G).");
+        ToolTip.SetTip(chPicker.View, "Also used by the axis guides.");
         var arm = number(Math.Clamp(init.ArmLength, limits.ArmMin, limits.ArmMax), limits.ArmMin, 1, "0.##", limits.ArmMax);
         var thick = number(Math.Clamp(init.Thickness, limits.ThicknessMin, limits.ThicknessMax), limits.ThicknessMin, 1, "0.##", limits.ThicknessMax);
-        ToolTip.SetTip(thick, "Also used by the axis guides (Ctrl+G).");
+        ToolTip.SetTip(thick, "Also used by the axis guides.");
 
         string? chPath = init.CrosshairImagePath;
         var chName = NameBlock();

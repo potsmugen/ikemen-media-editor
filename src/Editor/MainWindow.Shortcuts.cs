@@ -39,9 +39,6 @@ public partial class MainWindow
         ["Find"] = () => OnFocusFind(this, new RoutedEventArgs()),
         ["ActualSize"] = () => OnResetView(this, new RoutedEventArgs()),
         ["ZoomToFit"] = () => OnZoomFit(this, new RoutedEventArgs()),
-        ["Mask"] = () => OnToggleMask(this, new RoutedEventArgs()),
-        ["Bounds"] = () => OnToggleBounds(this, new RoutedEventArgs()),
-        ["Guides"] = () => OnToggleGuides(this, new RoutedEventArgs()),
         ["ZoomIn"] = () => ActiveCanvas?.StepZoom(1),
         ["ZoomOut"] = () => ActiveCanvas?.StepZoom(-1),
         ["PreviousSprite"] = () => StepSprite(-1),
@@ -123,7 +120,6 @@ public partial class MainWindow
             ("OpenDef", OpenDefItem), ("SaveAs", SaveAsSpritesItem),
             ("NewTab", NewTabItem), ("CloseTab", CloseTabItem), ("Undo", UndoItem), ("Redo", RedoItem),
             ("ZoomIn", ZoomInItem), ("ZoomOut", ZoomOutItem), ("ActualSize", ActualSizeItem), ("ZoomToFit", ZoomFitItem),
-            ("Mask", MaskItem), ("Bounds", BoundsItem), ("Guides", GuidesItem),
         };
         foreach (var (id, item) in items)
             item.InputGesture = _shortcuts.GetValueOrDefault(id) is { } c ? new KeyGesture(c.Key, c.Modifiers) : null;

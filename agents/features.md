@@ -178,11 +178,14 @@ and constraints that are easy to miss when reading one code path in isolation.
   shape, in which case a click picks the region instead. Only a drag selects or moves, so there
   are no drag-made 1×1 selections; a drag off the sprite still pans. With the Magic Wand active,
   Shift+click adds the picked region to the current selection instead of replacing it.
+- **Render Sprite Blending** (View menu, on by default, settings.json `Canvas.RenderBlending`): off draws
+  sprites raw: every pixel opaque (index 0 and palette alpha show their color) and no Add/Sub/SubAdd on
+  the Animations canvas, GIF/WebP export (with background) and PNG exports.
 - **Selection outline**: the dashed outline animates (marching ants) while the Select tool is
   active, stepping every settings.json `SelectionAnimationMilliseconds` (default 150, 0–1000;
   0 disables). The timer stops when there is no selection or another tool is active.
 - **Sprite drag** (Sprites axis, Animations offset) starts only on a visible pixel (alpha above 0 as
-  drawn, every pixel with Show Mask); a transparent pixel pans like empty canvas.
+  drawn, every pixel with Render Sprite Blending off); a transparent pixel pans like empty canvas.
 - **Wheel and pinch zoom**: the sprite, animation and palette-preview canvases and the
   reference image step `ZoomLevels` once per wheel unit (`ZoomSteps`), so a notch is one
   step and fractional touchpad deltas add up; reversing drops the leftover. A Windows touchpad
@@ -413,7 +416,7 @@ and constraints that are easy to miss when reading one code path in isolation.
   the tab is entered; blank for a true-color sprite. Off, the pick stays, and turning it off pins
   the shown palette. Apply Preview Palette applies whatever the box shows; it is disabled when
   the only selected sprite already uses that palette.
-  Right-click its swatches > Show in Palettes Tab selects that palette there, with the
+  Right-click its swatches > View in Palettes Tab selects that palette there, with the
   right-clicked color picked for editing.
 - **Palette selection** follows the palette object; a preview can show the active sprite
   without changing the edited palette. Dirty palettes show `*`. The Palettes tab shows `*`

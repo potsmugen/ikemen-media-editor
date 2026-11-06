@@ -123,9 +123,6 @@ public static class Shortcuts
         new("Find", "Edit", "Filter (current tab's list)", ShortcutScope.Everywhere, "Ctrl+F", InTextBoxes: true),
         new("ActualSize", "View", "Actual size", ShortcutScope.Everywhere, "Ctrl+0"),
         new("ZoomToFit", "View", "Zoom to fit", ShortcutScope.Everywhere, "Ctrl+9"),
-        new("Mask", "View", "Mask", ShortcutScope.Everywhere, "Ctrl+M"),
-        new("Bounds", "View", "Sprite bounds", ShortcutScope.Everywhere, "Ctrl+B"),
-        new("Guides", "View", "Axis guides", ShortcutScope.Everywhere, "Ctrl+G"),
         new("ZoomIn", "View", "Zoom in", ShortcutScope.Everywhere, "Ctrl++"), // the usual Ctrl+Plus/Minus/0 family
         new("ZoomOut", "View", "Zoom out", ShortcutScope.Everywhere, "Ctrl+-"),
         // Step the tab's list without moving focus, so canvas arrows keep nudging (Photoshop's Alt+[ / Alt+]).

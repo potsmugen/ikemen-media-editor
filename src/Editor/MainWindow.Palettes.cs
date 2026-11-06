@@ -1897,7 +1897,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         {
             ItemsSource = new List<Control>
             {
-                MenuAction("Show in Palettes Tab", () => ShowPaletteInPalettesTab(pal, index), _file.Palettes.Contains(pal)),
+                MenuAction("View in Palettes Tab", () => ShowPaletteInPalettesTab(pal, index), _file.Palettes.Contains(pal)),
             },
         });
         e.Handled = true;

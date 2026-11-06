@@ -184,10 +184,6 @@ Select tool gaps against image editor conventions:
   radio options (Find Similar Sprites, Align With Onion Skin), instead of tooltips. Both used
   that once (a SemiBold label over a ThemeMutedText line). The SFF v1 Palette dialog explains
   its two options in one line above them, which is a third shape to weigh.
-- Rename the View > Show Transparency Mask command (Strings.ViewShowMask, Ctrl+M). Name what
-  it actually does: it forces every pixel opaque so index 0 and palette-alpha pixels show
-  their color (Sprite.ToBgra, showMask). Likely "Show Sprite Alpha" or "Render Sprite Alpha";
-  settle the wording and its tooltip.
 
 ### Other
 
@@ -203,7 +199,7 @@ Built, but not tried by the maintainer yet.
 ### Paint on true color
 
 - Eraser and Select on a true-color sprite (use a real true-color sample, e.g. a PNG import):
-  Paint Mode opens on Eraser, erasing zeroes pixels (check them with Show Mask: cleared pixels
+  Paint Mode opens on Eraser, erasing zeroes pixels (check them with Render Sprite Blending off: cleared pixels
   turn black), Commit/Discard/undo and the paint history follow, Copy/Paste/Move work and a
   true-color copy won't paste into an indexed sprite (Paste stays dimmed).
 - Pencil, Fill, Replace and Eyedropper are disabled on true color; layers are too.
@@ -272,7 +268,7 @@ Built, but not tried by the maintainer yet.
 - Sprites tab palette preview: Follow sprite (on by default, not saved) swaps the box to each
   sprite's own palette when the sprite changes or the tab is entered; turning it off pins the
   shown palette; Apply Preview Palette is disabled for one sprite already on that palette.
-- Right-click the sprites tab swatches > Show in Palettes Tab: selects that palette with the
+- Right-click the sprites tab swatches > View in Palettes Tab: selects that palette with the
   color under the pointer picked; disabled when the preview isn't the file's own palette.
 - SFF v1 order edits: move, add, duplicate or delete a sprite between a flagged link and the
   sprite whose palette it uses (sprites_org.sff, 6001,6 before 6001,7) — each is refused with
