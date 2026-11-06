@@ -190,6 +190,17 @@ public class Timeline : Control
         return d > 0 ? at + Math.Clamp((int)Math.Floor(layout - starts[frame]), 0, d - 1) : at;
     }
 
+    /// <summary>Frame under x and the ticks elapsed inside it (0 on a hold or zero-length frame); null with no frames.</summary>
+    public (int Frame, int Elapsed)? FrameTickAt(double x)
+    {
+        if (_frames.Count == 0) return null;
+        var starts = Starts();
+        double layout = Math.Clamp(LayoutTickAt(x), 0, starts[^1]);
+        int frame = FrameAtLayout(layout, starts);
+        int d = _frames[frame].Duration;
+        return (frame, d > 0 ? Math.Clamp((int)Math.Floor(layout - starts[frame]), 0, d - 1) : 0);
+    }
+
     public override void Render(DrawingContext ctx)
     {
         var bounds = new Rect(Bounds.Size);

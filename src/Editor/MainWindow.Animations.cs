@@ -1967,7 +1967,17 @@ public partial class MainWindow
 
     private void WireTimelineEvents()
     {
-        TimelineView.ContextRequested += (_, _) => ShowPlaceholderMenu(TimelineView);
+        TimelineView.ContextRequested += OnTimelineContextRequested;
+    }
+
+    private void OnTimelineContextRequested(object? sender, ContextRequestedEventArgs e)
+    {
+        (int Frame, int Elapsed)? hit = e.TryGetPosition(TimelineView, out var pos) ? TimelineView.FrameTickAt(pos.X) : null;
+        bool canSplit = _action is { } a && hit is { } h && h.Frame < a.Elements.Count
+            && a.Elements[h.Frame].Duration >= 2 && h.Elapsed >= 1;
+        var split = MenuAction("Split Frame", () => SplitFrame(hit!.Value.Frame, hit.Value.Elapsed), canSplit);
+        if (!canSplit) ToolTip.SetTip(split, "Right-click past the first tick of a timed frame.");
+        OpenContextMenu(TimelineView, new ContextMenu { ItemsSource = new List<object> { split } });
     }
 
     private void Pause()

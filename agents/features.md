@@ -269,6 +269,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   interpolate. The playhead stays visible when paused and follows any frame pick. The wheel
   zooms around the cursor, Shift+wheel scrolls, and the bar is disabled at fit. A new action
   fits the zoom; frame edits keep it.
+  Right-click > Split Frame cuts the frame under the pointer after the ticks elapsed there (not on the first
+  tick, a hold or a 1-tick frame). The second part starts from the drawn (interpolated) values, offsets rounded,
+  and takes the original's next-frame interpolation; the first part now interpolates into it. Loopstart, Clsn
+  defaults and comments stay on the first part; boxes are copied. Selects the second part, one undo step.
 - **List keyboard navigation** stays inside the focused list. Each tab's main list takes
   focus when the tab opens and after a load, and a navigation key with nothing focused does
   the same instead of stepping the menus. Don't wrap `SelectedItems` edits in
@@ -924,6 +928,13 @@ summaries; treat anything marked unverified as unknown.
   N-1 displays (or the last frame when N is LoopStart), its value lerps toward
   N's. Blend only interpolates if N-1 has a blend; boxes do not. Tested by
   `AnimationAction.StateAt`.
+  The last frame has no N, so it lerps toward the Loopstart frame, and only if that frame carries the flag
+  (anim.go UpdateInterpolation: `nextDrawidx = loopstart`). A flag on the Loopstart frame therefore moves
+  both the frame before it and the last frame. The frame table marks the second case with an arrow at the
+  bottom of the last row (`Wrap*`), not at the Loopstart frame.
+  MUGEN does the same (mugen-unleashed `src/anim.c`: `Anim_SeekElem` takes `loop_elem` as the next element past
+  the last, `Anim_Interpolate` lerps toward it). They differ on Blend: MUGEN lerps only when both frames have the
+  same blend mode, Ikemen when the current frame has any blend. The editor follows Ikemen.
 
 ### SND and audio
 

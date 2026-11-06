@@ -288,6 +288,46 @@ public partial class MainWindow
         });
     }
 
+    /// <summary>Cuts frame `at` after `elapsed` ticks. The second part starts from the values drawn at that tick
+    /// and interpolates onward like the original; Loopstart, Clsn defaults and comments stay on the first part.</summary>
+    private void SplitFrame(int at, int elapsed)
+    {
+        if (_action is not { } action || at < 0 || at >= action.Elements.Count) return;
+        var src = action.Elements[at];
+        if (src.Duration < 2 || elapsed < 1 || elapsed >= src.Duration) return;
+        Pause();
+
+        int tick = action.Elements.Take(at).Sum(el => Math.Max(el.Duration, 0)) + elapsed;
+        var state = action.StateAt(tick);
+        int next = at + 1 < action.Elements.Count ? at + 1 : action.LoopStart;
+        SortedSet<int>[] sets = [action.InterpolateOffset, action.InterpolateScale, action.InterpolateAngle, action.InterpolateBlend];
+        bool[] had = sets.Select(s => s.Contains(next)).ToArray(); // read before the insert shifts the sets
+
+        EditFrameList("split frame", () =>
+        {
+            // New objects: the undo snapshot still holds the original element.
+            var first = CloneElement(src);
+            first.Duration = elapsed;
+            var second = CloneElement(src);
+            second.Duration = src.Duration - elapsed;
+            second.Comments = [];
+            second.EndComment = null;
+            second.OffsetX = (int)Math.Round(state.OffsetX, MidpointRounding.AwayFromZero);
+            second.OffsetY = (int)Math.Round(state.OffsetY, MidpointRounding.AwayFromZero);
+            second.ScaleX = (float)state.ScaleX;
+            second.ScaleY = (float)state.ScaleY;
+            second.Angle = (float)state.Angle;
+            second.Blend = state.Blend;
+
+            action.Elements[at] = first;
+            action.Elements.Insert(at + 1, second);
+            action.InsertFrameLines(at + 1, 1);
+            for (int k = 0; k < sets.Length; k++)
+                if (had[k]) sets[k].Add(at + 1); // the first part still moves toward what follows, now the second part
+            return (at + 1, new List<int> { at + 1 });
+        });
+    }
+
     private void OnRemoveFrame(object? sender, RoutedEventArgs e)
     {
         if (_action is not { } action) return;
