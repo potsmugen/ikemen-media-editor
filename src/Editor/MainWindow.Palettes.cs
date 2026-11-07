@@ -2016,7 +2016,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         return fileName ?? "external palette";
     }
 
-    /// <summary>Dropdown label: "1,1", "S3: sprite 6001,6" (first sprite carrying it), "F1: kfm01.act", "T1: temp",
+    /// <summary>Dropdown label: "1,1", "S3 (sprite 6001,6)" (first sprite carrying it), "F1 (kfm01.act)", "T1 (temp)",
     /// each with its depth.</summary>
     private static string PaletteDropdownName(SffFile file, Palette palette,
         IReadOnlyDictionary<Palette, int>? externalOrdinals = null, IReadOnlyDictionary<Palette, Sprite>? carriers = null)
@@ -2026,12 +2026,12 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         {
             externalOrdinals ??= ExternalPaletteOrdinals(file);
             string what = IsTempPalette(palette) ? "temp" : Path.GetFileName(palette.SourcePath) ?? "temp";
-            return (externalOrdinals.TryGetValue(palette, out int n) ? $"{ExternalGroup(palette)}{n}: " : "") + what + depth;
+            return (externalOrdinals.TryGetValue(palette, out int n) ? $"{ExternalGroup(palette)}{n} ({what})" : what) + depth;
         }
         string key = PaletteKey(file, palette);
         if (!key.StartsWith('S')) return key + depth;
         carriers ??= V1PaletteCarriers(file);
-        return key + (carriers.TryGetValue(palette, out var sprite) ? $": sprite {sprite.Group},{sprite.Index}" : ": unused") + depth;
+        return key + (carriers.TryGetValue(palette, out var sprite) ? $" (sprite {sprite.Group},{sprite.Index})" : " (unused)") + depth;
     }
 
     private static int SpriteOrdinal(SffFile file, Sprite sprite, IReadOnlyDictionary<Sprite, int>? ordinals = null) =>
@@ -2149,7 +2149,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         var carriers = V1PaletteCarriers(_file);
         var externalOrdinals = ExternalPaletteOrdinals(_file);
         var spriteOrdinals = _file.Sprites.Select((sprite, i) => (sprite, ordinal: i + 1)).ToDictionary(x => x.sprite, x => x.ordinal);
-        var labels = _file.Palettes.Select((p, i) => $"{i + 1}: {PaletteDropdownName(_file, p, externalOrdinals, carriers)}").ToList();
+        var labels = _file.Palettes.Select(p => PaletteDropdownName(_file, p, externalOrdinals, carriers)).ToList();
 
         // Preserves whatever suppression the caller already had, rather than
         // hardcoding it back to false — a caller that's suppressed (e.g.
@@ -2164,8 +2164,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         if (PaletteList is not null)
         {
             var filter = (PaletteFilterBox?.Text ?? "").Trim();
-            // Numbers stay absolute (position in _file.Palettes, matching PaletteBox's own
-            // labels) even under a filter, so a palette keeps its number when others around
+            // Numbers stay absolute (position in _file.Palettes) even under a filter, so a palette keeps its number when others around
             // it are hidden — same spirit as the action list keeping Action.Number stable.
             var current = _paletteOverride >= 0 && _paletteOverride < _file.Palettes.Count ? _file.Palettes[_paletteOverride] : null;
 

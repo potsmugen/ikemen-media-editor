@@ -2312,8 +2312,8 @@ public partial class MainWindow
         bool anyGif = sources.Any(s => s.IsGif);
         var externalOrdinals = ExternalPaletteOrdinals(file);
         var carriers = V1PaletteCarriers(file);
-        var paletteLabels = file.Palettes.Select((palette, index) =>
-            $"{index + 1}. {PaletteDropdownName(file, palette, externalOrdinals, carriers)}").ToArray();
+        var paletteLabels = file.Palettes.Select(palette =>
+            PaletteDropdownName(file, palette, externalOrdinals, carriers)).ToArray();
         // Defaults come from the images, not the last import: a true-color
         // image has no palette to keep, so it starts as 32-bit color, while an
         // indexed batch starts on its own palette.

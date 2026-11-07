@@ -371,7 +371,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   nothing is removed.
 - **Palette list columns** are #, Group, Index, Source, Depth and Link. Depth is the palette's
   bit depth, the same scale as Convert Depth (8-bit for 256 colors); a count that isn't a supported
-  depth shows as its color count. Palette dropdown labels add the same depth.
+  depth shows as its color count. Palette dropdown labels add the same depth, start with the palette's key
+  (no list number) so typing it jumps there, and put a v1 palette's sprite in parentheses: `S3 (sprite 6001,6) (8-bit)`.
 - **Palette rows drag to reorder** in one undo step; only the list order, the F/T numbers
   and (v2) the saved palette table order change.
 - **Temp palettes** are made in the editor with no file yet: New, Create From Images, or
