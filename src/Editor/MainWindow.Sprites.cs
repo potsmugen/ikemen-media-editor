@@ -1582,11 +1582,10 @@ public partial class MainWindow
 
             // The guess and the floor are the two things detection decided on
             // the user's behalf, so both go past them before anything is added.
-            if (await Dialogs.PromptSheetDetect(this, name, bytes, layout, layout.Count,
+            if (await Dialogs.PromptSheetDetect(this, name, bytes, layout,
                     SheetImport.MinimumSize) is not { } detected) return;
 
-            // Re-detect if the floor or background moved, so what is imported
-            // is what the dialog just showed.
+            // Re-detect if the floor or background moved, to refresh the background the layout carries.
             if (detected.MinimumSize != SheetImport.MinimumSize || detected.Background != layout.Background)
             {
                 // Kept for the rest of the session, like Find Similar's choices; settings.json seeds it.
@@ -1600,11 +1599,8 @@ public partial class MainWindow
                 }
             }
 
-            if (detected.Excluded != null && detected.Excluded.Count > 0)
-            {
-                var kept = layout.Cells.Where(c => !detected.Excluded.Contains(c)).ToList();
-                layout = new Sff.SheetLayout(kept, layout.Background, layout.AssumedBackground);
-            }
+            // The dialog's boxes are what gets imported, including any moved, drawn or deleted by hand.
+            layout = new Sff.SheetLayout(detected.Cells, layout.Background, layout.AssumedBackground);
 
             if (layout.Count == 0)
             {

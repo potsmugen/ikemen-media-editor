@@ -509,7 +509,10 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Sprite-sheet import** detects sprites as connected components grouped into reading-order
   bands. Opaque sheets guess the most common color as background and clear it inside crops.
   Touching sprites stay merged, and a minimum size filters specks. Palettes over 255 colors
-  need true color or reduction.
+  need true color or reduction. In the preview, rectangles can be dragged to move, resized by
+  the edges and corners of the selected one, deleted with Delete, and new ones drawn by dragging
+  empty space. Edited, drawn and deleted rectangles survive a size-floor or background change;
+  the rest are redetected. Reset discards all edits. Import order is re-sorted into reading order from the final boxes.
 - **Applying palettes** preserves indexes by default. Nearest-color conversion is unavailable
   for linked sprites; on a sprite with borrowers it asks to confirm first, since the
   borrowers share the remapped pixels (paint does not ask: editing pixels is its intent). Converting true color to indexed is lossy. In v1,
@@ -1071,7 +1074,8 @@ summaries; treat anything marked unverified as unknown.
   Show dialogs with `ShowModal`, not `ShowDialog`: it makes Escape close them like X
   (after the dialog's own key handlers, which can claim Escape first), and on Windows
   it drops the minimize and maximize boxes once the dialog opens (`WinDialogStyle`), since
-  Avalonia 11.3 has no CanMinimize/CanMaximize.
+  Avalonia 11.3 has no CanMinimize/CanMaximize. A resizable dialog opts into keeping Maximize
+  with `allowMaximize: true` (the sheet import dialog and the import dialog with a preview).
 - Playback reassigns `AnimCanvas.Boxes` each tick; bounds-check held indices.
   `Pointer.Capture(null)` raises `PointerCaptureLost` synchronously, so read
   drag state before releasing capture. Put `DoubleTapped` on the cell Border

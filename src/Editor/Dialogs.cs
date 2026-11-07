@@ -143,12 +143,12 @@ public static partial class Dialogs
 
     /// <summary>Shows a dialog modally. Escape closes it like the X button, unless a control already used the key.
     /// On Windows the title bar keeps only Close.</summary>
-    private static Task ShowModal(this Window dialog, Window owner)
+    private static Task ShowModal(this Window dialog, Window owner, bool allowMaximize = false)
     {
         dialog.Opened += (_, _) =>
         {
             if (!OperatingSystem.IsWindows()) return; // checked in here: CA1416 doesn't see a guard outside the lambda
-            try { WinDialogStyle.RemoveMinMax(dialog); }
+            try { WinDialogStyle.RemoveMinMax(dialog, allowMaximize); }
             catch (Exception ex) { CrashLog.Write("WinDialogStyle", ex); }
         };
         dialog.KeyDown += (_, e) =>
@@ -2341,24 +2341,31 @@ public static partial class Dialogs
         else
         {
             buttons.Margin = new Avalonia.Thickness(20, 0, 20, 20);
-            dialog.Content = new StackPanel
+            var previewPanel = ImportPreviewPanel(dialog, preview, Current, Section,
+                refresh => {
+                    foreach (var c in new ToggleButton[] { own, previous, specific, keep, nearest, keepMask })
+                        c.IsCheckedChanged += (_, _) => refresh();
+                    paletteBox.SelectionChanged += (_, _) => refresh();
+                    bitDepth.SelectionChanged += (_, _) => refresh();
+                });
+            Grid.SetColumn(previewPanel, 1);
+            Grid.SetRow(buttons, 1);
+            dialog.Content = new Grid
             {
+                RowDefinitions = new RowDefinitions("*,Auto"),
                 Children =
                 {
-                    new StackPanel { Orientation = Orientation.Horizontal, Children = { body, ImportPreviewPanel(dialog, preview, Current, Section,
-                        refresh => {
-                            foreach (var c in new ToggleButton[] { own, previous, specific, keep, nearest, keepMask })
-                                c.IsCheckedChanged += (_, _) => refresh();
-                            paletteBox.SelectionChanged += (_, _) => refresh();
-                            bitDepth.SelectionChanged += (_, _) => refresh();
-                        }) } },
+                    new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), Children = { body, previewPanel } },
                     buttons,
                 },
             };
+            // Resizable from its opening size, so a maximized dialog gives the preview the room.
+            dialog.CanResize = true;
+            dialog.Opened += (_, _) => { dialog.MinWidth = dialog.Bounds.Width; dialog.MinHeight = dialog.Bounds.Height; };
         }
         dialog.Closed += (_, _) => result.TrySetResult(null);
 
-        dialog.ShowModal(owner);
+        dialog.ShowModal(owner, allowMaximize: preview is not null);
         return result.Task;
     }
 
@@ -2403,7 +2410,12 @@ public static partial class Dialogs
         heading.Margin = new Avalonia.Thickness(0, 0, 0, 10);
         // Square: the pane takes the options column's height, and its width follows.
         var pane = new Grid { Children = { view, error } };
-        pane.SizeChanged += (_, e) => { if (e.HeightChanged) pane.Width = e.NewSize.Height; };
+        pane.SizeChanged += (_, e) => { if (e.HeightChanged && dialog.SizeToContent != SizeToContent.Manual) pane.Width = e.NewSize.Height; };
+        // Once the user resizes the window, the pane fills the room instead of staying square.
+        dialog.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == Window.SizeToContentProperty && dialog.SizeToContent == SizeToContent.Manual) pane.Width = double.NaN;
+        };
         Grid.SetRow(pane, 1);
         return new Grid
         {
@@ -2413,31 +2425,37 @@ public static partial class Dialogs
         };
     }
 
-    /// <summary>What the sheet dialog collected: a background, size floor, and excluded cells.</summary>
-    public sealed record SheetDetectChoices(Rgba? Background, int MinimumSize, IReadOnlyList<Sff.SheetCell> Excluded);
+    /// <summary>What the sheet dialog collected: a background, size floor, and the final sprite boxes in reading order.</summary>
+    public sealed record SheetDetectChoices(Rgba? Background, int MinimumSize, IReadOnlyList<Sff.SheetCell> Cells);
+
+    /// <summary>One sprite rectangle in the sheet dialog. Touched means edited or drawn by hand.</summary>
+    private sealed class SheetBox
+    {
+        public Sff.SheetCell Cell;
+        public bool Touched;
+    }
 
     /// <summary>One background color the sheet dialog offers, shown by its label.</summary>
     public sealed record SheetBackgroundChoice(string Label, Rgba? Value);
 
     /// <summary>
     /// Reports what sheet detection found and lets its background and size floor
-    /// be corrected before importing. Detected cells can also be excluded from
-    /// the import. Returns null if canceled.
+    /// be corrected before importing. Rectangles can be moved, resized, drawn and
+    /// deleted. Returns null if canceled.
     /// </summary>
     public static Task<SheetDetectChoices?> PromptSheetDetect(
-        Window owner, string name, byte[] bytes, Sff.SheetLayout layout, int found, int floor)
+        Window owner, string name, byte[] bytes, Sff.SheetLayout layout, int floor)
     {
         var result = new TaskCompletionSource<SheetDetectChoices?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        var detected = new TextBlock { Foreground = ThemeBrush("ThemeMutedText") };
         var foundBox = new NumericUpDown { Minimum = 0, Maximum = 4096, Increment = 1, FormatString = "0", Value = floor, Width = 100 };
         ToolTip.SetTip(foundBox, "Raising this drops the stray pixels a keyed sheet leaves behind; lowering it keeps sprites too small to be real.");
-        var foundLabel = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
+        var foundLabel = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Foreground = ThemeBrush("ThemeMutedText") };
 
         // The picker shows two choices when detection had to guess: the most
         // common color, or the first top-left pixel. The label explains each
         // choice; the raw value alone is useless.
-        var background = new ComboBox { MinWidth = 190 };
+        var background = new ComboBox { MinWidth = 190, HorizontalAlignment = HorizontalAlignment.Left };
         if (layout.AssumedBackground && layout.Background is { } guessed)
         {
             var firstPixel = Sff.SheetImport.FirstPixelColor(bytes);
@@ -2451,7 +2469,12 @@ public static partial class Dialogs
             background.SelectedIndex = 0;
         }
 
-        HashSet<Sff.SheetCell> excluded = new();
+        // Boxes are the sprites to import. Edited or drawn boxes survive redetection;
+        // a deleted or edited detected cell stays hidden.
+        var boxes = new List<SheetBox>();
+        var hidden = new HashSet<Sff.SheetCell>();
+        SheetBox? selected = null;
+        Rgba? shownBackground = null;
         Bitmap? previewBitmap = null;
         try
         {
@@ -2481,6 +2504,58 @@ public static partial class Dialogs
             previewCanvas.ClipToBounds = true;
         }
 
+        int sheetW = previewBitmap?.PixelSize.Width ?? 0;
+        int sheetH = previewBitmap?.PixelSize.Height ?? 0;
+
+        void UpdateCount()
+        {
+            int n = boxes.Count;
+            foundLabel.Text = $"{n} sprite{(n == 1 ? "" : "s")}";
+        }
+
+        var deleteBox = new Button { Content = "Delete", MinWidth = 90, IsEnabled = false };
+        ToolTip.SetTip(deleteBox, "Removes the selected rectangle.");
+        var resetBox = new Button { Content = "Reset", MinWidth = 90, IsEnabled = false };
+        ToolTip.SetTip(resetBox, "Discards all edits and restores the detected rectangles.");
+
+        void Redraw()
+        {
+            deleteBox.IsEnabled = selected != null;
+            resetBox.IsEnabled = hidden.Count > 0 || boxes.Any(b => b.Touched);
+            foreach (var old in previewContent.Children.OfType<Border>().ToList()) previewContent.Children.Remove(old);
+            var brush = ContrastBrush(shownBackground);
+            foreach (var box in boxes)
+            {
+                var c = box.Cell;
+                var rect = new Border
+                {
+                    Width = c.Width,
+                    Height = c.Height,
+                    BorderBrush = brush,
+                    BorderThickness = new Avalonia.Thickness(box == selected ? 4 : 2),
+                    Background = Brushes.Transparent,
+                    IsHitTestVisible = false,
+                };
+                Canvas.SetLeft(rect, c.X);
+                Canvas.SetTop(rect, c.Y);
+                previewContent.Children.Add(rect);
+            }
+            if (selected is null) return;
+            double hs = 8 / previewZoom;
+            var s0 = selected.Cell;
+            double[] xs = { s0.X, s0.X + s0.Width / 2.0, s0.X + s0.Width };
+            double[] ys = { s0.Y, s0.Y + s0.Height / 2.0, s0.Y + s0.Height };
+            for (int iy = 0; iy < 3; iy++)
+                for (int ix = 0; ix < 3; ix++)
+                {
+                    if (ix == 1 && iy == 1) continue;
+                    var handle = new Border { Width = hs, Height = hs, Background = brush, IsHitTestVisible = false };
+                    Canvas.SetLeft(handle, xs[ix] - hs / 2);
+                    Canvas.SetTop(handle, ys[iy] - hs / 2);
+                    previewContent.Children.Add(handle);
+                }
+        }
+
         void Update()
         {
             int size = (int)(foundBox.Value ?? floor);
@@ -2488,56 +2563,182 @@ public static partial class Dialogs
                 ? (background.SelectedItem as SheetBackgroundChoice)?.Value
                 : null;
             var newLayout = LayoutWith(bytes, picked, size);
-            int again = newLayout?.Count ?? 0;
-            foundLabel.Text = again == 0
-                ? $"{found} sprite{(found == 1 ? "" : "s")}"
-                : $"{again} sprite{(again == 1 ? "" : "s")} (was {found})";
-            detected.Text = layout.AssumedBackground
-                ? $"Treating {Describe(picked ?? layout.Background!.Value)} as the background."
-                : "The sheet carries its own transparency.";
-            if (previewCanvas != null)
+            shownBackground = picked ?? layout.Background;
+
+            var kept = boxes.Where(b => b.Touched).ToList();
+            if (selected != null && !kept.Contains(selected)) selected = null;
+            boxes.Clear();
+            if (newLayout != null)
+                foreach (var cell in newLayout.Cells)
+                    if (!hidden.Contains(cell)) boxes.Add(new SheetBox { Cell = cell });
+            boxes.AddRange(kept);
+            UpdateCount();
+            Redraw();
+        }
+
+        // Pointer editing: drag a box to move it, an edge or corner of the selected one to resize it,
+        // empty space to draw a new one. Delete removes the selected box.
+        const int EdgeL = 1, EdgeR = 2, EdgeT = 4, EdgeB = 8;
+        const int DragNone = 0, DragMove = 1, DragResize = 2, DragDraw = 3;
+        int dragMode = DragNone, dragEdges = 0;
+        bool dragMoved = false;
+        Avalonia.Point dragStart = default;
+        Sff.SheetCell dragOrigin = default;
+        SheetBox? drawing = null;
+        Avalonia.Input.StandardCursorType shownCursor = Avalonia.Input.StandardCursorType.Arrow;
+
+        int EdgesAt(Sff.SheetCell c, Avalonia.Point p)
+        {
+            double tol = Math.Max(1, Math.Min(6 / previewZoom, Math.Min(c.Width, c.Height) / 3.0));
+            if (p.X < c.X - tol || p.X > c.X + c.Width + tol || p.Y < c.Y - tol || p.Y > c.Y + c.Height + tol) return 0;
+            int e = 0;
+            if (Math.Abs(p.X - c.X) <= tol) e |= EdgeL; else if (Math.Abs(p.X - (c.X + c.Width)) <= tol) e |= EdgeR;
+            if (Math.Abs(p.Y - c.Y) <= tol) e |= EdgeT; else if (Math.Abs(p.Y - (c.Y + c.Height)) <= tol) e |= EdgeB;
+            return e;
+        }
+
+        SheetBox? BoxAt(Avalonia.Point p)
+        {
+            for (int i = boxes.Count - 1; i >= 0; i--)
             {
-                var old = previewContent.Children.OfType<Border>().ToList();
-                foreach (var r in old) previewContent.Children.Remove(r);
-                if (newLayout != null)
-                {
-                    var currentBg = picked ?? layout.Background;
-                    var activeBrush = ContrastBrush(currentBg);
-                    foreach (var cell in newLayout.Cells)
-                    {
-                        bool isExcluded = excluded.Contains(cell);
-                        var rect = new Border
-                        {
-                            Width = cell.Width,
-                            Height = cell.Height,
-                            BorderBrush = isExcluded ? Brushes.Gray : activeBrush,
-                            BorderThickness = new Avalonia.Thickness(2),
-                            Background = Brushes.Transparent,
-                            Opacity = isExcluded ? 0.35 : 1
-                        };
-                        ToolTip.SetTip(rect, "Click to exclude or restore this sprite.");
-                        Canvas.SetLeft(rect, cell.X);
-                        Canvas.SetTop(rect, cell.Y);
-                        rect.PointerPressed += (_, e) =>
-                        {
-                            if (excluded.Contains(cell))
-                            {
-                                excluded.Remove(cell);
-                                rect.BorderBrush = activeBrush;
-                                rect.Opacity = 1;
-                            }
-                            else
-                            {
-                                excluded.Add(cell);
-                                rect.BorderBrush = Brushes.Gray;
-                                rect.Opacity = 0.35;
-                            }
-                            e.Handled = true;
-                        };
-                        previewContent.Children.Add(rect);
-                    }
-                }
+                var c = boxes[i].Cell;
+                if (p.X >= c.X && p.X < c.X + c.Width && p.Y >= c.Y && p.Y < c.Y + c.Height) return boxes[i];
             }
+            return null;
+        }
+
+        Avalonia.Input.StandardCursorType CursorFor(int edges) => edges switch
+        {
+            EdgeL or EdgeR => Avalonia.Input.StandardCursorType.SizeWestEast,
+            EdgeT or EdgeB => Avalonia.Input.StandardCursorType.SizeNorthSouth,
+            EdgeL | EdgeT => Avalonia.Input.StandardCursorType.TopLeftCorner,
+            EdgeR | EdgeB => Avalonia.Input.StandardCursorType.BottomRightCorner,
+            EdgeR | EdgeT => Avalonia.Input.StandardCursorType.TopRightCorner,
+            EdgeL | EdgeB => Avalonia.Input.StandardCursorType.BottomLeftCorner,
+            _ => Avalonia.Input.StandardCursorType.Arrow,
+        };
+
+        if (previewBitmap != null)
+        {
+            previewContent.Background = Brushes.Transparent;
+            previewContent.Focusable = true;
+
+            previewContent.PointerPressed += (_, e) =>
+            {
+                if (!e.GetCurrentPoint(previewContent).Properties.IsLeftButtonPressed) return;
+                previewContent.Focus();
+                var p = e.GetPosition(previewContent);
+                int edges = selected != null ? EdgesAt(selected.Cell, p) : 0;
+                var hit = edges != 0 ? selected : BoxAt(p);
+                dragStart = p;
+                dragMoved = false;
+                if (hit != null)
+                {
+                    selected = hit;
+                    dragOrigin = hit.Cell;
+                    dragEdges = edges;
+                    dragMode = edges == 0 ? DragMove : DragResize;
+                }
+                else
+                {
+                    selected = null;
+                    drawing = null;
+                    dragMode = DragDraw;
+                }
+                e.Pointer.Capture(previewContent);
+                Redraw();
+                e.Handled = true;
+            };
+
+            previewContent.PointerMoved += (_, e) =>
+            {
+                var p = e.GetPosition(previewContent);
+                if (dragMode == DragNone)
+                {
+                    var want = selected != null && EdgesAt(selected.Cell, p) is var h && h != 0
+                        ? CursorFor(h)
+                        : Avalonia.Input.StandardCursorType.Arrow;
+                    if (want != shownCursor)
+                    {
+                        shownCursor = want;
+                        previewContent.Cursor = new Avalonia.Input.Cursor(want);
+                    }
+                    return;
+                }
+                int dx = (int)Math.Round(p.X - dragStart.X), dy = (int)Math.Round(p.Y - dragStart.Y);
+                if (dx == 0 && dy == 0 && !dragMoved) return;
+                dragMoved = true;
+                var o = dragOrigin;
+                Sff.SheetCell next;
+                if (dragMode == DragMove)
+                {
+                    next = new Sff.SheetCell(Math.Clamp(o.X + dx, 0, sheetW - o.Width), Math.Clamp(o.Y + dy, 0, sheetH - o.Height), o.Width, o.Height);
+                }
+                else if (dragMode == DragResize)
+                {
+                    int left = o.X, top = o.Y, right = o.X + o.Width, bottom = o.Y + o.Height;
+                    if ((dragEdges & EdgeL) != 0) left = Math.Clamp(o.X + dx, 0, right - 1);
+                    if ((dragEdges & EdgeR) != 0) right = Math.Clamp(right + dx, left + 1, sheetW);
+                    if ((dragEdges & EdgeT) != 0) top = Math.Clamp(o.Y + dy, 0, bottom - 1);
+                    if ((dragEdges & EdgeB) != 0) bottom = Math.Clamp(bottom + dy, top + 1, sheetH);
+                    next = new Sff.SheetCell(left, top, right - left, bottom - top);
+                }
+                else
+                {
+                    int x0 = Math.Clamp((int)Math.Floor(dragStart.X), 0, sheetW - 1), y0 = Math.Clamp((int)Math.Floor(dragStart.Y), 0, sheetH - 1);
+                    int x1 = Math.Clamp((int)Math.Floor(p.X), 0, sheetW - 1), y1 = Math.Clamp((int)Math.Floor(p.Y), 0, sheetH - 1);
+                    next = new Sff.SheetCell(Math.Min(x0, x1), Math.Min(y0, y1), Math.Abs(x1 - x0) + 1, Math.Abs(y1 - y0) + 1);
+                    if (drawing is null)
+                    {
+                        drawing = new SheetBox { Cell = next, Touched = true };
+                        boxes.Add(drawing);
+                        selected = drawing;
+                    }
+                    drawing.Cell = next;
+                    UpdateCount();
+                    Redraw();
+                    return;
+                }
+                if (selected is { } box && box.Cell != next)
+                {
+                    if (!box.Touched) { hidden.Add(dragOrigin); box.Touched = true; }
+                    box.Cell = next;
+                    Redraw();
+                }
+            };
+
+            previewContent.PointerReleased += (_, e) =>
+            {
+                if (dragMode == DragNone) return;
+                dragMode = DragNone;
+                drawing = null;
+                e.Pointer.Capture(null);
+            };
+
+            void DeleteSelected()
+            {
+                if (selected is null) return;
+                if (!selected.Touched) hidden.Add(selected.Cell);
+                boxes.Remove(selected);
+                selected = null;
+                UpdateCount();
+                Redraw();
+            }
+
+            deleteBox.Click += (_, _) => DeleteSelected();
+            resetBox.Click += (_, _) =>
+            {
+                boxes.RemoveAll(b => b.Touched);
+                hidden.Clear();
+                selected = null;
+                Update();
+            };
+            previewContent.KeyDown += (_, e) =>
+            {
+                if (e.Key != Avalonia.Input.Key.Delete || selected is null) return;
+                DeleteSelected();
+                e.Handled = true;
+            };
         }
 
         foundBox.ValueChanged += (_, _) => Update();
@@ -2555,8 +2756,6 @@ public static partial class Dialogs
             Height = 700,
             MinWidth = 500,
             MinHeight = 420,
-            MaxWidth = 1400,
-            MaxHeight = 1000,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             CanResize = true,
             ShowInTaskbar = false,
@@ -2567,7 +2766,8 @@ public static partial class Dialogs
             var picked = background.SelectedIndex >= 0 && background.ItemCount > 0
                 ? (background.SelectedItem as SheetBackgroundChoice)?.Value
                 : null;
-            result.TrySetResult(new SheetDetectChoices(picked, (int)(foundBox.Value ?? floor), excluded.ToList()));
+            result.TrySetResult(new SheetDetectChoices(picked, (int)(foundBox.Value ?? floor),
+                Sff.SheetImport.Order(boxes.Select(b => b.Cell))));
             dialog.Close();
         };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
@@ -2575,14 +2775,14 @@ public static partial class Dialogs
         var body = new Grid
         {
             Margin = new Avalonia.Thickness(20),
-            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*,Auto,Auto,Auto"),
+            RowDefinitions = new RowDefinitions("Auto,*,Auto,Auto,Auto,Auto"),
         };
         body.RowSpacing = 10;
-        body.Children.Add(new TextBlock { Text = name });
-        Grid.SetRow(foundLabel, 1);
-        body.Children.Add(foundLabel);
-        Grid.SetRow(detected, 2);
-        body.Children.Add(detected);
+        body.Children.Add(new StackPanel
+        {
+            Orientation = Orientation.Horizontal, Spacing = 12,
+            Children = { new TextBlock { Text = name }, foundLabel },
+        });
         if (previewCanvas != null && previewBitmap != null)
         {
             var preview = new ScrollViewer
@@ -2607,44 +2807,72 @@ public static partial class Dialogs
                     previewContent.RenderTransformOrigin = new Avalonia.RelativePoint(0, 0, Avalonia.RelativeUnit.Relative);
                     previewCanvas.Width = previewBitmap.PixelSize.Width * previewZoom;
                     previewCanvas.Height = previewBitmap.PixelSize.Height * previewZoom;
+                    Redraw();
                 }
                 e.Handled = true;
             }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
-            Grid.SetRow(preview, 3);
+            Grid.SetRow(preview, 1);
             body.Children.Add(preview);
         }
+        var hint = new TextBlock
+        {
+            Text = "Click a rectangle to edit it, or drag empty space to add one.",
+            Foreground = ThemeBrush("ThemeMutedText"),
+        };
+        hint.VerticalAlignment = VerticalAlignment.Center;
+        hint.TextTrimming = TextTrimming.CharacterEllipsis;
+        var editRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 12 };
+        editRow.Children.Add(hint);
+        var editButtons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { deleteBox, resetBox } };
+        Grid.SetColumn(editButtons, 1);
+        editRow.Children.Add(editButtons);
+        Grid.SetRow(editRow, 2);
+        body.Children.Add(editRow);
         var minimumSize = new StackPanel
         {
-            Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center,
+            Spacing = 4,
             Children =
             {
-                new TextBlock { Text = "Ignore sprites smaller than", VerticalAlignment = VerticalAlignment.Center },
-                foundBox,
-                new TextBlock { Text = "pixels", VerticalAlignment = VerticalAlignment.Center },
+                new TextBlock { Text = "Minimum sprite size" },
+                new StackPanel
+                {
+                    Orientation = Orientation.Horizontal, Spacing = 6,
+                    Children = { foundBox, new TextBlock { Text = "pixels", VerticalAlignment = VerticalAlignment.Center } },
+                },
             },
         };
-        Grid.SetRow(minimumSize, 4);
+        Grid.SetRow(minimumSize, 3);
         body.Children.Add(minimumSize);
         if (layout.AssumedBackground)
         {
             var backgroundRow = new StackPanel
             {
-                Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center,
+                Spacing = 4,
+                Children = { new TextBlock { Text = "Background" }, background },
+            };
+            Grid.SetRow(backgroundRow, 4);
+            body.Children.Add(backgroundRow);
+        }
+        else
+        {
+            var ownRow = new StackPanel
+            {
+                Spacing = 4,
                 Children =
                 {
-                    new TextBlock { Text = "Background", VerticalAlignment = VerticalAlignment.Center },
-                    background,
+                    new TextBlock { Text = "Background" },
+                    new TextBlock { Text = "Own transparency", Foreground = ThemeBrush("ThemeMutedText") },
                 },
             };
-            Grid.SetRow(backgroundRow, 5);
-            body.Children.Add(backgroundRow);
+            Grid.SetRow(ownRow, 4);
+            body.Children.Add(ownRow);
         }
         var buttons = new StackPanel
         {
             Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
             Spacing = 8, Margin = new Avalonia.Thickness(0, 8, 0, 0), Children = { ok, cancel },
         };
-        Grid.SetRow(buttons, 6);
+        Grid.SetRow(buttons, 5);
         body.Children.Add(buttons);
 
         dialog.Content = body;
@@ -2655,7 +2883,7 @@ public static partial class Dialogs
         };
 
         Update();
-        dialog.ShowModal(owner);
+        dialog.ShowModal(owner, allowMaximize: true);
         return result.Task;
     }
 

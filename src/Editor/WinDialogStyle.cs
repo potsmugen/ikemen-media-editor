@@ -5,8 +5,9 @@ using Avalonia.Controls;
 namespace Editor;
 
 /// <summary>
-/// Leaves only Close in a dialog's title bar on Windows. Avalonia 11.3 creates every window with
-/// minimize and maximize boxes and has no property to drop them; a minimized modal leaves the owner disabled.
+/// Leaves only Close in a dialog's title bar on Windows, or Maximize and Close for a resizable one.
+/// Avalonia 11.3 creates every window with minimize and maximize boxes and has no property to drop them;
+/// a minimized modal leaves the owner disabled.
 /// </summary>
 [SupportedOSPlatform("windows")]
 internal static class WinDialogStyle
@@ -15,7 +16,7 @@ internal static class WinDialogStyle
     private const long WsMinimizeBox = 0x00020000, WsMaximizeBox = 0x00010000;
     private const uint SwpNoSize = 0x0001, SwpNoMove = 0x0002, SwpNoZOrder = 0x0004, SwpNoActivate = 0x0010, SwpFrameChanged = 0x0020;
 
-    public static void RemoveMinMax(Window window)
+    public static void RemoveMinMax(Window window, bool keepMaximize = false)
     {
         if (window.TryGetPlatformHandle()?.Handle is not { } hwnd || hwnd == IntPtr.Zero)
         {
@@ -23,7 +24,7 @@ internal static class WinDialogStyle
             return;
         }
         long style = GetStyle(hwnd);
-        long trimmed = style & ~(WsMinimizeBox | WsMaximizeBox);
+        long trimmed = style & ~(WsMinimizeBox | (keepMaximize ? 0 : WsMaximizeBox));
         if (trimmed == style) return;
         SetStyle(hwnd, trimmed);
         // The frame is cached; this redraws the title bar without the boxes.

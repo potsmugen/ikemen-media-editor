@@ -327,6 +327,9 @@ public static SheetLayout Detect(byte[] image) => Detect(image, null);
         return OrderRows(cells);
     }
 
+    /// <summary>Puts cells in the same reading order detection uses, for cells edited by hand.</summary>
+    public static IReadOnlyList<SheetCell> Order(IEnumerable<SheetCell> cells) => OrderRows(cells.ToList());
+
     private static List<SheetCell> OrderRows(List<SheetCell> cells)
     {
         cells.Sort((a, b) => a.X != b.X ? a.X.CompareTo(b.X) : a.Y.CompareTo(b.Y));
