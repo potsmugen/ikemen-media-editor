@@ -27,7 +27,6 @@ Verified unless noted.
   links after it keep the old one and lose it on a plain save (sprites_org.sff 6001,6). Order
   edits refuse this now; replace does not. Decide: make the run follow the new palette, or
   refuse/warn like an order edit.
-- Duplicating palettes updates the Palettes table visibly slower than duplicating sprites updates the sprite table. Find why and align them.
 
 ### Tooltips
 

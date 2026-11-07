@@ -188,6 +188,7 @@ public partial class MainWindow
         if (PaletteList.ItemsSource is IEnumerable<PaletteRow> rows)
             PaletteList.SelectedIndex = rows.ToList().FindIndex(row => ReferenceEquals(row.Palette, palette));
         _suppressEvents = false;
+        ScrollListRowIntoView(PaletteList, () => PaletteRowOf(palette));
         _editingPalette = palette;
         _editingView = BigSwatches;
         _selectedSwatch = palette.Colors.Length > 0 ? 0 : -1;

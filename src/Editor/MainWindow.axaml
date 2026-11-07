@@ -847,7 +847,7 @@
                     <TextBlock Text="Link" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
                   </Border>
                 </Grid>
-                <ListBox Grid.Row="1" x:Name="PaletteList" SelectionMode="Multiple" SelectionChanged="OnPaletteListSelected"
+                <ListBox Grid.Row="1" x:Name="PaletteList" SelectionMode="Multiple" SelectionChanged="OnPaletteListSelected" AutoScrollToSelectedItem="False"
                          Background="{DynamicResource ThemeListBg}">
                   <ListBox.Styles>
                     <Style Selector="ListBoxItem">

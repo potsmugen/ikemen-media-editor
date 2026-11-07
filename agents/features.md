@@ -288,6 +288,10 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **List look-ahead** scrolls the next row fully into view after an arrow, Page, Home or End
   step, since Avalonia rebuilds every visible row when `ScrollIntoView` targets an unrealized
   one (measured ~50 ms per step on a 12k-sprite SFF).
+- **No auto-scroll on selection**: the Sprite, Palette and Sound lists set
+  `AutoScrollToSelectedItem="False"`; code that selects a row scrolls it explicitly. With it on,
+  each `SelectedItems.Add` queued a scroll that rebuilt the visible rows (duplicating 72 palettes
+  took 3.2 s after the handler returned: 59 scrolls, 1875 rows built).
 - **List jumps** land the row in the middle of the view in every table: Health Report and
   menu jumps, palette, sound and action selection, and the frame table following a timeline
   click or frame step. A row already fully visible stays where it is; arrow steps and

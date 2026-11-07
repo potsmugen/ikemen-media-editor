@@ -2019,7 +2019,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     /// <summary>Dropdown label: "1,1", "S3 (sprite 6001,6)" (first sprite carrying it), "F1 (kfm01.act)", "T1 (temp)",
     /// each with its depth.</summary>
     private static string PaletteDropdownName(SffFile file, Palette palette,
-        IReadOnlyDictionary<Palette, int>? externalOrdinals = null, IReadOnlyDictionary<Palette, Sprite>? carriers = null)
+        IReadOnlyDictionary<Palette, int>? externalOrdinals = null, IReadOnlyDictionary<Palette, Sprite>? carriers = null,
+        IReadOnlyDictionary<Palette, int>? v1Ordinals = null)
     {
         string depth = $" ({PaletteDepthText(palette)})";
         if (palette.Source == PaletteSource.External)
@@ -2028,7 +2029,9 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             string what = IsTempPalette(palette) ? "temp" : Path.GetFileName(palette.SourcePath) ?? "temp";
             return (externalOrdinals.TryGetValue(palette, out int n) ? $"{ExternalGroup(palette)}{n} ({what})" : what) + depth;
         }
-        string key = PaletteKey(file, palette);
+        // Same text as PaletteKey, from the maps the caller already built.
+        v1Ordinals ??= V1PaletteOrdinals(file);
+        string key = v1Ordinals.TryGetValue(palette, out int sn) ? $"S{sn}" : $"{palette.Group},{palette.Index}";
         if (!key.StartsWith('S')) return key + depth;
         carriers ??= V1PaletteCarriers(file);
         return key + (carriers.TryGetValue(palette, out var sprite) ? $" (sprite {sprite.Group},{sprite.Index})" : " (unused)") + depth;
@@ -2141,6 +2144,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             {
                 int index = visible.FindIndex(r => ReferenceEquals(r.Palette, selected));
                 if (index >= 0) PaletteList.SelectedIndex = index;
+                // AutoScrollToSelectedItem is off on PaletteList, so center the reselected row here.
+                if (index >= 0) ScrollListRowIntoView(PaletteList, () => PaletteRowOf(selected));
             }
             _suppressEvents = standaloneWasSuppressed;
             return;
@@ -2149,7 +2154,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         var carriers = V1PaletteCarriers(_file);
         var externalOrdinals = ExternalPaletteOrdinals(_file);
         var spriteOrdinals = _file.Sprites.Select((sprite, i) => (sprite, ordinal: i + 1)).ToDictionary(x => x.sprite, x => x.ordinal);
-        var labels = _file.Palettes.Select(p => PaletteDropdownName(_file, p, externalOrdinals, carriers)).ToList();
+        var v1Ordinals = V1PaletteOrdinals(_file);
+        var labels = _file.Palettes.Select(p => PaletteDropdownName(_file, p, externalOrdinals, carriers, v1Ordinals)).ToList();
 
         // Preserves whatever suppression the caller already had, rather than
         // hardcoding it back to false — a caller that's suppressed (e.g.
@@ -2168,7 +2174,6 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             // it are hidden — same spirit as the action list keeping Action.Number stable.
             var current = _paletteOverride >= 0 && _paletteOverride < _file.Palettes.Count ? _file.Palettes[_paletteOverride] : null;
 
-            var v1Ordinals = V1PaletteOrdinals(_file);
             var all = _file.Palettes.Select((p, i) => ToRow(p, i + 1, v1, v1Ordinals, carriers, externalOrdinals, spriteOrdinals)).ToList();
             // Widths over every palette, so filtering doesn't move the columns.
             var widths = TextTableWidths(PaletteTableHeader, all.Select(r => new[]
@@ -2194,6 +2199,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 {
                     int idx = visible.FindIndex(i => ReferenceEquals(_file.Palettes[i], current));
                     if (idx >= 0) PaletteList.SelectedIndex = idx;
+                    // AutoScrollToSelectedItem is off on PaletteList, so center the reselected row here.
+                    if (idx >= 0) ScrollListRowIntoView(PaletteList, () => PaletteRowOf(current));
                 }
             }
         }
