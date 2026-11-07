@@ -553,7 +553,7 @@ public partial class MainWindow
         }
         else
         {
-            SoundList.ItemsSource = _visibleSounds.Select((i, row) => new SoundRow(_snd.Sounds[i], row + 1) { Widths = widths }).ToList();
+            SoundList.ItemsSource = _visibleSounds.Select(i => new SoundRow(_snd.Sounds[i], i + 1) { Widths = widths }).ToList();
             if (_visibleSounds.Count > 0)
             {
                 // Visible row per sound, built once; IndexOf inside the loops below made select-all plus insert quadratic.

@@ -278,8 +278,8 @@ public sealed class SoundRow(SoundEntry sound, int number) : INotifyPropertyChan
     private double[] _widths = [];
 
     public SoundEntry Sound { get; } = sound;
-    /// <summary>Row position, not the sound's own Number field. It follows the row's place
-    /// in the visible list, so a changed row set needs a rebuild rather than a refresh.</summary>
+    /// <summary>Position in the file, not the sound's own Number field. It stays the same under a
+    /// filter, as in the sprite list, so a changed row set needs a rebuild rather than a refresh.</summary>
     public string Number { get; } = number.ToString(CultureInfo.InvariantCulture);
     public string GroupText { get => _groupText; private set => Set(ref _groupText, value, GroupTextChanged); }
     public string NumberText { get => _numberText; private set => Set(ref _numberText, value, NumberTextChanged); }
