@@ -51,9 +51,9 @@ Verified unless noted.
   buttons vs the sprite Flip/Rotate, what a lift leaves behind, clip vs shift at the edges.
 
 Select tool gaps against image editor conventions:
-- Add and subtract for every Select shape, not just the Magic Wand (Shift adds; Alt subtracts in
-  Photoshop, Ctrl in GIMP). Decide the modifiers, and how they fit Ctrl/Shift box selection.
-- Polygon: Shift locks the next edge to 45° steps.
+- Subtract for every Select shape (Alt in Photoshop, Ctrl in GIMP). Decide the modifier; on
+  Windows, Alt can focus the menu bar. Shift already adds, read when a shape starts.
+- Polygon: Shift locks the next edge to 45° steps (Shift on the first corner adds instead).
 - Lasso and Polygon: Alt switches between freehand and polygon mid-shape.
 
 - Investigate sprites appearing to reorder themselves during Paint Mode (reported
@@ -172,10 +172,6 @@ Select tool gaps against image editor conventions:
 
 ### Controls and layout
 
-- The marching ants selection outline appears to scale with zoom (reported while looking for
-  what else to fix in paint mode). Reading the drawing code, the dash pattern itself is fixed
-  screen pixels (`new DashStyle([3, 3], offset)`, outline geometry built in screen
-  coordinates), so check what actually changes when zooming before assuming the dash size.
 - Some way to increase/decrease values faster with the mouse (Shift+wheel?); design undecided.
 - Customizable shortcuts: see features.md "Keyboard shortcuts". It compiles, and column widths
   measure at the largest of the dialog, window and tab font sizes. Left:

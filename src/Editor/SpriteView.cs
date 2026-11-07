@@ -306,6 +306,8 @@ public class SpriteView : Control
     private bool _selectDragged;
     /// <summary>A press off the sprite that clears the selection on release unless it turns into a pan.</summary>
     private bool _clearSelectionOnClick;
+    /// <summary>The selection a Shift-started shape adds to; null when the shape replaces it</summary>
+    private PixelSelection? _selectAddBase;
 
     /// <summary>Touchpad pinch magnification per zoom step (settings.json PinchZoomStep); shared by the reference image and waveform.</summary>
     public static double PinchZoomStep { get; set; } = Settings.DefaultPinchZoomStep;
@@ -547,6 +549,7 @@ public class SpriteView : Control
         {
             _selection = null;
             _polygonPoints = null;
+            _selectAddBase = null;
             SelectionChanged?.Invoke();
             UpdateSelectionTimer();
         }
@@ -1357,7 +1360,19 @@ public class SpriteView : Control
             if (_polygonPoints is not null)
             {
                 _polygonPoints = null;
+                _selectAddBase = null;
                 InvalidateVisual();
+            }
+            else if (_selecting && _selectAddBase is not null)
+            {
+                // Cancelling a Shift-add shape keeps the selection it was adding to
+                _selecting = false;
+                _lassoPoints = null;
+                _selection = _selectAddBase;
+                _selectAddBase = null;
+                SelectionChanged?.Invoke();
+                InvalidateVisual();
+                UpdateSelectionTimer();
             }
             else
             {
@@ -1644,16 +1659,18 @@ public class SpriteView : Control
 
         (int Index, BoxGrip Grip) hit = Boxes.Count > 0 ? HitTest(p) : (-1, BoxGrip.None);
         bool replacing = PaintMode && ActiveTool == PaintTool.Replace;
-        bool extendSelection = (modifiers & (replacing ? KeyModifiers.Control : KeyModifiers.Control | KeyModifiers.Shift)) != 0;
-        // Shift with the Magic Wand adds to the selection, so it still picks like the wand.
-        bool wandAdd = MagicWandSelect && (modifiers & KeyModifiers.Shift) != 0;
+        bool paintSelect = PaintMode && ActiveTool == PaintTool.Selection;
+        // Clsn boxes live on another tab, so the Select tool keeps Ctrl/Shift for itself
+        bool extendSelection = !paintSelect && (modifiers & (replacing ? KeyModifiers.Control : KeyModifiers.Control | KeyModifiers.Shift)) != 0;
+        // Shift with any Select shape adds to the selection
+        bool selectAdd = paintSelect && (modifiers & KeyModifiers.Shift) != 0;
         if (hit.Index >= 0) return extendSelection ? Cursor.Default : GripCursor(hit.Grip);
-        if (extendSelection && !wandAdd) return Cursor.Default;
+        if (extendSelection) return Cursor.Default;
 
         bool onSprite = SpriteContains(p);
         // A polygon in progress adds a corner wherever you click.
         if (PaintMode && ActiveTool == PaintTool.Selection && PolygonSelect && _polygonPoints is not null) return CrossCursor;
-        if (PaintMode && ActiveTool == PaintTool.Selection && onSprite && wandAdd) return AddCursor;
+        if (PaintMode && ActiveTool == PaintTool.Selection && onSprite && selectAdd) return AddCursor;
         if (PaintMode && ActiveTool == PaintTool.Selection && onSprite)
         {
             bool inSelection = _selection is { } sel && PixelRect(sel).Contains(p)
@@ -1728,10 +1745,12 @@ public class SpriteView : Control
         _boxDragMoved = false;
         // Shift with Replace paints New → Old instead (see ApplyTool).
         bool replacing = PaintMode && ActiveTool == PaintTool.Replace;
-        bool extendSelection = (e.KeyModifiers & (replacing ? KeyModifiers.Control : KeyModifiers.Control | KeyModifiers.Shift)) != 0;
-        // Shift with the Magic Wand adds the picked region to the current selection instead of replacing it.
-        bool wandAdd = MagicWandSelect && (e.KeyModifiers & KeyModifiers.Shift) != 0;
-        if (extendSelection && !wandAdd)
+        bool paintSelect = PaintMode && ActiveTool == PaintTool.Selection;
+        // Clsn boxes live on another tab, so the Select tool keeps Ctrl/Shift for itself
+        bool extendSelection = !paintSelect && (e.KeyModifiers & (replacing ? KeyModifiers.Control : KeyModifiers.Control | KeyModifiers.Shift)) != 0;
+        // Shift with any Select shape adds the new region to the current selection instead of replacing it
+        bool selectAdd = paintSelect && (e.KeyModifiers & KeyModifiers.Shift) != 0;
+        if (extendSelection)
         {
             if (hit.Index >= 0)
             {
@@ -1783,7 +1802,7 @@ public class SpriteView : Control
         bool polygonInProgress = PaintMode && ActiveTool == PaintTool.Selection && PolygonSelect && _polygonPoints is not null;
         if (PaintMode && ActiveTool == PaintTool.Selection && (onSprite || polygonInProgress))
         {
-            if (!wandAdd && !polygonInProgress && _selection is { } existing && PixelRect(existing).Contains(p.Position)
+            if (!selectAdd && !polygonInProgress && _selection is { } existing && PixelRect(existing).Contains(p.Position)
                 && TryPixelAt(p.Position, out int hitX, out int hitY) && existing.Contains(hitX - existing.X, hitY - existing.Y))
             {
                 _movingSelection = true;
@@ -1800,7 +1819,7 @@ public class SpriteView : Control
             {
                 // The wand is click-born: the press picks the region, and a drag doesn't reshape it.
                 // Shift adds the new region to the current selection instead of replacing it.
-                StartMagicWand(p.Position, wandAdd);
+                StartMagicWand(p.Position, selectAdd);
                 Cursor = CrossCursor;
                 e.Pointer.Capture(this);
                 InvalidateVisual();
@@ -1813,6 +1832,7 @@ public class SpriteView : Control
                 {
                     SelectionStarted?.Invoke(); // settles a floating paste, like Rectangle and Lasso
                     _polygonPoints = [];
+                    _selectAddBase = selectAdd ? _selection : null; // only the first corner reads Shift
                     AddPolygonPoint(p.Position);
                     Cursor = CrossCursor;
                     e.Pointer.Capture(this);
@@ -1852,7 +1872,8 @@ public class SpriteView : Control
             _selectionStart = p.Position;
             _selectPressPos = p.Position;
             _selectDragged = false;
-            _selection = null; // nothing is selected until the press becomes a drag
+            _selectAddBase = selectAdd ? _selection : null;
+            _selection = _selectAddBase; // nothing new is selected until the press becomes a drag
             UpdateSelectionTimer();
             if (LassoSelect) StartLasso(p.Position);
             Cursor = CrossCursor;
@@ -1883,7 +1904,7 @@ public class SpriteView : Control
         bool grab = onSprite && SpriteVisibleAt(p.Position);
         _draggingSprite = grab && (!DragChangesOffset || OffsetDraggingEnabled);
         _panning = !grab || (DragChangesOffset && !OffsetDraggingEnabled);
-        _clearSelectionOnClick = _panning && !onSprite && PaintMode && ActiveTool == PaintTool.Selection && _selection is not null;
+        _clearSelectionOnClick = _panning && !onSprite && PaintMode && ActiveTool == PaintTool.Selection && _selection is not null && !selectAdd;
         _selectPressPos = p.Position;
         if (_draggingSprite)
         {
@@ -2019,7 +2040,7 @@ public class SpriteView : Control
             if (!_selectDragged)
             {
                 _lassoPoints = null;
-                ClearSelectionByClick();
+                if (_selectAddBase is null) ClearSelectionByClick(); // a Shift-click without a drag keeps the selection
             }
             else if (_lassoPoints is not null)
             {
@@ -2032,6 +2053,7 @@ public class SpriteView : Control
                 UpdateSelection(e.GetPosition(this));
                 if (_selection is { Width: > 0, Height: > 0 }) SelectionChanged?.Invoke();
             }
+            _selectAddBase = null;
             e.Pointer.Capture(null);
             UpdateHoverCursor(e.GetPosition(this), e.KeyModifiers);
             return;
@@ -2158,7 +2180,7 @@ public class SpriteView : Control
         if (!TryPixelAt(clamped, out int x, out int y)) return;
         if (!TryPixelAt(_selectionStart, out int sx, out int sy)) return;
         int left = Math.Min(sx, x), top = Math.Min(sy, y);
-        _selection = new PixelSelection(left, top, Math.Abs(x - sx) + 1, Math.Abs(y - sy) + 1);
+        _selection = WithAddBase(new PixelSelection(left, top, Math.Abs(x - sx) + 1, Math.Abs(y - sy) + 1));
         InvalidateVisual();
         UpdateSelectionTimer();
     }
@@ -2217,7 +2239,7 @@ public class SpriteView : Control
         var local = new Point(Math.Clamp((point.X - r.X) / Zoom, 0, sprite.Width), Math.Clamp((point.Y - r.Y) / Zoom, 0, sprite.Height));
         if (_lassoPoints.Count > 0 && _lassoPoints[^1] == local) return;
         _lassoPoints.Add(local);
-        _selection = LassoSelection(_lassoPoints, sprite.Width, sprite.Height);
+        _selection = WithAddBase(LassoSelection(_lassoPoints, sprite.Width, sprite.Height));
         InvalidateVisual();
         UpdateSelectionTimer();
     }
@@ -2232,20 +2254,26 @@ public class SpriteView : Control
         InvalidateVisual();
     }
 
+    /// <summary>A new shape unioned with the selection a Shift-add started from, if any</summary>
+    private PixelSelection? WithAddBase(PixelSelection? added) =>
+        _selectAddBase is not { } b ? added : added is { } a ? UnionSelections(b, a) : b;
+
     private void ClosePolygon()
     {
         if (_polygonPoints is null || _sprite is not { Width: > 0, Height: > 0 } sprite) { _polygonPoints = null; return; }
         if (_polygonPoints.Count < 3)
         {
             _polygonPoints = null;
-            _selection = null;
+            _selection = _selectAddBase;
+            _selectAddBase = null;
             SelectionChanged?.Invoke();
             InvalidateVisual();
             UpdateSelectionTimer();
             return;
         }
-        _selection = LassoSelection(_polygonPoints, sprite.Width, sprite.Height);
+        _selection = WithAddBase(LassoSelection(_polygonPoints, sprite.Width, sprite.Height));
         _polygonPoints = null;
+        _selectAddBase = null;
         SelectionChanged?.Invoke();
         InvalidateVisual();
         UpdateSelectionTimer();
