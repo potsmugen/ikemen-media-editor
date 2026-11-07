@@ -53,7 +53,6 @@ Verified unless noted.
 Select tool gaps against image editor conventions:
 - Subtract for every Select shape (Alt in Photoshop, Ctrl in GIMP). Decide the modifier; on
   Windows, Alt can focus the menu bar. Shift already adds, read when a shape starts.
-- Polygon: Shift locks the next edge to 45° steps (Shift on the first corner adds instead).
 - Lasso and Polygon: Alt switches between freehand and polygon mid-shape.
 
 - Investigate sprites appearing to reorder themselves during Paint Mode (reported

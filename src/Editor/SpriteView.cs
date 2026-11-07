@@ -1271,7 +1271,7 @@ public class SpriteView : Control
             var points = new List<Point>();
             foreach (var pt in _polygonPoints)
                 points.Add(new Point(sr.X + pt.X * Zoom, sr.Y + pt.Y * Zoom));
-            if (_cursorPosition is { } cp) points.Add(cp);
+            if (_cursorPosition is { } cp) points.Add(_inverseHeld ? SnapPolygonEdge(cp) : cp);
             for (int i = 0; i < points.Count - 1; i++)
             {
                 ctx.DrawLine(white, points[i], points[i + 1]);
@@ -1346,6 +1346,7 @@ public class SpriteView : Control
         if (_inverseHeld == held) return;
         _inverseHeld = held;
         if (PaintMode && ActiveTool == PaintTool.Replace) InvalidateVisual();
+        if (PolygonSelect && _polygonPoints is { Count: > 0 }) InvalidateVisual(); // the next polygon edge snaps while Shift is held
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -1860,7 +1861,8 @@ public class SpriteView : Control
                         return;
                     }
                 }
-                AddPolygonPoint(p.Position);
+                // Shift locks the new edge to 45° steps, like Photoshop's Polygonal Lasso
+                AddPolygonPoint((e.KeyModifiers & KeyModifiers.Shift) != 0 ? SnapPolygonEdge(p.Position) : p.Position);
                 Cursor = CrossCursor;
                 e.Pointer.Capture(this);
                 InvalidateVisual();
@@ -1964,7 +1966,11 @@ public class SpriteView : Control
             _hoverPos = e.GetPosition(this);
             InvalidateVisual(); // the outline needs to follow the cursor even when not painting
         }
-        if (PolygonSelect && _polygonPoints is { Count: > 0 }) InvalidateVisual(); // the next edge follows the cursor
+        if (PolygonSelect && _polygonPoints is { Count: > 0 })
+        {
+            _inverseHeld = (e.KeyModifiers & KeyModifiers.Shift) != 0; // Shift snaps the next edge
+            InvalidateVisual(); // the next edge follows the cursor
+        }
 
         if ((_movingSelection || _selecting) && !_selectDragged)
         {
@@ -2257,6 +2263,20 @@ public class SpriteView : Control
     /// <summary>A new shape unioned with the selection a Shift-add started from, if any</summary>
     private PixelSelection? WithAddBase(PixelSelection? added) =>
         _selectAddBase is not { } b ? added : added is { } a ? UnionSelections(b, a) : b;
+
+    /// <summary>Snaps a screen point to the nearest 45° direction from the last polygon corner, keeping its distance along that direction</summary>
+    private Point SnapPolygonEdge(Point screen)
+    {
+        if (_polygonPoints is not { Count: > 0 }) return screen;
+        var sr = SpriteRect();
+        var last = new Point(sr.X + _polygonPoints[^1].X * Zoom, sr.Y + _polygonPoints[^1].Y * Zoom);
+        double dx = screen.X - last.X, dy = screen.Y - last.Y;
+        double step = Math.PI / 4;
+        double angle = Math.Round(Math.Atan2(dy, dx) / step) * step;
+        double ux = Math.Cos(angle), uy = Math.Sin(angle);
+        double length = dx * ux + dy * uy;
+        return new Point(last.X + ux * length, last.Y + uy * length);
+    }
 
     private void ClosePolygon()
     {
