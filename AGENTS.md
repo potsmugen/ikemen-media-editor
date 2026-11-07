@@ -156,7 +156,7 @@ remove, insert) carries that whole block, as moving the text would. Don't ask.
 Supported platforms are Windows, Linux, and macOS. Guard Windows-only code
 with `OperatingSystem.IsWindows()` and provide a fallback. Sound uses
 `WinSound` (winmm `PlaySound`) on Windows and `afplay` (macOS), then `paplay`/`aplay` (Linux);
-looping is Windows-only. Kernel32 calls in `Program.cs` return early off
+looping there relaunches the player until Stop. Kernel32 calls in `Program.cs` return early off
 Windows. The editor is portable: everything it writes stays in its own folder
 (`AppPaths.Data` = `data/`, plus `logs/` and `themes/`), never AppData or Temp.
 Published native DLLs live in `lib/` (`Program.UseLibFolder`); on macOS the editor

@@ -28,6 +28,7 @@ public partial class MainWindow
 
     private List<int> _visibleSounds = [];
     private Process? _externalPlayer; // non-Windows fallback, so Stop has something to kill
+    private CancellationTokenSource? _loopCts; // non-Windows loop: relaunches the player until canceled
 
     private SoundEntry? CurrentSound =>
         _snd is not null && SoundList.SelectedIndex >= 0 && SoundList.SelectedIndex < _visibleSounds.Count
@@ -735,7 +736,7 @@ public partial class MainWindow
     /// pressing Play does not launch a separate media app window and looping is
     /// possible. Elsewhere it hands the file to the OS's own player (afplay,
     /// paplay or aplay); those support neither in-process playback nor an easy
-    /// stop, so looping there just replays once with a note about the limit.
+    /// stop, so looping there relaunches the player until Stop.
     /// </summary>
     private async void PlayCurrent(bool loop)
     {
@@ -750,8 +751,6 @@ public partial class MainWindow
 
             try
             {
-                if (loop && !OperatingSystem.IsWindows())
-                    StatusText.Text = "Looping needs the in-process player, which is Windows only here; playing once.";
                 var sel = SelectionOn(s);
                 var data = sel is { } r ? SndEdit.ExtractRange(s, r.Start, r.End) ?? s.Data : s.Data;
                 await PlayBytes(data, $"ime-{s.Group}_{s.Index}.wav", loop);
@@ -771,7 +770,7 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Plays WAV bytes: in-process on Windows, otherwise through the OS player via a temp file (loop is Windows only). Throws on failure.</summary>
+    /// <summary>Plays WAV bytes: in-process on Windows, otherwise through the OS player via a temp file (loop relaunches the player). Throws on failure.</summary>
     private async Task PlayBytes(byte[] data, string tempFileName, bool loop)
     {
         StopPlayhead(); // whatever played before is cut off
@@ -780,12 +779,23 @@ public partial class MainWindow
             WinSound.Play(data, loop); // asynchronous; doesn't block the UI thread
             return;
         }
+        StopExternal();
 
         // This run's own temp folder (under data/recovery), removed when the editor closes.
         Directory.CreateDirectory(RecoveryStore.TempDirectory);
         var temp = Path.Combine(RecoveryStore.TempDirectory, tempFileName);
         await File.WriteAllBytesAsync(temp, data);
 
+        StartExternalPlayer(temp);
+        if (loop)
+        {
+            var cts = _loopCts = new CancellationTokenSource();
+            _ = RelaunchPlayer(temp, cts.Token);
+        }
+    }
+
+    private void StartExternalPlayer(string temp)
+    {
         string player = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "afplay" : "paplay";
         try
         {
@@ -811,6 +821,44 @@ public partial class MainWindow
         }
     }
 
+    /// <summary>Loop on non-Windows: starts the player again each time it exits, until canceled.</summary>
+    private async Task RelaunchPlayer(string temp, CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                var started = Stopwatch.StartNew();
+                if (_externalPlayer is { } p) await p.WaitForExitAsync(token);
+                if (started.ElapsedMilliseconds < 100)
+                {
+                    // Exited at once (no audio device, bad file): stop instead of spinning.
+                    CrashLog.Error("RelaunchPlayer", "The sound player exited immediately; loop stopped.");
+                    break;
+                }
+                StartExternalPlayer(temp);
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) { CrashLog.Write("RelaunchPlayer", ex); }
+        finally
+        {
+            if (!token.IsCancellationRequested) StopPlayhead(); // ended on its own (error), not by Stop
+        }
+    }
+
+    private void StopExternal()
+    {
+        _loopCts?.Cancel();
+        _loopCts = null;
+        try { if (_externalPlayer is { HasExited: false } p) p.Kill(); }
+        catch (Exception ex)
+        {
+            // The process may have already exited on its own.
+            CrashLog.Write("StopPlayback", ex);
+        }
+    }
+
     private void OnStopSound(object? sender, RoutedEventArgs e) => StopPlayback();
 
     private void StopPlayback()
@@ -821,12 +869,7 @@ public partial class MainWindow
             WinSound.Stop();
             return;
         }
-        try { if (_externalPlayer is { HasExited: false } p) p.Kill(); }
-        catch (Exception ex)
-        {
-            // The process may have already exited on its own.
-            CrashLog.Write("StopPlayback", ex);
-        }
+        StopExternal();
     }
 
     // Playhead: the players report no position, so it's timed from when playback was requested,
@@ -856,7 +899,7 @@ public partial class MainWindow
         if (_playing is not { } p || Waveform is null) { StopPlayhead(); return; }
         // Another sound shown, or the OS player (non-Windows) quit early: nothing to follow.
         if (!ReferenceEquals(CurrentSound, p.Sound)
-            || (!OperatingSystem.IsWindows() && _externalPlayer is { HasExited: true }))
+            || (!OperatingSystem.IsWindows() && _loopCts is null && _externalPlayer is { HasExited: true }))
         {
             StopPlayhead();
             return;

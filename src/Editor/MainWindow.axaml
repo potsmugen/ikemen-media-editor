@@ -1911,7 +1911,7 @@
                 </Grid>
                 <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="{DynamicResource UiButtonGap}" Margin="0,4,0,0">
                   <Button x:Name="SoundPlayButton" Content="Play" Click="OnPlaySound" Width="70" ToolTip.Tip="Plays the selected sound once." />
-                  <Button x:Name="SoundLoopButton" Content="Loop" Click="OnPlaySoundLoop" Width="70" ToolTip.Tip="Repeats the sound until Stop. Windows only; elsewhere it plays once." />
+                  <Button x:Name="SoundLoopButton" Content="Loop" Click="OnPlaySoundLoop" Width="70" ToolTip.Tip="Repeats the sound until Stop." />
                   <Button x:Name="SoundStopButton" Content="Stop" Click="OnStopSound" Width="70" ToolTip.Tip="Stops playback." />
                 </StackPanel>
                 <ScrollBar DockPanel.Dock="Bottom" x:Name="WaveformScroll" Orientation="Horizontal" AllowAutoHide="False" Margin="0,4,0,0" />
