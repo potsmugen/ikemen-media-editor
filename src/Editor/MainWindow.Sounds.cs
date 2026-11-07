@@ -1863,12 +1863,12 @@ public partial class MainWindow
         SoundSelectionText.Text = SelectionText(s);
     }
 
-    /// <summary>Selection start, end and length in ms, for the waveform panel's header; empty without one.</summary>
+    /// <summary>Selection start, end and length in ms and samples, for the waveform panel's header; empty without one.</summary>
     private string SelectionText(SoundEntry s)
     {
         if (SelectionOn(s) is not { } r || s.SampleRate <= 0) return "";
         double Ms(int frames) => frames * 1000.0 / s.SampleRate;
-        return $"Selection {Ms(r.Start):0}–{Ms(r.End):0} ms ({Ms(r.End - r.Start):0} ms)";
+        return $"Selection {Ms(r.Start):0}–{Ms(r.End):0} ms ({Ms(r.End - r.Start):0} ms), samples {r.Start}–{r.End} ({r.End - r.Start})";
     }
 
     private bool _syncingWaveformScroll;

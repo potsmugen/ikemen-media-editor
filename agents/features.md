@@ -597,6 +597,7 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Sound edits** replace the WAV data chunk and preserve later chunks. Resampling uses a
   Blackman-windowed sinc filter, and previews may reuse a matching render. Upsampling and
   bit-depth increases ask first; volume and echo warn before clipping.
+- **Waveform selection** shows its start, end and length in ms and in samples (end exclusive) in the panel header.
 - **Waveform ranges** feed the range-capable edits, though previews play the whole sound.
   Range edits crossfade at their edges except fades, and format changes, trim/insert,
   undo/redo, reset and switching sounds clear the range.
