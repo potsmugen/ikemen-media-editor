@@ -7,6 +7,7 @@ using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.VisualTree;
 using Sff;
 
 namespace Editor;
@@ -157,6 +158,19 @@ public static partial class Dialogs
             e.Handled = true;
             dialog.Close();
         };
+        // Enter accepts the dialog even when a control that would swallow it has focus:
+        // a closed dropdown opens on Enter, and a checkbox or radio button toggles
+        dialog.AddHandler(Avalonia.Input.InputElement.KeyDownEvent, (_, e) =>
+        {
+            if (e.Handled || e.Key != Avalonia.Input.Key.Enter || e.KeyModifiers != Avalonia.Input.KeyModifiers.None) return;
+            var focused = TopLevel.GetTopLevel(dialog)?.FocusManager?.GetFocusedElement();
+            bool swallows = focused is CheckBox or RadioButton || focused is ComboBox { IsDropDownOpen: false };
+            if (!swallows) return;
+            var accept = dialog.GetVisualDescendants().OfType<Button>().FirstOrDefault(x => x.IsDefault && x.IsEffectivelyVisible && x.IsEffectivelyEnabled);
+            if (accept == null) return;
+            e.Handled = true;
+            accept.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         return dialog.ShowDialog(owner);
     }
 
@@ -2985,6 +2999,8 @@ public static partial class Dialogs
         };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
         dialog.Closed += (_, _) => result.TrySetResult(null);
+        // Focus Convert so Enter converts right away
+        dialog.Opened += (_, _) => apply.Focus();
         Update();
         dialog.ShowModal(owner);
         return result.Task;
