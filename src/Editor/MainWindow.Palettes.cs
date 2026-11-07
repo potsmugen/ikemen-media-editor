@@ -2106,33 +2106,54 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             || row.SourceText.StartsWith(parts[0], StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>The palette filter's rule, also used by Move Selection. Loose palette files also match on file name, type and "#".</summary>
+    private bool PaletteRowMatches(PaletteRow row, string text) =>
+        MatchesPalette(row, text)
+        || (_file is null && (row.Kind.Contains(text, StringComparison.OrdinalIgnoreCase)
+            || row.SourceText.StartsWith(text, StringComparison.OrdinalIgnoreCase)
+            || row.Number.StartsWith(text, StringComparison.OrdinalIgnoreCase)));
+
+    /// <summary>A row for every palette in list order, before any filter, as the palette list builds them.</summary>
+    private List<PaletteRow> AllPaletteRows()
+    {
+        if (_file is null) return StandalonePaletteRows();
+        bool v1 = SffVersions.IsV1(_file.Version);
+        var carriers = V1PaletteCarriers(_file);
+        var externalOrdinals = ExternalPaletteOrdinals(_file);
+        var spriteOrdinals = _file.Sprites.Select((sprite, i) => (sprite, ordinal: i + 1)).ToDictionary(x => x.sprite, x => x.ordinal);
+        var v1Ordinals = V1PaletteOrdinals(_file);
+        return _file.Palettes.Select((p, i) => ToRow(p, i + 1, v1, v1Ordinals, carriers, externalOrdinals, spriteOrdinals)).ToList();
+    }
+
+    private List<PaletteRow> StandalonePaletteRows()
+    {
+        var ordinals = ExternalPaletteOrdinals(_standalonePalettes);
+        return _standalonePalettes.Select((p, i) => new PaletteRow
+        {
+            Palette = p,
+            Number = (i + 1).ToString(CultureInfo.InvariantCulture),
+            GroupText = ExternalGroup(p),
+            IndexText = ordinals[p].ToString(CultureInfo.InvariantCulture),
+            GroupToolTip = ExternalGroupToolTip,
+            IndexToolTip = ExternalIndexToolTip,
+            SourceText = IsTempPalette(p) ? "temp" : Path.GetExtension(p.SourcePath ?? "").TrimStart('.').ToUpperInvariant(),
+            DepthText = PaletteDepthText(p),
+            LinkText = "",
+            LinkToolTip = "",
+            Kind = Path.GetFileName(p.SourcePath) ?? TempPaletteKind,
+        }).ToList();
+    }
+
     private void RebuildPaletteList()
     {
         if (_file is null)
         {
-            var ordinals = ExternalPaletteOrdinals(_standalonePalettes);
-            var all = _standalonePalettes.Select((p, i) => new PaletteRow
-            {
-                Palette = p,
-                Number = (i + 1).ToString(CultureInfo.InvariantCulture),
-                GroupText = ExternalGroup(p),
-                IndexText = ordinals[p].ToString(CultureInfo.InvariantCulture),
-                GroupToolTip = ExternalGroupToolTip,
-                IndexToolTip = ExternalIndexToolTip,
-                SourceText = IsTempPalette(p) ? "temp" : Path.GetExtension(p.SourcePath ?? "").TrimStart('.').ToUpperInvariant(),
-                DepthText = PaletteDepthText(p),
-                LinkText = "",
-                LinkToolTip = "",
-                Kind = Path.GetFileName(p.SourcePath) ?? TempPaletteKind,
-            }).ToList();
+            var all = StandalonePaletteRows();
             var widths = TextTableWidths(PaletteTableHeader, all.Select(r => new[]
                 { r.NumberText, r.GroupText, r.IndexText, r.SourceText, r.DepthText, r.LinkText }).ToList());
             foreach (var row in all) row.Widths = widths;
             string filter = (PaletteFilterBox?.Text ?? "").Trim();
-            var visible = all.Where(r => filter.Length == 0 || MatchesPalette(r, filter)
-                || r.Kind.Contains(filter, StringComparison.OrdinalIgnoreCase)
-                || r.SourceText.StartsWith(filter, StringComparison.OrdinalIgnoreCase)
-                || r.Number.StartsWith(filter, StringComparison.OrdinalIgnoreCase)).ToList();
+            var visible = all.Where(r => filter.Length == 0 || PaletteRowMatches(r, filter)).ToList();
             PaletteBox.ItemsSource = new[] { "Palette file" };
             PaletteBox.SelectedIndex = 0;
             bool standaloneWasSuppressed = _suppressEvents;
@@ -2181,7 +2202,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             foreach (var r in all) r.Widths = widths;
             var visible = all
                 .Select((r, i) => (Row: r, Index: i))
-                .Where(x => filter.Length == 0 || MatchesPalette(x.Row, filter))
+                .Where(x => filter.Length == 0 || PaletteRowMatches(x.Row, filter))
                 .Select(x => x.Index)
                 .ToList();
 

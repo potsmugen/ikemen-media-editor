@@ -155,7 +155,6 @@ Select tool gaps against image editor conventions:
 
 ### Performance and lists
 
-- Option to move selected items to top or bottom of list
 - Loading is much slower than saving for large SFFs. Find out why.
 - Lists: compiled bindings (x:DataType) for the row templates instead of reflection.
   The row classes are nested in MainWindow; they may need moving out for XAML to reach them.

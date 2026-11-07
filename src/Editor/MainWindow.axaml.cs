@@ -836,6 +836,7 @@ public partial class MainWindow : Window
                     MenuSeparator,
                     ("Duplicate", () => OnDuplicateSprite(null, new RoutedEventArgs())),
                     MenuSeparator,
+                    ("Move Selection", () => _ = MoveSelectedSprites()),
                     ("Sort Selected Ascending", () => _ = SortSelectedSprites()));
             }
             catch (Exception ex)
@@ -871,6 +872,7 @@ public partial class MainWindow : Window
                     if (rowPalette is { } p) PreviewFirstSpriteUsingPalette(p);
                 }, single && rowPalette?.Source == PaletteSource.Embedded),
                 new Separator(),
+                MenuAction("Move Selection", () => _ = MoveSelectedPalettes()),
                 MenuAction("Sort Ascending", () => OnSortPalettesAscending(null, new RoutedEventArgs())),
                 new Separator(),
                 AddToSffMenuItem(selectedPalettes),
@@ -889,6 +891,7 @@ public partial class MainWindow : Window
                 ("Duplicate Action", () => OnDuplicateAction(null, new RoutedEventArgs())),
                 MenuSeparator,
                 ("Number and Comment", () => OnRenumberActionMenu(null, new RoutedEventArgs())),
+                ("Move Selection", () => _ = MoveSelectedActions()),
                 ("Sort Ascending", () => OnSortActionsAscending(null, new RoutedEventArgs())),
                 MenuSeparator,
                 ("Delete All Boxes", () => OnDeleteAllBoxesInAction(null, new RoutedEventArgs())));
@@ -951,6 +954,7 @@ public partial class MainWindow : Window
                 MenuSeparator,
                 ("Duplicate", () => OnDuplicateSound(null, new RoutedEventArgs())),
                 MenuSeparator,
+                ("Move Selection", () => _ = MoveSelectedSounds()),
                 ("Sort Ascending", () => OnSortSoundsAscending(null, new RoutedEventArgs())));
         };
     }

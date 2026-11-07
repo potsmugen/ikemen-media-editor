@@ -631,6 +631,16 @@ and constraints that are easy to miss when reading one code path in isolation.
   settings.json `DragScrollEdgePixels` (default 32) of its top or bottom, faster the closer it
   gets to the edge, up to `DragScrollRowsPerSecond` (default 30). The mouse wheel does not scroll
   during a drag on Windows 10 (Avalonia's OS drag loop sends no wheel events), so there is no wheel support.
+- **Move Selection** (right-click menu of the sprite, palette, action and sound lists, next to Sort)
+  moves the selection to the top, the bottom, or before an item typed in the list's filter syntax.
+  The box suggests the items the filter rule matches, in list order ("500" suggests 5000,0 (#58),
+  5000,1, …); a picked suggestion targets that exact item, even when keys repeat. Typed text that
+  wasn't picked takes an exact match first ("200" is group 200 before 2000), then the first filter
+  match; Move stays disabled until there is a target. Suggestions show the #, except actions, which
+  have none and show their comment or suggested name. Options read Top, Before, Bottom, as in the list. It calls the list's drop move, so undo, the SFF v1 palette refusal and the
+  gathering of the selection are the same as a drag. Each list remembers its last answer for the
+  session. Not on frames (little use there). The # column is the file position in every list, also
+  under a filter. Code: `MainWindow.MoveSelection.cs`, `Dialogs.MoveSelection.cs`.
 
 ### Reports and configuration
 

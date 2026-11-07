@@ -516,6 +516,10 @@ public partial class MainWindow
 
     // ---- list -------------------------------------------------------------
 
+    /// <summary>The sound filter's rule, also used by Move Selection: group, or group,number, by prefix.</summary>
+    private static bool MatchesSound(SoundEntry s, string text) =>
+        $"{s.Group},{s.Index}".StartsWith(text) || $"{s.Group}".StartsWith(text);
+
     private void ApplySoundFilter()
     {
         if (_snd is null) return;
@@ -526,9 +530,7 @@ public partial class MainWindow
         _visibleSounds = [];
         for (int i = 0; i < _snd.Sounds.Count; i++)
         {
-            var s = _snd.Sounds[i];
-            if (text.Length == 0 || $"{s.Group},{s.Index}".StartsWith(text) || $"{s.Group}".StartsWith(text))
-                _visibleSounds.Add(i);
+            if (text.Length == 0 || MatchesSound(_snd.Sounds[i], text)) _visibleSounds.Add(i);
         }
 
         // Rebuilding the rows is an internal refresh, not a loss of focus.
