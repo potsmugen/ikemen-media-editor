@@ -7,6 +7,12 @@ public class PaletteDepthTests
 {
     private static Rgba Color(byte value) => new(value, value, value, 255);
 
+    /// <summary>A palette whose first `used` entries differ and whose remaining entries are one padding color</summary>
+    private static Palette Padded(int size, int used) => new()
+    {
+        Colors = Enumerable.Range(0, size).Select(i => Color((byte)(i < used ? i : 0))).ToArray(),
+    };
+
     [Theory]
     [InlineData(2)]
     [InlineData(4)]
@@ -31,7 +37,7 @@ public class PaletteDepthTests
     [InlineData(31, false)]
     public void ShrinkingRequiresEveryUsingSpriteIndexToFit(int index, bool expected)
     {
-        var palette = new Palette { Colors = Enumerable.Range(0, 256).Select(i => Color((byte)i)).ToArray() };
+        var palette = Padded(256, 2);
         var sprite = new Sprite { Width = 1, Height = 1, Indexed = [(byte)index], Palette = palette };
         var file = new SffFile { Version = SffVersions.V2, Palettes = [palette], Sprites = [sprite] };
 
@@ -41,7 +47,7 @@ public class PaletteDepthTests
     [Fact]
     public void AUsedIndexAboveTargetDepthDisablesConversion()
     {
-        var palette = new Palette { Colors = Enumerable.Range(0, 256).Select(i => Color((byte)i)).ToArray() };
+        var palette = Padded(256, 32);
         var sprite = new Sprite { Width = 1, Height = 1, Indexed = [32], Palette = palette };
         var file = new SffFile { Version = SffVersions.V2, Palettes = [palette], Sprites = [sprite] };
 
@@ -61,17 +67,38 @@ public class PaletteDepthTests
     [Fact]
     public void FiveBitConversionRefusesUndecodedSpritesUsingThePalette()
     {
-        var palette = new Palette { Colors = Enumerable.Range(0, 256).Select(i => Color((byte)i)).ToArray() };
+        var palette = Padded(256, 32);
         var sprite = new Sprite { Width = 1, Height = 1, Palette = palette, DecodeError = "bad pixel data" };
         var file = new SffFile { Version = SffVersions.V2, Palettes = [palette], Sprites = [sprite] };
 
         Assert.False(PaletteDepth.CanConvert(file, palette, 32));
     }
 
+    [Theory]
+    [InlineData(10, false)]
+    [InlineData(8, true)]
+    public void ShrinkingRefusesToCutRealColorsEvenWithoutSprites(int used, bool expected)
+    {
+        var palette = Padded(16, used);
+        var file = new SffFile { Version = SffVersions.V2, Palettes = [palette] };
+
+        Assert.Equal(expected, PaletteDepth.CanConvert(file, palette, 8));
+    }
+
+    [Fact]
+    public void ShrinkingRefusesWhenOnlyLowIndexesAreUsedButHigherEntriesAreReal()
+    {
+        var palette = new Palette { Colors = Enumerable.Range(0, 16).Select(i => Color((byte)i)).ToArray() };
+        var sprite = new Sprite { Width = 1, Height = 1, Indexed = [3], Palette = palette };
+        var file = new SffFile { Version = SffVersions.V2, Palettes = [palette], Sprites = [sprite] };
+
+        Assert.False(PaletteDepth.CanConvert(file, palette, 8));
+    }
+
     [Fact]
     public void FiveBitConversionPreservesTheFirst32Entries()
     {
-        var palette = new Palette { Colors = Enumerable.Range(0, 256).Select(i => Color((byte)i)).ToArray() };
+        var palette = Padded(256, 32);
 
         var converted = PaletteDepth.Convert(palette, 32);
 

@@ -17,6 +17,10 @@ public static class PaletteDepth
             || !file.Palettes.Contains(palette))
             return false;
 
+        // Shrinking may only cut padding, meaning entries past the new size that all repeat one color
+        if (colors < palette.Colors.Length && palette.Colors[colors..].Any(c => c != palette.Colors[^1]))
+            return false;
+
         return file.Sprites
             .Where(s => ReferenceEquals(s.Palette?.LinksTo ?? s.Palette, palette))
             .All(s => s.Indexed is { } indices

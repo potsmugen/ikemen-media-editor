@@ -2950,9 +2950,7 @@ public static partial class Dialogs
                 ? selectedColors > currentColors
                     ? "Fills the new entries with opaque black."
                     : "Keeps the existing colors and indexes."
-                : paletteCount > 1
-                    ? "A sprite using one of these palettes has indexes that exceed this depth, or is undecoded."
-                    : "A sprite using this palette has indexes that exceed this depth, or is undecoded.");
+                : "This depth would cut colors that aren't padding, indexes a sprite uses, or leave an undecoded sprite.");
             apply.IsEnabled = enabled;
         }
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };

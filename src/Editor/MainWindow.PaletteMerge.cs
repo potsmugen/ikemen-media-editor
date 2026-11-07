@@ -85,21 +85,28 @@ public partial class MainWindow
         return new PaletteMergeUsers(weights, owners, blocked, sprites);
     }
 
-    /// <summary>Each palette's padding: its most frequent color, if it fills 2+ entries (ties: lowest index).</summary>
+    /// <summary>Each palette's padding: the color of its trailing run, if the run fills 2+ entries.</summary>
     private static Dictionary<Palette, Rgba> DetectPadding(List<Palette> chosen)
     {
         var padOf = new Dictionary<Palette, Rgba>();
         foreach (var p in chosen)
         {
-            var counts = new Dictionary<Rgba, int>();
-            for (int i = 1; i < Math.Min(p.Colors.Length, 256); i++)
-                counts[p.Colors[i]] = counts.GetValueOrDefault(p.Colors[i]) + 1;
-            if (counts.Count > 0 && counts.MaxBy(kv => kv.Value) is { Value: >= 2 } top) padOf[p] = top.Key;
+            if (p.Colors.Length == 0) continue;
+            var last = p.Colors[Math.Min(p.Colors.Length, 256) - 1];
+            if (PaddingStart(p, last) < Math.Min(p.Colors.Length, 256) - 1) padOf[p] = last;
         }
         return padOf;
     }
 
-    /// <summary>Padding choices: detected colors, most entries first, then 0,0,0.</summary>
+    /// <summary>The first index of the run of pad at the end of p (never index 0, the mask).</summary>
+    private static int PaddingStart(Palette p, Rgba pad)
+    {
+        int start = Math.Min(p.Colors.Length, 256);
+        while (start > 1 && p.Colors[start - 1] == pad) start--;
+        return start;
+    }
+
+    /// <summary>Padding choices: detected colors, most common first, then 0,0,0.</summary>
     private static List<Rgba> PaddingChoices(List<Palette> chosen, Dictionary<Palette, Rgba> padOf)
     {
         var choices = padOf.Values.Distinct()
@@ -109,9 +116,9 @@ public partial class MainWindow
         return choices;
     }
 
-    /// <summary>Whether index i of p is left out: its palette's padding, unless keepUsed and a sprite uses it.</summary>
+    /// <summary>Whether index i of p is left out: its palette's trailing padding, unless keepUsed and a sprite uses it.</summary>
     private static bool IsPadding(Palette p, int i, Dictionary<Palette, Rgba> padOf, PaletteMergeUsers? users, bool keepUsed) =>
-        padOf.TryGetValue(p, out var pad) && p.Colors[i] == pad
+        padOf.TryGetValue(p, out var pad) && i >= PaddingStart(p, pad)
         && !(keepUsed && users is not null && users.Weights.TryGetValue(p, out var w) && w[i] > 0);
 
     private static PaletteMerge.Result BuildPaletteMerge(List<Palette> chosen, PaletteMergeUsers? users,

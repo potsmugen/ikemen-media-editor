@@ -357,8 +357,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   or PCX files: index 0 is a transparent black mask, up to 255 colors are kept exactly most
   used first, and the rest are reduced by frequency-weighted median cut or padded with black.
 - **Combine Into New and Merge and Update Sprites** work on the selected palette rows. Every
-  entry of every chosen palette is kept except padding: each palette's most frequent color,
-  if it fills 2+ entries, is left out (Merge keeps it at indexes sprites use). Identical RGBA
+  entry of every chosen palette is kept except padding: each palette's trailing run of one
+  color, if it fills 2+ entries, is left out (Merge keeps it at indexes sprites use). Identical RGBA
   shares an entry. Colors keep their old index when it is free, walking palettes in list
   order; the rest fill free slots most used first. Index 0 is the first palette's mask, and
   the size is the largest chosen palette, grown to a power of two only when needed. The
@@ -427,7 +427,7 @@ and constraints that are easy to miss when reading one code path in isolation.
   without changing the edited palette. Dirty palettes show `*`. The Palettes tab shows `*`
   only when SFF palette tables (set, order, keys, links, colors) differ from the last
   load/save, or external/standalone palettes are dirty; sprite-only edits mark Sprites only.
-  Embedded v2 palettes convert among 1–8 bits, shrinking only when every sprite using them is decoded and its indexes fit;
+  Embedded v2 palettes convert among 1–8 bits, shrinking only when every sprite using them is decoded and its indexes fit, and the entries cut are all one padding color;
   growing fills with opaque black. Depth changes undo and keep indexes and colors.
 - **Follow palette** (right of the Palettes tab's Sprite Preview title, on at launch, not
   saved) moves the preview to the first visible sprite using the selected palette whenever
