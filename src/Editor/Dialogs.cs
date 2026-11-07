@@ -112,7 +112,7 @@ public enum SpriteAxisPosition
 
 public enum BulkSpriteExportFormat { Png, Pcx, Preserve }
 
-public sealed record BulkSpriteExportOptions(BulkSpriteExportFormat Format, bool IncludePalettes, bool PadCanvas);
+public sealed record BulkSpriteExportOptions(BulkSpriteExportFormat Format, bool IncludePalettes, bool PadCanvas, bool PadNumbers = false);
 
 /// <summary>
 /// Avalonia ships no message box, so these are hand-built modal windows. Kept
@@ -648,6 +648,7 @@ public static partial class Dialogs
         format.SelectedIndex = 0;
         var palettes = new CheckBox { Content = "Include separate palette PNGs", IsChecked = true };
         var pad = new CheckBox { Content = "Pad every sprite to the same canvas size" };
+        var padNumbers = new CheckBox { Content = "Pad group and number with leading zeros" };
 
         var ok = new Button { Content = "Export", MinWidth = 90, IsDefault = true };
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
@@ -656,6 +657,7 @@ public static partial class Dialogs
         body.Children.Add(format);
         body.Children.Add(palettes);
         body.Children.Add(pad);
+        body.Children.Add(padNumbers);
         var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8 };
         row.Children.Add(ok);
         row.Children.Add(cancel);
@@ -676,7 +678,7 @@ public static partial class Dialogs
                 2 => BulkSpriteExportFormat.Preserve,
                 _ => BulkSpriteExportFormat.Png,
             };
-            result.TrySetResult(new(selectedFormat, palettes.IsChecked == true, pad.IsChecked == true));
+            result.TrySetResult(new(selectedFormat, palettes.IsChecked == true, pad.IsChecked == true, padNumbers.IsChecked == true));
             dialog.Close();
         };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
@@ -687,7 +689,7 @@ public static partial class Dialogs
 
     public enum SpriteExportFormat { Png, Pcx }
 
-    public sealed record SpriteExportChoice(SpriteExportFormat Format, bool UsePreviewPalette, bool PadCanvas = false);
+    public sealed record SpriteExportChoice(SpriteExportFormat Format, bool UsePreviewPalette, bool PadCanvas = false, bool PadNumbers = false);
 
     /// <summary>Export's format, asked before the save dialog, plus whether to color the
     /// image with the preview palette. That checkbox appears only while a preview
@@ -716,6 +718,8 @@ public static partial class Dialogs
         }
         var pad = several ? new CheckBox { Content = "Pad every sprite to the same canvas size" } : null;
         if (pad is not null) body.Children.Add(pad);
+        var padNumbers = several ? new CheckBox { Content = "Pad group and number with leading zeros" } : null;
+        if (padNumbers is not null) body.Children.Add(padNumbers);
         body.Children.Add(new StackPanel
         {
             Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
@@ -732,7 +736,7 @@ public static partial class Dialogs
         ok.Click += (_, _) =>
         {
             result.TrySetResult(new(pcx.IsChecked == true ? SpriteExportFormat.Pcx : SpriteExportFormat.Png,
-                previewBox?.IsChecked == true, pad?.IsChecked == true));
+                previewBox?.IsChecked == true, pad?.IsChecked == true, padNumbers?.IsChecked == true));
             dialog.Close();
         };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };

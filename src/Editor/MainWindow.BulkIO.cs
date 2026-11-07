@@ -82,9 +82,10 @@ public partial class MainWindow
         string ext = format == BulkSpriteExportFormat.Pcx ? "pcx" : "png";
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var paths = new List<string>();
+        var (gw, iw) = choice.PadNumbers ? KeyWidths(eligible.Select(s => (s.Group, s.Index))) : (0, 0);
         foreach (var s in eligible)
         {
-            string stem = $"{s.Group}_{s.Index}", name = stem;
+            string stem = KeyName(s.Group, s.Index, gw, iw), name = stem;
             for (int k = 2; !names.Add(name); k++) name = $"{stem} ({k})";
             paths.Add(Path.Combine(dir, $"{name}.{ext}"));
         }
@@ -95,7 +96,7 @@ public partial class MainWindow
         var skippedItems = LogSkippedSprites("ExportSpritesMany", many.Except(eligible), format);
         var canvas = choice.PadCanvas ? CommonCanvas(eligible) : default;
         var previewPalette = choice.UsePreviewPalette ? ActivePalette() : null;
-        CrashLog.Trace($"[bulk] export {eligible.Count} selected sprites to {dir}; format {format}; padded={choice.PadCanvas}");
+        CrashLog.Trace($"[bulk] export {eligible.Count} selected sprites to {dir}; format {format}; padded={choice.PadCanvas}; padNumbers={choice.PadNumbers}");
         if (!TryBeginBusy()) return;
         try
         {
@@ -251,12 +252,13 @@ public partial class MainWindow
     }
 
     /// <summary>Writes each palette as an indexed PNG with its RGBA colors in the embedded palette.</summary>
-    private static List<ExportManifest.Entry> ExportAllPalettes(IEnumerable<Palette> palettes, string dir, string prefix)
+    private static List<ExportManifest.Entry> ExportAllPalettes(IEnumerable<Palette> palettes, string dir, string prefix, bool padNumbers = false)
     {
+        var (groupWidth, indexWidth) = padNumbers ? KeyWidths(palettes.Select(p => (p.Group, p.Index))) : (0, 0);
         var entries = new List<ExportManifest.Entry>();
         foreach (var p in palettes)
         {
-            string name = $"{prefix}_palette_{p.Group}_{p.Index}.png";
+            string name = $"{prefix}_palette_{KeyName(p.Group, p.Index, groupWidth, indexWidth)}.png";
             File.WriteAllBytes(Path.Combine(dir, name), PalettePngFile.Write(p, 1));
             entries.Add(new("palette", p.Group, p.Index, name));
         }
@@ -576,7 +578,8 @@ public partial class MainWindow
             return;
         }
         var canvas = options.PadCanvas ? CommonCanvas(eligible) : default;
-        CrashLog.Trace($"[bulk] export {eligible.Count} sprites to {dir}; format {options.Format}; padded={options.PadCanvas}");
+        var (gw, iw) = options.PadNumbers ? KeyWidths(eligible.Select(s => (s.Group, s.Index))) : (0, 0);
+        CrashLog.Trace($"[bulk] export {eligible.Count} sprites to {dir}; format {options.Format}; padded={options.PadCanvas}; padNumbers={options.PadNumbers}");
 
         if (!TryBeginBusy()) return;
         try
@@ -591,7 +594,7 @@ public partial class MainWindow
                 await BusyStep("Exporting sprite", n, eligible.Count, $"{s.Group},{s.Index} {s.Width}x{s.Height}");
                 if (!ReferenceEquals(_file, sff)) { StatusText.Text = "Export stopped \u2014 the file was closed."; return; }
                 var (bytes, extension) = EncodeExportSprite(s, options.Format, s.Palette, _showMask, options.PadCanvas, canvas);
-                string name = $"{prefix}_{s.Group}_{s.Index}.{extension}";
+                string name = $"{prefix}_{KeyName(s.Group, s.Index, gw, iw)}.{extension}";
                 File.WriteAllBytes(Path.Combine(dir, name), bytes);
                 entries.Add(new("sprite", s.Group, s.Index, name,
                     Axis: options.PadCanvas ? (canvas.AxisX, canvas.AxisY) : (s.AxisX, s.AxisY),
@@ -607,7 +610,7 @@ public partial class MainWindow
                     .Concat(usedPalettes.Except(sff.Palettes)).ToList()
                 : [];
             if (options.IncludePalettes)
-                entries.InsertRange(0, ExportAllPalettes(allPalettes, dir, prefix));
+                entries.InsertRange(0, ExportAllPalettes(allPalettes, dir, prefix, options.PadNumbers));
             File.WriteAllText(txtPath, ExportManifest.Write(entries));
             CrashLog.Trace($"[bulk] export done: {written} sprites, {allPalettes.Count} palettes");
 
@@ -628,6 +631,22 @@ public partial class MainWindow
             EndBusy();
         }
     }
+
+    /// <summary>Digit counts of the widest group and widest number, for zero-padded names.</summary>
+    private static (int Group, int Index) KeyWidths(IEnumerable<(int Group, int Index)> keys)
+    {
+        int g = 1, i = 1;
+        foreach (var (group, index) in keys)
+        {
+            g = Math.Max(g, group.ToString().Length);
+            i = Math.Max(i, index.ToString().Length);
+        }
+        return (g, i);
+    }
+
+    /// <summary>Group_Number, each part zero-padded to its width (0 = no padding).</summary>
+    private static string KeyName(int group, int index, int groupWidth, int indexWidth) =>
+        $"{group.ToString("D" + groupWidth)}_{index.ToString("D" + indexWidth)}";
 
     /// <summary>Strips characters that can't appear in a file name — a user typing a
     /// name for an export might type anything — so the prefix always makes a valid
