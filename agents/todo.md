@@ -98,17 +98,9 @@ Select tool gaps against image editor conventions:
   whether it unpacks tdata sprites once at load or on draw, whether it honors the flag
   on every node or only compressed ones, any load-time or memory difference, and whether
   our tdata layout matches what it reads. Notes in features.md are unverified.
-- Optimal encoding within the file's own version: pick the smallest lossless format per
-  sprite, not the current rules (edited 5-bit uses LZ5 only if it can encode, else RLE8;
-  8-bit always RLE8; raw never). A 2.0.0.0 file chooses among raw, RLE8, RLE5 and LZ5;
-  a 2.0.1.0 file may also use PNG8. The version never changes. Edited true color already
-  compares raw/PNG24/32. This covers untouched sprites too; decide how the re-encoded
-  bytes are reported.
-- Measured on a real background SFF: ours is 250,735 bytes and 145,397 after resaving it
-  in a different app, with the same palettes and decoded pixels. We keep indexed sprites
-  as RLE8; it re-encoded 13 of them as PNG8 (and the 5-bit one as LZ5). That file is
-  2.0.1.0, so PNG8 was available; a 2.0.0.0 file would have to settle for the smallest of
-  raw/RLE8.
+- Save Like SprMaker 2.01 with `sprite.compress = none` writes raw sprites, which Ikemen GO refuses at
+  1-7 bits (image.go `readV2`) and MUGEN 1.1 failed to load in a test (depth unknown, see
+  features.md). Not changed; decide whether to warn, and whether real sprmake2.exe output loads.
 - Add ways to optimize SFF for size or load time. Only v2 has per-sprite format choice
   (raw, RLE8, RLE5, LZ5, PNG); v1 writes every sprite as PCX, so only palette sharing and
   cropping help there. Keep the version rules, and decide between smallest file and fastest load.
@@ -224,10 +216,6 @@ Built, but not tried by the maintainer yet.
 
 ### Sprite depth follows its palette (MUGEN crash fix)
 
-- The crashing background SFF: one sprite shows 8-bit in a hex dump while its palette has
-  32 colors.
-  Save it, then check that node's depth byte is 5 and that the file still opens here. In MUGEN 1.1,
-  the saved file should load and draw 0,3 instead of crashing.
 - Convert one palette's depth (e.g. 0,2 to 16 or 64 colors) with its sprites untouched, save, and
   check the sprites' depth bytes follow the palette. Media Health Report lists it under
   "Written differently on save", and the sprite jumps there.

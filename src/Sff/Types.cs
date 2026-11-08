@@ -302,7 +302,8 @@ public sealed class SffFile
     public void Save(string path) => SffWriter.Save(this, path);
 
     /// <summary>Writes the file in a chosen version rather than the default.</summary>
-    public void Save(string path, SffVersion version, bool clamp = false) => SffWriter.Save(this, path, version, clamp);
+    public void Save(string path, SffVersion version, bool clamp = false, EncodingPlan? plan = null) =>
+        SffWriter.Save(this, path, version, clamp, plan);
 
     /// <summary>
     /// A deep copy: new sprites and palettes with their own pixel arrays, links

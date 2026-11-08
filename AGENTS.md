@@ -107,6 +107,7 @@ and keep them current. Open, unchecked work is in `agents/todo.md`.
   with `git diff --ignore-cr-at-eol`; a CRLF working file is not a change.
 - After each XAML edit, check well-formedness and brace balance. The
   maintainer compiles; dotnet isn't available on the device shell.
+- Remember to test large SFF files in MUGEN on an executable with the 4 GB patch, or it may crash.
 
 ## Iron rules: no guessing
 

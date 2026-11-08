@@ -7,21 +7,23 @@ namespace Sff;
 /// compressed bytes, so re-saving an untouched file reproduces its pixels exactly
 /// (a file read from tdata is normalized to ldata on an ordinary save). A node's
 /// depth always follows the palette it uses, since the engines link them by depth.
-/// Repainted sprites are re-encoded; edited true-color sprites use the
-/// smallest lossless raw or PNG payload. Sprite links and palettes are preserved.
+/// Repainted sprites are re-encoded in their destination format (Destination), and so are
+/// untouched ones stored in another format when saved with a plan from PlanEncoding. Sprite links and palettes are preserved.
 /// Palettes always live in ldata; Save Like SprMaker 2.01 with
 /// sprite.decompressonload puts sprite data in tdata with node flag 1.
 /// </summary>
-public static class SffWriter
+public static partial class SffWriter
 {
     private record struct Placement(uint Offset, uint Length, SpriteFormat Format, byte Depth, bool InTdata);
 
     /// <summary>Writes the file in the requested version. clamp: group/number and
-    /// axis values that don't fit are clamped to the field's range instead of wrapped.</summary>
-    public static void Save(SffFile f, string path, SffVersion version, bool clamp = false)
+    /// axis values that don't fit are clamped to the field's range instead of wrapped.
+    /// plan (v2 only, from PlanEncoding for this version) supplies the encodings, including smaller
+    /// ones for untouched sprites; without it untouched sprites keep their bytes.</summary>
+    public static void Save(SffFile f, string path, SffVersion version, bool clamp = false, EncodingPlan? plan = null)
     {
         if (version.Hi == 1) { SffV1Writer.Save(f, path, clamp, keepSourceBytes: true, linkPalettes: true); return; }
-        Save(f, path, version.Lo2 >= 1 || version.Lo1 > 0, clamp);
+        Save(f, path, SffVersions.SupportsPng(version), clamp, plan: plan);
     }
 
     /// <summary>Linked sprites a v1 save gives their target's palette instead of their own; see SffV1Writer.</summary>
@@ -206,8 +208,12 @@ public static class SffWriter
         return result;
     }
 
-    private static void Save(SffFile f, string path, bool allowPng, bool clamp, SprMaker2Options? tool = null)
+    private static void Save(SffFile f, string path, bool allowPng, bool clamp, SprMaker2Options? tool = null,
+        EncodingPlan? plan = null)
     {
+        if (plan is not null && (tool is not null || plan.AllowPng != allowPng))
+            throw new ArgumentException("the encoding plan was made for another version", nameof(plan));
+
         // Converting v1 to v2 rekeys the SFF's own palettes (V1ConvertedKeys).
         // v1-internal palettes have no source file; embedded .acts do.
         bool rekey = f.Version.Hi == 1;
@@ -264,7 +270,12 @@ public static class SffWriter
             byte depth;
 
             // Save Like SprMaker 2.01 applies the selected compression to every pixel sprite.
-            if (Reuses(s, allowPng) && !(tool is not null && (s.Indexed is not null || s.Direct is not null)))
+            if (plan is not null && plan.Chosen.TryGetValue(s, out var planned))
+            {
+                data.Write(planned.Bytes);
+                (fmt, depth) = (planned.Format, planned.Depth);
+            }
+            else if (Reuses(s, allowPng) && !(tool is not null && (s.Indexed is not null || s.Direct is not null)))
             {
                 data.Write(s.SourceData);
                 (fmt, depth) = (s.SrcFormat, s.SrcDepth);
@@ -275,24 +286,17 @@ public static class SffWriter
                     throw new InvalidDataException(
                         $"sprite {i} has {s.Indexed.Length} pixels, expected {s.Width * s.Height}");
 
-                int paletteColors = s.Palette?.Colors.Length ?? 256;
-                int indexedDepth = PaletteDepth.SupportedColorCounts.Contains(paletteColors)
-                    ? Array.IndexOf(PaletteDepth.SupportedColorCounts, paletteColors) + 1
-                    : 8;
+                int indexedDepth = IndexedDepth(s);
                 if (s.Indexed.Any(index => index >= (1 << indexedDepth)))
                     throw new InvalidDataException(
                         $"sprite {i} uses indexes outside its {indexedDepth}-bit palette");
                 if (tool is not null)
                     (fmt, depth) = EncodeLikeSprMaker2(data, quad, s, tool, indexedDepth);
-                else if (indexedDepth == 5 && Lz5.CanEncode(s.Indexed))
-                {
-                    WriteLengthPrefixed(data, quad, (uint)s.Indexed.Length, Lz5.Encode(s.Indexed));
-                    (fmt, depth) = (SpriteFormat.Lz5, 5);
-                }
                 else
                 {
-                    WriteLengthPrefixed(data, quad, (uint)s.Indexed.Length, Rle8.Encode(s.Indexed));
-                    (fmt, depth) = (SpriteFormat.Rle8, (byte)indexedDepth);
+                    var enc = EncodeForSave(s, IndexedCandidates(s, indexedDepth, allowPng));
+                    data.Write(enc.Bytes);
+                    (fmt, depth) = (enc.Format, enc.Depth);
                 }
             }
             else if (s.Direct is not null)
@@ -306,7 +310,11 @@ public static class SffWriter
                         $"sprite {s.Group},{s.Index} has {s.Direct.Length} true-color bytes, expected {s.Width * s.Height * 4}");
 
                 if (tool is null)
-                    (fmt, depth) = EncodeDirectOptimally(data, quad, s);
+                {
+                    var enc = EncodeForSave(s, DirectCandidates(s));
+                    data.Write(enc.Bytes);
+                    (fmt, depth) = (enc.Format, enc.Depth);
+                }
                 else if (tool.Compress24 == SprMaker2Compress24.None)
                 {
                     WriteRawRgb24(data, s.Direct);
@@ -449,44 +457,6 @@ public static class SffWriter
         }
     }
 
-    /// <summary>Selects the shortest lossless representation for a changed true-color sprite.</summary>
-    private static (SpriteFormat, byte) EncodeDirectOptimally(Stream ldata, byte[] quad, Sprite s)
-    {
-        byte[] bgra = s.Direct!;
-        bool opaque = true;
-        for (int i = 3; i < bgra.Length; i += 4)
-            if (bgra[i] != 255) { opaque = false; break; }
-
-        byte[] png32 = Png.Encode(bgra, s.Width, s.Height);
-        int png32Length = checked(png32.Length + 4);
-        if (!opaque)
-        {
-            if (bgra.Length <= png32Length)
-            {
-                WriteRawRgba(ldata, bgra);
-                return (SpriteFormat.Raw, 32);
-            }
-            WriteLengthPrefixed(ldata, quad, (uint)bgra.Length, png32);
-            return (SpriteFormat.Png32, 32);
-        }
-
-        byte[] png24 = Png.EncodeRgb24(bgra, s.Width, s.Height);
-        int png24Length = checked(png24.Length + 4);
-        int raw24Length = checked(s.Width * s.Height * 3);
-        if (raw24Length <= png24Length && raw24Length <= png32Length)
-        {
-            WriteRawRgb24(ldata, bgra);
-            return (SpriteFormat.Raw, 24);
-        }
-        if (png24Length <= png32Length)
-        {
-            WriteLengthPrefixed(ldata, quad, (uint)raw24Length, png24);
-            return (SpriteFormat.Png24, 24);
-        }
-        WriteLengthPrefixed(ldata, quad, (uint)bgra.Length, png32);
-        return (SpriteFormat.Png32, 32);
-    }
-
     private static void WriteRawRgb24(Stream ldata, byte[] bgra)
     {
         var rgb = new byte[checked(bgra.Length / 4 * 3)];
@@ -497,19 +467,6 @@ public static class SffWriter
             rgb[dst++] = bgra[src];
         }
         ldata.Write(rgb);
-    }
-
-    private static void WriteRawRgba(Stream ldata, byte[] bgra)
-    {
-        var rgba = new byte[bgra.Length];
-        for (int i = 0; i < bgra.Length; i += 4)
-        {
-            rgba[i] = bgra[i + 2];
-            rgba[i + 1] = bgra[i + 1];
-            rgba[i + 2] = bgra[i];
-            rgba[i + 3] = bgra[i + 3];
-        }
-        ldata.Write(rgba);
     }
 
     private static bool IsPng(SpriteFormat f) => f is SpriteFormat.Png8 or SpriteFormat.Png24 or SpriteFormat.Png32;

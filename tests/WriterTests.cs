@@ -168,7 +168,7 @@ public class WriterTests
         if (path is null) return;
 
         var original = SffFile.Open(path);
-        // Pretend every indexed sprite was edited, forcing the RLE8 path.
+        // Pretend every indexed sprite was edited, forcing a re-encode in the smallest format.
         foreach (var s in original.Sprites)
             if (s.Indexed is not null && s.SharesWith is null) s.PixelsDirty = true;
 
@@ -178,7 +178,7 @@ public class WriterTests
             original.Save(tmp);
             var reloaded = SffFile.Open(tmp);
             AssertSame(original, reloaded);
-            Assert.Contains(reloaded.Sprites, s => s.SrcFormat == SpriteFormat.Rle8);
+            Assert.DoesNotContain(reloaded.Sprites, s => s.Indexed is not null && s.SharesWith is null && s.SrcFormat == SpriteFormat.Raw);
         }
         finally { File.Delete(tmp); }
     }

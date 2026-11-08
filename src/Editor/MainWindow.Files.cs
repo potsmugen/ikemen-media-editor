@@ -1180,7 +1180,7 @@ public partial class MainWindow
             case 1: OnSaveAct(null, args); break;
             case 2: OnSaveAir(null, args); break;
             case 3: OnSaveSnd(null, args); break;
-            default: _ = SaveSprites(); break;
+            default: if (_dirty) _ = SaveSprites(); break; // as the menu's Save: nothing to save on an unedited file
         }
     }
 
@@ -1214,20 +1214,22 @@ public partial class MainWindow
             var file = _file!;
             string path = _path!;
             var version = file.Version;
+            if (await PlanSffEncoding(file, version) is not { } plan) return false;
             bool clamp = !_settings.General.DebugMode;
             int backupCount = _settings.Files.BackupCount;
             var backup = await RunFileWorkAsync($"Saving {Path.GetFileName(path)}…", () =>
             {
                 string? made = Backups.Make(path, backupCount);
-                file.Save(path, version, clamp: clamp);
+                file.Save(path, version, clamp: clamp, plan: plan);
                 return made;
             });
+            SffWriter.ApplyEncoding(plan);
             if (!SffVersions.IsV1(version)) SffWriter.ApplyDepthFixes(file);
             ResolveRecoveredItem("sff", _path);
             MarkClean();
             StatusText.Text = $"Saved {Path.GetFileName(_path)}"
                 + (backup is null ? "" : $" (previous version kept as {Path.GetFileName(backup)})")
-                + ForwardLinksSaved(forwardNote, forwardPaletteNote) + TruncationWarning();
+                + EncodingSaved(plan) + ForwardLinksSaved(forwardNote, forwardPaletteNote) + TruncationWarning();
             return true;
         }
         catch (Exception ex)
@@ -1354,11 +1356,17 @@ public partial class MainWindow
                 return;
             }
             var fileToSave = _file!;
+            if (await PlanSffEncoding(fileToSave, version) is not { } plan)
+            {
+                for (int i = rollback.Count - 1; i >= 0; i--) rollback[i]();
+                return;
+            }
             bool clampToSave = !_settings.General.DebugMode;
             Backups.Make(path, _settings.Files.BackupCount);
-            await RunFileWriteAsync($"Saving {Path.GetFileName(path)}…", () => fileToSave.Save(path, version, clamp: clampToSave));
+            await RunFileWriteAsync($"Saving {Path.GetFileName(path)}…", () => fileToSave.Save(path, version, clamp: clampToSave, plan: plan));
             rollback.Clear(); // on disk now; the session keeps the changes
             _file.Version = version; // what's on disk now; plain Save keeps it from here
+            SffWriter.ApplyEncoding(plan);
             if (!SffVersions.IsV1(version)) SffWriter.ApplyDepthFixes(_file);
             int droppedV1 = toV1 ? MatchSessionToV1() : 0;
             bool mainTo11 = false;
@@ -1397,7 +1405,7 @@ public partial class MainWindow
             if (mainDropped) parts.Add("The old main palette was dropped as a duplicate");
             if (droppedV1 > 0) parts.Add($"{droppedV1} palette{(droppedV1 == 1 ? "" : "s")} no sprite used {(droppedV1 == 1 ? "was" : "were")} dropped");
             StatusText.Text = $"Saved {Path.GetFileName(path)} as SFF {version}, {size / 1024:N0} KB."
-                + string.Concat(parts.Select(x => $" {x}.")) + ForwardLinksSaved(forwardNote, forwardPaletteNote) + TruncationWarning();
+                + string.Concat(parts.Select(x => $" {x}.")) + EncodingSaved(plan) + ForwardLinksSaved(forwardNote, forwardPaletteNote) + TruncationWarning();
         }
         catch (Exception ex)
         {
@@ -1629,8 +1637,61 @@ public partial class MainWindow
         int png = SffVersions.SupportsPng(version) ? 0 : SffWriter.StoredAsPng(_file);
         return png == 0 || await Dialogs.Confirm(this, "PNG Sprites",
             $"{png} sprite(s) are stored as PNG, which SFF {version} can't hold. "
-            + "Re-encode them as LZ5/RLE8 in the saved file? No pixels change.", "Re-encode");
+            + "Re-encode them in a format it can hold in the saved file? No pixels change.", "Re-encode");
     }
+
+    /// <summary>
+    /// Works out the sprite encodings for a save (empty for v1). When unedited sprites are stored in
+    /// another format than their destination, asks first, naming how many and the formats (known
+    /// without encoding; the bytes saved go in the save message), then encodes under a cancelable
+    /// progress window. Otherwise only edited sprites are encoded, with no window. Null = canceled.
+    /// </summary>
+    private async Task<EncodingPlan?> PlanSffEncoding(SffFile file, SffVersion version)
+    {
+        EncodingPlan plan;
+        var changing = SffWriter.ReencodedOnSave(file, version);
+        var sw = Stopwatch.StartNew();
+        if (changing.Count == 0)
+            plan = await RunFileWorkAsync("Encoding sprites", () => SffWriter.PlanEncoding(file, version));
+        else
+        {
+            var formats = changing.Select(c => c.To).Distinct().OrderBy(f => f).Select(f => f.ToString().ToUpperInvariant()).ToList();
+            string formatList = formats.Count == 1 ? formats[0] : $"{string.Join(", ", formats.SkipLast(1))} and {formats[^1]}";
+            if (!await Dialogs.Confirm(this, "Optimize Sprites",
+                    $"Saving will re-encode {Plural(changing.Count, "unedited sprite", "unedited sprites")} as {formatList}.", "Save"))
+            {
+                StatusText.Text = "Save canceled; nothing was written.";
+                return null;
+            }
+            sw.Restart(); // time the encoding, not the popup
+            var window = new Dialogs.ProgressWindow(this, "Optimize Sprites", "Encoding sprite", SffWriter.EncodingCount(file, version));
+            var progress = new Progress<int>(window.Report);
+            var token = window.Token;
+            try
+            {
+                plan = await Task.Run(() => SffWriter.PlanEncoding(file, version, progress, token), token);
+            }
+            catch (OperationCanceledException)
+            {
+                CrashLog.Trace("PlanSffEncoding: canceled");
+                StatusText.Text = "Save canceled; nothing was written.";
+                return null;
+            }
+            finally
+            {
+                window.Close();
+            }
+        }
+        foreach (var failure in plan.CheckFailures) CrashLog.Error("PlanSffEncoding", failure);
+        CrashLog.Trace($"[save] encoded {SffWriter.EncodingCount(file, version)} sprites in {sw.ElapsedMilliseconds} ms; "
+            + $"{plan.Reencoded.Count} unedited re-encoded, {plan.BytesSaved} bytes saved");
+        return plan;
+    }
+
+    /// <summary>The save message's note on unedited sprites re-encoded, with the size change.</summary>
+    private static string EncodingSaved(EncodingPlan plan) => plan.Reencoded.Count == 0 ? ""
+        : $" Re-encoded {Plural(plan.Reencoded.Count, "sprite", "sprites")}, {Math.Abs(plan.BytesSaved):N0} bytes "
+            + (plan.BytesSaved >= 0 ? "smaller." : "larger.");
 
     /// <summary>
     /// Values past the SFF's on-disk fields (u16 group/number, s16 axis) can

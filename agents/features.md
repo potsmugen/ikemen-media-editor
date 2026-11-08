@@ -75,6 +75,14 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Saving v2 as v1** lists what is lost: palettes no sprite uses, group/index keys, links and
   alpha. True-color or undecoded sprites stop it before the picker. Afterwards the session
   drops those palettes and resolves links into copies, matching the file.
+- **Optimize Sprites on save** (SFF v2, Save and Save As). When untouched sprites are stored in
+  another format than their destination, the save first asks "Saving will re-encode N unedited
+  sprites as PNG8 and PNG24." with Save/Cancel; N and the formats come from comparing formats, so
+  nothing is encoded before the answer. Then the encoding runs under a cancelable progress window
+  ("Encoding sprite N of M") and the file is written. The status bar adds "Re-encoded N sprites, X
+  bytes smaller." (or larger). The session takes on the new bytes, so the next save asks nothing. Edited
+  and imported sprites are encoded quietly. Save (menu and Ctrl+S) does nothing on an unedited file;
+  Save As works. Trace: `[save] encoded N sprites in T ms`.
 - **Save Like SprMaker** works on a copy; the open file changes only if the output replaces it
   and the reload is accepted. Order is duplicate linking, palette deduplication, then
   autocrop, with losses and true-color limits checked before saving. Verbose lines are keyed
@@ -808,13 +816,42 @@ summaries; treat anything marked unverified as unknown.
   Compatibility is written as SprMaker 2.01 does: 2.0.1.0 only for PNG or
   deeper-than-8-bit sprites, otherwise 2.0.0.0. Ikemen skips bytes 16-35;
   MUGEN may use compatibility (unverified). Below 2.0.1.0, PNG sprites must
-  be re-encoded losslessly as LZ5/RLE8 or the save is canceled; true color
+  be re-encoded losslessly (the smallest of the formats below) or the save is canceled; true color
   is refused. Version restrictions and behavior are described in **Files and saving**.
 - MUGEN 1.0's SFF 2.0.0.0 format is documented as indexed sprites only (5/8-bit:
   raw, RLE8, RLE5, LZ5); support for the additional 1/2/3/4/6/7-bit depths
   accepted by SprMaker 2.01 has not been verified against the engine. 24/32-bit
   sprites, including raw, and PNG8/24/32 require 2.0.1.0. Ikemen reads PNG and
   raw 24/32-bit from any v2 file without a version check.
+- **Which v2 formats each engine decodes, by depth** (read 2026-11-08: mugen-unleashed
+  cc94cfe, Ikemen-GO 063a060; not tried in game). MUGEN 1.0 has no source here, so its
+  support is unverified.
+  - Neither engine gates a format on the file version. MUGEN 1.1 `src/sff.c` `Sff2_Load`
+    passes `node->format` to `Sprite_Init` (`src/sprite.c`), which calls
+    `g_spriteDecoders[format]` (`src/globals.c`); it only rejects compatibility above
+    2.0.1.0 (`Sff_Load`). Ikemen `src/image.go` `readV2` switches on the format alone.
+  - Neither decoder reads the node depth for RLE8, RLE5, LZ5 or PNG8; the depth only picks
+    the palette (MUGEN `Sff2_LinkPalette`, Ikemen `coldepth <= 8`). Pixels are one byte each.
+  - RLE8 (`Rle8_Decode` in `src/spritecodec.c`, `Rle8Decode` in image.go): any 8-bit value.
+  - RLE5 (`Rle5_DecodeBlock`, `Rle5Decode`): a leading run's color is a full byte, sub-packet
+    colors are `& 0x1f`. LZ5 (`Lz5_DecodeBlock`, `Lz5Decode`): runs are `& 0x1f`, copies repeat
+    earlier output. So both formats hold only indices 0-31, at any node depth (`Lz5.CanEncode`).
+  - PNG8 (format 10): MUGEN `src/pngio.c` `Png_ReadStream` reads palette PNGs of bit depth
+    1/2/4/8 into one byte per pixel (`png_set_packing`) and skips gray PNGs (pixels left
+    undecoded). Ikemen takes `(*image.Paletted).Pix` from Go's `png.Decode`; any other PNG
+    type leaves the sprite blank (`SetPxl` returns on empty data). Both ignore the PNG's PLTE colors.
+  - Raw (format 0): in the source, MUGEN uses the bytes as-is at any depth (`Sprite_Init`,
+    `Sprite_GetPixels`). Ikemen `readV2` accepts raw only at `coldepth` 8, 24 or 32 and returns
+    "Unknown color depth" otherwise, which fails the whole `loadSff`. So raw 1-7-bit indexed
+    sprites break the file in Ikemen.
+  - Tested 2026-11-08: MUGEN 1.1 (4 GB patched) would not load a large character SFF whose only
+    new content was 26 tiny raw sprites (18 8-bit, 8 24-bit, mostly 1x1); the same file without raw
+    loads. mugen-unleashed (1.1 Beta 1) shows no failing path, and which depth fails is unknown.
+    Treat raw as unsafe in MUGEN until narrowed down.
+  - RLE5 zero count: both engines read a sub-packet count of 0 as no sub-packets, color bit
+    or not (MUGEN `count = ctrl & 0x7F`, Ikemen `dl := rle[i] & 0x7f`). That disagrees with the
+    RLE5 note below (128 when the color bit is set, from sprmake2 output). Not changed; our
+    encoder never writes such a packet with pixels left, so its output reads the same in all three.
 - SprMaker 2.01 supports indexed depths 1 through 8, deriving depth from a
   palette with exactly 2, 4, 8, 16, 32, 64, 128, or 256 entries; a mismatch is
   an error. `sprite.compress.<depth>` picks the format. Raw indexed data is
@@ -836,10 +873,25 @@ summaries; treat anything marked unverified as unknown.
   count as none and misread real sprites past 127 sub-packets. The encoder
   splits runs of ≤ 17 into sub-packets and starts a new packet (the run as the
   leading run) for longer ones, matching the tool's choice.
-- Normal saves reuse untouched sprite bytes. Edited direct-color sprites pick
-  the smallest lossless payload per sprite across raw RGB/RGBA and PNG24/32;
-  RGB24 is considered only when all pixels are opaque. SprMaker saves instead
-  follow the selected `sprite.compress.24` option for every direct-color sprite.
+- **Destination format per sprite** (v2, `SffWriter.Encoding.cs`, `Destination`). 2.0.1.0:
+  indexed PNG8; true color PNG24 when every pixel is opaque, else PNG32. 2.0.0.0: LZ5 at 5 bits and
+  below, else RLE8. A fixed rule rather than a size contest, so what a save changes is known by
+  comparing formats, without encoding. Never raw: it only wins on tiny sprites (about 100 bytes over
+  26 sprites in a large character), Ikemen GO refuses it below 8 bits, and MUGEN failed on it (above). LZ5 stays at 5 bits and below
+  (indices 0-31 only; MUGEN 1.0 unchecked on deeper sprites). PNG8 is 8-bit, filter none,
+  `CompressionLevel.SmallestSize`, PLTE cut to the highest index used, no tRNS (engines read only the
+  indices). Every encoding is decoded back and compared before use; on a mismatch the fallback (RLE8,
+  or PNG32 for true color) is used and logged (`CheckFailures`). Edited sprites always go to their
+  destination; untouched ones only through an `EncodingPlan`. SprMaker saves never use a plan and
+  follow their own `sprite.compress` options.
+  Accepted trade-off (2026-11-08): a sprite already in its destination keeps its bytes even when our
+  encoding would be smaller, and a sprite that RLE8 stores better than PNG8 grows (PNG chunks plus a
+  PLTE of up to 768 bytes, which libpng and Go require). On a large character this left the file
+  about 0.06% larger than the original; on a background with 14 RLE8 sprites it saved 111,130 bytes
+  of 250,735. Comparing sizes would need encoding before the popup.
+- **EncodingPlan.** `ReencodedOnSave` lists untouched sprites stored in another format than their
+  destination (cheap). `PlanEncoding` encodes those plus edited sprites in parallel; `ApplyEncoding`
+  gives the session the written bytes after the save. A plan made for another version is refused.
 - A v2 sprite node's depth is written from the palette it uses, not reused from
   the source file. MUGEN links a sprite to its palette only when the palette has
   exactly 1 << depth colors (mugen-unleashed `src/sprite.c`,

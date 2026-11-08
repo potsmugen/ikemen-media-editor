@@ -193,8 +193,10 @@ internal static class Png
     /// Encodes indices and their palette as an 8-bit indexed PNG. Keeping the
     /// index order intact is the point: a sprite exported, edited elsewhere and
     /// brought back should still line up with the character's alternate palettes.
+    /// alpha: false leaves out tRNS, for SFF sprites whose engines read only the indices.
     /// </summary>
-    public static byte[] EncodeIndexed(byte[] indices, int width, int height, Rgba[] palette)
+    public static byte[] EncodeIndexed(byte[] indices, int width, int height, Rgba[] palette,
+        CompressionLevel level = CompressionLevel.Optimal, bool alpha = true)
     {
         var raw = new byte[(width + 1) * height];
         for (int y = 0; y < height; y++)
@@ -204,7 +206,7 @@ internal static class Png
         }
 
         var body = new MemoryStream();
-        using (var deflate = new ZLibStream(body, CompressionLevel.Optimal, leaveOpen: true))
+        using (var deflate = new ZLibStream(body, level, leaveOpen: true))
             deflate.Write(raw);
 
         var ihdr = new byte[13];
@@ -230,7 +232,7 @@ internal static class Png
         outp.Write(Magic);
         WriteChunk(outp, "IHDR"u8, ihdr);
         WriteChunk(outp, "PLTE"u8, plte);
-        if (anyTransparent) WriteChunk(outp, "tRNS"u8, trns);
+        if (alpha && anyTransparent) WriteChunk(outp, "tRNS"u8, trns);
         WriteChunk(outp, "IDAT"u8, body.ToArray());
         WriteChunk(outp, "IEND"u8, []);
         return outp.ToArray();
