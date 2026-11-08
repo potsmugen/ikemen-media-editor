@@ -154,6 +154,10 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Replace inverse**: Shift-drag paints New → Old, fixed at the press (the brush outline
   turns ThemeAccent while Shift is held). A New shared by several pairs is left alone and
   named in the status bar. Swap flips Old and New everywhere.
+- **Replace all**: double-clicking with Replace runs the pairs over the whole sprite, or the
+  active layer when layers are on (Shift: New → Old). No selection exists while Replace is
+  active. The first click's square is undone first so no pixel is replaced twice, and both
+  clicks are one undo step, "replace all".
 - **Selection and paste**: Paste floats the block where it was copied and switches to Select.
   Dragging it past the sprite's edge clips the off-canvas part until Commit, and transparent
   pasted pixels leave the pixels under them. The selection shows only with the Select tool;

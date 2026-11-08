@@ -266,16 +266,27 @@ public partial class MainWindow
         CapturePaintBaseline();
     }
 
+    /// <summary>The history state the last Replace click left, so a double-click can fold that click into its own step</summary>
+    private PaintState? _replaceClickState;
+
     private void OnPaintStrokeFinished()
     {
         if (PaintSessionHasChanges()) MarkPaintPendingDirty();
+        bool replaceAll = SpriteCanvas.ActiveTool == PaintTool.Replace && SpriteCanvas.ReplaceAllStroke;
+        var clickState = _replaceClickState;
+        _replaceClickState = null;
+        var stateBefore = CurrentPaintState();
         PaintStep(SpriteCanvas.ActiveTool switch
         {
             PaintTool.Eraser => "eraser stroke",
             PaintTool.Fill => "fill",
-            PaintTool.Replace => "replace stroke",
+            PaintTool.Replace => replaceAll ? "replace all" : "replace stroke",
             _ => "pencil stroke",
         });
+        if (replaceAll) MergePaintStepIntoPrevious(clickState);
+        // Only a click that made a step of its own has one to fold in
+        else if (SpriteCanvas.ActiveTool == PaintTool.Replace && CurrentPaintState() is { } after && !ReferenceEquals(after, stateBefore))
+            _replaceClickState = after;
         SyncPaintButtons();
     }
 

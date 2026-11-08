@@ -66,6 +66,23 @@ public partial class MainWindow
         SyncUndoMenu();
     }
 
+    private PaintState? CurrentPaintState() => _paintStatePos >= 0 ? _paintStates[_paintStatePos] : null;
+
+    /// <summary>
+    /// Folds the step that led to <paramref name="previous"/> into the latest one, when the latest step came straight after it.
+    /// A Replace double-click uses it, so its first click's square isn't an undo step of its own
+    /// </summary>
+    private void MergePaintStepIntoPrevious(PaintState? previous)
+    {
+        int i = _paintStatePos - 1;
+        if (previous is null || i < 1 || !ReferenceEquals(_paintStates[i], previous)) return;
+        _paintStates.RemoveAt(i);
+        _paintStepNames.RemoveAt(i - 1);
+        _paintStatePos--;
+        SyncPaintButtons();
+        SyncUndoMenu();
+    }
+
     private void ClearPaintHistory()
     {
         _paintStates.Clear();

@@ -273,6 +273,12 @@ public class SpriteView : Control
     /// <summary>Raised when a Shift-stroke with Replace starts.</summary>
     public event Action? InverseReplaceStarted;
 
+    /// <summary>The current stroke is a Replace double-click, which replaces across the whole layer instead of under the brush</summary>
+    public bool ReplaceAllStroke { get; private set; }
+    /// <summary>The pixels as they were before the last Replace click, so a double-click can undo that click's square first</summary>
+    private byte[]? _replaceClickBefore;
+    private byte[]? _replaceClickTarget;
+
     /// <summary>
     /// Pixels the paint tools write to when a top layer is active; null paints the
     /// sprite's own pixels. The eyedropper always reads the sprite's flattened pixels.
@@ -1527,6 +1533,7 @@ public class SpriteView : Control
     private void ApplyTool(Point p)
     {
         if (ReadOnly) return; // belt-and-braces: OnPointerPressed already can't reach this when ReadOnly
+        if (ReplaceAllStroke) return; // the double-click already replaced everything at the press
         if (_sprite is not { Width: int w, Height: int h } sprite) return;
         if (!TryPixelAt(p, out int x, out int y)) return;
         int i = y * w + x;
@@ -1561,13 +1568,45 @@ public class SpriteView : Control
             };
         }
         else return; // undecoded sprite: nothing to edit
-        if (!changed) return;
+        if (changed) OnPixelsChanged(sprite);
+    }
 
+    private void OnPixelsChanged(Sprite sprite)
+    {
         sprite.PixelsDirty = true;
         PixelsPainted?.Invoke();
-        if (_bitmapCache?.Remove((_sprite, _palette, _showMask)) == true) _bitmapCached = false; // stale now
+        if (_bitmapCache?.Remove((_sprite!, _palette, _showMask)) == true) _bitmapCached = false; // stale now
         RefreshBitmap();
         InvalidateVisual();
+    }
+
+    /// <summary>Keeps the pixels from before a Replace click, for a double-click that follows it</summary>
+    private void RememberReplaceClick()
+    {
+        _replaceClickTarget = null;
+        _replaceClickBefore = null;
+        if (ActiveTool != PaintTool.Replace || _sprite?.Indexed is not { } flattened) return;
+        _replaceClickTarget = PaintTarget ?? flattened;
+        _replaceClickBefore = (byte[])_replaceClickTarget.Clone();
+    }
+
+    /// <summary>
+    /// Replace double-click: runs the pairs over every pixel of the layer being painted.
+    /// The first click's square is undone first, so no pixel is replaced twice (a swapped pair would flip back)
+    /// </summary>
+    private void ReplaceAll()
+    {
+        if (ReadOnly || _sprite is not { } sprite || sprite.Indexed is not { } flattened) return;
+        byte[] idx = PaintTarget ?? flattened;
+        byte[] start = (byte[])idx.Clone();
+        if (ReferenceEquals(_replaceClickTarget, idx) && _replaceClickBefore is { } before && before.Length == idx.Length)
+            Array.Copy(before, idx, idx.Length);
+        _replaceClickTarget = null;
+        _replaceClickBefore = null;
+        if ((_inverseStroke ? InverseReplaceMap : ReplaceMap) is { Count: > 0 } map)
+            for (int i = 0; i < idx.Length; i++)
+                if (map.TryGetValue(idx[i], out byte to)) idx[i] = to;
+        if (!start.AsSpan().SequenceEqual(idx)) OnPixelsChanged(sprite);
     }
 
     /// <summary>
@@ -1893,9 +1932,15 @@ public class SpriteView : Control
             if (!_pickingStroke && PaintStrokeAllowed?.Invoke() == false) { _pickingStroke = false; return; }
             _painting = true;
             _inverseStroke = ActiveTool == PaintTool.Replace && (e.KeyModifiers & KeyModifiers.Shift) != 0;
+            ReplaceAllStroke = ActiveTool == PaintTool.Replace && e.ClickCount >= 2;
             if (!_pickingStroke) PaintStrokeStarted?.Invoke();
             if (_inverseStroke) InverseReplaceStarted?.Invoke();
-            ApplyTool(p.Position);
+            if (ReplaceAllStroke) ReplaceAll();
+            else
+            {
+                RememberReplaceClick();
+                ApplyTool(p.Position);
+            }
             Cursor = CrossCursor;
             e.Pointer.Capture(this);
             InvalidateVisual();

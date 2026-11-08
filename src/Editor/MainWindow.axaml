@@ -557,7 +557,7 @@
                     </Grid>
                     <Grid ColumnDefinitions="*,Auto,*">
                       <ToggleButton Grid.Column="0" x:Name="ReplaceToolButton" Content="Replace" Tag="Replace" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                    ToolTip.Tip="Paints only over the Replace colors." />
+                                    ToolTip.Tip="Paints only over the Replace colors. Double-click replaces them across the whole sprite." />
                       <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
                       <ToggleButton Grid.Column="2" x:Name="SelectionToolButton" Content="Select" Tag="Selection" Click="OnSelectPaintTool" IsEnabled="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                                     ToolTip.Tip="Selects pixels to copy or paste." />
