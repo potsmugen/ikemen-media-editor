@@ -387,6 +387,8 @@ public static partial class SffWriter
             Put32(head, n + 20, pl.Length); // zero marks a linked sprite
             if (s.Palette is not null && palIdx.TryGetValue(s.Palette, out int pi))
                 Put16(head, n + 24, (ushort)pi);
+            else if (depth > 8)
+                Put16(head, n + 24, s.TrueColorPaletteField); // as read; engines ignore it
             if (pl.InTdata && pl.Length > 0) Put16(head, n + 26, 1);
         }
 

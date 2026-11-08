@@ -910,6 +910,12 @@ summaries; treat anything marked unverified as unknown.
   Health Report under "Written differently on save", leaving out repainted and
   imported sprites, whose depth is part of the edit. After a v2 Save or Save As the
   session takes on the written depths, so the list empties.
+- A v2 true-color node (depth above 8) uses no palette: MUGEN links one only at depth 8 or below
+  (`Sff2_LinkPalette`), and Ikemen reads and returns one only then (Ikemen-GO `src/image.go`, the
+  v2 loader and `Sprite.GetPal`). Its palette number is still stored, 0 in SprMaker 2.01 output
+  and in every sample checked. The reader keeps that number in `Sprite.TrueColorPaletteField`
+  instead of linking a palette and the writer puts it back, so true-color sprites never count as
+  using a palette (before, they kept 0,0 from being deleted).
 - With decompress on load off, sprites are unpacked when they are drawn. Save
   Like SprMaker 2.01 with `sprite.decompressonload` puts every non-link
   sprite's payload in the trailing tdata block with node flag 1, so the engine

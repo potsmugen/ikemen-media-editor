@@ -21,7 +21,9 @@ public static class SffReader
     /// pixel data fails to decode is kept with DecodeError set, so one bad sprite
     /// does not stop the rest of the file from loading.
     /// </summary>
-    public static SffFile Decode(byte[] b)
+    /// <param name="keepTrueColorPalettes">Links true-color sprites to their stored palette anyway. Only for crash recovery
+    /// snapshots, which must bring a session back as it was (a v1 palette exists only through its sprites)</param>
+    public static SffFile Decode(byte[] b, bool keepTrueColorPalettes = false)
     {
         if (b.Length < 16)
             throw new InvalidDataException($"file is {b.Length} bytes, far too short to be an SFF");
@@ -33,12 +35,12 @@ public static class SffReader
         return version.Hi switch
         {
             1 => SffV1Reader.Decode(b, version),
-            2 => DecodeV2(b, version),
+            2 => DecodeV2(b, version, keepTrueColorPalettes),
             _ => throw new InvalidDataException($"SFF version {version} is not supported"),
         };
     }
 
-    private static SffFile DecodeV2(byte[] b, SffVersion version)
+    private static SffFile DecodeV2(byte[] b, SffVersion version, bool keepTrueColorPalettes)
     {
         var h = ParseHeader(b, version);
         // Checked before allocating per-node arrays, so a corrupt count can't ask for gigabytes.
@@ -48,7 +50,7 @@ public static class SffReader
             throw new InvalidDataException($"the sprite table ({h.SprCount} nodes) runs past the end of the file");
         var f = new SffFile { Version = h.Version, CompatVersion = h.Compat };
         ReadPalettes(f, b, h);
-        var links = ReadSprites(f, b, h);
+        var links = ReadSprites(f, b, h, keepTrueColorPalettes);
         ResolveLinks(f, links);
         return f;
     }
@@ -143,7 +145,7 @@ public static class SffReader
     /// Reads the sprite nodes and returns each one's on-disk link target, or -1.
     /// Links are turned into object references by ResolveLinks.
     /// </summary>
-    private static int[] ReadSprites(SffFile f, byte[] b, Header h)
+    private static int[] ReadSprites(SffFile f, byte[] b, Header h, bool keepTrueColorPalettes)
     {
         var links = new int[h.SprCount];
         var jobs = new List<Sprite>((int)Math.Min(h.SprCount, 1u << 20));
@@ -171,7 +173,10 @@ public static class SffReader
             int palIdx = BinaryPrimitives.ReadUInt16LittleEndian(n[24..]);
             int flags = BinaryPrimitives.ReadUInt16LittleEndian(n[26..]);
 
-            if (palIdx >= 0 && palIdx < f.Palettes.Count) s.Palette = f.Palettes[palIdx];
+            // MUGEN and Ikemen only use the palette of a node at 8 bits or below (mugen-unleashed
+            // Sff2_LinkPalette, Ikemen-GO image.go Sprite.GetPal), so a true-color sprite uses none
+            if (s.SrcDepth > 8) s.TrueColorPaletteField = (ushort)palIdx;
+            if ((s.SrcDepth <= 8 || keepTrueColorPalettes) && palIdx >= 0 && palIdx < f.Palettes.Count) s.Palette = f.Palettes[palIdx];
             f.Sprites.Add(s);
             links[i] = -1;
 

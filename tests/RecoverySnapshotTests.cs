@@ -42,7 +42,7 @@ public class RecoverySnapshotTests
             f.Save(tmp, f.Version);
             f.Version = version;
 
-            var back = SffFile.Open(tmp);
+            var back = SffFile.Open(tmp, keepTrueColorPalettes: true);
             Assert.Equal(new[] { (1, 1), (1, 2) }, back.Palettes.Select(p => (p.Group, p.Index)));
             Assert.Equal(new byte[] { 0, 1, 2, 3 }, back.Sprites[0].Indexed);
             Assert.Equal(new byte[] { 10, 20, 30, 255 }, back.Sprites[1].Direct);

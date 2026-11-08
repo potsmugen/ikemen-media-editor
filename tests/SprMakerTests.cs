@@ -342,7 +342,7 @@ public class SprMakerTests
     }
 
     [Fact]
-    public void NormalSaveChoosesSmallestLosslessTrueColorEncoding()
+    public void NormalSaveWritesTrueColorAsPng()
     {
         static byte[] Solid(int width, int height, byte b, byte g, byte r, byte a)
         {
@@ -392,10 +392,12 @@ public class SprMakerTests
         {
             f.Save(tmp);
             var nodes = Nodes(tmp);
-            Assert.Equal((0, 24, 3u), (nodes[0].Fmt, nodes[0].Depth, nodes[0].Len));
+            Assert.Equal((11, 24), (nodes[0].Fmt, nodes[0].Depth)); // opaque: PNG24
+            Assert.True(nodes[0].Len > 0);
             Assert.Equal((11, 24), (nodes[1].Fmt, nodes[1].Depth));
             Assert.True(nodes[1].Len < large * large * 3);
-            Assert.Equal((0, 32, 4u), (nodes[2].Fmt, nodes[2].Depth, nodes[2].Len));
+            Assert.Equal((12, 32), (nodes[2].Fmt, nodes[2].Depth)); // transparent: PNG32
+            Assert.True(nodes[2].Len > 0);
             Assert.Equal((12, 32), (nodes[3].Fmt, nodes[3].Depth));
             Assert.True(nodes[3].Len < large * large * 4);
 

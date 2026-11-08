@@ -354,14 +354,14 @@ public class WriterTests
         var tmp = Path.Combine(Path.GetTempPath(), $"compat-{Guid.NewGuid():N}.sff");
         try
         {
-            f.Save(tmp, SffVersions.V2_1);
+            f.Save(tmp, SffVersions.V2);
             var r = SffFile.Open(tmp);
-            Assert.Equal(SffVersions.V2_1, r.Version); // the chosen version
-            Assert.Equal(SffVersions.V2, r.CompatVersion); // nothing needs 2.0.1.0
+            Assert.Equal(SffVersions.V2, r.Version); // the chosen version
+            Assert.Equal(SffVersions.V2, r.CompatVersion); // indexed saves as RLE8/LZ5: nothing needs 2.0.1.0
 
             f.Sprites.Add(new Sprite { Group = 1, Width = 2, Height = 2, Direct = new byte[16], PixelsDirty = true });
             f.Save(tmp, SffVersions.V2_1);
-            Assert.Equal(SffVersions.V2_1, SffFile.Open(tmp).CompatVersion); // PNG32 does
+            Assert.Equal(SffVersions.V2_1, SffFile.Open(tmp).CompatVersion); // PNG does
         }
         finally { File.Delete(tmp); }
     }

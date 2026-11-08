@@ -220,6 +220,15 @@ Built, but not tried by the maintainer yet.
   after Save the section is gone. A plain v1 save writes byte 32 = 0 and keeps link flags.
 - In MUGEN 1.1, check old KFM's large portrait 9000,1: the source predicts .act colors there.
 
+### True-color sprites and palettes
+
+- Open a v2 file with 24/32-bit sprites: they show no palette, so 0,0 can be deleted and
+  Find Unused Palettes no longer refuses because of them.
+- Save and reopen: those sprites keep the palette number the file had, and nothing about them
+  appears in the Media Health Report.
+- Recover a crashed session that holds a true-color sprite: it comes back linked to its palette
+  as before.
+
 ### Sprite depth follows its palette (MUGEN crash fix)
 
 - Convert one palette's depth (e.g. 0,2 to 16 or 64 colors) with its sprites untouched, save, and

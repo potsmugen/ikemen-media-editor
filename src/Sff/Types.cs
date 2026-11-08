@@ -173,6 +173,12 @@ public sealed class Sprite
 
     public Palette? Palette;
 
+    /// <summary>
+    /// A v2 true-color node's palette number as read (0 in SprMaker 2.01 output). Engines ignore it, so the
+    /// sprite gets no Palette and this is only written back, which keeps the node as it was
+    /// </summary>
+    public ushort TrueColorPaletteField;
+
     // Provenance, kept so the writer can report what the sprite came from.
     public SpriteFormat SrcFormat;
     public byte SrcDepth;
@@ -239,7 +245,7 @@ public sealed class Sprite
     {
         Group = Group, Index = Index, AxisX = AxisX, AxisY = AxisY,
         _width = _width, _height = _height, _indexed = _indexed?.ToArray(), _direct = _direct?.ToArray(),
-        Palette = palette, SrcFormat = SrcFormat, SrcDepth = SrcDepth,
+        Palette = palette, TrueColorPaletteField = TrueColorPaletteField, SrcFormat = SrcFormat, SrcDepth = SrcDepth,
         DecodeError = DecodeError, SourceData = SourceData, PixelsDirty = PixelsDirty, V1LinkFlag = V1LinkFlag,
     };
 
@@ -297,7 +303,8 @@ public sealed class SffFile
     public List<Sprite> Sprites = [];
     public List<Palette> Palettes = [];
 
-    public static SffFile Open(string path) => SffReader.Decode(File.ReadAllBytes(path));
+    public static SffFile Open(string path, bool keepTrueColorPalettes = false) =>
+        SffReader.Decode(File.ReadAllBytes(path), keepTrueColorPalettes);
 
     public void Save(string path) => SffWriter.Save(this, path);
 

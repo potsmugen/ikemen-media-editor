@@ -404,7 +404,7 @@ public partial class MainWindow
     /// <summary>Opens an SFF snapshot, putting back the session's version when it was stored as v2.</summary>
     private static SffFile OpenSffSnapshot(string snapshot, RecoverySnapshot item)
     {
-        var file = SffFile.Open(snapshot);
+        var file = SffFile.Open(snapshot, keepTrueColorPalettes: true); // the session comes back as it was
         if (item.SessionVersion?.Split('.') is { Length: 4 } q
             && byte.TryParse(q[0], NumberStyles.None, CultureInfo.InvariantCulture, out byte hi)
             && byte.TryParse(q[1], NumberStyles.None, CultureInfo.InvariantCulture, out byte lo1)
