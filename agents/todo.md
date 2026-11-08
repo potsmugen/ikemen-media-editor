@@ -15,6 +15,10 @@ Verified unless noted.
 
 ### Sprites and palettes
 
+- Change Group and Index (Palettes tab, double-click a palette's group or index): the first Down
+  key press does nothing, Up works. The dialog is a stock NumericUpDown with no custom key code and
+  no app-wide handler catches Down. Unverified theory: the inner TextBox uses the first Down to move
+  the caret to the end. Ask whether it's the key or the − button, and whether End then Down works.
 - Test and revisit the nearest-color alpha threshold: pixels below
   NearestColorAlphaThreshold (settings.json, default 32) map to index 0. Check
   against real sprites and the official tools.
@@ -34,6 +38,8 @@ Verified unless noted.
 
 ### Paint Mode
 
+- Reconsider making the Pencil/Fill color square pick a color when clicked, like a Replace square.
+  Left out for now: it duplicates right-click Eyedropper, which is quicker.
 - Make paint mode work on 24-bit and 32-bit (true color) sprites. Decided: Eraser and Select
   (Rectangle/Lasso/Polygon/Magic Wand, move/copy/paste/erase selection) first; Pencil, Fill and
   Replace (and the Eyedropper) stay disabled on true color. Eraser writes the pixel's four bytes to 0 — same as what the

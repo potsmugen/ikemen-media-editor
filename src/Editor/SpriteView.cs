@@ -239,7 +239,20 @@ public class SpriteView : Control
     public PaintTool ActiveTool { get => _activeTool; set { _activeTool = value; UpdateSelectionTimer(); } }
 
     /// <summary>Palette index the Pencil/Fill tools paint with.</summary>
-    public int PaintColorIndex { get; set; }
+    public int PaintColorIndex
+    {
+        get => _paintColorIndex;
+        set
+        {
+            if (_paintColorIndex == value) return;
+            _paintColorIndex = value;
+            PaintColorChanged?.Invoke();
+        }
+    }
+    private int _paintColorIndex;
+
+    /// <summary>Raised when PaintColorIndex changes, so the paint color square can follow it</summary>
+    public event Action? PaintColorChanged;
 
     /// <summary>
     /// When true, the next left click on the sprite is a one-shot Eyedropper

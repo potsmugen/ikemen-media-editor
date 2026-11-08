@@ -1406,6 +1406,7 @@ public partial class MainWindow : Window
         }
 
         RefreshReplaceSquares(); // square colors depend on the current sprite/palette
+        RefreshPaintColorSquare();
 
         var pal = ActivePalette();
         SpriteCanvas.Show(_current, pal, _showMask);

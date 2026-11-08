@@ -53,6 +53,7 @@ public partial class MainWindow
         SpriteCanvas.SelectionMoved += OnSelectionMoved;
         SpriteCanvas.SelectionMoveFinished += () => PaintStep("move selection");
         SpriteCanvas.ColorPicked += OnPaintColorPicked;
+        SpriteCanvas.PaintColorChanged += RefreshPaintColorSquare;
     }
 
     private async void OnTogglePaintMode(object? sender, RoutedEventArgs e)
@@ -156,10 +157,38 @@ public partial class MainWindow
     {
         bool on = SpriteCanvas.PaintMode;
         var tool = SpriteCanvas.ActiveTool;
+        PaintColorPanel.IsVisible = on && tool is PaintTool.Pencil or PaintTool.Fill;
         BrushPanel.IsVisible = on && tool is PaintTool.Pencil or PaintTool.Eraser;
         SelectionPanel.IsVisible = on && tool == PaintTool.Selection;
         UpdateColorReplacerVisibility();
-        ToolOptionsSection.IsVisible = BrushPanel.IsVisible || SelectionPanel.IsVisible || ColorReplacerPanel.IsVisible;
+        ToolOptionsSection.IsVisible = PaintColorPanel.IsVisible || BrushPanel.IsVisible || SelectionPanel.IsVisible || ColorReplacerPanel.IsVisible;
+        RefreshPaintColorSquare();
+    }
+
+    /// <summary>Paints the square with the Pencil/Fill color and shows its index</summary>
+    private void RefreshPaintColorSquare()
+    {
+        if (PaintColorSquare is not { } btn || PaintColorIndexText is not { } text) return;
+        int ix = SpriteCanvas.PaintColorIndex;
+        if (ActivePalette() is { } pal && ix >= 0 && ix < pal.Colors.Length)
+        {
+            var c = pal.Colors[ix];
+            btn.Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromRgb(c.R, c.G, c.B));
+            double luma = 0.299 * c.R + 0.587 * c.G + 0.114 * c.B;
+            text.Foreground = luma > 140 ? Avalonia.Media.Brushes.Black : Avalonia.Media.Brushes.White;
+            text.Text = ix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            ToolTip.SetTip(btn, $"Index {ix}: RGB {c.R}, {c.G}, {c.B}");
+        }
+        else
+        {
+            btn.Background = ThemeResource("ThemeFieldBg");
+            text.Text = "";
+            ToolTip.SetTip(btn, null);
+        }
+        // Empty gets the Separator outline, so it reads on dark and light panels alike
+        bool empty = text.Text is "";
+        btn.BorderBrush = empty ? ThemeResource("ThemeSeparator") : Avalonia.Media.Brushes.Transparent;
+        btn.BorderThickness = new Thickness(empty ? 1 : 0);
     }
 
     /// <summary>Replace's panel has its own Brush box; both edit the one shared size.</summary>

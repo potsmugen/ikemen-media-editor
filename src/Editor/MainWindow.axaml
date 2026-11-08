@@ -566,6 +566,15 @@
                     <StackPanel x:Name="ToolOptionsSection" IsVisible="False" Spacing="{DynamicResource UiButtonGap}">
                       <Border Height="1" Background="{DynamicResource ThemeLine}" Margin="0,4" IsHitTestVisible="False" />
                       <TextBlock Text="Tool Options" Foreground="{DynamicResource ThemeMutedText}" />
+                      <Border x:Name="PaintColorPanel" IsVisible="False">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}" HorizontalAlignment="Center">
+                          <TextBlock Text="Color" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
+                          <!-- Display only, as wide and tall as the Brush box under it -->
+                          <Border x:Name="PaintColorSquare" Width="70" MinHeight="{DynamicResource TextControlThemeMinHeight}" CornerRadius="{DynamicResource UiButtonCornerRadius}">
+                            <TextBlock x:Name="PaintColorIndexText" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                          </Border>
+                        </StackPanel>
+                      </Border>
                       <Border x:Name="BrushPanel" IsVisible="False">
                         <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}" HorizontalAlignment="Center">
                           <TextBlock Text="Brush" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />

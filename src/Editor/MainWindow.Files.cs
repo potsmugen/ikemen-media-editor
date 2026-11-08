@@ -1830,6 +1830,7 @@ public partial class MainWindow
         {
             // "__" shows a literal underscore; a single one would be taken as the access key.
             var item = new MenuItem { Header = path.Replace("_", "__"), Tag = path };
+            ToolTip.SetTip(item, "Press Delete to remove it from this list."); // see TryRemoveRecent
             item.Click += async (_, _) =>
             {
                 if (!File.Exists(path))

@@ -151,6 +151,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   and Copy/Paste for Select; colors plus a synced Brush box for Replace; Fill and Eyedropper
   have none. An Eyedropper pick selects that index in the sprite panel's palette grid, same
   as clicking the swatch, so the color Pencil and Fill will use is always highlighted.
+- **Paint color square**: Pencil and Fill show their color and index in a display-only box the
+  size of the Brush box. Picking stays with the Eyedropper tool and right-click Eyedropper.
 - **Replace inverse**: Shift-drag paints New → Old, fixed at the press (the brush outline
   turns ThemeAccent while Shift is held). A New shared by several pairs is left alone and
   named in the status bar. Swap flips Old and New everywhere.
