@@ -555,6 +555,8 @@ public partial class MainWindow
     {
         if (_armedReplaceSlot is int slot) { SetReplaceSlot(slot, index); return; }
 
+        // Highlight it in the sprite panel's grid, same as clicking that swatch directly
+        Swatches.SelectOnly(index);
         OnSwatchClicked(ActivePalette(), Swatches, index);
         StatusText.Text = $"Eyedropper picked index {index}.";
     }

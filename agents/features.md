@@ -149,7 +149,8 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Paint tool panels**: each tool's options sit under the tools and show only while it is
   active. Brush for Pencil and Eraser; Rectangle/Lasso on one row, Polygon/Magic Wand on the next,
   and Copy/Paste for Select; colors plus a synced Brush box for Replace; Fill and Eyedropper
-  have none.
+  have none. An Eyedropper pick selects that index in the sprite panel's palette grid, same
+  as clicking the swatch, so the color Pencil and Fill will use is always highlighted.
 - **Replace inverse**: Shift-drag paints New → Old, fixed at the press (the brush outline
   turns ThemeAccent while Shift is held). A New shared by several pairs is left alone and
   named in the status bar. Swap flips Old and New everywhere.
