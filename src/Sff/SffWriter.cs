@@ -5,7 +5,8 @@ namespace Sff;
 /// <summary>
 /// Writes SFF v2. A sprite nobody has repainted is written back with its original
 /// compressed bytes, so re-saving an untouched file reproduces its pixels exactly
-/// (a file read from tdata is normalized to ldata on an ordinary save).
+/// (a file read from tdata is normalized to ldata on an ordinary save). A node's
+/// depth always follows the palette it uses, since the engines link them by depth.
 /// Repainted sprites are re-encoded; edited true-color sprites use the
 /// smallest lossless raw or PNG payload. Sprite links and palettes are preserved.
 /// Palettes always live in ldata; Save Like SprMaker 2.01 with
@@ -32,6 +33,23 @@ public static class SffWriter
 
     /// <summary>Whether SFF v1 can hold every sprite (all 8-bit and decoded).</summary>
     public static bool FitsV1(SffFile f) => SffV1Writer.Unsupported(f, 1).Count == 0;
+
+    /// <summary>Sprites whose node depth a v2 save writes from their palette instead of the depth read
+    /// from the file. MUGEN only links a sprite to its palette when the palette has exactly 1 &lt;&lt; depth
+    /// colors, so a stale depth (a palette converted after the sprite was stored) leaves the sprite
+    /// unlinked and crashes MUGEN when it draws. Repainted and imported sprites are left out: their
+    /// depth comes from the new pixels, so it is part of the edit.</summary>
+    public static List<(Sprite Sprite, byte From, byte To)> DepthFixesOnSave(SffFile f) =>
+        [.. f.Sprites
+            .Where(s => !s.PixelsDirty)
+            .Select(s => (Sprite: s, From: s.SrcDepth, To: WrittenDepth(s, s.SrcDepth)))
+            .Where(x => x.From != x.To)];
+
+    /// <summary>After a v2 save, takes on the depths written so the session matches the file on disk.</summary>
+    public static void ApplyDepthFixes(SffFile f)
+    {
+        foreach (var (s, _, to) in DepthFixesOnSave(f)) s.SrcDepth = to;
+    }
 
     /// <summary>Links read pointing at a later sprite that a save in the current order still turns
     /// around: each stores the pixels instead, and the rest of its set links back to it.</summary>
@@ -350,8 +368,13 @@ public static class SffWriter
             Put16(head, n + 8, unchecked((ushort)S16(s.AxisX, clamp)));
             Put16(head, n + 10, unchecked((ushort)S16(s.AxisY, clamp)));
             if (linkTo[i] >= 0) Put16(head, n + 12, (ushort)linkTo[i]);
+            byte depth = WrittenDepth(s, pl.Depth);
+            // Shortening a palette below what the pixels use would index past it in the engine.
+            if (depth < pl.Depth && s.Indexed is { } pixels && pixels.Any(index => index >= (1 << depth)))
+                throw new InvalidDataException(
+                    $"sprite {s.Group},{s.Index} uses indexes outside its {depth}-bit palette");
             head[n + 14] = (byte)pl.Format;
-            head[n + 15] = pl.Depth;
+            head[n + 15] = depth;
             Put32(head, n + 16, pl.Offset);
             Put32(head, n + 20, pl.Length); // zero marks a linked sprite
             if (s.Palette is not null && palIdx.TryGetValue(s.Palette, out int pi))
@@ -490,6 +513,20 @@ public static class SffWriter
     }
 
     private static bool IsPng(SpriteFormat f) => f is SpriteFormat.Png8 or SpriteFormat.Png24 or SpriteFormat.Png32;
+
+    /// <summary>
+    /// The depth written for a sprite node. An indexed sprite takes its palette's depth,
+    /// because MUGEN links it to the palette only when that has exactly 1 &lt;&lt; depth colors
+    /// (SpriteSet_LinkPalette in mugen-unleashed src/sprite.c); an unlinked sprite has
+    /// palette -1 and crashes the renderers when drawn. True color, no palette, and an
+    /// unsupported color count keep the depth the sprite was stored with.
+    /// </summary>
+    private static byte WrittenDepth(Sprite s, byte stored)
+    {
+        if (stored > 8 || s.Palette is not { } palette) return stored;
+        int bits = PaletteDepth.BitsForColorCount(palette.Colors.Length);
+        return bits is >= 1 and <= 8 ? (byte)bits : stored;
+    }
 
     /// <summary>Whether a sprite's original on-disk bytes are written back as they are. A v1 PCX never is.</summary>
     private static bool Reuses(Sprite s, bool allowPng) =>

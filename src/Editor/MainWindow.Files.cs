@@ -341,6 +341,11 @@ public partial class MainWindow
                         v1Written.Add(($"  Palette type byte: {(file.V1PaletteType == 1 ? "Shared (1)" : file.V1PaletteType.ToString())} becomes Individual (0)", null));
                 }
                 Section("Written differently on save (no engine reads these)", v1Written);
+                // An indexed sprite whose palette changed depth is written at the palette's depth, so the node matches its colors
+                // Causes: Convert Depth this session, or a file saved by an older build of this editor
+                if (!SffVersions.IsV1(file.Version))
+                    Section("Written differently on save", SffWriter.DepthFixesOnSave(file).Select(x =>
+                        ($"  Sprite {x.Sprite.Group},{x.Sprite.Index}: {x.From}-bit depth becomes {x.To}-bit to match its palette", Jump(() => JumpToSprite(x.Sprite)))));
             }
             if (_air is { } air)
             {
@@ -1217,6 +1222,7 @@ public partial class MainWindow
                 file.Save(path, version, clamp: clamp);
                 return made;
             });
+            if (!SffVersions.IsV1(version)) SffWriter.ApplyDepthFixes(file);
             ResolveRecoveredItem("sff", _path);
             MarkClean();
             StatusText.Text = $"Saved {Path.GetFileName(_path)}"
@@ -1353,6 +1359,7 @@ public partial class MainWindow
             await RunFileWriteAsync($"Saving {Path.GetFileName(path)}…", () => fileToSave.Save(path, version, clamp: clampToSave));
             rollback.Clear(); // on disk now; the session keeps the changes
             _file.Version = version; // what's on disk now; plain Save keeps it from here
+            if (!SffVersions.IsV1(version)) SffWriter.ApplyDepthFixes(_file);
             int droppedV1 = toV1 ? MatchSessionToV1() : 0;
             bool mainTo11 = false;
             if (rekeyed)

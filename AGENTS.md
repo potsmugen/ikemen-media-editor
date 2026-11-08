@@ -26,7 +26,8 @@ and keep them current. Open, unchecked work is in `agents/todo.md`.
   Media Health Report, ask Save/Cancel before saving, and report what changed.
   Exception: harmless changes nearly every old file has (AIR box corners rewritten
   top-left first, CRLF to LF, the SFF v1 palette type byte no engine reads) go in the
-  Media Health Report only, not the save popups.
+  Media Health Report only, not the save popups. So does a v2 sprite depth rewritten to
+  match its palette: mismatched depths are known only from an old editor bug.
 - The original tools are the reference: SprMaker 0.97 and 2.01 (disassembly in `working/`),
   MUGEN (mugen-unleashed) and Ikemen GO source (see Reference notes). When they answer a format
   or behavior question, follow them: don't invent rules, don't show data differently from how

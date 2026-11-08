@@ -819,7 +819,9 @@ summaries; treat anything marked unverified as unknown.
   palette with exactly 2, 4, 8, 16, 32, 64, 128, or 256 entries; a mismatch is
   an error. `sprite.compress.<depth>` picks the format. Raw indexed data is
   exactly width × height bytes, one index per byte, without a length prefix.
-  The editor preserves these depths when saving indexed sprites. SFF 2.0.0.0
+  The editor preserves these depths when saving indexed sprites, except that a
+  sprite's node depth follows its palette (see the MUGEN linking rule above).
+  SFF 2.0.0.0
   (MUGEN 1.0) compatibility is separately documented as 5/8-bit only above;
   SprMaker accepting a depth does not prove every engine supports it. See
   **Official tools** for verified tool behavior.
@@ -838,6 +840,17 @@ summaries; treat anything marked unverified as unknown.
   the smallest lossless payload per sprite across raw RGB/RGBA and PNG24/32;
   RGB24 is considered only when all pixels are opaque. SprMaker saves instead
   follow the selected `sprite.compress.24` option for every direct-color sprite.
+- A v2 sprite node's depth is written from the palette it uses, not reused from
+  the source file. MUGEN links a sprite to its palette only when the palette has
+  exactly 1 << depth colors (mugen-unleashed `src/sprite.c`,
+  `SpriteSet_LinkPalette`); a stale depth, such as after Convert Depth changed
+  the palette, leaves the sprite with palette index -1 and the renderers
+  dereference that NULL palette (`src/softrender.c`, `src/glrender.c`,
+  `src/bg.c`), crashing MUGEN. Links take their own palette's depth even when the
+  sprite storing the pixels uses another. These changes are listed in the Media
+  Health Report under "Written differently on save", leaving out repainted and
+  imported sprites, whose depth is part of the edit. After a v2 Save or Save As the
+  session takes on the written depths, so the list empties.
 - With decompress on load off, sprites are unpacked when they are drawn. Save
   Like SprMaker 2.01 with `sprite.decompressonload` puts every non-link
   sprite's payload in the trailing tdata block with node flag 1, so the engine

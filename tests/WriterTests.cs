@@ -72,6 +72,95 @@ public class WriterTests
         finally { File.Delete(tmp); }
     }
 
+    /// <summary>MUGEN links a sprite to its palette only when the palette has 1 &lt;&lt; depth colors.
+    /// Converting the palette's depth must therefore update the reused sprite node's depth.</summary>
+    [Fact]
+    public void ReusedSpriteDepthFollowsItsPalette()
+    {
+        var pal = new Palette { Group = 0, Index = 1, Colors = Colors(32) };
+        var pixels = new byte[] { 1, 1, 2, 2 };
+        var f = new SffFile { Version = SffVersions.V2, Palettes = [pal] };
+        f.Sprites.Add(new Sprite
+        {
+            Width = 2, Height = 2, Palette = pal, Indexed = pixels,
+            SrcFormat = SpriteFormat.Rle8, SrcDepth = 8, SourceData = Rle8Data(pixels),
+        });
+        Assert.Equal(((byte)8, (byte)5), (f.Sprites[0].SrcDepth, SffWriter.DepthFixesOnSave(f).Single().To));
+
+        var tmp = Path.Combine(Path.GetTempPath(), $"depth-{Guid.NewGuid():N}.sff");
+        try
+        {
+            f.Save(tmp, SffVersions.V2);
+            var r = SffFile.Open(tmp);
+            Assert.Equal(SpriteFormat.Rle8, r.Sprites[0].SrcFormat); // bytes are reused as they are
+            Assert.Equal(5, r.Sprites[0].SrcDepth);
+            Assert.Equal(pixels, r.Sprites[0].Indexed);
+
+            // The session takes on the saved depth, so the report stops listing it
+            SffWriter.ApplyDepthFixes(f);
+            Assert.Equal(5, f.Sprites[0].SrcDepth);
+            Assert.Empty(SffWriter.DepthFixesOnSave(f));
+        }
+        finally { File.Delete(tmp); }
+    }
+
+    /// <summary>A repainted or imported sprite's depth is part of the edit, so it is not reported.</summary>
+    [Fact]
+    public void DirtySpriteDepthIsNotReported()
+    {
+        var pal = new Palette { Group = 0, Index = 1, Colors = Colors(32) };
+        var f = new SffFile { Version = SffVersions.V2, Palettes = [pal] };
+        f.Sprites.Add(new Sprite
+        {
+            Width = 2, Height = 2, Palette = pal, Indexed = [1, 1, 2, 2],
+            SrcFormat = SpriteFormat.Rle8, SrcDepth = 8, PixelsDirty = true,
+        });
+        Assert.Empty(SffWriter.DepthFixesOnSave(f));
+    }
+
+    /// <summary>A link can carry a different palette from the sprite storing the pixels, so its
+    /// node takes its own palette's depth.</summary>
+    [Fact]
+    public void LinkedSpriteDepthFollowsItsOwnPalette()
+    {
+        var wide = new Palette { Group = 0, Index = 1, Colors = Colors(256) };
+        var narrow = new Palette { Group = 0, Index = 2, Colors = Colors(32) };
+        var pixels = new byte[] { 1, 1, 2, 2 };
+        var f = new SffFile { Version = SffVersions.V2, Palettes = [wide, narrow] };
+        var owner = new Sprite
+        {
+            Width = 2, Height = 2, Palette = wide, Indexed = pixels,
+            SrcFormat = SpriteFormat.Rle8, SrcDepth = 8, SourceData = Rle8Data(pixels),
+        };
+        var link = new Sprite { Palette = narrow, SharesWith = owner };
+        f.Sprites.Add(owner);
+        f.Sprites.Add(link);
+
+        var tmp = Path.Combine(Path.GetTempPath(), $"linkdepth-{Guid.NewGuid():N}.sff");
+        try
+        {
+            f.Save(tmp, SffVersions.V2);
+            var r = SffFile.Open(tmp);
+            Assert.Equal(8, r.Sprites[0].SrcDepth);
+            Assert.Equal(5, r.Sprites[1].SrcDepth);
+            Assert.NotNull(r.Sprites[1].SharesWith);
+        }
+        finally { File.Delete(tmp); }
+    }
+
+    private static Rgba[] Colors(int count) =>
+        [.. Enumerable.Range(0, count).Select(i => new Rgba((byte)i, 0, 0, 255))];
+
+    /// <summary>RLE8 payload with its 4-byte decoded length, for a sprite whose bytes are reused.</summary>
+    private static byte[] Rle8Data(byte[] pixels)
+    {
+        var body = Rle8.Encode(pixels);
+        var data = new byte[4 + body.Length];
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(data, (uint)pixels.Length);
+        body.CopyTo(data, 4);
+        return data;
+    }
+
     [Fact]
     public void RepaintedSpritesReEncodeLosslessly()
     {
