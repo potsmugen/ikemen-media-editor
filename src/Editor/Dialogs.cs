@@ -4817,6 +4817,26 @@ public static partial class Dialogs
         };
         dialog.Closed += (_, _) => result.TrySetResult(canceled);
 
+        // Left/Right move between the buttons and Enter runs the focused one, so the dialog works without a mouse
+        var choices = row.Children.OfType<Button>().ToList();
+        dialog.Opened += (_, _) => choices.FirstOrDefault()?.Focus(Avalonia.Input.NavigationMethod.Directional);
+        dialog.AddHandler(Avalonia.Input.InputElement.KeyDownEvent, (_, e) =>
+        {
+            int at = choices.FindIndex(c => c.IsFocused);
+            if (at < 0) return;
+            if (e.Key is Avalonia.Input.Key.Left or Avalonia.Input.Key.Right)
+            {
+                int next = Math.Clamp(at + (e.Key == Avalonia.Input.Key.Right ? 1 : -1), 0, choices.Count - 1);
+                choices[next].Focus(Avalonia.Input.NavigationMethod.Directional);
+                e.Handled = true;
+            }
+            else if (e.Key == Avalonia.Input.Key.Enter)
+            {
+                choices[at].RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                e.Handled = true;
+            }
+        }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+
         dialog.ShowModal(owner);
         return result.Task;
     }
