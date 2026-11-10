@@ -244,6 +244,9 @@ public partial class MainWindow
         }
         if (_doc.SpriteView is { } view) SpriteCanvas.View = view;
         else SpriteCanvas.ResetView();
+        // ApplyFilter reselects _current, but ActivateSpriteRow has nothing to do when it already
+        // is the current sprite, so the canvas cleared above would stay blank. Draw it here.
+        if (_current is not null) RefreshSprite();
 
         // Animations
         _action = null;
