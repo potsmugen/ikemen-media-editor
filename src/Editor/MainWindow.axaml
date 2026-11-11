@@ -510,6 +510,7 @@
                     <TextBlock Text="{Binding Value, ElementName=OnionOpacitySlider, StringFormat={}{0:0}%}"
                                VerticalAlignment="Center" MinWidth="34" />
                     <CheckBox x:Name="OnionGrayscaleBox" Content="Grayscale" Click="OnToggleOnionGrayscale" VerticalAlignment="Center" />
+                    <CheckBox x:Name="OnionOnTopBox" Content="On Top" Click="OnToggleOnionOnTop" VerticalAlignment="Center" />
                     </StackPanel>
                   </StackPanel>
                 </Border>
@@ -1343,6 +1344,7 @@
                            VerticalAlignment="Center" MinWidth="34" />
                 <CheckBox x:Name="AnimOnionGrayscaleBox" Content="Grayscale" Click="OnToggleAnimOnionGrayscale" VerticalAlignment="Center" />
                 <CheckBox x:Name="AnimOnionClsnBox" Content="Clsn" Click="OnToggleAnimOnionClsn" VerticalAlignment="Center" />
+                <CheckBox x:Name="AnimOnionOnTopBox" Content="On Top" Click="OnToggleAnimOnionOnTop" VerticalAlignment="Center" />
                 </StackPanel>
               </StackPanel>
             </Border>

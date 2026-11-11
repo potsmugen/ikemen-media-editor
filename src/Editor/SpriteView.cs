@@ -484,6 +484,8 @@ public class SpriteView : Control
     /// <summary>Null = no background image.</summary>
     public CanvasBackground? BackgroundImage { get; set; }
     public bool ShowOnionSkin { get; set; }
+    /// <summary>Draws the onion over the active image, so it shows through where the active one is opaque.</summary>
+    public bool OnionOnTop { get; set; }
 
     /// <summary>This canvas's own onion opacity (Animations tab); null = the shared OnionOpacity.</summary>
     public double? OnionOpacityOverride { get; set; }
@@ -1214,18 +1216,20 @@ public class SpriteView : Control
 
         DrawBackgroundImage(ctx);
 
-        if (ShowOnionSkin && _onionBitmap is not null && _onionSprite is not null)
+        bool hasOnion = ShowOnionSkin && _onionBitmap is not null && _onionSprite is not null;
+        void DrawOnionImage()
         {
-            var onionSrc = new Rect(0, 0, _onionSprite.Width, _onionSprite.Height);
+            var onionSrc = new Rect(0, 0, _onionSprite!.Width, _onionSprite.Height);
             using (ctx.PushOpacity(OnionOpacityOverride ?? OnionOpacity))
             {
                 if (_onionFlipH || _onionFlipV || _onionScaleX != 1 || _onionScaleY != 1 || _onionAngle != 0)
                     using (ctx.PushTransform(ElementTransform(_onionOffset, _onionFlipH, _onionFlipV, _onionScaleX, _onionScaleY, _onionAngle)))
-                        ctx.DrawImage(_onionBitmap, onionSrc, OnionLocalRect()); // the transform carries the offset
+                        ctx.DrawImage(_onionBitmap!, onionSrc, OnionLocalRect()); // the transform carries the offset
                 else
-                    ctx.DrawImage(_onionBitmap, onionSrc, OnionRect());
+                    ctx.DrawImage(_onionBitmap!, onionSrc, OnionRect());
             }
         }
+        if (hasOnion && !OnionOnTop) DrawOnionImage();
 
         if (_bitmap is not null && _sprite is not null)
         {
@@ -1237,6 +1241,8 @@ public class SpriteView : Control
 
             if (ShowBounds) ctx.DrawRectangle(EdgePen, InsetFor(dst, EdgePen.Thickness));
         }
+
+        if (hasOnion && OnionOnTop) DrawOnionImage();
 
         var clsn = ClsnStyle.Current;
         double s = clsn.ScaleWithZoom ? Zoom : 1;

@@ -16,6 +16,7 @@ public partial class MainWindow
     private bool _animOnion;
     private bool _animOnionGrayscale = true;
     private bool _animOnionClsn = true;
+    private bool _animOnionOnTop;
     /// <summary>Read at startup, before AnimCanvas exists; applied once it does.</summary>
     private double _animOnionOpacity = Settings.DefaultOnionOpacity;
 
@@ -46,6 +47,7 @@ public partial class MainWindow
         AnimOnionEnabledBox.IsChecked = _animOnion;
         AnimOnionGrayscaleBox.IsChecked = _animOnionGrayscale;
         AnimOnionClsnBox.IsChecked = _animOnionClsn;
+        AnimOnionOnTopBox.IsChecked = _animOnionOnTop;
         AnimOnionOpacitySlider.Value = Math.Round((AnimCanvas.OnionOpacityOverride ?? SpriteView.OnionOpacity) * 100);
         AnimOnionActionBox.Value = _animOnionAction;
         AnimOnionFrameBox.Value = _animOnionFrame;
@@ -78,6 +80,13 @@ public partial class MainWindow
         _settings.Save();
         SyncViewMenu();
         ShowFrame();
+    }
+
+    private void OnToggleAnimOnionOnTop(object? sender, RoutedEventArgs e)
+    {
+        _animOnionOnTop = !_animOnionOnTop;
+        AnimCanvas.OnionOnTop = _animOnionOnTop;
+        AnimCanvas.InvalidateVisual();
     }
 
     private void OnAnimOnionOpacityChanged(object? sender, RangeBaseValueChangedEventArgs e)

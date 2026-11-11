@@ -52,6 +52,7 @@ public partial class MainWindow : Window
     private bool _fullCrosshair;
     private bool _onionSkin;
     private bool _onionGrayscale;
+    private bool _onionOnTop;
     private (int G, int N, int X, int Y)? _axisBeforeDrag;
 
     public MainWindow()
@@ -157,8 +158,10 @@ public partial class MainWindow : Window
         {
             c.FullCrosshair = _fullCrosshair;
             c.ShowOnionSkin = _onionSkin;
+            c.OnionOnTop = false; // session-only, so it can't be left on
         }
         AnimCanvas.ShowOnionSkin = _animOnion; // the Animations tab has its own onion
+        AnimCanvas.OnionOnTop = false;
         AnimCanvas.OnionOpacityOverride = _animOnionOpacity;
 
         ApplyTheme(_settings.General.ThemeName);
@@ -1252,6 +1255,7 @@ public partial class MainWindow : Window
         _suppressEvents = true;
         OnionEnabledBox.IsChecked = _onionSkin;
         OnionGrayscaleBox.IsChecked = _onionGrayscale;
+        OnionOnTopBox.IsChecked = _onionOnTop;
         OnionOpacitySlider.Value = Math.Round(SpriteView.OnionOpacity * 100);
         OnionGroupBox.Value = _onionGroup;
         OnionIndexBox.Value = _onionIndex;
@@ -1874,6 +1878,17 @@ public partial class MainWindow : Window
         SyncViewMenu();
         RefreshSprite();
         ShowFrame();
+    }
+
+    private void OnToggleOnionOnTop(object? sender, RoutedEventArgs e)
+    {
+        _onionOnTop = !_onionOnTop;
+        foreach (var c in AllCanvases())
+            if (c != AnimCanvas)
+            {
+                c.OnionOnTop = _onionOnTop;
+                c.InvalidateVisual();
+            }
     }
 
     private void OnToggleStatusBar(object? sender, RoutedEventArgs e)
