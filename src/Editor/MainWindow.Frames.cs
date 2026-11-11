@@ -182,6 +182,7 @@ public partial class MainWindow
         // These act on the boxes selected on the canvas, whatever the frame selection.
         DeleteBoxButton.IsEnabled = MakeDefaultButton.IsEnabled = boxSelected;
         CopyOnionClsnButton.IsEnabled = any && AnimOnionSource() is { } src && (src.Hurt.Count > 0 || src.Attack.Count > 0);
+        SyncAnimOnionSwapButton(_animOnion ? AnimOnionSource() : null);
         AutoHurtBoxesButton.IsEnabled = elements.Any(el => !el.NoSprite);
         SortBoxesButton.IsEnabled = elements.Any(el => el.OwnAttackBoxes || el.OwnHurtBoxes);
         DeleteAllBoxesButton.IsEnabled = any && targets.Any(i => HasOwnClsn(action!, i));

@@ -510,11 +510,18 @@ public partial class MainWindow
 
     private void SelectSprite(int spriteIndex)
     {
-        int row = _visible.IndexOf(spriteIndex);
-        if (row < 0) { FilterBox.Text = ""; row = _visible.IndexOf(spriteIndex); }
+        int row = RevealRow(spriteIndex);
         if (row < 0) return;
         SelectOnlySpriteRow(row);
         CenterSpriteRow(row);
+    }
+
+    /// <summary>The visible row showing this sprite, clearing the filter when it hides it.</summary>
+    private int RevealRow(int spriteIndex)
+    {
+        int row = _visible.IndexOf(spriteIndex);
+        if (row < 0 && FilterBox.Text is { Length: > 0 }) { FilterBox.Text = ""; row = _visible.IndexOf(spriteIndex); }
+        return row;
     }
 
     /// <summary>Scrolls the sprite table so the row sits in the middle of the visible area.</summary>
@@ -744,11 +751,54 @@ public partial class MainWindow
         return _onionGroup is { } g && _onionIndex is { } i ? _file.Find(g, i) : PreviousVisibleSprite();
     }
 
-    /// <summary>Enables Align With Onion Skin when a sprite is shown.</summary>
-    private void SyncAlignOnionButton(Sprite? onion)
+    /// <summary>Enables Align With Onion Skin and Swap from the sprite the onion shows now.</summary>
+    private void SyncOnionButtons(Sprite? onion)
     {
-        if (AlignOnionButton is null) return;
-        AlignOnionButton.IsEnabled = onion is not null && SelectedSpriteTargets().Count > 0;
+        if (AlignOnionButton is not null)
+            AlignOnionButton.IsEnabled = onion is not null && SelectedSpriteTargets().Count > 0;
+        if (OnionSwapButton is null) return;
+        bool same = onion is not null && ReferenceEquals(onion, _current);
+        OnionSwapButton.IsEnabled = onion is not null && !same;
+        ToolTip.SetTip(OnionSwapButton, same ? "The onion skin is the active sprite." : "Swaps the onion skin with the active sprite.");
+    }
+
+    /// <summary>
+    /// Swaps what the canvas shows with the onion skin: the onion is pinned to the
+    /// sprite shown now, and the old onion becomes the shown sprite.
+    /// </summary>
+    private async void OnSwapOnion(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (_file is not { } file || _current is not { } current || ShownSpriteOnion() is not { } onion
+                || ReferenceEquals(onion, current)) return;
+            if (_pickingFor is not null) return; // the canvas is waiting for a pick; don't choose for it
+            int row = RevealRow(file.PositionOf(onion));
+            if (row < 0) return;
+            // Pin first, so the refresh inside ActivateSpriteRow paints the swapped pair,
+            // and so a refused switch can put the pin back without a stale ghost.
+            var (wasGroup, wasIndex) = (_onionGroup, _onionIndex);
+            _onionGroup = current.Group;
+            _onionIndex = current.Index;
+            if (!await ActivateSpriteRow(row) || !ReferenceEquals(_file, file))
+            {
+                if (ReferenceEquals(_file, file))
+                {
+                    _onionGroup = wasGroup;
+                    _onionIndex = wasIndex;
+                    RefreshSprite();
+                }
+                return;
+            }
+            SelectOnlySpriteRow(row, suppressEvents: true);
+            CenterSpriteRow(row);
+            SyncOnionControls();
+            StatusText.Text = $"Onion skin swapped with sprite {onion.Group},{onion.Index}.";
+        }
+        catch (Exception ex)
+        {
+            await Failed("OnSwapOnion", ex);
+        }
     }
 
     private void UpdateSpriteActionButtons()
@@ -773,6 +823,7 @@ public partial class MainWindow
         if (NudgeUpButton is not null) NudgeUpButton.IsEnabled = NudgeLeftButton.IsEnabled =
             NudgeRightButton.IsEnabled = NudgeDownButton.IsEnabled = hasSelection;
         if (AlignOnionButton is not null) AlignOnionButton.IsEnabled = hasSelection && ShownSpriteOnion() is not null;
+        SyncOnionButtons(ShownSpriteOnion());
         RefreshAssignPaletteButton();
     }
 

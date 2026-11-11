@@ -21,12 +21,15 @@ public partial class MainWindow
     private double _animOnionOpacity = Settings.DefaultOnionOpacity;
 
     /// <summary>Pinned frame when both fields are set, else the previous frame (none on frame 1).</summary>
-    private Air.AnimationElement? AnimOnionSource()
+    private Air.AnimationElement? AnimOnionSource() => AnimOnionLocation()?.Element;
+
+    /// <summary>The frame the onion shows, with the action it lives in (the pin can point at another action).</summary>
+    private (Air.AnimationAction Action, Air.AnimationElement Element)? AnimOnionLocation()
     {
         if (_animOnionAction is { } a && _animOnionFrame is { } f)
-            return _air?.Find(a) is { } pinned && f >= 1 && f <= pinned.Elements.Count ? pinned.Elements[f - 1] : null;
+            return _air?.Find(a) is { } pinned && f >= 1 && f <= pinned.Elements.Count ? (pinned, pinned.Elements[f - 1]) : null;
         int i = FrameList.SelectedIndex;
-        return _action is not null && i > 0 && i < _action.Elements.Count ? _action.Elements[i - 1] : null;
+        return _action is not null && i > 0 && i < _action.Elements.Count ? (_action, _action.Elements[i - 1]) : null;
     }
 
     /// <summary>Called from ShowFrame.</summary>
@@ -34,11 +37,22 @@ public partial class MainWindow
     {
         if (AnimCanvas is null) return;
         var src = _animOnion ? AnimOnionSource() : null;
+        SyncAnimOnionSwapButton(src);
         var sprite = src is null ? null : FindAnimSprite(src.Group, src.Index);
         AnimCanvas.ShowOnion(sprite, sprite?.Palette, src is null ? default : new Point(src.OffsetX, src.OffsetY), _animOnionGrayscale,
             reuse: _clock is not null, // nothing edits pixels during playback
             flipH: src?.FlipH ?? false, flipV: src?.FlipV ?? false, scaleX: src?.ScaleX ?? 1, scaleY: src?.ScaleY ?? 1, angle: src?.Angle ?? 0);
         AnimCanvas.GhostBoxes = src is null || !_animOnionClsn ? new List<BoxOverlay>() : BoxesFor(src);
+    }
+
+    /// <summary>Dims Swap unless an onion frame is shown and it isn't the frame shown now.</summary>
+    private void SyncAnimOnionSwapButton(Air.AnimationElement? src)
+    {
+        if (AnimOnionSwapButton is null) return;
+        if (_clock is not null) return; // playback would flip it every pass over the pinned frame
+        bool same = src is not null && ReferenceEquals(src, CurrentElement);
+        AnimOnionSwapButton.IsEnabled = src is not null && !same;
+        ToolTip.SetTip(AnimOnionSwapButton, same ? "The onion skin is the active frame." : "Swaps the onion skin with the active frame.");
     }
 
     private void SyncAnimOnionControls()
@@ -111,6 +125,23 @@ public partial class MainWindow
         _animOnionAction = _animOnionFrame = null;
         SyncViewMenu();
         ShowFrame();
+    }
+
+    /// <summary>
+    /// Swaps what the canvas shows with the onion skin: the onion is pinned to the
+    /// frame shown now, and the old onion frame is shown, in its action.
+    /// </summary>
+    private void OnSwapAnimOnion(object? sender, RoutedEventArgs e)
+    {
+        if (_action is not { } action || CurrentElement is not { } current) return;
+        if (AnimOnionLocation() is not { } onion || ReferenceEquals(onion.Element, current)) return;
+        int frame = FrameList.SelectedIndex + 1;
+        _animOnionAction = action.Number;
+        _animOnionFrame = frame;
+        JumpToFrame(onion.Action, onion.Element);
+        SyncViewMenu();
+        ShowFrame(); // JumpToFrame can bail before the frame moves; the ghost still has to follow the pin
+        StatusText.Text = $"Onion skin swapped with action {onion.Action.Number}, frame {onion.Action.Elements.IndexOf(onion.Element) + 1}.";
     }
 
     private void OnToggleAnimOnionPanel(object? sender, RoutedEventArgs e)

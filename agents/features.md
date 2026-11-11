@@ -269,7 +269,12 @@ and constraints that are easy to miss when reading one code path in isolation.
   and angle, like the main sprite (the ghost Clsn boxes are not transformed). Each panel's
   On Top checkbox draws the ghost over the active image instead of behind it, so it also shows
   where the active sprite is opaque; the ghost Clsn boxes stay above both either way. On Top
-  starts off every run and isn't saved.
+  starts off every run and isn't saved, but stays on across tabs and documents until the app
+  restarts. Each panel's Swap button shows the onion and pins the onion to what was shown, so
+  two poses can be flipped between; it acts on the shown sprite/frame rather than the
+  selection (a multi-row selection collapses to that row), clears the sprite filter when it
+  hides the pinned sprite, and in Animations can land in another action. The sprite pin is
+  group/number, so a file where two sprites share one resolves to the first.
 - **Sort Boxes For All** sorts own boxes and defaults across actions, clearing Clsn
   numbering/count warnings in one step.
 - **AIR save changes**: loading reports what a save would change even without edits (Clsn

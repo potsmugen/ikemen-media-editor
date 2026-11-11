@@ -495,6 +495,8 @@
                                    FormatString="0" Watermark="Number" ValueChanged="OnOnionFieldChanged" />
                     <Button Content="Auto" Click="OnOnionUseAuto"
                             ToolTip.Tip="Unpin: follow the previous sprite." />
+                    <Button x:Name="OnionSwapButton" Content="Swap" Click="OnSwapOnion" IsEnabled="False"
+                            ToolTip.Tip="Swaps the onion skin with this sprite." />
                     <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
                     <TextBlock Text="Opacity" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                     <Slider x:Name="OnionOpacitySlider" Minimum="0" Maximum="100" Width="100" VerticalAlignment="Center"
@@ -717,7 +719,7 @@
                         <Button Grid.Column="2" x:Name="SpriteAxisShiftButton" Content="Shift" HorizontalAlignment="Stretch" Click="OnShiftSpriteOffsets"
                                 ToolTip.Tip="Shifts the selected sprites' axes by the same X/Y amount." />
                       </Grid>
-                      <!-- Enabled state follows the shown onion (SyncAlignOnionButton). -->
+                      <!-- Enabled state follows the shown onion (SyncOnionButtons). -->
                       <Button x:Name="AlignOnionButton" Content="Align With Onion Skin" HorizontalAlignment="Stretch"
                               Click="OnAlignWithOnion" IsEnabled="False"
                               ToolTip.Tip="Moves each selected sprite to line up with the onion skin." />
@@ -1328,6 +1330,8 @@
                                FormatString="0" Watermark="Frame" ValueChanged="OnAnimOnionFieldChanged" />
                 <Button Content="Auto" Click="OnAnimOnionUseAuto"
                         ToolTip.Tip="Unpin: follow the previous frame." />
+                <Button x:Name="AnimOnionSwapButton" Content="Swap" Click="OnSwapAnimOnion" IsEnabled="False"
+                        ToolTip.Tip="Swaps the onion skin with this frame." />
                 <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
                 <TextBlock Text="Opacity" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" />
                 <Slider x:Name="AnimOnionOpacitySlider" Minimum="0" Maximum="100" Width="100" VerticalAlignment="Center"

@@ -1405,7 +1405,7 @@ public partial class MainWindow : Window
         UpdateSpriteActionButtons();
         if (_current is null)
         {
-            SyncAlignOnionButton(null);
+            SyncOnionButtons(null);
             return;
         }
 
@@ -1416,7 +1416,7 @@ public partial class MainWindow : Window
         SpriteCanvas.Show(_current, pal, _showMask);
         var onion = ShownSpriteOnion();
         SpriteCanvas.ShowOnion(onion, onion?.Palette, default, _onionGrayscale);
-        SyncAlignOnionButton(onion);
+        SyncOnionButtons(onion);
         ShowSpriteSwatches(pal);
         RefreshAssignPaletteButton();
         RefreshPaletteTab();
