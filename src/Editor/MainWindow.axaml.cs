@@ -1256,6 +1256,7 @@ public partial class MainWindow : Window
         OnionEnabledBox.IsChecked = _onionSkin;
         OnionGrayscaleBox.IsChecked = _onionGrayscale;
         OnionOnTopBox.IsChecked = _onionOnTop;
+        OnionAutoBox.IsChecked = _onionGroup is null || _onionIndex is null;
         OnionOpacitySlider.Value = Math.Round(SpriteView.OnionOpacity * 100);
         OnionGroupBox.Value = _onionGroup;
         OnionIndexBox.Value = _onionIndex;
@@ -1277,17 +1278,23 @@ public partial class MainWindow : Window
         if (_suppressEvents) return;
         _onionGroup = OnionGroupBox.Value is { } g ? (int)g : null;
         _onionIndex = OnionIndexBox.Value is { } i ? (int)i : null;
+        OnionAutoBox.IsChecked = _onionGroup is null || _onionIndex is null;
         RefreshSprite();
         ShowFrame();
     }
 
-    private void OnOnionUseAuto(object? sender, RoutedEventArgs e)
+    /// <summary>Auto toggle: on follows the previous sprite, off pins the active one.</summary>
+    private void OnToggleOnionAuto(object? sender, RoutedEventArgs e)
     {
-        _onionGroup = null;
-        _onionIndex = null;
-        SyncOnionControls();
-        RefreshSprite();
-        ShowFrame();
+        if (_onionGroup is not null && _onionIndex is not null)
+        {
+            _onionGroup = null;
+            _onionIndex = null;
+            RefreshSprite();
+            ShowFrame();
+        }
+        else PinSpriteAsOnion();
+        SyncOnionControls(); // the toggle shows the pin, not the click
     }
 
     // ---- errors ------------------------------------------------------------

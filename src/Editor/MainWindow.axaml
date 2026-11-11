@@ -493,8 +493,8 @@
                                    FormatString="0" Watermark="Group" ValueChanged="OnOnionFieldChanged" />
                     <NumericUpDown x:Name="OnionIndexBox" Width="90" Minimum="0" Maximum="65535" Increment="1"
                                    FormatString="0" Watermark="Number" ValueChanged="OnOnionFieldChanged" />
-                    <Button Content="Auto" Click="OnOnionUseAuto"
-                            ToolTip.Tip="Unpin: follow the previous sprite." />
+                    <ToggleButton x:Name="OnionAutoBox" Content="Auto" IsChecked="True" Click="OnToggleOnionAuto"
+                                  ToolTip.Tip="Follows the previous sprite; click to pin the active one." />
                     <Button x:Name="OnionSwapButton" Content="Swap" Click="OnSwapOnion" IsEnabled="False"
                             ToolTip.Tip="Swaps the onion skin with this sprite." />
                     <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
@@ -1328,8 +1328,8 @@
                                FormatString="0" Watermark="Action" ValueChanged="OnAnimOnionFieldChanged" />
                 <NumericUpDown x:Name="AnimOnionFrameBox" Width="90" Minimum="1" Maximum="2147483647" Increment="1"
                                FormatString="0" Watermark="Frame" ValueChanged="OnAnimOnionFieldChanged" />
-                <Button Content="Auto" Click="OnAnimOnionUseAuto"
-                        ToolTip.Tip="Unpin: follow the previous frame." />
+                <ToggleButton x:Name="AnimOnionAutoBox" Content="Auto" IsChecked="True" Click="OnToggleAnimOnionAuto"
+                              ToolTip.Tip="Follows the previous frame; click to pin the active one." />
                 <Button x:Name="AnimOnionSwapButton" Content="Swap" Click="OnSwapAnimOnion" IsEnabled="False"
                         ToolTip.Tip="Swaps the onion skin with this frame." />
                 <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />

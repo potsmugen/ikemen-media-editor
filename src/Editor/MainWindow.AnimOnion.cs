@@ -62,6 +62,7 @@ public partial class MainWindow
         AnimOnionGrayscaleBox.IsChecked = _animOnionGrayscale;
         AnimOnionClsnBox.IsChecked = _animOnionClsn;
         AnimOnionOnTopBox.IsChecked = _animOnionOnTop;
+        AnimOnionAutoBox.IsChecked = _animOnionAction is null || _animOnionFrame is null;
         AnimOnionOpacitySlider.Value = Math.Round((AnimCanvas.OnionOpacityOverride ?? SpriteView.OnionOpacity) * 100);
         AnimOnionActionBox.Value = _animOnionAction;
         AnimOnionFrameBox.Value = _animOnionFrame;
@@ -117,14 +118,21 @@ public partial class MainWindow
         if (_suppressEvents) return;
         _animOnionAction = AnimOnionActionBox.Value is { } a ? (int)a : null;
         _animOnionFrame = AnimOnionFrameBox.Value is { } f ? (int)f : null;
+        AnimOnionAutoBox.IsChecked = _animOnionAction is null || _animOnionFrame is null;
         ShowFrame();
     }
 
-    private void OnAnimOnionUseAuto(object? sender, RoutedEventArgs e)
+    /// <summary>Auto toggle: on follows the previous frame, off pins the active one.</summary>
+    private void OnToggleAnimOnionAuto(object? sender, RoutedEventArgs e)
     {
-        _animOnionAction = _animOnionFrame = null;
-        SyncViewMenu();
-        ShowFrame();
+        if (_animOnionAction is not null && _animOnionFrame is not null)
+        {
+            _animOnionAction = _animOnionFrame = null;
+            SyncViewMenu();
+            ShowFrame();
+        }
+        else PinFrameAsOnion();
+        SyncViewMenu(); // the toggle shows the pin, not the click
     }
 
     /// <summary>

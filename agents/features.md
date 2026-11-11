@@ -274,7 +274,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   two poses can be flipped between; it acts on the shown sprite/frame rather than the
   selection (a multi-row selection collapses to that row), clears the sprite filter when it
   hides the pinned sprite, and in Animations can land in another action. The sprite pin is
-  group/number, so a file where two sprites share one resolves to the first.
+  group/number, so a file where two sprites share one resolves to the first. Each panel's Auto
+  toggle is on while the onion follows the previous item; turning it off pins the active one,
+  so a swap (which always leaves a pin) is undone by pressing Auto.
 - **Sort Boxes For All** sorts own boxes and defaults across actions, clearing Clsn
   numbering/count warnings in one step.
 - **AIR save changes**: loading reports what a save would change even without edits (Clsn
