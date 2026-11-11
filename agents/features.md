@@ -339,6 +339,20 @@ and constraints that are easy to miss when reading one code path in isolation.
     the encoder as transparent black. Frames are at most 16384 a side. Discord and browsers play it.
   - GIF delays round to centiseconds with a 2-centisecond minimum; alpha below 128 is transparent,
     and frames past 255 colors fall back to a fixed color cube.
+- **Export Actions** writes the selected actions (the current one when nothing is selected)
+  as plain .air text in the editor's saved form (the same text Save writes: comments
+  placed, Clsn corners normalized, unused lines dropped), under one header comment naming
+  the source. A blank line after that header keeps it out of the first action's name.
+  Sprites stay referenced by group,index, so the target .sff must already have them.
+- **Import Actions** reads such a file and asks about numbers already in the file first
+  (skip or overwrite), then where the rest go: after the last action in the list or in
+  number order. That question is skipped when the list is empty and the imported actions are
+  already in number order, since both answers give the same list. Numbers stay as exported,
+  and overwritten actions keep their place. Skipped
+  numbers are counted in the status line and listed in a popup and the log. The whole import
+  is one undo step, and the imported actions end up selected; undo or redo that removes the
+  shown action selects a neighbor instead of leaving it on the canvas. Copy Action targets
+  are imported as written, so a target action must exist too.
 
 ### Sprites and palettes
 

@@ -159,6 +159,8 @@ public partial class MainWindow
         var action = _action;
         if (NewActionButton is not null) NewActionButton.IsEnabled = _air is not null;
         if (DeleteActionButton is not null) DeleteActionButton.IsEnabled = _air is not null && action is not null;
+        if (ImportActionsButton is not null) ImportActionsButton.IsEnabled = _air is not null;
+        if (ExportActionsButton is not null) ExportActionsButton.IsEnabled = _air is { Actions.Count: > 0 };
         bool hasFrames = action is { Elements.Count: > 0 };
         PlayButton.IsEnabled = hasFrames;
         FirstFrameButton.IsEnabled = PrevFrameButton.IsEnabled = NextFrameButton.IsEnabled = hasFrames;

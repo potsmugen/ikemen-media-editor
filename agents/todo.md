@@ -134,7 +134,14 @@ Select tool gaps against image editor conventions:
 ### Import and export
 
 - Improve the Export Palette dialog (what to change is undecided).
-- WebP import: an animated WebP imports all frames like GIF does.
+- Add WebP import (Add and Replace accept PNG, PCX and GIF only). An animated WebP imports
+  all frames like GIF does. Likely route: Skia's SKCodec in Editor (SkiaSharp is already
+  there for WebP export); check how 2.88 handles frames that build on the previous one.
+- Actions: drop the Import/Export buttons added under the action list and go back to
+  a single New/Delete row. Export Actions belongs only in the action-list right-click
+  menu; Import Actions belongs in the `_Animations` top menu after Save As. Skip the
+  placement dialog when the open file has no actions, since both choices give the same
+  list. Keep conflicts (skip/overwrite) asked before placement.
 
 ### Saving and recovery
 
@@ -194,6 +201,24 @@ Select tool gaps against image editor conventions:
 ## Not yet checked in the app
 
 Built, but not tried by the maintainer yet.
+
+### Export and import actions
+
+- Select several actions, Export: the saved .air opens in a text editor with one header comment,
+  an empty line, then the blocks in list order; reimporting it gives the same frames, Clsn,
+  Loopstart, Interpolate, comments and Copy Action.
+- Export a selection whose first action has no comment, then import: it must not gain the
+  header or any other comment as its name.
+- Import with no clashes: choose After Last Action and In Number Order, confirm the position,
+  selection and one-step undo. With clashes, Skip/Overwrite is asked before placement, and
+  placement is skipped when every imported number already exists.
+  Placement is also skipped when the open file has no actions and the imported ones are in
+  number order; an unsorted import into an empty file still asks.
+- Import a file whose number already exists: Overwrite replaces in place, Skip imports the rest
+  and lists the skipped numbers in a popup, errors.log and the status line, Cancel changes nothing.
+- Undo an import that overwrote or removed the action on screen: the action list, frame table
+  and canvas must agree, and frame edits must go to the shown action.
+- Import into an .air embedded in a .def, save, and check the actions land in the def's AIR section.
 
 ### Paint on true color
 

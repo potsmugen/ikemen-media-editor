@@ -1291,10 +1291,17 @@
                     </ListBox.ItemTemplate>
                   </ListBox>
                 </Grid>
-                <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*" Margin="0,6,0,0">
-                  <Button Grid.Column="0" x:Name="NewActionButton" Content="New" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="OnNewAction" ToolTip.Tip="Adds an action with the first free number after the selected one." />
-                  <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
-                  <Button Grid.Column="2" x:Name="DeleteActionButton" Content="Delete" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="OnDeleteAction" ToolTip.Tip="Removes the selected actions." />
+                <Grid Grid.Row="1" RowDefinitions="Auto,Auto" Margin="0,6,0,0">
+                  <Grid Grid.Row="0" ColumnDefinitions="*,Auto,*">
+                    <Button Grid.Column="0" x:Name="ImportActionsButton" Content="Import" HorizontalAlignment="Stretch" Click="OnImportActions" ToolTip.Tip="Adds actions from an .air or .txt file." />
+                    <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                    <Button Grid.Column="2" x:Name="ExportActionsButton" Content="Export" HorizontalAlignment="Stretch" Click="OnExportActions" ToolTip.Tip="Saves the selected actions as .air text." />
+                  </Grid>
+                  <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*" Margin="{DynamicResource UiGapTop}">
+                    <Button Grid.Column="0" x:Name="NewActionButton" Content="New" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="OnNewAction" ToolTip.Tip="Adds an action with the first free number after the selected one." />
+                    <Border Grid.Column="1" Width="{DynamicResource UiButtonGap}" />
+                    <Button Grid.Column="2" x:Name="DeleteActionButton" Content="Delete" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="OnDeleteAction" ToolTip.Tip="Removes the selected actions." />
+                  </Grid>
                 </Grid>
               </Grid>
             </Grid>

@@ -3315,6 +3315,39 @@ public static partial class Dialogs
         return result.Task;
     }
 
+    /// <summary>What to do with imported action numbers that are already used.</summary>
+    public enum ActionImportConflictChoice { Skip, Overwrite }
+
+    /// <summary>Asks where imported actions go: after the last action (true) or in number order (false). Null if canceled.</summary>
+    public static Task<bool?> PromptActionImportPlacement(Window owner, int count, string fileName)
+    {
+        string many = count == 1 ? "1 action" : $"{count} actions";
+        string add = count == 1 ? "Add it" : "Add them";
+        return Show<bool?>(owner, "Place Imported Actions",
+            $"{fileName} has {many}. {add} after the last action, or in number order? "
+            + "The action numbers stay as exported either way.",
+            [("After Last Action", true), ("In Number Order", false), ("Cancel", null)]);
+    }
+
+    /// <summary>Asks what to do with imported action numbers that already exist. Null if canceled.</summary>
+    public static Task<ActionImportConflictChoice?> PromptActionImportConflicts(Window owner, IReadOnlyList<int> numbers)
+    {
+        string list = string.Join(", ", numbers.Take(12));
+        if (numbers.Count > 12) list += $", and {numbers.Count - 12} more";
+        bool one = numbers.Count == 1;
+        string them = one ? "This action number already exists" : $"These {numbers.Count} action numbers already exist";
+        string overwrite = one
+            ? "Overwrite that action with the imported one"
+            : "Overwrite those actions with the imported ones";
+        string skip = one ? "skip it" : "skip them";
+        return Show<ActionImportConflictChoice?>(owner, "Action Numbers Already Used",
+            $"{them} in this file: {list}.\n\n{overwrite}, {skip}, or cancel the import? "
+            + "Overwritten actions keep their place in the list.",
+            [("Skip", ActionImportConflictChoice.Skip),
+             ("Overwrite", ActionImportConflictChoice.Overwrite),
+             ("Cancel", null)]);
+    }
+
     /// <summary>Asks which way to reorder a frame's own Clsn boxes. Returns null if canceled.</summary>
     public static Task<BoxSortOrder?> PromptBoxSortOrder(Window owner,
         string prompt = "Reorder this frame's own Clsn1/Clsn2 boxes by:")
