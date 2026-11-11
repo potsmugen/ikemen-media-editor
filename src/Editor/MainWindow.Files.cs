@@ -554,9 +554,9 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// Opens a character, stage, screenpack, lifebar or storyboard .def with every file it
-    /// points at; the kind is detected (see DetectDefKind). Embedded animation edits use the
-    /// Animations tab's definition-source workflow.
+    /// Opens a character, stage, common FX, screenpack, lifebar or storyboard .def with
+    /// every file it points at; the kind is detected (see DetectDefKind). Embedded animation
+    /// edits use the Animations tab's definition-source workflow.
     /// </summary>
     private async void OnOpenDef(object? sender, RoutedEventArgs e)
     {
@@ -655,12 +655,13 @@ public partial class MainWindow
         // A .def opens several formats at once, so there's no single relevant tab: stay put.
     }
 
-    private enum DefKind { Character, Stage, Other }
+    private enum DefKind { Character, Stage, CommonFx, Other }
 
     /// <summary>
     /// Tells a .def's kind by its sprite line: [Files] sprite= (character), [BGdef] spr= (stage),
-    /// else [Files] spr=/sff= or [SceneDef] spr= (screenpack/lifebar/storyboard, see
-    /// OpenOtherDefFile). Null, after a popup, when it can't be read or matches none.
+    /// [Files] sff=/air= (common FX package), else [Files] spr=/sff= or [SceneDef] spr=
+    /// (screenpack/lifebar/storyboard, see OpenOtherDefFile). Null, after a popup, when it
+    /// can't be read or matches none.
     /// </summary>
     private async Task<DefKind?> DetectDefKind(string path)
     {
@@ -677,20 +678,21 @@ public partial class MainWindow
         }
         if (def.SpritePath is not null) return DefKind.Character;
         if (def.StageSpritePath is not null) return DefKind.Stage;
+        if (def.CommonFxSpritePath is not null) return DefKind.CommonFx;
         if (def.ScreenpackSpritePath is not null || def.LifebarSpritePath is not null || def.StoryboardSpritePath is not null)
             return DefKind.Other;
 
-        CrashLog.Error("DetectDefKind", $"no character, stage, screenpack, lifebar or storyboard sprite line: {path}");
+        CrashLog.Error("DetectDefKind", $"no character, stage, common FX, screenpack, lifebar or storyboard sprite line: {path}");
         await Dialogs.ShowMessage(this, "Could Not Open the Definition",
-            $"{Path.GetFileName(path)} isn't a character, stage, screenpack, lifebar or storyboard .def: "
-            + "it has none of their sprite lines ([Files] sprite=, spr= or sff=, [BGdef] spr=, [SceneDef] spr=).");
+            $"{Path.GetFileName(path)} isn't a character, stage, common FX, screenpack, lifebar or storyboard .def: "
+            + "it has none of their file lines ([Files] sprite=/air=/spr=/sff=, [BGdef] spr=, [SceneDef] spr=).");
         return null;
     }
 
     private Task OpenDefAs(string path, DefKind kind) => kind switch
     {
         DefKind.Stage => OpenStageFile(path),
-        DefKind.Other => OpenOtherDefFile(path),
+        DefKind.Other or DefKind.CommonFx => OpenOtherDefFile(path),
         _ => OpenCharacterFile(path),
     };
 
@@ -802,14 +804,17 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// Loads whichever of screenpack/lifebar/storyboard the .def turns out
-    /// to be (DetectDefKind has ruled out character and stage): ScreenpackSpritePath,
-    /// then LifebarSpritePath, then StoryboardSpritePath. One shared method rather
-    /// than three near-identical ones (they only differed in which DefFile field to
-    /// read and whether a sound file exists).
+    /// Loads whichever of common FX/screenpack/lifebar/storyboard the .def
+    /// turns out to be (DetectDefKind has ruled out character and stage):
+    /// CommonFxSpritePath, then ScreenpackSpritePath, then LifebarSpritePath,
+    /// then StoryboardSpritePath. One shared method rather than four
+    /// near-identical ones (they only differed in which DefFile fields to
+    /// read and whether an animation/sound file exists).
     ///
-    /// Loads the sprite (+ sound, for screenpack/lifebar) plus any
-    /// [Begin Action] blocks the .def embeds, same shape as OpenStageFile.
+    /// Loads the sprite (+ animation and sound for a common FX package, sound
+    /// for screenpack/lifebar) plus any [Begin Action] blocks the .def embeds,
+    /// same shape as OpenStageFile. An external .air is authoritative when
+    /// both exist, as for characters.
     /// Doesn't follow nested references (a screenpack's select.def/
     /// fight.def/storyboards, a lifebar's common-effects files) — that's
     /// still the open, undecided part.
@@ -837,7 +842,15 @@ public partial class MainWindow
         string kind;
         string spritePath;
         string? soundPath = null;
-        if (def.ScreenpackSpritePath is { } spr)
+        string? animationPath = null;
+        if (def.CommonFxSpritePath is { } fx)
+        {
+            kind = "common FX";
+            spritePath = fx;
+            soundPath = def.CommonFxSoundPath;
+            animationPath = def.CommonFxAnimationPath;
+        }
+        else if (def.ScreenpackSpritePath is { } spr)
         {
             kind = "screenpack";
             spritePath = spr;
@@ -857,7 +870,8 @@ public partial class MainWindow
         else
         {
             await Dialogs.ShowMessage(this, "Could Not Read the Definition",
-                "Doesn't look like a screenpack, lifebar, or storyboard .def — no [Files] spr=/sff= or [SceneDef] spr= line found.");
+                "Doesn't look like a common FX, screenpack, lifebar, or storyboard .def — "
+                + "no [Files] air=/spr=/sff= or [SceneDef] spr= line found.");
             return;
         }
 
@@ -884,13 +898,27 @@ public partial class MainWindow
             else if (!File.Exists(soundPath)) failed.Add(Path.GetFileName(soundPath));
         }
 
-        var air = Air.AirParser.Parse(text);
-        if (air.Actions.Count > 0)
+        bool airLoaded = false;
+        if (animationPath is not null)
         {
-            air.TextEncoding = encoding;
-            air.LegacyEncodingName = legacyName;
-            LoadAirFromEmbeddedText(air, path, bytes, showSuggestedNames: false);
-            loaded.Add($"{air.Actions.Count} {kind} action{(air.Actions.Count == 1 ? "" : "s")}");
+            if (File.Exists(animationPath) && LoadAir(animationPath))
+            {
+                loaded.Add(Path.GetFileName(animationPath));
+                airLoaded = true;
+            }
+            else if (!File.Exists(animationPath)) failed.Add(Path.GetFileName(animationPath));
+        }
+
+        if (!airLoaded)
+        {
+            var air = Air.AirParser.Parse(text);
+            if (air.Actions.Count > 0)
+            {
+                air.TextEncoding = encoding;
+                air.LegacyEncodingName = legacyName;
+                LoadAirFromEmbeddedText(air, path, bytes, showSuggestedNames: false);
+                loaded.Add($"{air.Actions.Count} {kind} action{(air.Actions.Count == 1 ? "" : "s")}");
+            }
         }
 
         var who = def.DisplayName ?? def.Name ?? Path.GetFileNameWithoutExtension(path);

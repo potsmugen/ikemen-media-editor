@@ -1,15 +1,16 @@
 namespace Def;
 
 /// <summary>
-/// A character's, stage's, screenpack's, lifebar's, or storyboard's .def,
+/// A .def for a character, stage, common FX package, screenpack, lifebar, or storyboard,
 /// read for the file names it points at. This parser does not write definitions;
 /// the animation editor separately patches only embedded [Begin Action] blocks.
 /// Other script editing remains out of scope. Opening a character loads its
 /// sprites, animations, sounds and palettes together instead of asking for four
 /// files separately — and likewise for the others, each from its own section/key
 /// pair: stage ([BGdef] spr=),
-/// screenpack ([Files] spr=/snd=), lifebar ([Files] sff=/snd=), storyboard
-/// ([SceneDef] spr=). See each *SpritePath field for the details.
+/// screenpack ([Files] spr=/snd=), lifebar ([Files] sff=/snd=), common FX
+/// package ([Files] sff=/air=/snd=), storyboard ([SceneDef] spr=). See each
+/// *SpritePath field for the details.
 /// </summary>
 public sealed class DefFile
 {
@@ -51,6 +52,16 @@ public sealed class DefFile
     /// </summary>
     public string? LifebarSpritePath;
     public string? LifebarSoundPath;
+
+    /// <summary>
+    /// A common FX package's sprite, animation and sound files, from [Files]'s
+    /// sff/air/snd keys (Ikemen GO's gofx.def is the usual one). The air key is
+    /// what tells a common FX package from a lifebar, which also uses sff/snd
+    /// but names its common-effects keys fightfx.sff/fightfx.air/common.snd.
+    /// </summary>
+    public string? CommonFxSpritePath;
+    public string? CommonFxAnimationPath;
+    public string? CommonFxSoundPath;
 
     /// <summary>
     /// A storyboard's own sprite file, from [SceneDef]'s spr key. No sound
@@ -130,9 +141,18 @@ public sealed class DefFile
         AnimationPath = Resolve(files, "anim");
         SoundPath = Resolve(files, "sound");
         ScreenpackSpritePath = Resolve(files, "spr");
-        ScreenpackSoundPath = Resolve(files, "snd");
-        LifebarSpritePath = Resolve(files, "sff");
-        LifebarSoundPath = Resolve(files, "snd");
+        ScreenpackSoundPath = ScreenpackSpritePath is not null ? Resolve(files, "snd") : null;
+        CommonFxAnimationPath = Resolve(files, "air");
+        if (CommonFxAnimationPath is not null)
+        {
+            CommonFxSpritePath = Resolve(files, "sff");
+            CommonFxSoundPath = Resolve(files, "snd");
+        }
+        else
+        {
+            LifebarSpritePath = Resolve(files, "sff");
+            LifebarSoundPath = LifebarSpritePath is not null ? Resolve(files, "snd") : null;
+        }
 
         // Any palN key, pal0 included. Leading zeros (pal01) mean the same palette; pal1 wins over pal01.
         var palKeys = new Dictionary<int, string>();
@@ -213,7 +233,9 @@ public sealed class DefFile
         {
             SpritePath, AnimationPath, SoundPath, StageSpritePath,
             ScreenpackSpritePath, ScreenpackSoundPath,
-            LifebarSpritePath, LifebarSoundPath, StoryboardSpritePath,
+            LifebarSpritePath, LifebarSoundPath,
+            CommonFxSpritePath, CommonFxAnimationPath, CommonFxSoundPath,
+            StoryboardSpritePath,
         })
             if (p is not null && !File.Exists(p)) yield return p;
         foreach (var (_, p) in Palettes)

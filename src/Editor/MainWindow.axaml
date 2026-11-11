@@ -11,7 +11,7 @@
     <Menu x:Name="MainMenu" DockPanel.Dock="Top" Background="{DynamicResource ThemeChromeBg}">
       <MenuItem Header="_File">
         <MenuItem Header="_Open .def" x:Name="OpenDefItem" Click="OnOpenDef"
-                  ToolTip.Tip="Opens a character, stage, screenpack, lifebar or storyboard .def with the files it points to." />
+                  ToolTip.Tip="Opens a character, stage, common FX, screenpack, lifebar or storyboard .def with the files it points to." />
         <MenuItem Header="Open _Recent" x:Name="RecentMenu" />
         <Separator />
         <MenuItem Header="Save _All" Click="OnSaveAll" />

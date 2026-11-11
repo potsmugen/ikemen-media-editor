@@ -30,8 +30,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   loose files, the custom name, and the active tab; not edits, selection or zoom. Tabs with
   no saved path are skipped. Loading asks Replace/Append, and Replace runs each unsaved tab's
   check first. Missing files are skipped and listed afterwards. Not reopened on startup.
-- **DEF animation source**: for characters, `[Files] anim=` `.air` is authoritative even
-  when the .def also embeds actions. Embedded actions can be edited and saved back in place:
+- **DEF animation source**: for characters `[Files] anim=` and for common FX packages
+  `[Files] air=`, that `.air` is authoritative even when the .def also embeds actions.
+  Embedded actions can be edited and saved back in place:
   only action blocks are rewritten, new ones appended after the last. A file changed on disk
   asks before writing. Nested references are not followed.
 - **Atomic writes**: SFF, SND, AIR and embedded-AIR .def saves write a temp file beside the
@@ -44,8 +45,10 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Dropping a file** on the window opens it by extension too: session, .sff, .def, .air,
   .snd, or a palette file, each asking about that document's unsaved changes first.
 - **Open .def** is one entry for every kind. `DetectDefKind` reads the sprite line:
-  character, stage, or screenpack/lifebar/storyboard. A .def matching none, or unreadable,
-  gets a popup before the tab prompt, so the tab is untouched.
+  character, stage, common FX, or screenpack/lifebar/storyboard. A common FX package
+  (Ikemen GO's gofx.def) is told from a lifebar by its `[Files] air=` line and loads its
+  sff/air/snd together. A .def matching none, or unreadable, gets a popup before the tab
+  prompt, so the tab is untouched.
 - **Opening a character** clears all prior open files before loading its references, so a
   missing reference can't leave an unrelated asset active.
 - **Saving**: before overwriting, keep `BackupCount` prior versions (`.bak`, `.bak.1`…;

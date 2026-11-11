@@ -68,6 +68,19 @@ public class DefTests
         common.snd = common.snd
         """;
 
+    // Trimmed from Ikemen GO's data/gofx/gofx.def, a common FX package.
+    private const string CommonFxDef = """
+        [Info]
+        prefix = GO
+        fx.scale = 1
+        localcoord = 320, 240
+
+        [Files]
+        sff = gofx.sff
+        air = gofx.air
+        snd = gofx.snd
+        """;
+
     // Trimmed from a real storyboard .def (evilkenintro.def) — no [Info],
     // no [Files]; a storyboard's [SceneDef]/[Scene N] blocks are its whole
     // structure.
@@ -157,6 +170,52 @@ public class DefTests
         Assert.Null(def.StageSpritePath);
         Assert.Null(def.ScreenpackSpritePath);
         Assert.Null(def.StoryboardSpritePath);
+        // fightfx.sff/fightfx.air are not the plain sff/air keys, so this
+        // stays a lifebar.
+        Assert.Null(def.CommonFxSpritePath);
+        Assert.Null(def.CommonFxAnimationPath);
+    }
+
+    [Fact]
+    public void ParsesACommonFxDef()
+    {
+        var def = DefFile.Parse(CommonFxDef, "/gofx");
+
+        Assert.Equal(Path.Combine("/gofx", "gofx.sff"), def.CommonFxSpritePath);
+        Assert.Equal(Path.Combine("/gofx", "gofx.air"), def.CommonFxAnimationPath);
+        Assert.Equal(Path.Combine("/gofx", "gofx.snd"), def.CommonFxSoundPath);
+        // The same sff/snd keys belong to a lifebar otherwise; air is what
+        // tells the two formats apart.
+        Assert.Null(def.LifebarSpritePath);
+        Assert.Null(def.LifebarSoundPath);
+        Assert.Null(def.SpritePath);
+        Assert.Null(def.StageSpritePath);
+        Assert.Null(def.ScreenpackSpritePath);
+        Assert.Null(def.StoryboardSpritePath);
+
+        Assert.Equal(
+            [Path.Combine("/gofx", "gofx.sff"), Path.Combine("/gofx", "gofx.air"), Path.Combine("/gofx", "gofx.snd")],
+            def.MissingFiles());
+    }
+
+    [Fact]
+    public void SoundBelongsToTheDefKindWhoseMarkerKeyIsPresent()
+    {
+        var lifebar = DefFile.Parse("[Files]\nsff = fight.sff\nsnd = fight.snd\n", "/lifebar");
+        Assert.Equal(Path.Combine("/lifebar", "fight.snd"), lifebar.LifebarSoundPath);
+        Assert.Null(lifebar.ScreenpackSoundPath);
+        Assert.Null(lifebar.CommonFxSoundPath);
+
+        var screenpack = DefFile.Parse("[Files]\nspr = system.sff\nsnd = system.snd\n", "/screenpack");
+        Assert.Equal(Path.Combine("/screenpack", "system.snd"), screenpack.ScreenpackSoundPath);
+        Assert.Null(screenpack.LifebarSoundPath);
+        Assert.Null(screenpack.CommonFxSoundPath);
+
+        // No marker key: an snd on its own belongs to no known def kind.
+        var orphan = DefFile.Parse("[Files]\nsnd = orphan.snd\n", "/orphan");
+        Assert.Null(orphan.ScreenpackSoundPath);
+        Assert.Null(orphan.LifebarSoundPath);
+        Assert.Null(orphan.CommonFxSoundPath);
     }
 
     [Fact]
@@ -191,46 +250,58 @@ public class DefTests
     }
 
     [Fact]
-    public void AllFiveDefFormatsAreToldApartByExactlyOneSpritePathField()
+    public void AllSixDefFormatsAreToldApartByExactlyOneSpritePathField()
     {
-        // OnOpenOther and "Open Recent"'s routing (MainWindow.axaml.cs) check
-        // SpritePath, then StageSpritePath, then ScreenpackSpritePath, then
-        // LifebarSpritePath, then StoryboardSpritePath, in that order, each
-        // assuming the earlier ones already ruled themselves out — which
-        // only holds if exactly one of the five is ever set for a given
-        // .def. This is that assumption, checked directly.
+        // DetectDefKind checks SpritePath, then StageSpritePath, then
+        // CommonFxSpritePath, then ScreenpackSpritePath/LifebarSpritePath/
+        // StoryboardSpritePath, each assuming the earlier ones already ruled
+        // themselves out — which only holds if exactly one of the six is ever
+        // set for a given .def. This is that assumption, checked directly.
         var character = DefFile.Parse(CharacterDef, "/kfm");
         var stage = DefFile.Parse(StageDef, "/stages");
+        var commonFx = DefFile.Parse(CommonFxDef, "/gofx");
         var screenpack = DefFile.Parse(ScreenpackDef, "/screenpack");
         var lifebar = DefFile.Parse(LifebarDef, "/lifebar");
         var storyboard = DefFile.Parse(StoryboardDef, "/storyboards");
 
         Assert.NotNull(character.SpritePath);
         Assert.Null(character.StageSpritePath);
+        Assert.Null(character.CommonFxSpritePath);
         Assert.Null(character.ScreenpackSpritePath);
         Assert.Null(character.LifebarSpritePath);
         Assert.Null(character.StoryboardSpritePath);
 
         Assert.Null(stage.SpritePath);
         Assert.NotNull(stage.StageSpritePath);
+        Assert.Null(stage.CommonFxSpritePath);
         Assert.Null(stage.ScreenpackSpritePath);
         Assert.Null(stage.LifebarSpritePath);
         Assert.Null(stage.StoryboardSpritePath);
 
+        Assert.Null(commonFx.SpritePath);
+        Assert.Null(commonFx.StageSpritePath);
+        Assert.NotNull(commonFx.CommonFxSpritePath);
+        Assert.Null(commonFx.ScreenpackSpritePath);
+        Assert.Null(commonFx.LifebarSpritePath);
+        Assert.Null(commonFx.StoryboardSpritePath);
+
         Assert.Null(screenpack.SpritePath);
         Assert.Null(screenpack.StageSpritePath);
+        Assert.Null(screenpack.CommonFxSpritePath);
         Assert.NotNull(screenpack.ScreenpackSpritePath);
         Assert.Null(screenpack.LifebarSpritePath);
         Assert.Null(screenpack.StoryboardSpritePath);
 
         Assert.Null(lifebar.SpritePath);
         Assert.Null(lifebar.StageSpritePath);
+        Assert.Null(lifebar.CommonFxSpritePath);
         Assert.Null(lifebar.ScreenpackSpritePath);
         Assert.NotNull(lifebar.LifebarSpritePath);
         Assert.Null(lifebar.StoryboardSpritePath);
 
         Assert.Null(storyboard.SpritePath);
         Assert.Null(storyboard.StageSpritePath);
+        Assert.Null(storyboard.CommonFxSpritePath);
         Assert.Null(storyboard.ScreenpackSpritePath);
         Assert.Null(storyboard.LifebarSpritePath);
         Assert.NotNull(storyboard.StoryboardSpritePath);
