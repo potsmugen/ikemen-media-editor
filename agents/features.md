@@ -1346,6 +1346,9 @@ The editor's writers follow these tools where applicable.
   can't keep a link palette that is neither its target's nor the previous one (it reloads as
   the target's); the v2-to-v1 warning, the links-turned-around warning and the order refusals
   (sort, move, add, duplicate, delete) list them.
+  Replace with a new palette (decided 2026-11-14): the sprites after it that shared its old
+  palette, links included, take the new one at once (`SffFile.FollowNewPalette`, same run rule
+  as Make Palette Unique), so the screen matches the save. To keep their colors, unshare them first.
   A plain v1 save writes each PCX back as read (`SffV1Writer.KeepsSource`) when those bytes,
   with the flag the save writes, decode to the sprite's current size and pixels, plus its
   palette when unflagged; otherwise it re-encodes. That keeps header fields (DPI, 16-color

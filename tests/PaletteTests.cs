@@ -356,6 +356,32 @@ public class PaletteTests
     }
 
     [Fact]
+    public void ANewPaletteOnARunCarrierMovesItsFollowers()
+    {
+        var (f, a, b, c, d, p1, p2) = MakeV1Run();
+        var p3 = new Palette { Group = 1, Index = 3, Colors = [new(0, 0, 0, 0), C(30)] };
+        a.Palette = p3; // e.g. a replaced image with its own palette
+
+        var changed = f.FollowNewPalette(a, p1);
+
+        Assert.Equal(2, changed.Count);
+        Assert.Same(p3, b.Palette);
+        Assert.Same(p3, c.Palette);
+        Assert.Same(p2, d.Palette); // the next run keeps its palette
+    }
+
+    [Fact]
+    public void ANewPaletteInV2MovesNoOtherSprite()
+    {
+        var (f, a, b, _, _, p1, _) = MakeV1Run();
+        f.Version = SffVersions.V2;
+        a.Palette = new Palette { Group = 1, Index = 3, Colors = [new(0, 0, 0, 0), C(30)] };
+
+        Assert.Empty(f.FollowNewPalette(a, p1));
+        Assert.Same(p1, b.Palette);
+    }
+
+    [Fact]
     public void MakingARunCarrierUniqueDoesNothing()
     {
         // A carries the palette; B and C following it is the normal run state,

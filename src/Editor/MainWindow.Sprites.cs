@@ -2007,17 +2007,31 @@ public partial class MainWindow
                 newPal.Index = choices.PaletteIndex;
             }
             file.EnsurePalette(sprite.Palette);
+            // SFF v1: sprites after it that shared its old palette take the new one, as they would on disk
+            var followers = file.FollowNewPalette(sprite, beforePalette);
 
             var after = (sprite.SharesWith, sprite.Indexed, sprite.Direct, sprite.Width, sprite.Height, sprite.PixelsDirty);
             var afterPalette = sprite.Palette;
             var afterFormat = (sprite.SrcFormat, sprite.SrcDepth);
 
             _undo.Record("replace image",
-                () => { Restore(sprite, before); sprite.Palette = beforePalette; (sprite.SrcFormat, sprite.SrcDepth) = beforeFormat; AfterEdit(); },
-                () => { Restore(sprite, after); sprite.Palette = afterPalette; (sprite.SrcFormat, sprite.SrcDepth) = afterFormat; AfterEdit(); });
+                () =>
+                {
+                    Restore(sprite, before); sprite.Palette = beforePalette; (sprite.SrcFormat, sprite.SrcDepth) = beforeFormat;
+                    foreach (var (t, old) in followers) t.Palette = old;
+                    AfterEdit();
+                },
+                () =>
+                {
+                    Restore(sprite, after); sprite.Palette = afterPalette; (sprite.SrcFormat, sprite.SrcDepth) = afterFormat;
+                    foreach (var (t, _) in followers) t.Palette = afterPalette;
+                    AfterEdit();
+                });
             MarkDirty();
             AfterEdit();
-            StatusText.Text = $"Replaced from {picked[0].Name}. {report}";
+            string followed = followers.Count == 0 ? ""
+                : $" {followers.Count} following {(followers.Count == 1 ? "sprite uses" : "sprites use")} its new palette.";
+            StatusText.Text = $"Replaced from {picked[0].Name}. {report}{followed}";
         }
         catch (Exception ex)
         {

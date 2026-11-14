@@ -1024,6 +1024,25 @@ public sealed class SffFile
     }
 
     /// <summary>
+    /// After a v1 sprite gets a different palette (e.g. a replaced image), the sprites after it
+    /// that shared its old palette follow it, as they do on disk. Same run rule as MakePaletteUnique
+    /// Returns the (sprite, old palette) pairs it repointed, so a caller can undo
+    /// </summary>
+    public List<(Sprite Sprite, Palette? Old)> FollowNewPalette(Sprite sprite, Palette? old)
+    {
+        var changed = new List<(Sprite, Palette?)>();
+        if (!SffVersions.IsV1(Version) || old is null || sprite.Palette is not { } now || ReferenceEquals(old, now))
+            return changed;
+        for (int i = PositionOf(sprite) + 1; i < Sprites.Count; i++)
+        {
+            var t = Sprites[i];
+            if (ReferenceEquals(t.Palette, old)) { changed.Add((t, old)); t.Palette = now; }
+            else if (t.SharesWith is null) break; // a sprite carrying its own palette ends the run
+        }
+        return changed;
+    }
+
+    /// <summary>
     /// Points a sprite at the previous sprite's palette (PreviousPalette).
     /// The v1 run rule from MakePaletteUnique applies in reverse: sprites after
     /// this one that shared its old palette follow it onto the previous one,

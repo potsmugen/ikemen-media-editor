@@ -27,10 +27,6 @@ Verified unless noted.
   index 0) move to it, the rest stay. Refuse when a sprite mixes both parts, listing them.
   Indexes are kept (no pixel changes; moved slots become padding in the source). v2 only, no
   temp-only variant. Borrowers/links follow Merge's rules. One undo step.
-- Replacing a v1 sprite's image with its own palette gives it a new palette object, so flagged
-  links after it keep the old one and lose it on a plain save (sprites_org.sff 6001,6). Order
-  edits refuse this now; replace does not. Decide: make the run follow the new palette, or
-  refuse/warn like an order edit.
 
 ### Tooltips
 
@@ -137,11 +133,11 @@ Select tool gaps against image editor conventions:
 - Add WebP import (Add and Replace accept PNG, PCX and GIF only). An animated WebP imports
   all frames like GIF does. Likely route: Skia's SKCodec in Editor (SkiaSharp is already
   there for WebP export); check how 2.88 handles frames that build on the previous one.
-- Actions: drop the Import/Export buttons added under the action list and go back to
-  a single New/Delete row. Export Actions belongs only in the action-list right-click
-  menu; Import Actions belongs in the `_Animations` top menu after Save As. Skip the
-  placement dialog when the open file has no actions, since both choices give the same
-  list. Keep conflicts (skip/overwrite) asked before placement.
+- Maybe: drop the Import/Export buttons under the action list and go back to a single
+  New/Delete row. Against it: Sprites, Palettes and Sounds all have that row, so Actions
+  matches them. If done, Export Actions goes in the action-list right-click menu and Import
+  Actions in the `_Animations` top menu after Save As. Keep conflicts (skip/overwrite)
+  asked before placement.
 
 ### Saving and recovery
 
@@ -279,6 +275,9 @@ Built, but not tried by the maintainer yet.
 
 ### Sprites and palettes
 
+- SFF v1 Replace with the image's own palette (sprites_org.sff 6001,6): 6001,7-11 switch to
+  the new palette at once, the status line counts them, one Undo restores all, and save and
+  reopen show the same colors. Unshared sprites after it keep theirs.
 - A report jump to an unused palette now also moves the palette list's selection (it used
   to show the palette in the grid while the list stayed on the old row).
 - The palette list's right-click menu now selects the row under the pointer before opening,
