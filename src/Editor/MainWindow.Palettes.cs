@@ -22,7 +22,7 @@ public partial class MainWindow
         ReferenceEquals(pal, _scratchPalette)
         || pal.Source == PaletteSource.External
         || _file is null
-        || !SffVersions.IsV1(_file.Version);
+        || SffVersions.SupportsPaletteAlpha(_file.Version);
 
     /// <summary>
     /// Repaints the palette swatch views and, if this is the palette currently

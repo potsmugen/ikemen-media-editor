@@ -71,6 +71,7 @@ public static class SffReader
     private static void ReadPalettes(SffFile f, byte[] b, Header h)
     {
         var links = new int[h.PalCount];
+        bool v200 = h.Version == SffVersions.V2;
 
         for (int i = 0; i < h.PalCount; i++)
         {
@@ -95,7 +96,8 @@ public static class SffReader
                 throw new InvalidDataException($"palette {i} data lies past the end of the file");
             if (dataLen < 4 && numCols > 0) // used to read past the block; with no colors declared it loads empty, as before
                 throw new InvalidDataException($"palette {i} data is {dataLen} bytes, shorter than one color");
-            p.Colors = ParsePaletteData(b.AsSpan((int)dataOff, (int)dataLen), numCols);
+            p.Colors = ParsePaletteData(b.AsSpan((int)dataOff, (int)dataLen), numCols, v200, out bool strayAlpha);
+            if (strayAlpha) f.StrayAlphaOnLoad.Add(p);
             links[i] = -1;
         }
 
@@ -122,9 +124,15 @@ public static class SffReader
     /// The count in the palette node is not trusted: files exist where it
     /// disagrees with the size of the data block, and the block is the reliable
     /// one. The declared count is only used if there is no block to measure.
+    ///
+    /// Alpha exists from 2.0.1.0 on. In a 2.0.0.0 file MUGEN overwrites the fourth
+    /// byte on load, color 0 transparent and the rest opaque (mugen-unleashed
+    /// sff.c Sff2_Load), so whatever is stored there is ignored the same way.
     /// </summary>
-    private static Rgba[] ParsePaletteData(ReadOnlySpan<byte> d, int numCols)
+    /// <param name="strayAlpha">True when a 2.0.0.0 palette stored other non-zero values there</param>
+    private static Rgba[] ParsePaletteData(ReadOnlySpan<byte> d, int numCols, bool v200, out bool strayAlpha)
     {
+        strayAlpha = false;
         int avail = d.Length / 4;
         numCols = avail > 0 ? avail : Math.Max(numCols, 0);
 
@@ -135,7 +143,16 @@ public static class SffReader
             if (d[i * 4 + 3] != 0) anyAlpha = true;
             cols[i] = new Rgba(d[i * 4], d[i * 4 + 1], d[i * 4 + 2], d[i * 4 + 3]);
         }
-        if (!anyAlpha)
+        if (v200)
+        {
+            for (int i = 0; i < numCols; i++)
+            {
+                byte a = i == 0 ? (byte)0 : (byte)255;
+                if (anyAlpha && cols[i].A != a) strayAlpha = true;
+                cols[i] = cols[i] with { A = a };
+            }
+        }
+        else if (!anyAlpha)
             for (int i = 0; i < numCols; i++)
                 cols[i] = cols[i] with { A = 255 };
         return cols;

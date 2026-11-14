@@ -388,9 +388,14 @@ public static partial class Dialogs
              ("Cancel", null)], null);
     }
 
-    public static Task<bool> PromptSffV1AlphaLoss(Window owner) =>
-        Show(owner, "SFF v1 Cannot Store Palette Alpha", "SFF v1 stores palette colors as RGB. Alpha from this palette will be lost when saved. Continue without alpha?",
+    /// <summary>Asks before alpha is dropped for a version that can't store palette alpha. False = cancel.</summary>
+    public static Task<bool> PromptPaletteAlphaLoss(Window owner, SffVersion version)
+    {
+        string name = SffVersions.IsV1(version) ? "SFF v1" : $"SFF {version}";
+        return Show(owner, $"{name} Cannot Store Palette Alpha",
+            $"{name} has no palette alpha. Alpha from this palette will be lost when saved. Continue without alpha?",
             [("Cancel", false), ("Continue without Alpha", true)], false);
+    }
 
     /// <summary>A single-line text prompt. Returns null if canceled. Null sizes mean several sprites,
     /// which have no single current canvas: the line and the pre-filled values are left out.</summary>

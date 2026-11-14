@@ -148,6 +148,57 @@ public class WriterTests
         finally { File.Delete(tmp); }
     }
 
+    /// <summary>2.0.0.0 stores no palette alpha: the writer writes index 0 clear and the rest opaque.
+    /// Read from the raw bytes, since the reader forces those values on load either way.</summary>
+    [Fact]
+    public void SavingBelow2010WritesCleanPaletteAlpha()
+    {
+        var pal = new Palette
+        {
+            Group = 1, Index = 1,
+            Colors = [new Rgba(1, 2, 3, 0), new Rgba(4, 5, 6, 128), new Rgba(7, 8, 9, 255)],
+        };
+        var f = new SffFile { Version = SffVersions.V2, Palettes = [pal] };
+        var tmp = Path.Combine(Path.GetTempPath(), $"alpha-{Guid.NewGuid():N}.sff");
+        try
+        {
+            f.Save(tmp, SffVersions.V2);
+            var b = File.ReadAllBytes(tmp);
+            int palTable = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(b.AsSpan(44));
+            int ldata = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(b.AsSpan(52));
+            int at = ldata + System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(b.AsSpan(palTable + 8));
+            Assert.Equal(new byte[] { 1, 2, 3, 0, 4, 5, 6, 255, 7, 8, 9, 255 }, b[at..(at + 12)]);
+        }
+        finally { File.Delete(tmp); }
+    }
+
+    [Fact]
+    public void SavingTo2010KeepsPaletteAlpha()
+    {
+        var pal = new Palette { Group = 1, Index = 1, Colors = [new Rgba(1, 2, 3, 0), new Rgba(4, 5, 6, 128)] };
+        var f = new SffFile { Version = SffVersions.V2_1, Palettes = [pal] };
+        var tmp = Path.Combine(Path.GetTempPath(), $"alpha-{Guid.NewGuid():N}.sff");
+        try
+        {
+            f.Save(tmp, SffVersions.V2_1);
+            Assert.Equal(128, SffFile.Open(tmp).Palettes[0].Colors[1].A);
+        }
+        finally { File.Delete(tmp); }
+    }
+
+    [Fact]
+    public void PalettesLosingAlphaAreReportedAndCleaned()
+    {
+        var pal = new Palette { Group = 1, Index = 1, Colors = [new Rgba(1, 2, 3, 0), new Rgba(4, 5, 6, 128)] };
+        var f = new SffFile { Version = SffVersions.V2, Palettes = [pal] };
+
+        Assert.Same(pal, Assert.Single(SffWriter.PalettesLosingAlphaOnSave(f, SffVersions.V2)));
+        Assert.Empty(SffWriter.PalettesLosingAlphaOnSave(f, SffVersions.V2_1));
+
+        SffWriter.ApplyPaletteAlphaClean(f);
+        Assert.Equal(new byte[] { 0, 255 }, pal.Colors.Select(c => c.A));
+    }
+
     private static Rgba[] Colors(int count) =>
         [.. Enumerable.Range(0, count).Select(i => new Rgba((byte)i, 0, 0, 255))];
 
@@ -211,15 +262,15 @@ public class WriterTests
     [Fact]
     public void ExternalPalettesEmbedWithConflictResolvedKeys()
     {
-        var pal = new Palette { Group = 1, Index = 1, Colors = Enumerable.Range(0, 8).Select(i => new Rgba((byte)i, 0, 0, 255)).ToArray() };
+        var pal = new Palette { Group = 1, Index = 1, Colors = Enumerable.Range(0, 8).Select(i => new Rgba((byte)i, 0, 0, i == 0 ? (byte)0 : (byte)255)).ToArray() };
         var f = new SffFile { Version = SffVersions.V1, Palettes = [pal] };
         f.Sprites.Add(new Sprite { Width = 1, Height = 1, Palette = pal, Indexed = [1], PixelsDirty = true });
         var act1 = new Palette { Group = 1, Index = 1, Source = PaletteSource.External, SourcePath = "kfm1.act",
-            Colors = Enumerable.Range(0, 8).Select(i => new Rgba(0, (byte)i, 0, 255)).ToArray() };
+            Colors = Enumerable.Range(0, 8).Select(i => new Rgba(0, (byte)i, 0, i == 0 ? (byte)0 : (byte)255)).ToArray() };
         var act2 = new Palette { Group = 1, Index = 5, Source = PaletteSource.External, SourcePath = "kfm2.act",
-            Colors = Enumerable.Range(0, 8).Select(i => new Rgba(0, 0, (byte)i, 255)).ToArray() };
+            Colors = Enumerable.Range(0, 8).Select(i => new Rgba(0, 0, (byte)i, i == 0 ? (byte)0 : (byte)255)).ToArray() };
         var used = new Palette { Group = 1, Index = 5, Source = PaletteSource.External, SourcePath = "other.act",
-            Colors = Enumerable.Range(0, 8).Select(i => new Rgba((byte)i, (byte)i, 0, 255)).ToArray() };
+            Colors = Enumerable.Range(0, 8).Select(i => new Rgba((byte)i, (byte)i, 0, i == 0 ? (byte)0 : (byte)255)).ToArray() };
         f.Palettes.Add(act1);
         f.Palettes.Add(act2);
         f.Palettes.Add(used);
@@ -255,11 +306,11 @@ public class WriterTests
     [Fact]
     public void V1ConversionLetsAnActHold11()
     {
-        var pal = new Palette { Group = 1, Index = 1, Colors = Enumerable.Range(0, 8).Select(i => new Rgba((byte)i, 0, 0, 255)).ToArray() };
+        var pal = new Palette { Group = 1, Index = 1, Colors = Enumerable.Range(0, 8).Select(i => new Rgba((byte)i, 0, 0, i == 0 ? (byte)0 : (byte)255)).ToArray() };
         var f = new SffFile { Version = SffVersions.V1, Palettes = [pal] };
         f.Sprites.Add(new Sprite { Width = 1, Height = 1, Palette = pal, Indexed = [1], PixelsDirty = true });
         var act = new Palette { Group = 1, Index = 1, Source = PaletteSource.External, SourcePath = "kfm1.act",
-            Colors = Enumerable.Range(0, 8).Select(i => new Rgba(0, (byte)i, 0, 255)).ToArray() };
+            Colors = Enumerable.Range(0, 8).Select(i => new Rgba(0, (byte)i, 0, i == 0 ? (byte)0 : (byte)255)).ToArray() };
         f.Palettes.Add(act);
 
         // The .act gets its key first and keeps 1,1; sprite 0,0's palette then
@@ -288,7 +339,7 @@ public class WriterTests
     [Fact]
     public void V1ConversionKeysPalettesBySpriteGroup()
     {
-        static Palette Pal(byte red) => new() { Colors = Enumerable.Range(0, 8).Select(i => new Rgba(red, (byte)i, 0, 255)).ToArray() };
+        static Palette Pal(byte red) => new() { Colors = Enumerable.Range(0, 8).Select(i => new Rgba(red, (byte)i, 0, i == 0 ? (byte)0 : (byte)255)).ToArray() };
         var first = Pal(10); var portrait = Pal(30); var fx0 = Pal(50); var fx1 = Pal(70);
         var g1a = Pal(90); var g1b = Pal(110); var unused = Pal(130);
         var f = new SffFile { Version = SffVersions.V1, Palettes = [first, portrait, fx0, fx1, g1a, g1b, unused] };

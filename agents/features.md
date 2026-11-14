@@ -433,8 +433,8 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Add to SFF** (v2 only) moves an external palette into the SFF at a group and number asked
   for, so alt palettes no sprite uses can be added. A taken key asks to replace that
   palette's colors, keeping its key, sprites and linked palettes. A different color count is
-  refused. Several at once ask once and take the next free numbers from that key, skipping
-  taken ones.
+  refused. In a 2.0.0.0 file, palette alpha is dropped after asking, as elsewhere. Several at
+  once ask once and take the next free numbers from that key, skipping taken ones.
 - **Replace** (palette panel) loads a palette file over the active palette. An SFF palette
   takes the colors in place in one undo step, keeping its key, sprites and linked palettes;
   a palette that links elsewhere gets its own colors. v1 pads the file to 256 with opaque
@@ -442,6 +442,10 @@ and constraints that are easy to miss when reading one code path in isolation.
   linked palettes' sprites) use, or when one is undecoded. Imported and temp palettes are
   swapped for the new file at the same number and list spot (undoable); without an SFF the
   palette document is closed and the file opened in its place, asking first if unsaved.
+- **Palette alpha** is stored only from SFF 2.0.1.0 on. In SFF v1 and 2.0.0.0 the A slider is
+  off for the file's own palettes, importing or applying a palette with alpha asks before
+  dropping it, and a save writes index 0 clear and the rest opaque; the session takes that on.
+  Saving 2.0.1.0 as 2.0.0.0 asks first.
 - **Palette list right-click** offers "Save Original File" for imported palettes that have a
   file and "Save SFF File" for SFF palettes; the inapplicable one dims rather than hides.
   Temp palettes have no original file, so neither applies; the panel's Export button is
@@ -813,7 +817,18 @@ summaries; treat anything marked unverified as unknown.
   from its own `SourceData`. Loading is slower than saving because save reuses
   untouched bytes while load decodes every sprite. SFF v1 still decodes serially
   because same-palette records depend on an earlier palette.
-- SFF palette byte 4 is alpha, despite the spec calling it unused.
+- SFF palette byte 4 is alpha from 2.0.1.0 on, despite the spec calling it unused. In a 2.0.0.0 file it is
+  ignored: MUGEN overwrites it on load, color 0 to 0 and the rest to 255 (mugen-unleashed `src/sff.c`
+  `Sff2_Load`, `v200`), and so does Ikemen GO (`src/image.go` `ReadPalette`, `Version[2] == 0`).
+  SprMaker 2.01 output (working/rawtest) stores exactly 0/255. The reader does the same
+  (`SffReader.ParsePaletteData`), so a 2.0.0.0 file carries v1's alpha restrictions: the A slider is
+  off for embedded palettes, alpha from an imported or applied palette is dropped after asking
+  (`Dialogs.PromptPaletteAlphaLoss`), a save writes 0/255 and the session takes that on
+  (`SffWriter.ApplyPaletteAlphaClean`), and Save As to 2.0.0.0 asks first
+  (`SffWriter.PalettesLosingAlphaOnSave`). A 2.0.0.0 palette with other non-zero values there
+  (working/chun.sff) is kept in `SffFile.StrayAlphaOnLoad`: popup on load, Save/Cancel before saving.
+  The Media Health Report lists every palette the save writes without alpha, whether the values came
+  from the load or entered later. All-zero bytes are not reported. SFF v1 palettes are RGB only.
 - LZ5 was reconstructed from mirrored excerpts because the Elecbyte wiki page
   is unavailable. Short packets recycle distance bits across groups of four;
   short and long distances are stored one less than the true distance (the

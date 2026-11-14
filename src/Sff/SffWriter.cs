@@ -23,7 +23,8 @@ public static partial class SffWriter
     public static void Save(SffFile f, string path, SffVersion version, bool clamp = false, EncodingPlan? plan = null)
     {
         if (version.Hi == 1) { SffV1Writer.Save(f, path, clamp, keepSourceBytes: true, linkPalettes: true); return; }
-        Save(f, path, SffVersions.SupportsPng(version), clamp, plan: plan);
+        Save(f, path, SffVersions.SupportsPng(version), clamp, plan: plan,
+            paletteAlpha: SffVersions.SupportsPaletteAlpha(version));
     }
 
     /// <summary>Linked sprites a v1 save gives their target's palette instead of their own; see SffV1Writer.</summary>
@@ -83,6 +84,39 @@ public static partial class SffWriter
         if (converted is null) return palettes;
         (int Group, int Index) Key(Palette p) => converted.TryGetValue(p, out var key) ? key : (p.Group, p.Index);
         return [.. palettes.OrderBy(p => Key(p).Group).ThenBy(p => Key(p).Index)];
+    }
+
+    /// <summary>Whether a palette's colors have alpha a save would have to drop: index 0 clear, the rest opaque.</summary>
+    private static bool StoresPaletteAlpha(Palette p) =>
+        p.Colors.Length > 0 && (p.Colors[0].A != 0 || p.Colors.Skip(1).Any(c => c.A != 255));
+
+    /// <summary>Palettes a save in this version writes without their alpha, for the save prompt.
+    /// Empty when the version stores palette alpha.</summary>
+    public static List<Palette> PalettesLosingAlphaOnSave(SffFile f, SffVersion version)
+    {
+        if (SffVersions.SupportsPaletteAlpha(version)) return [];
+        var palettes = WrittenPalettes(f, f.Version.Hi == 1 ? V1ConvertedKeys(f) : null);
+        return [.. palettes.Where(p => p.LinksTo is null && StoresPaletteAlpha(p))];
+    }
+
+    /// <summary>After a save to a version without palette alpha, the session takes on the alpha written
+    /// (index 0 clear, the rest opaque), so what is shown matches the file on disk.</summary>
+    public static void ApplyPaletteAlphaClean(SffFile f)
+    {
+        var palettes = WrittenPalettes(f, f.Version.Hi == 1 ? V1ConvertedKeys(f) : null);
+        foreach (var p in palettes)
+        {
+            if (p.LinksTo is not null) continue; // it shows its target's colors, cleaned there
+            bool changed = false;
+            for (int i = 0; i < p.Colors.Length; i++)
+            {
+                byte a = i == 0 ? (byte)0 : (byte)255;
+                if (p.Colors[i].A == a) continue;
+                p.Colors[i] = p.Colors[i] with { A = a };
+                changed = true;
+            }
+            if (changed && p.Source == PaletteSource.External) p.Dirty = true;
+        }
     }
 
     /// <summary>The sprite at the end of a link chain, which holds the pixels.</summary>
@@ -209,7 +243,7 @@ public static partial class SffWriter
     }
 
     private static void Save(SffFile f, string path, bool allowPng, bool clamp, SprMaker2Options? tool = null,
-        EncodingPlan? plan = null)
+        EncodingPlan? plan = null, bool paletteAlpha = true)
     {
         if (plan is not null && (tool is not null || plan.AllowPng != allowPng))
             throw new ArgumentException("the encoding plan was made for another version", nameof(plan));
@@ -241,9 +275,13 @@ public static partial class SffWriter
         {
             if (palLink[i] >= 0) continue;
             palOff[i] = (uint)ldata.Length;
-            foreach (var c in palettes[i].Colors)
+            var colors = palettes[i].Colors;
+            for (int c = 0; c < colors.Length; c++)
             {
-                (quad[0], quad[1], quad[2], quad[3]) = (c.R, c.G, c.B, c.A);
+                // 2.0.0.0 has no palette alpha: engines force index 0 clear and the rest opaque,
+                // so that is what gets written (as SprMaker 2.01 does)
+                byte a = paletteAlpha ? colors[c].A : c == 0 ? (byte)0 : (byte)255;
+                (quad[0], quad[1], quad[2], quad[3]) = (colors[c].R, colors[c].G, colors[c].B, a);
                 ldata.Write(quad);
             }
             palLen[i] = (uint)ldata.Length - palOff[i];

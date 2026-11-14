@@ -1093,7 +1093,7 @@ public partial class MainWindow
 
             // The mapping may remap or convert the pixels under a pending paint session; settle it first.
             if (!await ResolvePendingPaintBeforeSwitch()) return;
-            var prepared = await PreparePaletteForSprite(sprite, imported.Colors, v1);
+            var prepared = await PreparePaletteForSprite(sprite, imported.Colors, file.Version);
             if (prepared is null) return;
             imported.Colors = prepared.Value.Colors;
             bool droppedAlpha = prepared.Value.DroppedAlpha;
@@ -1181,7 +1181,7 @@ public partial class MainWindow
                 await Dialogs.ShowMessage(this, "Palette", "Set this sprite's Palette field to Own before using an external palette in SFF v1.");
                 return false;
             }
-            var prepared = await PreparePaletteForSprite(sprite, chosen.Colors, v1: true);
+            var prepared = await PreparePaletteForSprite(sprite, chosen.Colors, file.Version);
             if (prepared is null) return false;
             var mapping = await PromptPaletteIndexMapping(sprite, current, prepared.Value.Colors,
                 v1: true, sharedPalette: current);
@@ -1209,7 +1209,7 @@ public partial class MainWindow
 
         if (chosen.Source == PaletteSource.External)
         {
-            var prepared = await PreparePaletteForSprite(sprite, chosen.Colors, v1: SffVersions.IsV1(file.Version));
+            var prepared = await PreparePaletteForSprite(sprite, chosen.Colors, file.Version);
             if (prepared is null) return false;
             var mapping = await PromptPaletteIndexMapping(sprite, current, prepared.Value.Colors,
                 v1: SffVersions.IsV1(file.Version), sharedPalette: current);
@@ -1304,17 +1304,17 @@ public partial class MainWindow
         return true;
     }
 
-    private static bool HasSffV1AlphaLoss(Rgba[] colors) =>
+    private static bool HasPaletteAlpha(Rgba[] colors) =>
         colors.Skip(1).Any(color => color.A != 255);
 
-    private async Task<(Rgba[] Colors, bool DroppedAlpha)?> PreparePaletteForSprite(Sprite sprite, Rgba[] colors, bool v1)
+    private async Task<(Rgba[] Colors, bool DroppedAlpha)?> PreparePaletteForSprite(Sprite sprite, Rgba[] colors, SffVersion version)
     {
         var prepared = (Rgba[])colors.Clone();
-        bool droppedAlpha = v1 && HasSffV1AlphaLoss(prepared);
+        bool droppedAlpha = !SffVersions.SupportsPaletteAlpha(version) && HasPaletteAlpha(prepared);
         if (droppedAlpha)
         {
-            if (!await Dialogs.PromptSffV1AlphaLoss(this)) return null;
-            prepared = WithoutSffV1Alpha(prepared);
+            if (!await Dialogs.PromptPaletteAlphaLoss(this, version)) return null;
+            prepared = WithoutPaletteAlpha(prepared);
         }
 
         int needed = sprite.Indexed is { Length: > 0 } indices ? indices.Max(index => (int)index) + 1 : 0;
@@ -1330,7 +1330,7 @@ public partial class MainWindow
         return (prepared, droppedAlpha);
     }
 
-    private static Rgba[] WithoutSffV1Alpha(Rgba[] colors)
+    private static Rgba[] WithoutPaletteAlpha(Rgba[] colors)
     {
         var result = (Rgba[])colors.Clone();
         for (int i = 0; i < result.Length; i++) result[i] = result[i] with { A = i == 0 ? (byte)0 : (byte)255 };

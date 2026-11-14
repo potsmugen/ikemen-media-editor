@@ -514,7 +514,7 @@ public partial class MainWindow
             if (sprite.Indexed is { Length: > 0 } indexes && indexes.Max(index => (int)index) >= palette.Colors.Length)
                 return $"The source palette is too short for {identity}'s indexes. Prepare and assign the palette manually.";
         }
-        if (v1 && HasSffV1AlphaLoss(palette.Colors))
+        if (v1 && HasPaletteAlpha(palette.Colors))
             return "This SFF v1 palette contains alpha that cannot be kept. Handle the palette manually.";
         return null;
     }

@@ -5,6 +5,13 @@ before a release. Remove items once they're done or checked.
 
 ## To do
 
+### On-load popups
+
+- Decide what the popups after opening a file should be: links to later sprites, links to
+  later palettes, and invalid palette alpha. Keep all, silence all (the Media Health Report
+  and the Save/Cancel prompt still list them), or keep only those that show a
+  display-vs-game difference. Deferred 2026-11-14.
+
 ### Linux sandbox findings (2026-10-23)
 
 Verified unless noted.
@@ -197,6 +204,16 @@ Select tool gaps against image editor conventions:
 ## Not yet checked in the app
 
 Built, but not tried by the maintainer yet.
+
+### Palette alpha in SFF 2.0.0.0
+
+- The A slider and its number box are off for a 2.0.0.0 file's own palettes, and back on
+  after Save As 2.0.1.0. Temp and external palettes keep them.
+- Importing or applying a palette with alpha into a 2.0.0.0 file asks "SFF 2.0.0.0 Cannot
+  Store Palette Alpha"; Continue drops it and the status line says "without alpha". The same
+  applies to Add to SFF, one palette or several.
+- Save As from 2.0.1.0 to 2.0.0.0 over palettes with alpha asks "Palette Alpha" before saving;
+  after the save the Palettes tab shows index 0 clear and the rest opaque.
 
 ### Export and import actions
 

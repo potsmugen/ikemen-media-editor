@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Text;
 using Sff;
 using Xunit;
@@ -12,6 +13,38 @@ namespace IkemenMediaEditor.Tests;
 public class PaletteTests
 {
     private static Rgba C(byte v) => new(v, v, v, 255);
+
+    /// <summary>2.0.0.0 stores no palette alpha: loaded colors take the engines' index 0 clear,
+    /// rest opaque, and only values that differ from that are reported as stray.</summary>
+    [Fact]
+    public void Reads2000PaletteAlphaTheWayTheEnginesDo()
+    {
+        var pal = new Palette { Group = 1, Index = 1, Colors = [new Rgba(1, 2, 3, 0), new Rgba(4, 5, 6, 255)] };
+        var f = new SffFile { Version = SffVersions.V2, Palettes = [pal] };
+        var tmp = Path.Combine(Path.GetTempPath(), $"alpha-read-{Guid.NewGuid():N}.sff");
+        try
+        {
+            f.Save(tmp, SffVersions.V2);
+            var b = File.ReadAllBytes(tmp);
+            int palTable = BinaryPrimitives.ReadInt32LittleEndian(b.AsSpan(44));
+            int ldata = BinaryPrimitives.ReadInt32LittleEndian(b.AsSpan(52));
+            int at = ldata + BinaryPrimitives.ReadInt32LittleEndian(b.AsSpan(palTable + 8));
+
+            b[at + 7] = 128; // stored alpha the format does not use
+            File.WriteAllBytes(tmp, b);
+            var r = SffFile.Open(tmp);
+            Assert.Equal(new byte[] { 0, 255 }, r.Palettes[0].Colors.Select(c => c.A));
+            Assert.Same(r.Palettes[0], Assert.Single(r.StrayAlphaOnLoad));
+
+            b[at + 3] = 0;
+            b[at + 7] = 0; // all-zero is the usual 2.0.0.0 value and is not reported
+            File.WriteAllBytes(tmp, b);
+            var quiet = SffFile.Open(tmp);
+            Assert.Equal(new byte[] { 0, 255 }, quiet.Palettes[0].Colors.Select(c => c.A));
+            Assert.Empty(quiet.StrayAlphaOnLoad);
+        }
+        finally { File.Delete(tmp); }
+    }
 
     // ---- import plans ------------------------------------------------------
 

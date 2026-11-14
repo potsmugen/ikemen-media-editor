@@ -39,6 +39,10 @@ public static class SffVersions
     /// <summary>True when the version can store the PNG sprite formats.</summary>
     public static bool SupportsPng(SffVersion v) => v.Hi == 2 && (v.Lo1 > 0 || v.Lo2 >= 1);
 
+    /// <summary>True when the version stores palette alpha: 2.0.1.0 and later. SFF v1 and 2.0.0.0
+    /// have none; MUGEN and Ikemen GO force index 0 clear and the rest opaque on load.</summary>
+    public static bool SupportsPaletteAlpha(SffVersion v) => v.Hi == 2 && (v.Lo1 > 0 || v.Lo2 >= 1);
+
     /// <summary>
     /// True for SFF v1. On disk it has no separate per-sprite palette resource —
     /// a sprite either carries its own embedded palette or says "same as
@@ -300,6 +304,9 @@ public sealed class SffFile
     /// <summary>SFF v2 palette links read pointing at a later palette, which Ikemen GO loads with wrong
     /// colors. Saving turns them around (SffWriter.PaletteLinkTargets), so the editor warns; cleared once saved.</summary>
     public List<Palette> ForwardPaletteLinksOnLoad = [];
+    /// <summary>SFF 2.0.0.0 palettes read with leftover values in color byte 4, which only 2.0.1.0 uses as alpha.
+    /// They load as the engines show them (SffReader.ParsePaletteData) and a save writes them clean, so the editor warns; cleared once saved.</summary>
+    public List<Palette> StrayAlphaOnLoad = [];
     public List<Sprite> Sprites = [];
     public List<Palette> Palettes = [];
 
@@ -346,6 +353,7 @@ public sealed class SffFile
         }
         copy.ForwardLinksOnLoad = [.. ForwardLinksOnLoad.Where(spr.ContainsKey).Select(s => spr[s])];
         copy.ForwardPaletteLinksOnLoad = [.. ForwardPaletteLinksOnLoad.Where(pal.ContainsKey).Select(p => pal[p])];
+        copy.StrayAlphaOnLoad = [.. StrayAlphaOnLoad.Where(pal.ContainsKey).Select(p => pal[p])];
         return copy;
     }
 

@@ -75,7 +75,7 @@ public partial class MainWindow
         if (chosen.Source == PaletteSource.External)
         {
             var largest = SpriteNeedingMostColors(plans.Select(plan => plan.Sprite));
-            var prepared = await PreparePaletteForSprite(largest, targetColors, v1);
+            var prepared = await PreparePaletteForSprite(largest, targetColors, file.Version);
             if (prepared is null || !ReferenceEquals(_file, file)) return false;
             targetColors = prepared.Value.Colors;
             droppedAlpha = prepared.Value.DroppedAlpha;
@@ -231,7 +231,7 @@ public partial class MainWindow
         }
 
         var largest = SpriteNeedingMostColors(plans.Select(plan => plan.Sprite));
-        var prepared = await PreparePaletteForSprite(largest, imported.Colors, v1);
+        var prepared = await PreparePaletteForSprite(largest, imported.Colors, file.Version);
         if (prepared is null || !ReferenceEquals(_file, file)) return;
         var targetColors = prepared.Value.Colors;
         bool droppedAlpha = prepared.Value.DroppedAlpha;

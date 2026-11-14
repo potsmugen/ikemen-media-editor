@@ -79,8 +79,15 @@ public partial class MainWindow
 
             string name = PaletteDisplayName(file, palette);
             var existing = file.Palettes.FirstOrDefault(p => p.Source == PaletteSource.Embedded && p.Group == group && p.Index == index);
-            if (existing is null) MovePaletteIntoSff(file, palette, group, index, name);
-            else await ReplaceSffPaletteColors(file, palette, existing, name);
+            Rgba[]? embedColors = null;
+            if (!SffVersions.SupportsPaletteAlpha(file.Version) && HasPaletteAlpha(palette.Colors))
+            {
+                if (!await Dialogs.PromptPaletteAlphaLoss(this, file.Version)) return;
+                embedColors = WithoutPaletteAlpha(palette.Colors);
+            }
+            if (!ReferenceEquals(_file, file) || !file.Palettes.Contains(palette) || palette.Source != PaletteSource.External) return;
+            if (existing is null) MovePaletteIntoSff(file, palette, group, index, name, embedColors);
+            else await ReplaceSffPaletteColors(file, palette, existing, name, embedColors);
         }
         catch (Exception ex)
         {
@@ -130,14 +137,19 @@ public partial class MainWindow
                 return;
             }
 
-            var before = palettes.Select(p => (p.Group, p.Index, p.SourcePath, p.Dirty)).ToList();
+            var before = palettes.Select(p => (p.Group, p.Index, p.SourcePath, p.Dirty, Colors: p.Colors.ToArray())).ToList();
+            bool dropAlpha = !SffVersions.SupportsPaletteAlpha(file.Version)
+                && palettes.Any(p => HasPaletteAlpha(p.Colors));
+            if (dropAlpha && !await Dialogs.PromptPaletteAlphaLoss(this, file.Version)) return;
             Edit("add palettes to sff",
                 () =>
                 {
                     for (int i = 0; i < palettes.Count; i++)
                     {
-                        palettes[i].Source = PaletteSource.Embedded;
-                        (palettes[i].Group, palettes[i].Index, palettes[i].SourcePath, palettes[i].Dirty) = (group, indexes[i], null, false);
+                        var p = palettes[i];
+                        p.Source = PaletteSource.Embedded;
+                        (p.Group, p.Index, p.SourcePath, p.Dirty) = (group, indexes[i], null, false);
+                        if (dropAlpha) p.Colors = WithoutPaletteAlpha(p.Colors);
                     }
                     SelectPalette(palettes[0]);
                 },
@@ -145,13 +157,16 @@ public partial class MainWindow
                 {
                     for (int i = 0; i < palettes.Count; i++)
                     {
+                        var b = before[i];
+                        palettes[i].Colors = b.Colors;
                         palettes[i].Source = PaletteSource.External;
-                        (palettes[i].Group, palettes[i].Index, palettes[i].SourcePath, palettes[i].Dirty) = before[i];
+                        (palettes[i].Group, palettes[i].Index, palettes[i].SourcePath, palettes[i].Dirty) = (b.Group, b.Index, b.SourcePath, b.Dirty);
                     }
                     SelectPalette(palettes[0]);
                 });
             CrashLog.Trace($"[palettes] added {palettes.Count} palettes to the SFF in group {group}: {string.Join(", ", indexes)}");
-            StatusText.Text = $"Added {palettes.Count} palettes to the SFF in group {group}: {string.Join(", ", indexes)}.";
+            StatusText.Text = $"Added {palettes.Count} palettes to the SFF in group {group}"
+                + (dropAlpha ? " without alpha" : "") + $": {string.Join(", ", indexes)}.";
         }
         catch (Exception ex)
         {
@@ -159,27 +174,30 @@ public partial class MainWindow
         }
     }
 
-    private void MovePaletteIntoSff(SffFile file, Palette palette, int group, int index, string name)
+    private void MovePaletteIntoSff(SffFile file, Palette palette, int group, int index, string name, Rgba[]? colors)
     {
         var before = (palette.Group, palette.Index, palette.SourcePath, palette.Dirty);
+        var beforeColors = palette.Colors.ToArray();
         Edit("add palette to sff",
             () =>
             {
                 palette.Source = PaletteSource.Embedded;
                 (palette.Group, palette.Index, palette.SourcePath, palette.Dirty) = (group, index, null, false);
+                if (colors is not null) palette.Colors = colors;
                 SelectPalette(palette);
             },
             () =>
             {
+                palette.Colors = beforeColors;
                 palette.Source = PaletteSource.External;
                 (palette.Group, palette.Index, palette.SourcePath, palette.Dirty) = before;
                 SelectPalette(palette);
             });
         CrashLog.Trace($"[palettes] added {name} to the SFF as {group},{index}");
-        StatusText.Text = $"Added {name} to the SFF as palette {group},{index}.";
+        StatusText.Text = $"Added {name} to the SFF as palette {group},{index}{(colors is null ? "" : " without alpha")}.";
     }
 
-    private async Task ReplaceSffPaletteColors(SffFile file, Palette palette, Palette existing, string name)
+    private async Task ReplaceSffPaletteColors(SffFile file, Palette palette, Palette existing, string name, Rgba[]? embedColors)
     {
         string key = $"{existing.Group},{existing.Index}";
         if (existing.Colors.Length != palette.Colors.Length)
@@ -199,7 +217,7 @@ public partial class MainWindow
         if (!ReferenceEquals(_file, file) || !file.Palettes.Contains(palette) || !file.Palettes.Contains(existing)) return;
 
         var state = PaletteLinkState.Capture(existing);
-        var colors = palette.Colors.ToArray();
+        var colors = embedColors ?? palette.Colors.ToArray();
         int at = file.Palettes.IndexOf(palette);
         bool wasEditing = ReferenceEquals(_editingPalette, palette);
         Edit("replace palette colors",
@@ -219,6 +237,6 @@ public partial class MainWindow
                 SelectPalette(palette);
             });
         CrashLog.Trace($"[palettes] replaced {key}'s colors with {name}");
-        StatusText.Text = $"Replaced the colors of palette {key} with {name}.";
+        StatusText.Text = $"Replaced the colors of palette {key} with {name}{(embedColors is null ? "" : " without alpha")}.";
     }
 }

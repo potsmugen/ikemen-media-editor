@@ -66,6 +66,23 @@ public partial class MainWindow
             CrashLog.Trace($"[sff] {_file.ForwardPaletteLinksOnLoad.Count} palette link(s) point at a later palette");
             ShowPopup("Links to Later Palettes", forwardPalettes);
         }
+        if (StrayAlphaNote(done: false) is { } strayAlpha)
+        {
+            CrashLog.Trace($"[sff] {_file.StrayAlphaOnLoad.Count} palette(s) with invalid alpha in an SFF 2.0.0.0 file");
+            ShowPopup("Invalid Palette Alpha", strayAlpha);
+        }
+    }
+
+    /// <summary>SFF 2.0.0.0 palettes read with invalid alpha values; past tense once saved. Null if none.</summary>
+    private string? StrayAlphaNote(bool done)
+    {
+        if (_file is not { } file) return null;
+        var stray = file.StrayAlphaOnLoad.Where(file.Palettes.Contains).ToList();
+        if (stray.Count == 0) return null;
+        string n = stray.Count == 1 ? "1 palette" : $"{stray.Count} palettes";
+        return done
+            ? $"Wrote clean alpha values for {n}."
+            : $"Found and corrected invalid alpha values in {n}.";
     }
 
     /// <summary>What saving does to palette links read pointing at a later palette; past tense once saved.
@@ -120,7 +137,7 @@ public partial class MainWindow
     /// <summary>Asks before a save turns loaded forward links around; false = canceled.</summary>
     private async Task<bool> ConfirmForwardLinks(SffVersion version)
     {
-        var notes = new[] { ForwardLinkNote(version, done: false), ForwardPaletteLinkNote(version, done: false) }
+        var notes = new[] { ForwardLinkNote(version, done: false), ForwardPaletteLinkNote(version, done: false), StrayAlphaNote(done: false) }
             .OfType<string>().ToList();
         return notes.Count == 0
             || await Dialogs.Confirm(this, "Saving Will Change the File",
@@ -147,6 +164,13 @@ public partial class MainWindow
             if (n > 0) suffix += $" {n} link{(n == 1 ? "" : "s")} to later palettes turned around.";
         }
         _file.ForwardPaletteLinksOnLoad = []; // a v1 save drops palette links, so nothing is left to warn about
+        if (StrayAlphaNote(done: true) is { } strayAlpha)
+        {
+            CrashLog.Trace($"[sff] {strayAlpha}");
+            int n = _file.StrayAlphaOnLoad.Count(_file.Palettes.Contains);
+            suffix += $" Invalid alpha written clean in {n} palette{(n == 1 ? "" : "s")}.";
+        }
+        _file.StrayAlphaOnLoad = []; // every save writes the colors as loaded
         _file.V1PaletteType = 0; // written as Individual
         return suffix;
     }
@@ -315,6 +339,7 @@ public partial class MainWindow
                     .Where(p => !p.IsCharacterPalette && !file.Sprites.Any(s => ReferenceEquals(s.Palette, p))).ToList();
                 var forward = SffWriter.ForwardLinksTurnedOnSave(file);
                 var forwardPalettes = SffWriter.ForwardPaletteLinksTurnedOnSave(file);
+                var losingAlpha = SffWriter.PalettesLosingAlphaOnSave(file, file.Version);
                 lines.Add(("SFF", null));
                 lines.Add(($"  Version: {file.Version}", null));
                 string? sffFileSize = FileSizeLine(_path, _dirty);
@@ -333,6 +358,8 @@ public partial class MainWindow
                     ($"  Sprite {s.Group},{s.Index} links to {s.SharesWith!.Group},{s.SharesWith.Index}", Jump(() => JumpToSprite(s)))));
                 Section("Links to a later palette (Ikemen GO loads them with the wrong colors)", forwardPalettes.Select(p =>
                     ($"  Palette {PaletteKey(file, p)} links to {PaletteKey(file, p.LinksTo!)}", Jump(() => JumpToPalette(p)))));
+                Section("Invalid alpha in SFF 2.0.0.0 palettes (written clean on save)", losingAlpha.Select(p =>
+                    ($"  Palette {PaletteKey(file, p)}", Jump(() => JumpToPalette(p)))));
                 // No engine reads these; a plain v1 save writes SprMaker's Individual mode.
                 var v1Written = new List<(string Text, Action? Jump)>();
                 if (SffVersions.IsV1(file.Version))
@@ -1253,6 +1280,7 @@ public partial class MainWindow
             });
             SffWriter.ApplyEncoding(plan);
             if (!SffVersions.IsV1(version)) SffWriter.ApplyDepthFixes(file);
+            if (version.Hi == 2 && !SffVersions.SupportsPaletteAlpha(version)) SffWriter.ApplyPaletteAlphaClean(file);
             ResolveRecoveredItem("sff", _path);
             MarkClean();
             StatusText.Text = $"Saved {Path.GetFileName(_path)}"
@@ -1396,6 +1424,7 @@ public partial class MainWindow
             _file.Version = version; // what's on disk now; plain Save keeps it from here
             SffWriter.ApplyEncoding(plan);
             if (!SffVersions.IsV1(version)) SffWriter.ApplyDepthFixes(_file);
+            if (version.Hi == 2 && !SffVersions.SupportsPaletteAlpha(version)) SffWriter.ApplyPaletteAlphaClean(_file);
             int droppedV1 = toV1 ? MatchSessionToV1() : 0;
             bool mainTo11 = false;
             if (rekeyed)
@@ -1656,16 +1685,24 @@ public partial class MainWindow
 
     /// <summary>
     /// SFF v2 only: below 2.0.1.0, sprites still stored as PNG are re-encoded
-    /// (lossless) in the saved file, after asking. False = cancel.
+    /// (lossless) in the saved file, and palettes with alpha are written without
+    /// it, each after asking. False = canceled.
     /// </summary>
     private async Task<bool> ConfirmSffVersionIssues(SffVersion version)
     {
         if (_file is null || SffVersions.IsV1(version)) return true;
 
         int png = SffVersions.SupportsPng(version) ? 0 : SffWriter.StoredAsPng(_file);
-        return png == 0 || await Dialogs.Confirm(this, "PNG Sprites",
+        if (png > 0 && !await Dialogs.Confirm(this, "PNG Sprites",
             $"{png} sprite(s) are stored as PNG, which SFF {version} can't hold. "
-            + "Re-encode them in a format it can hold in the saved file? No pixels change.", "Re-encode");
+            + "Re-encode them in a format it can hold in the saved file? No pixels change.", "Re-encode"))
+            return false;
+
+        int alpha = SffWriter.PalettesLosingAlphaOnSave(_file, version).Count;
+        if (alpha == 0) return true;
+        return await Dialogs.Confirm(this, "Palette Alpha",
+            $"{(alpha == 1 ? "1 palette has" : $"{alpha} palettes have")} alpha, which SFF {version} can't store. "
+            + $"Saving writes {(alpha == 1 ? "it" : "them")} without alpha.", "Save");
     }
 
     /// <summary>
