@@ -1,4 +1,4 @@
-# Draws Assets/app.ico: the splash's dark slate with "IME" in white. Needs Pillow and Inter
+# Draws Assets/app.ico and app.png (the 256 px image, shipped for Linux .desktop files): the splash's dark slate with "IME" in white. Needs Pillow and Inter
 # (rsms.me/inter); pass the font path as the first argument if it isn't at FONT below.
 # Run: python make-icon.py [InterDisplay-Bold.otf]
 from PIL import Image, ImageDraw, ImageFont
@@ -33,3 +33,4 @@ sizes=[16,20,24,32,40,48,64,128,256]
 ims={s:render(s) for s in sizes}
 import os
 ims[256].save(os.path.join(os.path.dirname(os.path.abspath(__file__)),'app.ico'),sizes=[(s,s) for s in sizes],append_images=[ims[s] for s in sizes if s!=256])
+ims[256].save(os.path.join(os.path.dirname(os.path.abspath(__file__)),'app.png'))

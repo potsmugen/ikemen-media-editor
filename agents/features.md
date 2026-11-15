@@ -1122,11 +1122,16 @@ summaries; treat anything marked unverified as unknown.
   (`linux-x64`, `osx-arm64`, `osx-x64` for the others). Zip the folder's contents into
   build/ (gitignored), never the repo root, and leave out data/ and logs/ (created by
   test runs; they hold your settings and paths):
-  the exe, LICENSE.txt, backgrounds/, lib/ (native DLLs + third-party licenses) and themes/ (data/ and logs/ appear on
+  the exe, LICENSE.txt, ikemen-media-editor.png (Linux only: `Assets/app.png`, the icon for users' `.desktop` files; made by make-icon.py), backgrounds/, lib/ (native DLLs + third-party licenses) and themes/ (data/ and logs/ appear on
   first run). Debug info is embedded in the assemblies (Directory.Build.props); the
   MoveNativeLibrariesToLib target puts native DLLs in lib/, loaded by
   Program.UseLibFolder. Self-contained Release publishes are trimmed (Editor.csproj);
   add `-p:PublishTrimmed=false` to compare against an untrimmed build. See the trimming note below.
+- **App icon per platform** (decided 2026-11-15): Windows embeds `Assets/app.ico` in the exe
+  (`ApplicationIcon`). Linux ships `ikemen-media-editor.png` beside the exe for users' `.desktop`
+  files (README has a sample). macOS gets no icon: it would need a `.app` bundle with an `.icns`,
+  which means moving settings/logs out of the bundle and reworking `lib/` loading, quarantine
+  handling, signing and CI. Decided against: too much work for the benefit.
 - **macOS quarantine on lib/**: a browser download tags every extracted file with
   `com.apple.quarantine`. The builds have only an ad-hoc signature, not a Developer ID
   or notarization, so macOS refuses to load the quarantined dylibs: `code signature ...

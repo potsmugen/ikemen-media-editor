@@ -53,6 +53,11 @@
           CopyToOutputDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
     <None Include="third-party\*.txt" Link="lib\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
   </ItemGroup>
+  <!-- Linux builds ship the icon as a PNG beside the exe, so users can point a .desktop file at it. -->
+  <ItemGroup>
+    <None Include="Assets\app.png" Link="ikemen-media-editor.png" Condition="$(RuntimeIdentifier.StartsWith('linux'))"
+          CopyToOutputDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+  </ItemGroup>
   <!-- The example canvas background ships as a plain PNG beside the exe;
        Preferences > Canvas > Background > Example points at it. -->
   <ItemGroup>

@@ -46,6 +46,17 @@ If it still won't start, run this in Terminal with your editor folder's path, th
 xattr -dr com.apple.quarantine ~/Downloads/ikemen-media-editor-osx-arm64
 ```
 
+On Linux, the folder includes `ikemen-media-editor.png` for a launcher. In a `.desktop` file (for example `~/.local/share/applications/ikemen-media-editor.desktop`), use the full paths to your folder:
+
+```ini
+[Desktop Entry]
+Type=Application
+Name=Ikemen Media Editor
+Exec=/path/to/ikemen-media-editor/ikemen-media-editor
+Icon=/path/to/ikemen-media-editor/ikemen-media-editor.png
+Categories=Graphics;
+```
+
 To update, extract the new version over the old one. To uninstall, delete the folder.
 
 
