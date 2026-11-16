@@ -488,8 +488,14 @@ and constraints that are easy to miss when reading one code path in isolation.
   order; index 0 stays in place.
 - **Sort Colors** sorts by brightness (Rec. 601 luma), hue or index into the selected slots.
   Index 0 never moves, and hue puts grays last by brightness.
+- **Sort Colors, Manual** opens Manual Sort (`ManualColorOrderView`) with the whole palette; only the
+  selected colors (index 0 included) can be dragged or dropped on, and the rest are blank and locked, like the slots past a short palette's end.
+  Dropping on a selected cell's outer quarter inserts there among the selected slots; dropping on
+  its middle swaps. OK applies through the same reorder path, so Update sprites
+  remaps pixels literally, index 0 too. Where the SFF version stores no palette alpha, moved
+  colors take the slot's alpha (index 0 clear, the rest opaque); otherwise alpha moves with the color.
 - **Reorder sprite updates**: Sort Colors asks whether to update sprites using the palette
-  (off). When on, indexes are remapped in the same undo step and pending slider edits commit
+  (on; off and disabled when no sprite uses it). When on, indexes are remapped in the same undo step and pending slider edits commit
   first. Linked sprites follow their owner; shared pixels and undecoded sprites are skipped
   and listed, and true-color sprites are never touched.
 - **Box selection** drags a box that selects every swatch it touches; Ctrl adds it. Dragging
@@ -506,8 +512,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   `SliderNeutral`. `ApplySliderChannelColors` sets them as local slider resources on each theme apply.
 - **Swap Colors** swaps exactly two selected colors, refusing index 0, with the same sprite
   update rules as Sort Colors.
-- **Single-color popups**: Create Gradient, Sort Colors and Swap Colors show a popup, not a
-  status line, when fewer than two colors are selected.
+- **Unavailable swatch actions**: Create Gradient and Sort Colors are disabled with fewer than
+  two colors selected, and Swap Colors unless exactly two are selected, neither index 0. The
+  disabled item's tooltip says why. Unavailable actions are disabled, not answered with a popup.
 - **Reference image view** keeps its own zoom, independent of the canvas and preview. Like the
   canvas, it draws and hit-tests at the pan snapped to whole device pixels.
 - **Canvas background images** follow the view pan when Follow pan is on, keeping their

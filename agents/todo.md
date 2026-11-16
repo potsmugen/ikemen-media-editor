@@ -11,6 +11,8 @@ before a release. Remove items once they're done or checked.
   later palettes, and invalid palette alpha. Keep all, silence all (the Media Health Report
   and the Save/Cancel prompt still list them), or keep only those that show a
   display-vs-game difference. Deferred 2026-11-14.
+- When a file opens with a popup saying something was corrected automatically, Save should be
+  available right away, before any manual change. Only for corrections a popup states outright.
 
 ### Linux sandbox findings (2026-10-23)
 
@@ -196,6 +198,8 @@ Select tool gaps against image editor conventions:
 
 ### Other
 
+- Audit actions that open a popup or status message when they can't run (wrong selection,
+  nothing open) and make them disabled, with the reason as tooltip, like the swatch menu.
 - SFF v1 character palette display (see Official tools in features.md): decide (A) draw
   sprites on 9000,0's or 0,0's palette with pal1 when the .def's .acts are loaded, as MUGEN's
   hack does, or (B) rely on the preview override; and whether an SFF opened alone looks for

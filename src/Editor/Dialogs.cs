@@ -20,7 +20,7 @@ public enum GradientChannels { None = 0, R = 1, G = 2, B = 4, A = 8 }
 public enum BoxSortOrder { TopToBottom, BottomToTop, LeftToRight, RightToLeft, SmallestFirst, LargestFirst }
 
 /// <summary>What a color sort orders by.</summary>
-public enum ColorSortKey { Brightness, Hue, Index }
+public enum ColorSortKey { Brightness, Hue, Index, Manual }
 
 /// <summary>What the color sort dialog returned.</summary>
 public sealed record ColorReorderChoice(ColorSortKey Key, bool Descending, bool UpdateSprites);
@@ -3420,9 +3420,13 @@ public static partial class Dialogs
         var brightness = new RadioButton { GroupName = "ColorSortKey", Content = "Brightness" };
         var hue = new RadioButton { GroupName = "ColorSortKey", Content = "Hue" };
         var index = new RadioButton { GroupName = "ColorSortKey", Content = "Index", IsChecked = true };
+        var manual = new RadioButton { GroupName = "ColorSortKey", Content = "Manual" };
+        ToolTip.SetTip(manual, "Opens a window to drag the colors into any order. Index 0 can move too.");
         var ascending = new RadioButton { GroupName = "ColorSortOrder", Content = "Ascending", IsChecked = true };
         var descending = new RadioButton { GroupName = "ColorSortOrder", Content = "Descending" };
-        var update = new CheckBox { Content = "Update sprites that use this palette", IsEnabled = canUpdateSprites };
+        // A manual order has no direction
+        manual.IsCheckedChanged += (_, _) => ascending.IsEnabled = descending.IsEnabled = manual.IsChecked != true;
+        var update = new CheckBox { Content = "Update sprites that use this palette", IsEnabled = canUpdateSprites, IsChecked = canUpdateSprites };
         // A disabled control still shows its tip, so the reason it is off rides along with it.
         if (!canUpdateSprites && disabledReason is not null) ToolTip.SetTip(update, disabledReason);
 
@@ -3443,6 +3447,7 @@ public static partial class Dialogs
         {
             var key = brightness.IsChecked == true ? ColorSortKey.Brightness
                 : hue.IsChecked == true ? ColorSortKey.Hue
+                : manual.IsChecked == true ? ColorSortKey.Manual
                 : ColorSortKey.Index;
             result.TrySetResult(new ColorReorderChoice(key, descending.IsChecked == true, update.IsChecked == true));
             dialog.Close();
@@ -3457,7 +3462,7 @@ public static partial class Dialogs
             Children =
             {
                 new TextBlock { Text = "Sort the selected colors by:" },
-                index, brightness, hue,
+                index, brightness, hue, manual,
                 new TextBlock { Text = "Order:" },
                 ascending, descending,
                 update,
@@ -3469,6 +3474,64 @@ public static partial class Dialogs
             Spacing = 8, Margin = new Avalonia.Thickness(0, 8, 0, 0), Children = { ok, cancel },
         });
         dialog.Content = panel;
+
+        dialog.ShowModal(owner);
+        return result.Task;
+    }
+
+    /// <summary>
+    /// Shows the whole palette and lets the user drag the selected colors into a new order among the
+    /// selected slots. Returns the order (order[k] is the position, among the selected, of the color
+    /// that lands at selected slot k), or null if canceled.
+    /// </summary>
+    public static Task<int[]?> PromptManualColorOrder(Window owner, IReadOnlyList<Rgba> colors, IReadOnlyList<int> selected)
+    {
+        var result = new TaskCompletionSource<int[]?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var view = new ManualColorOrderView(colors, selected)
+        {
+            Background = ThemeBrush("ThemeCanvasBg"),
+            Accent = ThemeBrush("ThemeAccent"),
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+        var dialog = new Window
+        {
+            Background = ThemeBrush("ThemePanelBg"),
+            Foreground = ThemeBrush("ThemeText"),
+            Title = "Manual Sort",
+            SizeToContent = SizeToContent.WidthAndHeight,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+            ShowInTaskbar = false,
+        };
+
+        var reset = new Button { Content = "Reset", MinWidth = 90, IsEnabled = false };
+        ToolTip.SetTip(reset, "Restores the starting order.");
+        var ok = new Button { Content = "OK", MinWidth = 90, IsDefault = true };
+        var cancel = new Button { Content = "Cancel", MinWidth = 90 };
+        view.Changed += () => reset.IsEnabled = view.IsChanged;
+        reset.Click += (_, _) => view.Reset();
+        ok.Click += (_, _) => { result.TrySetResult(view.Order); dialog.Close(); };
+        cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
+        dialog.Closed += (_, _) => result.TrySetResult(null);
+
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { ok, cancel } };
+        DockPanel.SetDock(reset, Dock.Left);
+        DockPanel.SetDock(buttons, Dock.Right);
+        dialog.Content = new StackPanel
+        {
+            Margin = new Avalonia.Thickness(20),
+            Spacing = 8,
+            Children =
+            {
+                view,
+                new DockPanel
+                {
+                    Margin = new Avalonia.Thickness(0, 8, 0, 0),
+                    LastChildFill = false,
+                    Children = { reset, buttons },
+                },
+            },
+        };
 
         dialog.ShowModal(owner);
         return result.Task;
@@ -3532,7 +3595,7 @@ public static partial class Dialogs
     public static Task<bool?> PromptColorSwap(Window owner, int first, int second, bool canUpdateSprites, string? disabledReason)
     {
         var result = new TaskCompletionSource<bool?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var update = new CheckBox { Content = "Update sprites that use this palette", IsEnabled = canUpdateSprites };
+        var update = new CheckBox { Content = "Update sprites that use this palette", IsEnabled = canUpdateSprites, IsChecked = canUpdateSprites };
         // A disabled control still shows its tip, so the reason it is off rides along with it.
         if (!canUpdateSprites && disabledReason is not null) ToolTip.SetTip(update, disabledReason);
 

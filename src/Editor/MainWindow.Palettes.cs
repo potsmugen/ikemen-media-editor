@@ -1056,12 +1056,7 @@ public partial class MainWindow
                 return;
             }
             var indices = view.Selection.OrderBy(i => i).ToList();
-            if (indices.Count < 2)
-            {
-                await Dialogs.ShowMessage(this, "Create Gradient",
-                    "Select at least two colors first — a gradient needs a start and an end.");
-                return;
-            }
+            if (indices.Count < 2) return; // the menu item is disabled then
 
             var channels = await Dialogs.PromptGradientChannels(this, indices.Count);
             if (channels is not { } ch) return;
@@ -1130,8 +1125,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
 
     /// <summary>
     /// Sorts the selected colors into the selected slots, by brightness, hue, or index (Index
-    /// descending reverses them). A dialog asks the key, direction, and whether sprites follow.
-    /// Index 0 never moves, so it is left out.
+    /// descending reverses them), or by hand. A dialog asks the key, direction, and whether sprites
+    /// follow. Only a manual sort moves index 0; the others leave it out.
     /// </summary>
     private async void OnSortColors()
     {
@@ -1142,17 +1137,27 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 StatusText.Text = "Click a color in a palette first, then select the colors to sort.";
                 return;
             }
-            var indices = ReorderSelection(view, pal);
-            if (indices is null)
-            {
-                await Dialogs.ShowMessage(this, "Sort Colors",
-                    "Select at least two colors to sort. Index 0 never moves, so it doesn't count.");
-                return;
-            }
+            var selected = view.Selection.Where(i => i >= 0 && i < pal.Colors.Length).OrderBy(i => i).ToList();
+            if (selected.Count < 2) return; // the menu item is disabled then
             var (canUpdate, reason) = SpriteUpdateAvailability(pal);
             var choice = await Dialogs.PromptColorSort(this, canUpdate, reason);
             if (choice is not { } picked) return;
 
+            if (picked.Key == ColorSortKey.Manual)
+            {
+                var manual = await Dialogs.PromptManualColorOrder(this, pal.Colors, selected);
+                if (manual is null) return;
+                await ApplyColorReorder(pal, view, selected, manual, picked.UpdateSprites, $"Sorted {selected.Count} colors manually");
+                return;
+            }
+
+            var indices = ReorderSelection(view, pal);
+            if (indices is null)
+            {
+                await Dialogs.ShowMessage(this, "Sort Colors",
+                    "Select at least two colors besides index 0. Only a manual sort moves index 0.");
+                return;
+            }
             var order = SortOrder(pal, indices, picked.Key, picked.Descending);
             string by = picked.Key switch
             {
@@ -1182,16 +1187,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 return;
             }
             var indices = view.Selection.Where(i => i < pal.Colors.Length).OrderBy(i => i).ToList();
-            if (indices.Count != 2)
-            {
-                await Dialogs.ShowMessage(this, "Swap Colors", "Select exactly two colors to swap.");
-                return;
-            }
-            if (indices[0] == 0)
-            {
-                await Dialogs.ShowMessage(this, "Swap Colors", "Index 0 is the transparent slot and can't be swapped.");
-                return;
-            }
+            if (indices.Count != 2 || indices[0] == 0) return; // the menu item is disabled then
 
             var (canUpdate, reason) = SpriteUpdateAvailability(pal);
             var updateSprites = await Dialogs.PromptColorSwap(this, indices[0], indices[1], canUpdate, reason);
@@ -1252,7 +1248,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         {
             var source = indices.Select(i => pal.Colors[i]).ToArray();
             EnsureColorSession();
-            for (int k = 0; k < indices.Count; k++) pal.Colors[indices[k]] = source[order[k]];
+            for (int k = 0; k < indices.Count; k++) pal.Colors[indices[k]] = SlotAlpha(pal, indices[k], source[order[k]]);
             if (ReferenceEquals(pal, _scratchPalette)) view.InvalidateVisual();
             else RefreshPaletteViews(pal);
             RebaseAfterColorOp();
@@ -1267,7 +1263,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
 
         var before = pal.Colors.ToArray();
         var after = (Rgba[])before.Clone();
-        for (int k = 0; k < indices.Count; k++) after[indices[k]] = before[indices[order[k]]];
+        for (int k = 0; k < indices.Count; k++) after[indices[k]] = SlotAlpha(pal, indices[k], before[indices[order[k]]]);
 
         var skipped = new List<string>();
         var (swaps, sprites) = PlanSpritePixelSwaps(file, pal, map, skipped);
@@ -1281,6 +1277,13 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         if (skipped.Count > 0)
             await Dialogs.ShowMessage(this, "Sprites Not Updated", string.Join("\n", skipped));
     }
+
+    /// <summary>
+    /// A moved color's alpha. Where the SFF version stores no palette alpha, the slot decides it
+    /// (index 0 clear, the rest opaque), as a save would write it; elsewhere alpha moves with the color.
+    /// </summary>
+    private Rgba SlotAlpha(Palette pal, int index, Rgba c) =>
+        CanEditPaletteAlpha(pal) ? c : c with { A = index == 0 ? (byte)0 : (byte)255 };
 
     /// <summary>A sprite's pixel indexes to replace, with the old array and dirty flag for undo.</summary>
     private sealed record PixelSwap(Sprite Owner, byte[] Before, bool DirtyBefore, byte[] After);

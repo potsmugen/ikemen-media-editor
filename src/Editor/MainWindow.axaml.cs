@@ -1033,6 +1033,11 @@ public partial class MainWindow : Window
             : picked.Count == 0 ? "Select colors first."
             : picked.Any(i => i >= target.Colors.Length) ? "Some selected colors are past the end of the other palette."
             : null;
+        var ordered = picked.OrderBy(i => i).ToList();
+        string? atLeastTwo = ordered.Count < 2 ? "Select at least two colors." : null;
+        string? swapBlocked = ordered.Count != 2 ? "Select exactly two colors."
+            : ordered[0] == 0 ? "Index 0 is the transparent slot and can't be swapped."
+            : null;
         var copy = MenuAction(toScratch ? "Copy to Scratch Palette" : "Copy to Current Palette",
             () => _ = CopyColorsToSameIndex(pal!, picked, target!, toScratch ? ScratchSwatches : BigSwatches), blocked is null);
         OpenContextMenu(view, new ContextMenu
@@ -1044,11 +1049,20 @@ public partial class MainWindow : Window
                 new Separator(),
                 copy,
                 new Separator(),
-                MenuAction("Create Gradient", () => OnCreateGradient(null, new RoutedEventArgs())),
-                MenuAction("Sort Colors", () => OnSortColors()),
-                MenuAction("Swap Colors", () => OnSwapColors()),
+                Blocked(MenuAction("Create Gradient", () => OnCreateGradient(null, new RoutedEventArgs())), atLeastTwo),
+                Blocked(MenuAction("Sort Colors", () => OnSortColors()), atLeastTwo),
+                Blocked(MenuAction("Swap Colors", () => OnSwapColors()), swapBlocked),
             },
         });
+
+        // Unavailable actions are disabled, with the reason as their tooltip
+        static MenuItem Blocked(MenuItem item, string? reason)
+        {
+            if (reason is null) return item;
+            item.IsEnabled = false;
+            ToolTip.SetTip(item, reason);
+            return item;
+        }
     }
 
     protected override void OnOpened(EventArgs e)
