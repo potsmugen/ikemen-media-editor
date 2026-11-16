@@ -1278,7 +1278,7 @@ public class SpriteView : Control
                 ctx.DrawRectangle(new Pen(new SolidColorBrush(box.Color), boxPen), inner);
             else
                 ctx.FillRectangle(new SolidColorBrush(box.Color), r);
-            DrawIndexLabel(ctx, r, box.Index, box.Color);
+            DrawIndexLabel(ctx, r, box.Index, box.Color, boxPen);
 
             if (!active) continue;
             foreach (var h in Handles(r))
@@ -1449,11 +1449,12 @@ public class SpriteView : Control
         UpdateHoverCursor(pos, down ? e.KeyModifiers | key : e.KeyModifiers & ~key);
     }
 
-    private static void DrawIndexLabel(DrawingContext ctx, Rect r, int index, Color color)
+    private static void DrawIndexLabel(DrawingContext ctx, Rect r, int index, Color color, double pen)
     {
         var text = new FormattedText(index.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight, Typeface.Default, 11, new SolidColorBrush(color));
-        ctx.DrawText(text, new Point(r.X + 2, r.Y + 1));
+        // Sits inside the line, which is drawn inward and can be thick at high zoom
+        ctx.DrawText(text, new Point(r.X + pen + 2, r.Y + pen + 1));
     }
 
     private Rect ScreenRect(BoxOverlay b)
