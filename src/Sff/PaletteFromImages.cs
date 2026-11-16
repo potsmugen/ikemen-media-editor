@@ -17,7 +17,13 @@ public sealed class PaletteFromImages
     public void Add(byte[] image)
     {
         ArgumentNullException.ThrowIfNull(image);
-        var bgra = ImageImport.ToBgra(ImageImport.Decode(image));
+        AddBgra(ImageImport.ToBgra(ImageImport.Decode(image)));
+    }
+
+    /// <summary>Adds decoded BGRA pixels, such as a true-color sprite's, by the same rules as Add</summary>
+    public void AddBgra(byte[] bgra)
+    {
+        ArgumentNullException.ThrowIfNull(bgra);
         for (int at = 0; at + 3 < bgra.Length; at += 4)
         {
             byte b = bgra[at], g = bgra[at + 1], r = bgra[at + 2], a = bgra[at + 3];

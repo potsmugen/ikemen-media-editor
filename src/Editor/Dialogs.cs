@@ -2097,7 +2097,7 @@ public static partial class Dialogs
 
         var close = new Button { Content = "Close", MinWidth = 90, IsCancel = true };
         close.Click += (_, _) => dialog.Close();
-        var copy = new Button { Content = "Copy All", MinWidth = 90 };
+        var copy = new Button { Content = "Copy Text", MinWidth = 90 };
         ToolTip.SetTip(copy, "Copies the whole report as text.");
         copy.Click += async (_, _) =>
         {

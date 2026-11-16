@@ -385,6 +385,18 @@ and constraints that are easy to miss when reading one code path in isolation.
   the axis by each ratio. Nearest is the default; Area weights source coverage and keeps
   indexed sprites exact, and Bilinear blends true color only. Resize Canvas stays the
   separate crop/pad operation.
+- **Convert Color Depth** (sprite list right-click, SFF 2.0.1.0 only, dimmed otherwise) turns the
+  selection into 8-bit indexed or 32-bit color in one undo step; sprites already there are skipped.
+  32-bit draws each pixel exactly as the editor shows it (`Sprite.ToBgra`): every index, index 0
+  included, takes its palette color and alpha, and clear pixels are zeroed as the decoder does. The
+  palette is dropped. 8-bit needs no palette from the user: one is built from the sprite colors by
+  Create From Images' rules (`SpriteDepth.ToIndexed`) and numbered from a key the user confirms.
+  Several true-color sprites ask for one palette per sprite (default) or one shared. Semi-clear
+  pixels become opaque or the mask (threshold as in import). A selected link follows its converted
+  original; links outside the selection follow too, after a confirmation, and take the original's new
+  palette (none for 32-bit). A link whose original is not converted is skipped. Only 8-bit and
+  32-bit are offered: 24-bit is chosen by the writer for opaque sprites. Not verified against engine
+  source: whether 2.0.1.0 engines force index 0 clear regardless of palette alpha.
 - **Mask on import**: index 0 is never picked for an opaque pixel by color distance. **Keep
   mask** (indexed images) sends pixels at the image's index 0 to 0 whatever their color, so a
   black mask and black outlines stay apart. Otherwise the mask comes from alpha, or in images

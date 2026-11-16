@@ -31,6 +31,11 @@ Verified unless noted.
 - Test and revisit the nearest-color alpha threshold: pixels below
   NearestColorAlphaThreshold (settings.json, default 32) map to index 0. Check
   against real sprites and the official tools.
+- Convert Color Depth: add other target depths later (24-bit, and indexed below 8-bit with a
+  smaller generated palette). It offers 8-bit and 32-bit only for now.
+- Check Ikemen GO (`src/image.go`) and mugen-unleashed (`src/sff.c`) for whether SFF 2.0.1.0 forces
+  index 0 clear whatever its palette alpha. Convert Color Depth to 32-bit copies palette alpha as
+  stored, matching the editor's drawing; record the answer in features.md.
 - Add Split Selected Colors (Palettes tab), the counterpart of Merge and Update Sprites. The
   selected swatches split off into a new SFF palette; sprites using only selected colors (plus
   index 0) move to it, the rest stay. Refuse when a sprite mixes both parts, listing them.
@@ -270,6 +275,17 @@ Built, but not tried by the maintainer yet.
   appears in the Media Health Report.
 - Recover a crashed session that holds a true-color sprite: it comes back linked to its palette
   as before.
+
+### Convert Color Depth
+
+- In a 2.0.1.0 file, right-click indexed sprites → Convert Color Depth → 32-bit: they look the
+  same, show no palette, and save as PNG24 (opaque) or PNG32. Undo restores pixels and palette.
+- Convert true-color sprites to 8-bit: one per sprite and one shared; the palette key prompt
+  appears, new palettes are added, and the status line says when colors were reduced.
+- Mixed selection: sprites already at the target depth are left alone and counted as "already were".
+- A sprite with links outside the selection asks first; the links follow. A selected link whose
+  original isn't selected is listed in Sprites Skipped.
+- In v1 and 2.0.0.0 files the item is dimmed and its tooltip says why.
 
 ### Sprite depth follows its palette (MUGEN crash fix)
 

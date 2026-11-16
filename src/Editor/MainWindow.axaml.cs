@@ -832,15 +832,22 @@ public partial class MainWindow : Window
             try
             {
                 if (!await SelectSpriteRowForContext(e.Source)) return;
-                ShowContextMenu(SpriteList,
-                    ("Select All", () => SelectAllSprites()),
-                    ("Invert Selection", () => InvertSpriteSelection()),
-                    ("Select Whole Group", () => SelectWholeGroup()),
-                    MenuSeparator,
-                    ("Duplicate", () => OnDuplicateSprite(null, new RoutedEventArgs())),
-                    MenuSeparator,
-                    ("Move Selection", () => _ = MoveSelectedSprites()),
-                    ("Sort Selected Ascending", () => _ = SortSelectedSprites()));
+                OpenContextMenu(SpriteList, new ContextMenu
+                {
+                    ItemsSource = new List<Control>
+                    {
+                        MenuAction("Select All", () => SelectAllSprites()),
+                        MenuAction("Invert Selection", () => InvertSpriteSelection()),
+                        MenuAction("Select Whole Group", () => SelectWholeGroup()),
+                        new Separator(),
+                        MenuAction("Duplicate", () => OnDuplicateSprite(null, new RoutedEventArgs())),
+                        new Separator(),
+                        ConvertSpriteDepthMenuItem(SelectedSpriteTargets()),
+                        new Separator(),
+                        MenuAction("Move Selection", () => _ = MoveSelectedSprites()),
+                        MenuAction("Sort Selected Ascending", () => _ = SortSelectedSprites()),
+                    },
+                });
             }
             catch (Exception ex)
             {
