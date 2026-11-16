@@ -255,8 +255,9 @@ public sealed class Sprite
 
     /// <summary>
     /// Resolves the sprite to BGRA, the layout a WriteableBitmap wants.
-    /// Index 0 is transparent, and any other index can also render invisible
-    /// via its own palette alpha byte (SFF palette byte 4 — "unused" per the
+    /// Every index, index 0 included, draws with its own palette alpha (index 0 is
+    /// clear only because the palette stores it that way, as v1 and 2.0.0.0 always do)
+    /// (SFF palette byte 4 — "unused" per the
     /// spec, but real alpha in practice). showMask forces every pixel opaque,
     /// so the editor can show what's actually there under either kind of
     /// transparency, not just the designated transparent index.
@@ -277,7 +278,6 @@ public sealed class Sprite
         for (int i = 0; i < Indexed.Length && i * 4 + 3 < dst.Length; i++)
         {
             int idx = Indexed[i];
-            if (idx == TransparentIndex && !showMask) continue;
 
             var c = idx < colors.Length ? colors[idx] : default;
             byte a = showMask ? (byte)255 : c.A;

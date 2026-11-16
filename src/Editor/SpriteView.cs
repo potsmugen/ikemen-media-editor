@@ -915,7 +915,7 @@ public class SpriteView : Control
         if (sp.Indexed is not { } indexed || i >= indexed.Length) return false;
         int c = indexed[i];
         var colors = _palette?.Colors ?? [];
-        return c != Sprite.TransparentIndex && c < colors.Length && colors[c].A > 0;
+        return c < colors.Length && colors[c].A > 0;
     }
 
     /// <summary>SpriteRect() without the element offset, for the transformed draw path.</summary>
