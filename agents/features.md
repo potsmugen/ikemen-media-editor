@@ -1130,7 +1130,11 @@ summaries; treat anything marked unverified as unknown.
   `.md`/`agents/`-only changes) into one release per UTC commit date, tag `YYYY.MM.DD`;
   a same-day build replaces that date's release, older dates are kept. Only the newest date
   is marked Latest. Manual runs take an optional `ref` to rebuild an older commit under its
-  own date. About shows `date+commit`. Assets: `ikemen-media-editor-win-x64.zip` and
+  own date. About shows `date+commit`. Help > Check for Updates (manual only, never at startup)
+  reads `releases/latest`: a newer tag date means a newer build; the same date compares the tag's
+  commit with the build's, since a same-day build replaces that release. A local build has no
+  commit, so it is reported as a development build with a link to the latest release.
+  Timeout: settings.json `UpdateCheckTimeoutSeconds`. Assets: `ikemen-media-editor-win-x64.zip` and
   `-linux-x64.tar.gz`, undated so `/releases/latest/download/` links stay stable.
   The `prepare` job creates the empty release first, then each platform job builds, packages
   and uploads its own asset (`--clobber`), so a platform that fails, hangs (45-minute job cap)

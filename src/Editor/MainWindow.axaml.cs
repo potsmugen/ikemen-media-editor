@@ -2414,10 +2414,8 @@ public partial class MainWindow : Window
     {
         try
         {
-            string build = System.Reflection.CustomAttributeExtensions
-                .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(typeof(MainWindow).Assembly)
-                ?.InformationalVersion ?? "unknown";
-            const string repo = "https://github.com/potsmugen/ikemen-media-editor";
+            string build = BuildVersion;
+            const string repo = RepoUrl;
             bool open = await Dialogs.ShowMessageWithAction(this, "About",
                     $"""
                     Ikemen Media Editor

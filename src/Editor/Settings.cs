@@ -53,6 +53,7 @@ public sealed class Settings
     /// <summary>Scroll bars shrink to a thin line when the pointer leaves (Avalonia's auto-hide).
     /// Read at startup; false keeps them full width.</summary>
     public const bool DefaultScrollBarsAutoHide = true;
+    public const int DefaultUpdateCheckTimeoutSeconds = 10;
 
     // Files
     public const int DefaultBackupCount = 1, DefaultBackupCountMax = 10, DefaultRecoveryIntervalMinutes = 5;
@@ -348,6 +349,8 @@ public sealed class Settings
         public bool ScrollBarsAutoHide { get; set; } = DefaultScrollBarsAutoHide;
         /// <summary>Shortest time the splash screen shows at startup; it also stays until the main window is open.</summary>
         public int SplashMilliseconds { get; set; } = DefaultSplashMilliseconds;
+        /// <summary>How long Help > Check for Updates waits for GitHub before giving up.</summary>
+        public int UpdateCheckTimeoutSeconds { get; set; } = DefaultUpdateCheckTimeoutSeconds;
         /// <summary>
         /// Lifts the group/number input ceilings (sprite table cells, the sprite
         /// panel's spinners, the onion pin) so engine limits can be probed from
