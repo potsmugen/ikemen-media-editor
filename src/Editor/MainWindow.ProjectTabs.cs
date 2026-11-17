@@ -190,6 +190,7 @@ public partial class MainWindow
         CrashLog.Trace($"[tabs] switch to {DocumentPath(target) ?? "(untitled)"}");
         _doc = target;
         ShowDocument();
+        await CheckPaletteFilesOnDisk(); // files may have changed while another tab was shown
         return true;
     }
 

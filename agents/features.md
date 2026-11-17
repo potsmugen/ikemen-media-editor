@@ -407,6 +407,12 @@ and constraints that are easy to miss when reading one code path in isolation.
   save to their source format; indexed PNG and PCX saves replace the palette and ask before
   dropping unrepresentable alpha or entries. Opening an SFF offers to keep standalone
   palettes as external SFF palettes, discard them, or cancel.
+- **Reload from disk**: an open palette with its own file (standalone, or external beside an
+  SFF) reloads when that file changes, checked on window focus, tab switch and after an export.
+  No unsaved changes here: silent, with a status note. Unsaved changes (or a pending adjust):
+  asks once per change. The reload is one undo step; undoing it marks the palette unsaved.
+  Character .def palettes re-read as the engine does (reversed, no trailer), imports as on import.
+  A missing file is ignored. Follows editor convention (VS Code): no prompt when nothing is lost.
 - **Create From Images** builds one 256-color palette from the visible pixels of picked PNG
   or PCX files: index 0 is a transparent black mask, up to 255 colors are kept exactly most
   used first, and the rest are reduced by frequency-weighted median cut or padded with black.

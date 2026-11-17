@@ -70,6 +70,7 @@ public partial class MainWindow
         string label = PaletteLabel(old);
         loaded.SourcePath = path;
         loaded.Source = PaletteSource.External;
+        RememberPaletteDisk(loaded, engineAct: false);
         (loaded.Group, loaded.Index) = (old.Group, old.Index);
         loaded.Dirty = false;
         _standalonePalettes[at] = loaded;
@@ -88,6 +89,7 @@ public partial class MainWindow
         string label = PaletteDisplayName(file, old);
         loaded.SourcePath = path;
         loaded.Source = PaletteSource.External;
+        RememberPaletteDisk(loaded, engineAct: false);
         (loaded.Group, loaded.Index) = (old.Group, old.Index);
         loaded.Dirty = false;
         var users = file.Sprites.Where(s => ReferenceEquals(s.Palette, old)).ToList();

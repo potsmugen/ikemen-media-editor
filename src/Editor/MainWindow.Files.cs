@@ -650,6 +650,7 @@ public partial class MainWindow
             {
                 var pal = ActFile.Open(palPath);
                 pal.Index = number;
+                RememberPaletteDisk(pal, engineAct: true);
                 _file?.Palettes.Add(pal);
                 palettes++;
             }

@@ -2938,6 +2938,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 var pal = PaletteFileImport.Read(path);
                 pal.SourcePath = path;
                 pal.Source = PaletteSource.External;
+                RememberPaletteDisk(pal, engineAct: false);
                 pal.Group = group;
                 if (file is not null)
                 {
@@ -3138,6 +3139,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             if (targetExtension == ".act")
                 (palette.SourceActReversed, palette.SourceActTransparent) = (actMugen, actMugen ? null : palette.SourceActTransparent ?? 0);
             palette.Dirty = false;
+            RememberPaletteDisk(palette);
             _undo.MarkSaved(StandalonePaletteKindFor(palette));
             RebuildPaletteList();
             UpdateTitle();
@@ -3187,6 +3189,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 default: throw new NotSupportedException($"Palette files with extension '{Path.GetExtension(path)}' cannot be saved in place.");
             }
             palette.Dirty = false;
+            RememberPaletteDisk(palette);
             ResolveRecoveredItem("act", path, palette.Group, palette.Index);
             if (_standalonePalettes.Contains(palette)) _undo.MarkSaved(StandalonePaletteKindFor(palette));
             RebuildPaletteList();
@@ -3257,7 +3260,9 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 return;
 
             WritePaletteExport(pal, path, format);
-            StatusText.Text = $"Wrote {Path.GetFileName(path)}.";
+            // An open palette loaded from this file takes the new colors
+            int reloaded = await CheckPaletteFilesOnDisk();
+            StatusText.Text = $"Wrote {Path.GetFileName(path)}." + (reloaded > 0 ? " Reloaded the open palette from it." : "");
         }
         catch (Exception ex)
         {

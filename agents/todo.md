@@ -97,6 +97,9 @@ Select tool gaps against image editor conventions:
 - Canvas and Export Animation: true arithmetic Subtract (render.go's reverse subtract) instead of
   the Multiply stand-in, also for SubAdd's subtract pass. Needs reading back the drawn background
   (e.g. an offscreen render under the sprite), so it was left out of the easy fixes.
+- Reload a .air or .def changed on disk, like palettes do (silent when unchanged here, ask when
+  there are unsaved edits). People edit these in text editors alongside. Today only Save warns.
+  SFF stays as is: rarely edited elsewhere at once, and its reload drops undo history.
 
 ### Sounds
 
@@ -214,78 +217,44 @@ Select tool gaps against image editor conventions:
 
 Built, but not tried by the maintainer yet.
 
-### Palette alpha in SFF 2.0.0.0
+### Palette reload from disk (2026-11-17)
 
-- The A slider and its number box are off for a 2.0.0.0 file's own palettes, and back on
-  after Save As 2.0.1.0. Temp and external palettes keep them.
-- Importing or applying a palette with alpha into a 2.0.0.0 file asks "SFF 2.0.0.0 Cannot
-  Store Palette Alpha"; Continue drops it and the status line says "without alpha". The same
-  applies to Add to SFF, one palette or several.
-- Save As from 2.0.1.0 to 2.0.0.0 over palettes with alpha asks "Palette Alpha" before saving;
-  after the save the Palettes tab shows index 0 clear and the rest opaque.
-
-### Export and import actions
-
-- Select several actions, Export: the saved .air opens in a text editor with one header comment,
-  an empty line, then the blocks in list order; reimporting it gives the same frames, Clsn,
-  Loopstart, Interpolate, comments and Copy Action.
-- Export a selection whose first action has no comment, then import: it must not gain the
-  header or any other comment as its name.
-- Import with no clashes: choose After Last Action and In Number Order, confirm the position,
-  selection and one-step undo. With clashes, Skip/Overwrite is asked before placement, and
-  placement is skipped when every imported number already exists.
-  Placement is also skipped when the open file has no actions and the imported ones are in
-  number order; an unsorted import into an empty file still asks.
-- Import a file whose number already exists: Overwrite replaces in place, Skip imports the rest
-  and lists the skipped numbers in a popup, errors.log and the status line, Cancel changes nothing.
-- Undo an import that overwrote or removed the action on screen: the action list, frame table
-  and canvas must agree, and frame edits must go to the shown action.
-- Import into an .air embedded in a .def, save, and check the actions land in the def's AIR section.
+- Edit an open .act in another program, switch back: reloads silently; with unsaved edits here,
+  asks once. Undo of the reload marks it unsaved.
+  Linux 2026-11-17: all three pass when triggered by a project-tab switch (silent reload with status note, one prompt, undo marks it unsaved). Window focus as the trigger can't be tested here (no window manager); needs a human.
 
 ### Paint on true color
 
-- Eraser and Select on a true-color sprite (use a real true-color sample, e.g. a PNG import):
-  Paint Mode opens on Eraser, erasing zeroes pixels (check them with Render Sprite Blending off: cleared pixels
-  turn black), Commit/Discard/undo and the paint history follow, Copy/Paste/Move work and a
-  true-color copy won't paste into an indexed sprite (Paste stays dimmed).
-- Pencil, Fill, Replace and Eyedropper are disabled on true color; layers are too.
-- An indexed sprite's session keeps working as before: Pencil default, paint history, layers.
 - Magic Wand on true color picks contiguous pixels with the same 4 bytes.
-- Switching sprites (or converting the current one) while Paint Mode is on refreshes the
-  tool buttons; if the active tool got muted by the kind change, the first working tool
-  (Pencil first) is selected instead.
-- With a pending session, applying or importing a palette, or replacing a sprite on the
-  Sprites tab, settles the session first (Commit/Discard/Cancel, as Crop and Rotate do).
+  Linux 2026-11-17: a click makes a selection (Copy turns on), but the exact pixels can't be
+  judged from a screenshot; needs a human.
 
 ### SFF v1 same-palette flag read as "previous"
 
-- `kfm - old.sff`, `kfm-2000.sff`: flagged sprites show 9000,1's palette; no "Global Shared
-  Palette" popup. `Donald.sff`: 0,1 onward show 0,0's palette.
 - `sprites_org.sff` 6001,7-11 show 6001,6's purple and 6001,13-17 show 6001,12's green.
+  Linux 2026-11-17: the Palette column shows "Previous" on exactly those rows, after S4 and S5.
+  The colors themselves were not looked at.
 - Media Health Report on `kfm - old.sff`: "Written differently on save (no engine reads these)"
   lists only "Palette type byte: Shared (1) becomes Individual (0)"; no save popup for it;
   after Save the section is gone. A plain v1 save writes byte 32 = 0 and keeps link flags.
 - In MUGEN 1.1, check old KFM's large portrait 9000,1: the source predicts .act colors there.
+  Linux 2026-11-17: needs a human (no MUGEN here).
 
 ### True-color sprites and palettes
 
 - Open a v2 file with 24/32-bit sprites: they show no palette, so 0,0 can be deleted and
   Find Unused Palettes no longer refuses because of them.
-- Save and reopen: those sprites keep the palette number the file had, and nothing about them
-  appears in the Media Health Report.
+  Linux 2026-11-17: AbaddonBG_IME.sff 9000,0/9000,1 show "24-bit" with no palette, and Find
+  Unused Palettes runs ("0 unused"). Deleting 0,0 was not tried (that file has no 0,0).
 - Recover a crashed session that holds a true-color sprite: it comes back linked to its palette
   as before.
 
 ### Convert Color Depth
 
-- In a 2.0.1.0 file, right-click indexed sprites → Convert Color Depth → 32-bit: they look the
-  same, show no palette, and save as PNG24 (opaque) or PNG32. Undo restores pixels and palette.
-- Convert true-color sprites to 8-bit: one per sprite and one shared; the palette key prompt
-  appears, new palettes are added, and the status line says when colors were reduced.
-- Mixed selection: sprites already at the target depth are left alone and counted as "already were".
 - A sprite with links outside the selection asks first; the links follow. A selected link whose
   original isn't selected is listed in Sprites Skipped.
 - In v1 and 2.0.0.0 files the item is dimmed and its tooltip says why.
+  Linux 2026-11-17: dimmed in a v1 file (kfm - old.sff); the tooltip and a 2.0.0.0 file were not checked.
 
 ### Sprite depth follows its palette (MUGEN crash fix)
 
@@ -298,14 +267,9 @@ Built, but not tried by the maintainer yet.
 - Check the turned-around links' colors in Ikemen GO. Passed in the Linux sandbox: load popup,
   Save asks Save/Cancel, saved file links back with the right colors. Health Report entry unchecked.
 
-### Save Like SprMaker
-
-- Test reloading after saving over the open file.
 
 ### Preferences and look
 
-- Test guides using the custom crosshair color and thickness.
-- Test live palette adjustment drag producing one undo step.
 - Test palette adjustment speed on big sprites.
 - Test Tiled pixel smoothing at high zoom (ImageBrush may ignore
   nearest-neighbor).
@@ -315,18 +279,10 @@ Built, but not tried by the maintainer yet.
 - SFF v1 Replace with the image's own palette (sprites_org.sff 6001,6): 6001,7-11 switch to
   the new palette at once, the status line counts them, one Undo restores all, and save and
   reopen show the same colors. Unshared sprites after it keep theirs.
-- A report jump to an unused palette now also moves the palette list's selection (it used
-  to show the palette in the grid while the list stayed on the old row).
-- The palette list's right-click menu now selects the row under the pointer before opening,
-  so Add to SFF and the other single-palette entries act on the row that was clicked.
 - Save Original File is disabled for temp palettes; it used to fall through to Export.
-- The palette right-click menu has no Export Palette (the panel button covers it).
+  Linux 2026-11-17: dimmed on an SFF palette; no temp palette was tried.
 - Find Unused Palettes > Delete These Palettes: confirm text, linked palettes keep their
   colors, one undo step restores colors and the edited palette.
-- Dialogs name palettes T1 / F1 kfm01.act / 1,16 with no color count or star; the recovery
-  list says "Temp palette" and only claims a missing source when there was one.
-- Skipped export/import entries and skipped sounds now open a popup (first 10; the status
-  keeps the count).
 - Links to later sprites: open a file that has some (sprites_org.sff 6001?): load popup, Health
   Report section, Save asks Save/Cancel, status line after; a second Save asks nothing.
 - Undo after Sort Colors or Swap Colors with Update sprites restores the palette but not the
@@ -336,15 +292,6 @@ Built, but not tried by the maintainer yet.
   of perceived lightness, out-of-gamut colors, and the PalettePerceptualHue toggle.
 - Verify multi-selection Crop covers what the removed Crop All Sprites command did
   (whole-file crop with links followed).
-- Test JPG/BMP reference images.
-- Test the reference image's wheel zoom, middle-drag pan, middle-click reset and
-  Center Image in Canvas, including color picking at a zoomed scale and after
-  panning.
-- Sprites tab palette preview: Follow sprite (on by default, not saved) swaps the box to each
-  sprite's own palette when the sprite changes or the tab is entered; turning it off pins the
-  shown palette; Apply Preview Palette is disabled for one sprite already on that palette.
-- Right-click the sprites tab swatches > View in Palettes Tab: selects that palette with the
-  color under the pointer picked; disabled when the preview isn't the file's own palette.
 - SFF v1 order edits: move, add, duplicate or delete a sprite between a flagged link and the
   sprite whose palette it uses (sprites_org.sff, 6001,6 before 6001,7) — each is refused with
   the link listed. Sort already did this; check the four share the same report.

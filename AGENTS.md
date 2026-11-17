@@ -12,6 +12,9 @@ and keep them current. Open, unchecked work is in `agents/todo.md`.
 - Predictable behavior over special cases: the same action follows the same rules
   whether it runs on one item or many, and from every entry point. Don't add
   one-off exceptions; when a path differs, align it or ask.
+- Automatic actions must not surprise users, and prompts must not flood them. When
+  choosing between acting silently and asking, follow common editor conventions
+  (e.g. reload a file changed on disk silently, ask only when unsaved edits would be lost).
 - Ask before implementing when wording is ambiguous, when there is more than
   one reasonable solution, or when a change is a redesign, wide, silent, or
   hard to undo. Don't build unasked features.
@@ -210,6 +213,8 @@ don't drop it to chase the new request.
 
 Don't add checks to `agents/todo.md` for changes the maintainer is testing with you in
 the current session. List under "Not yet checked in the app" only what is left untested.
+List only edge cases and risky paths there. Leave out basic smoke checks (it opens, it shows, it
+runs without error, etc).
 
 ## Reference notes
 

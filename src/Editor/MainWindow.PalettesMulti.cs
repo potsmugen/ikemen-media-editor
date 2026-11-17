@@ -378,7 +378,8 @@ public partial class MainWindow
 
             foreach (var (pal, path) in files) WritePaletteExport(pal, path, format);
             CrashLog.Trace($"[palettes] exported {files.Count} selected palettes to {dir}");
-            StatusText.Text = $"Exported {files.Count} palettes to {dir}.";
+            int reloaded = await CheckPaletteFilesOnDisk(); // open palettes loaded from these files take the new colors
+            StatusText.Text = $"Exported {files.Count} palettes to {dir}." + (reloaded > 0 ? (reloaded == 1 ? " Reloaded the open palette from its file." : $" Reloaded {reloaded} open palettes from their files.") : "");
         }
         catch (Exception ex)
         {

@@ -70,6 +70,9 @@ public partial class MainWindow : Window
         UpdatePaletteActionButtons();
         UpdateSoundButtonStates(); // nothing open yet
         StatusText.LayoutUpdated += (_, _) => SyncStatusTip();
+        // Palette files edited in other programs: remember them on leaving, reload on return
+        Deactivated += (_, _) => BaselinePaletteFiles();
+        Activated += async (_, _) => await CheckPaletteFilesOnDisk();
 
         SpriteCanvas.AxisChanged += OnAxisDragged;
         SpriteCanvas.CursorPositionChanged += (x, y) => UpdateCursorStatus(0, x, y);
