@@ -1116,8 +1116,7 @@ public partial class MainWindow
 
                 foreach (var entry in entries)
                 {
-                    string path = Path.Combine(dir, entry.File);
-                    if (!File.Exists(path)) { errors.Add($"{entry.File}: file not found"); continue; }
+                    if (ExportManifest.ResolveFile(dir, entry.File, out var missing) is not { } path) { errors.Add(missing!); continue; }
                     var fresh = new SoundEntry { Group = entry.Group, Index = entry.Index, Data = File.ReadAllBytes(path) };
                     SndReader.Describe(fresh);
                     var s = Find(entry.Group, entry.Index);

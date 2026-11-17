@@ -6,7 +6,7 @@ namespace Editor;
 /// <summary>
 /// The round-trip export .txt: a manifest the program reads back, not prose.
 /// Each entry is a section such as "[sprite 0,2]" with one key/value per line.
-/// File values may contain spaces; ';' starts a comment.
+/// File values may contain spaces; ';' starts a comment anywhere on a line
 /// </summary>
 internal static class ExportManifest
 {
@@ -60,19 +60,24 @@ internal static class ExportManifest
         var lines = text.Split('\n');
         for (int n = 0; n < lines.Length; n++)
         {
-            string line = lines[n].Trim();
-            if (line.Length == 0 || line.StartsWith(';')) continue;
+            string line = lines[n];
+            int semicolon = line.IndexOf(';');
+            if (semicolon >= 0) line = line[..semicolon];
+            line = line.Trim();
+            if (line.Length == 0) continue;
 
             if (line.StartsWith('[') && line.EndsWith(']'))
             {
                 FinishEntry();
-                var section = line[1..^1].Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (section.Length != 2 || !TryPair(section[1], out int group, out int index))
+                // Split at the first space so "[sprite 0, 2]" reads like "[sprite 0,2]"
+                string inner = line[1..^1].Trim();
+                int space = inner.IndexOfAny([' ', '\t']);
+                if (space < 0 || !TryPair(inner[(space + 1)..], out int group, out int index))
                 {
                     errors.Add($"line {n + 1}: can't read section \"{line}\"");
                     continue;
                 }
-                current = new PendingEntry(section[0].ToLowerInvariant(), group, index, n + 1);
+                current = new PendingEntry(inner[..space].ToLowerInvariant(), group, index, n + 1);
                 continue;
             }
 
@@ -83,7 +88,8 @@ internal static class ExportManifest
                 continue;
             }
             string key = line[..eq].Trim().ToLowerInvariant();
-            string value = line[(eq + 1)..].Trim();
+            // Quotes are dropped as in .def files, so "my file.png" also works
+            string value = line[(eq + 1)..].Trim().Trim('"');
             if (current is null)
             {
                 errors.Add($"line {n + 1}: '{key}' is outside an entry section");
@@ -114,6 +120,24 @@ internal static class ExportManifest
         }
         FinishEntry();
         return (entries, errors);
+    }
+
+    /// <summary>
+    /// Full path of an entry's file, or null with Error set when it's missing.
+    /// Like .def files: either slash works, and a unique match differing only in letter case is used
+    /// </summary>
+    public static string? ResolveFile(string dir, string file, out string? error)
+    {
+        error = null;
+        string path = Path.Combine(dir, file.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar));
+        if (File.Exists(path)) return path;
+        if (Def.DefFile.MatchIgnoringCase(path, out bool ambiguous) is { } found)
+        {
+            CrashLog.Trace($"[manifest] {file}: using {found}");
+            return found;
+        }
+        error = ambiguous ? $"{file}: several files match ignoring letter case" : $"{file}: file not found";
+        return null;
     }
 
     private static string Pair(int a, int b) =>

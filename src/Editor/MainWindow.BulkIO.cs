@@ -358,8 +358,7 @@ public partial class MainWindow
                 var entry = ordered[n];
                 await BusyStep("Importing", n, ordered.Count, $"{entry.Type} {entry.Group},{entry.Index} {entry.File}");
                 if (!ReferenceEquals(_file, file)) { StatusText.Text = "Import stopped \u2014 the file was closed."; return; }
-                string path = Path.Combine(dir, entry.File);
-                if (!File.Exists(path)) { errors.Add($"{entry.File}: file not found"); continue; }
+                if (ExportManifest.ResolveFile(dir, entry.File, out var missing) is not { } path) { errors.Add(missing!); continue; }
 
                 if (entry.Type == "palette")
                 {

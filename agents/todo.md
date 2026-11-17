@@ -108,9 +108,16 @@ Select tool gaps against image editor conventions:
 
 ### SprMaker and SFF formats
 
-- Import/export SprMaker 0.97 (.txt sprite list + PCX) formats; design undecided.
-- Import/export SprMaker 2.01 (.def with [Pal]/sprite lines + PCX/PNG) formats;
-  design undecided.
+- Import SprMaker 2.01 .def (with [Option]/[Pal]/[Sprite] + PCX/PNG). Reuse
+  `SprMaker2Options` and the Save Like SprMaker rules. Import All detects the format from
+  content (ours, 2.01 .def, 0.97 .txt) instead of asking; it pops up only when nothing
+  matches. The picker needs a .def filter too. Undecided: also open a SprMaker .def as a
+  new SFF tab via Open .def (`DetectDefKind`), and whether [Option] settings apply when
+  merging into the open file.
+- Import SprMaker 0.97 .txt (lower priority: rare today, and sprmake2 txt2def converts it).
+  Needs the `#` menu grammar from the disassembly and a per-sprite palette override, which
+  `UsePreviousPalette` (whole file) doesn't cover.
+- Export SprMaker 0.97/2.01 formats; design undecided.
 - Decide how our palette-alpha addition fits the SprMaker formats (the tools
   have no alpha beyond index 0).
 - Find out what Ikemen GO does with "decompress on load" (SFF node flag 1, tdata):

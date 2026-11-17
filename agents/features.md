@@ -599,7 +599,9 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Bulk import/export** uses a key-based manifest; duplicate keys are rejected before
   mutation, matching keys overwrite after confirmation, others append. Unexpected failures
   roll back the batch, per-entry failures don't. Palette PNGs keep RGBA; external character
-  palettes are not included.
+  palettes are not included. Other tools write manifests too (sprite and sound manifests share these rules): `;` starts a comment anywhere on a line,
+  spaces allowed around commas (`[sprite 0, 2]`), quotes around values dropped as in .def files, file paths relative to the manifest with
+  either slash; a missing path falls back to a unique case-insensitive match, as in .def files.
 - **Several sprites selected, Export**: the single-sprite dialog (format, preview palette) plus
   Export All's "Pad every sprite to the same canvas size" and "Pad group and number with leading zeros"
   (each part padded to the widest in the export; Export All also pads palette PNG names, relative to the palette numbers). Writes Group_Number files into a
