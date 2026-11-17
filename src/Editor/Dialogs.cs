@@ -171,6 +171,23 @@ public static partial class Dialogs
             e.Handled = true;
             accept.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+        // Arrows move between the radios of a group and check the one reached, as radios do elsewhere
+        dialog.AddHandler(Avalonia.Input.InputElement.KeyDownEvent, (_, e) =>
+        {
+            if (e.Handled || e.KeyModifiers != Avalonia.Input.KeyModifiers.None) return;
+            int step = e.Key is Avalonia.Input.Key.Down or Avalonia.Input.Key.Right ? 1
+                : e.Key is Avalonia.Input.Key.Up or Avalonia.Input.Key.Left ? -1 : 0;
+            if (step == 0) return;
+            if (TopLevel.GetTopLevel(dialog)?.FocusManager?.GetFocusedElement() is not RadioButton { GroupName: { Length: > 0 } group } current) return;
+            var radios = dialog.GetVisualDescendants().OfType<RadioButton>()
+                .Where(r => r.GroupName == group && r.IsEffectivelyVisible && r.IsEffectivelyEnabled).ToList();
+            int at = radios.IndexOf(current);
+            if (at < 0 || radios.Count < 2) return;
+            var next = radios[(at + step + radios.Count) % radios.Count];
+            next.SetCurrentValue(RadioButton.IsCheckedProperty, true);
+            next.Focus(Avalonia.Input.NavigationMethod.Directional);
+            e.Handled = true;
+        }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         return dialog.ShowDialog(owner);
     }
 
@@ -3109,6 +3126,8 @@ public static partial class Dialogs
 
         dialog.Content = body;
         dialog.Closed += (_, _) => result.TrySetResult(null);
+        // Focus Continue so Enter moves on with the defaults
+        dialog.Opened += (_, _) => apply.Focus();
         dialog.ShowModal(owner);
         return result.Task;
     }

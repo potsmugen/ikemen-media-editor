@@ -1247,6 +1247,12 @@ summaries; treat anything marked unverified as unknown.
   it drops the minimize and maximize boxes once the dialog opens (`WinDialogStyle`), since
   Avalonia 11.3 has no CanMinimize/CanMaximize. A resizable dialog opts into keeping Maximize
   with `allowMaximize: true` (the sheet import dialog and the import dialog with a preview).
+  `ShowModal` also gives every dialog two keys: Enter accepts even when a checkbox, radio
+  button or closed dropdown has focus, and the arrow keys move through the focused radio's
+  group (enabled, visible radios, wrapping at the ends) and check the one reached. Avalonia 11.3's
+  `RadioButton` has no arrow handling and keyboard XYFocus is off by default, so arrows work
+  once a radio has focus (a click or Tab). Dialogs open on OK so Enter takes the defaults,
+  including Palette Index Mapping.
 - Playback reassigns `AnimCanvas.Boxes` each tick; bounds-check held indices.
   `Pointer.Capture(null)` raises `PointerCaptureLost` synchronously, so read
   drag state before releasing capture. Put `DoubleTapped` on the cell Border
