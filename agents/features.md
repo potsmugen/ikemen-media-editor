@@ -244,7 +244,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   and Loop From Here. Picking a frame inside the selection keeps it; any other frame
   collapses it. Remove, Duplicate, Move Up/Down, Delete and Copy act on the selection, and
   Insert, Insert Sprite Group and Duplicate insert after the last selected frame. Special
-  Flags sets Interpolate on every selected frame and dims Loopstart.
+  Flags sets Interpolate on every selected frame and dims Loopstart. Insert Sprite Group's box
+  suggests the file's sprite groups in number order and fills in the first that starts with the typed text.
 - **Batch Clsn actions**: Auto Clsn, Sort Boxes, Delete All Boxes, Copy from Onion Skin and
   Paste All Clsn act on every selected frame as one undo step; Add Clsn1/2 and Copy All Clsn
   need a single frame.
@@ -642,7 +643,12 @@ and constraints that are easy to miss when reading one code path in isolation.
   are skipped and listed.
 - **Duplicate sprite linking** matches dimensions and pixel bytes; v1 also requires equal
   palette colors and shares the target palette, while v2 allows independent palettes. Links
-  are flattened, and manual links may target only earlier sprites.
+  are flattened, and manual links may target only earlier sprites, as SprMaker writes them.
+  Sprite Target and Palette Target take one "group,index" box that suggests and fills in only
+  valid targets, in number order, with a hint line on the rule; other typed text gets the same
+  errors as before. MUGEN copies a link's target by slot while loading, so a later target reads
+  memory not loaded yet (mugen-unleashed `src/sff.c`: `Sff1_Load`, and the v2 sprite and palette
+  loops; read, not tried in MUGEN).
 - **Sort sprites** orders the whole file by group, then number, with group 9000 first unless
   settings.json `Sprites SortPortraitsFirst` is false; Sort Selected Ascending sorts only the
   selection among its positions. Ties keep their order. On v1 an edit that would make a link
@@ -742,7 +748,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   The box suggests the items the filter rule matches, in list order ("500" suggests 5000,0 (#58),
   5000,1, …); a picked suggestion targets that exact item, even when keys repeat. Typed text that
   wasn't picked takes an exact match first ("200" is group 200 before 2000), then the first filter
-  match; Move stays disabled until there is a target. Suggestions show the #, except actions, which
+  match; Move stays disabled until there is a target. Typing fills in the first suggestion whose key
+  starts with the text (Avalonia text completion), so the box shows the target; shorthands like F1
+  filter but don't fill in. Suggestions show the #, except actions, which
   have none and show their comment or suggested name. Options read Top, Before, Bottom, as in the list. It calls the list's drop move, so undo, the SFF v1 palette refusal and the
   gathering of the selection are the same as a drag. Each list remembers its last answer for the
   session. Not on frames (little use there). The # column is the file position in every list, also

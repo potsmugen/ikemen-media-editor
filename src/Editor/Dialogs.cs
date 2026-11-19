@@ -1310,12 +1310,43 @@ public static partial class Dialogs
         return result.Task;
     }
 
+    /// <summary>One "group,index" box for a link target. Suggests the targets in number order and fills in
+    /// the first that starts with the typed text.</summary>
+    private static AutoCompleteBox TargetPairBox(string initialGroup, string initialIndex,
+        IEnumerable<(int Group, int Index)> suggestions)
+    {
+        var valid = suggestions.Distinct().OrderBy(c => c.Group).ThenBy(c => c.Index)
+            .Select(c => string.Create(CultureInfo.InvariantCulture, $"{c.Group},{c.Index}"))
+            .ToList();
+        return new AutoCompleteBox
+        {
+            ItemsSource = valid,
+            FilterMode = AutoCompleteFilterMode.StartsWith,
+            MinimumPrefixLength = 1,
+            IsTextCompletionEnabled = true,
+            Text = initialGroup.Length == 0 && initialIndex.Length == 0 ? "" : $"{initialGroup},{initialIndex}",
+            MinWidth = 190,
+        };
+    }
+
+    /// <summary>Reads "group,index" (a space works as the separator too).</summary>
+    private static bool TryParsePair(string? text, out int group, out int index)
+    {
+        group = index = 0;
+        var parts = (text ?? "").Split([',', ' '], StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length == 2
+            && int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out group)
+            && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out index);
+    }
+
+    /// <summary>suggestions are the valid targets; other typed text goes through validateTarget.</summary>
     public static Task<SpriteTargetDialogResult?> PromptSpriteLinkTarget(Window owner,
-        string initialGroup, string initialImage, int maximum, Func<int, int, string?> validateTarget)
+        string initialGroup, string initialImage, int maximum, Func<int, int, string?> validateTarget,
+        IEnumerable<(int Group, int Index)> suggestions)
     {
         var result = new TaskCompletionSource<SpriteTargetDialogResult?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var group = new TextBox { Text = initialGroup, MinWidth = 90 };
-        var image = new TextBox { Text = initialImage, MinWidth = 90 };
+        var pair = TargetPairBox(initialGroup, initialImage, suggestions);
+        var hint = new TextBlock { Text = "Only earlier sprites in the list can be targets.", Foreground = ThemeBrush("ThemeMutedText") };
         var chooseTarget = new Button { Content = "Choose Target", MinWidth = 100, IsDefault = true };
         var pickFromList = new Button { Content = "Pick from List", MinWidth = 100 };
         ToolTip.SetTip(pickFromList, "Picks the target from the sprite list instead of typing it.");
@@ -1327,19 +1358,17 @@ public static partial class Dialogs
             ColumnDefinitions = new ColumnDefinitions("*,8,*,8,Auto"),
             RowDefinitions = new RowDefinitions("Auto,Auto"),
         };
-        fields.Children.Add(new TextBlock { Text = "Group" });
-        var imageLabel = new TextBlock { Text = "Image" };
-        Grid.SetColumn(imageLabel, 2);
-        fields.Children.Add(imageLabel);
-        Grid.SetRow(group, 1);
-        fields.Children.Add(group);
-        Grid.SetColumn(image, 2);
-        Grid.SetRow(image, 1);
-        fields.Children.Add(image);
+        var pairLabel = new TextBlock { Text = "Group,Image" };
+        Grid.SetColumnSpan(pairLabel, 3);
+        fields.Children.Add(pairLabel);
+        Grid.SetRow(pair, 1);
+        Grid.SetColumnSpan(pair, 3);
+        fields.Children.Add(pair);
         Grid.SetColumn(chooseTarget, 4);
         Grid.SetRow(chooseTarget, 1);
         fields.Children.Add(chooseTarget);
         body.Children.Add(fields);
+        body.Children.Add(hint);
         body.Children.Add(error);
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8 };
@@ -1357,10 +1386,9 @@ public static partial class Dialogs
 
         void ChooseTarget()
         {
-            if (!int.TryParse(group.Text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int groupValue)
-                || !int.TryParse(image.Text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int imageValue))
+            if (!TryParsePair(pair.Text, out int groupValue, out int imageValue))
             {
-                error.Text = "Enter a whole number for Group and Image.";
+                error.Text = "Enter Group and Image as two whole numbers, e.g. 5000,1.";
                 return;
             }
             if (groupValue < 0 || imageValue < 0 || groupValue > maximum || imageValue > maximum)
@@ -1423,12 +1451,14 @@ public static partial class Dialogs
         return result.Task;
     }
 
+    /// <summary>suggestions are the valid targets; other typed text goes through validateTarget.</summary>
     public static Task<PaletteTargetDialogResult?> PromptPaletteLinkTarget(Window owner,
-        string initialGroup, string initialIndex, int maximum, Func<int, int, string?> validateTarget)
+        string initialGroup, string initialIndex, int maximum, Func<int, int, string?> validateTarget,
+        IEnumerable<(int Group, int Index)> suggestions)
     {
         var result = new TaskCompletionSource<PaletteTargetDialogResult?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var group = new TextBox { Text = initialGroup, MinWidth = 90 };
-        var index = new TextBox { Text = initialIndex, MinWidth = 90 };
+        var pair = TargetPairBox(initialGroup, initialIndex, suggestions);
+        var hint = new TextBlock { Text = "Only earlier palettes with their own colors can be targets.", Foreground = ThemeBrush("ThemeMutedText") };
         var usePair = new Button { Content = "Choose Target", MinWidth = 100, IsDefault = true };
         var pickFromList = new Button { Content = "Pick from List", MinWidth = 100 };
         ToolTip.SetTip(pickFromList, "Picks the target from the palette list instead of typing it.");
@@ -1440,19 +1470,17 @@ public static partial class Dialogs
             ColumnDefinitions = new ColumnDefinitions("*,8,*,8,Auto"),
             RowDefinitions = new RowDefinitions("Auto,Auto"),
         };
-        fields.Children.Add(new TextBlock { Text = "Group" });
-        var indexLabel = new TextBlock { Text = "Index" };
-        Grid.SetColumn(indexLabel, 2);
-        fields.Children.Add(indexLabel);
-        Grid.SetRow(group, 1);
-        fields.Children.Add(group);
-        Grid.SetColumn(index, 2);
-        Grid.SetRow(index, 1);
-        fields.Children.Add(index);
+        var pairLabel = new TextBlock { Text = "Group,Index" };
+        Grid.SetColumnSpan(pairLabel, 3);
+        fields.Children.Add(pairLabel);
+        Grid.SetRow(pair, 1);
+        Grid.SetColumnSpan(pair, 3);
+        fields.Children.Add(pair);
         Grid.SetColumn(usePair, 4);
         Grid.SetRow(usePair, 1);
         fields.Children.Add(usePair);
         body.Children.Add(fields);
+        body.Children.Add(hint);
         body.Children.Add(error);
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8 };
@@ -1470,10 +1498,9 @@ public static partial class Dialogs
 
         void ChooseTarget()
         {
-            if (!int.TryParse(group.Text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int groupValue)
-                || !int.TryParse(index.Text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int indexValue))
+            if (!TryParsePair(pair.Text, out int groupValue, out int indexValue))
             {
-                error.Text = "Enter a whole number for Group and Index.";
+                error.Text = "Enter Group and Index as two whole numbers, e.g. 1,1.";
                 return;
             }
             if (groupValue < 0 || indexValue < 0 || groupValue > maximum || indexValue > maximum)
@@ -1713,12 +1740,25 @@ public static partial class Dialogs
         return result.Task;
     }
 
-    /// <summary>validate returns an error for unusable text, or null; OK with an error keeps the dialog open.</summary>
+    /// <summary>validate returns an error for unusable text, or null; OK with an error keeps the dialog open.
+    /// suggestions, if given, are offered and filled in as the user types; other text still goes through validate.</summary>
     public static Task<string?> PromptText(Window owner, string title, string label, string initial = "",
-        Func<string, string?>? validate = null)
+        Func<string, string?>? validate = null, IReadOnlyList<string>? suggestions = null)
     {
         var result = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var box = new TextBox { Text = initial, MinWidth = 260 };
+        TemplatedControl box = suggestions is null
+            ? new TextBox { Text = initial, MinWidth = 260 }
+            : new AutoCompleteBox
+            {
+                ItemsSource = suggestions,
+                FilterMode = AutoCompleteFilterMode.StartsWith,
+                MinimumPrefixLength = 1,
+                // Fills in the first suggestion that starts with the typed text
+                IsTextCompletionEnabled = true,
+                Text = initial,
+                MinWidth = 260,
+            };
+        string BoxText() => (box is AutoCompleteBox auto ? auto.Text : ((TextBox)box).Text) ?? "";
         var error = new TextBlock
         {
             Foreground = ThemeBrush("ThemeWarn"), TextWrapping = TextWrapping.Wrap,
@@ -1738,7 +1778,7 @@ public static partial class Dialogs
 
         void Accept()
         {
-            string text = box.Text ?? "";
+            string text = BoxText();
             string? message = validate?.Invoke(text);
             error.Text = message ?? "";
             error.IsVisible = message is not null;

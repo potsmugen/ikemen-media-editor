@@ -46,9 +46,9 @@ public static partial class Dialogs
             ItemsSource = candidates,
             FilterMode = AutoCompleteFilterMode.Custom,
             MinimumPrefixLength = 1,
-            IsTextCompletionEnabled = false,
+            // Fills in the first suggestion whose key starts with the typed text, so Move shows its target
+            IsTextCompletionEnabled = true,
             Watermark = watermark,
-            Text = initial.Text,
             MinWidth = 220,
             Margin = new Avalonia.Thickness(8, 0, 0, 0),
             ItemTemplate = new FuncDataTemplate<MoveCandidate>((c, _) => new TextBlock { Text = c?.Label }),
@@ -61,6 +61,8 @@ public static partial class Dialogs
             try { return matches(c.Position, text); }
             catch (Exception ex) { CrashLog.Write("PromptMoveSelection.matches", ex); return false; }
         };
+        // Set after ItemFilter: a Custom filter with no ItemFilter throws when the text changes
+        box.Text = initial.Text;
         var ok = new Button { Content = "Move", MinWidth = 90, IsDefault = true };
         var cancel = new Button { Content = "Cancel", MinWidth = 90, IsCancel = true };
 

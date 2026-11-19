@@ -2430,7 +2430,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                         currentTarget?.Group.ToString(CultureInfo.InvariantCulture) ?? "",
                         currentTarget?.Index.ToString(CultureInfo.InvariantCulture) ?? "",
                         SpriteFieldMax,
-                        (group, index) => ValidatePaletteShareTarget(file, palette, group, index));
+                        (group, index) => ValidatePaletteShareTarget(file, palette, group, index),
+                        PaletteShareTargets(file, palette));
                     if (!ReferenceEquals(_file, file) || targetChoice is null) return;
                     if (targetChoice.Action == PaletteTargetDialogAction.PickFromList)
                     {
@@ -2457,6 +2458,16 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         {
             await Failed("OnPaletteLinkCellDoubleTapped", ex);
         }
+    }
+
+    /// <summary>The palettes ValidatePaletteShareTarget would accept, without logging the ones it would refuse.</summary>
+    private static IEnumerable<(int Group, int Index)> PaletteShareTargets(SffFile file, Palette source)
+    {
+        var counts = file.Palettes.Where(p => p.Source == PaletteSource.Embedded).GroupBy(p => (p.Group, p.Index)).ToDictionary(g => g.Key, g => g.Count());
+        return file.Palettes
+            .Where(p => p.Source == PaletteSource.Embedded && counts[(p.Group, p.Index)] == 1
+                && PaletteShareTargetError(file, source, p) is null)
+            .Select(p => (p.Group, p.Index));
     }
 
     private string? ValidatePaletteShareTarget(SffFile file, Palette source, int group, int index)

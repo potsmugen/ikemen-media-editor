@@ -1,3 +1,4 @@
+using System.Globalization;
 using Air;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -232,7 +233,8 @@ public partial class MainWindow
             var text = await Dialogs.PromptText(this, "Insert Sprite Group",
                 "Sprite group number — every sprite in that group is appended as its own frame, in index order.", "",
                 t => !int.TryParse(t.Trim(), out int g) ? "Couldn't parse that as a group number."
-                    : file.Sprites.Any(s => s.Group == g) ? null : $"No sprites found in group {g}.");
+                    : file.Sprites.Any(s => s.Group == g) ? null : $"No sprites found in group {g}.",
+                file.Sprites.Select(s => s.Group).Distinct().Order().Select(g => g.ToString(CultureInfo.InvariantCulture)).ToList());
             if (text is null || !ReferenceEquals(_file, file) || _action is null) return;
             int group = int.Parse(text.Trim());
 

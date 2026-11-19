@@ -207,7 +207,8 @@ public partial class MainWindow
                             existingTarget?.Group.ToString(CultureInfo.InvariantCulture) ?? "",
                             existingTarget?.Index.ToString(CultureInfo.InvariantCulture) ?? "",
                             SpriteFieldMax,
-                            (group, image) => ValidateSpriteShareTarget(file, row.Sprite, group, image));
+                            (group, image) => ValidateSpriteShareTarget(file, row.Sprite, group, image),
+                            SpriteShareTargets(file, row.Sprite));
                         if (!ReferenceEquals(_file, file) || targetChoice is null) return;
                         if (targetChoice.Action == SpriteTargetDialogAction.PickFromList)
                         {
@@ -533,6 +534,24 @@ public partial class MainWindow
             Sprite.AxisY = Y;
             Sprite.Palette = Palette;
         }
+    }
+
+    /// <summary>The sprites ValidateSpriteShareTarget would accept, without logging the ones it would refuse.</summary>
+    private static IEnumerable<(int Group, int Index)> SpriteShareTargets(SffFile file, Sprite source)
+    {
+        var counts = file.Sprites.GroupBy(s => (s.Group, s.Index)).ToDictionary(g => g.Key, g => g.Count());
+        int sourcePosition = file.PositionOf(source);
+        // Only earlier sprites qualify, so taking the ones before the source covers the order rule
+        return file.Sprites.Take(Math.Max(sourcePosition, 0))
+            .Where(t => counts[(t.Group, t.Index)] == 1 && !ReferenceEquals(t, source) && t.HasPixels && !LinksBackTo(t, source))
+            .Select(t => (t.Group, t.Index));
+    }
+
+    private static bool LinksBackTo(Sprite target, Sprite source)
+    {
+        for (Sprite? current = target; current is not null; current = current.SharesWith)
+            if (ReferenceEquals(current, source)) return true;
+        return false;
     }
 
     private static string? ValidateSpriteShareTarget(SffFile file, Sprite source, int group, int image)
