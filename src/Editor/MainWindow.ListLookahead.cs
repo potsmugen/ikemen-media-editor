@@ -30,8 +30,10 @@ public partial class MainWindow
     {
         target.AddHandler(KeyDownEvent, (_, e) => _listNavDirection = e.Key switch
         {
-            Key.Up or Key.PageUp or Key.Home => -1,
-            Key.Down or Key.PageDown or Key.End => 1,
+            // Not Page Up/Down: they land on the edge row as in Windows lists, and a revealed row past it
+            // would make the next press step one row instead of a page (MainWindow.ListPaging.cs)
+            Key.Up or Key.Home => -1,
+            Key.Down or Key.End => 1,
             _ => 0,
         }, RoutingStrategies.Tunnel, handledEventsToo: true);
         target.AddHandler(KeyDownEvent, (_, _) => _listNavDirection = 0, RoutingStrategies.Bubble, handledEventsToo: true);

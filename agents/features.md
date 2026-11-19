@@ -321,9 +321,10 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Right-click inside a multi-selection** keeps it in every list; in the Sprite and Action lists the
   clicked row becomes current, so single-item menu items act on it. An action stays current while it
   is selected. **Ctrl+A** selects all rows of the focused list; elsewhere it follows the tab.
-- **List look-ahead** scrolls the next row fully into view after an arrow, Page, Home or End
-  step, since Avalonia rebuilds every visible row when `ScrollIntoView` targets an unrealized
-  one (measured ~50 ms per step on a 12k-sprite SFF).
+- **List look-ahead** scrolls the next row fully into view after an arrow, Home or End step, since
+  Avalonia rebuilds every visible row when `ScrollIntoView` targets an unrealized one (measured ~50 ms
+  per step on a 12k-sprite SFF). Page Up/Down skip it: they land on the edge row, and a revealed row
+  past it made the next press step one row instead of a page.
 - **No auto-scroll on selection**: every row list (Sprite, Palette, Action, Sound, frame table) sets
   `AutoScrollToSelectedItem="False"`; code that selects a row scrolls it explicitly. A rebuild keeps
   the view and centers the kept row only when it is hidden. They also set
