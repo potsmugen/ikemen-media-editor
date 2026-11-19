@@ -1784,7 +1784,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             _paletteCollapsePending = row.Palette;
         }
         _paletteDragPressed = row.Palette;
-        _paletteDragPressPoint = p.Position;
+        // Measured on the list, which stays put when its rows scroll under a still pointer
+        _paletteDragPressPoint = e.GetPosition(PaletteList);
         _paletteDragArmed = OrderedPalettes.Contains(row.Palette);
     }
 
@@ -1794,7 +1795,9 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         try
         {
             if (!_paletteDragArmed || _paletteDragPressed is not { } pressed || sender is not Control c) return;
-            var p = e.GetPosition(c);
+            // A dialog can swallow the release, leaving the press armed with no button held
+            if (!e.GetCurrentPoint(c).Properties.IsLeftButtonPressed) { _paletteDragArmed = false; return; }
+            var p = e.GetPosition(PaletteList);
             double dx = p.X - _paletteDragPressPoint.X, dy = p.Y - _paletteDragPressPoint.Y;
             if (dx * dx + dy * dy < 36) return; // 6px, squared
             _paletteDragArmed = false;

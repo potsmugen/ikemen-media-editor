@@ -71,27 +71,6 @@ Select tool gaps against image editor conventions:
   Windows, Alt can focus the menu bar. Shift already adds, read when a shape starts.
 - Lasso and Polygon: Alt switches between freehand and polygon mid-shape.
 
-- Investigate sprites appearing to reorder themselves during Paint Mode (reported
-  2026-11-05). Trace (`build/Debug/logs/trace.log`, 22:19–22:22, SunsetRiverbank.sff,
-  7 sprites) shows `[sprite reorder] apply` at 22:20:02, 22:20:35 and 22:21:17, each
-  moving one sprite (`first=0,1 to=5`, `0,2 to=1`, `0,0 to=6`) with no `[undo] begin`
-  before it, so each came from a list drop (`OnSpriteListDrop` → `MoveSprites`,
-  MainWindow.SpriteTable.cs), never from paint code or an undo. The first Undo after
-  each reorder reverted it (verified), so Undo falling through to the main history
-  (`TryPaintUndo` false after `DropPendingPaint`) did not create them. The drop
-  boundaries are far from the dragged row, so a 6px click wobble does not explain them;
-  the maintainer also doubts the pointer movement was enough to drag (not sure).
-  Verified in code: a drag starts only in `OnSpriteRowPointerMoved` (6px threshold) and
-  nothing checks the left button is down there; `_spriteDragArmed` is cleared only by
-  `PointerReleased`, a double-click or a finished drag (no capture-lost handler), and
-  `ActivateSpriteRow` can open the Commit/Discard dialog (`ResolvePendingPaintBeforeSwitch`)
-  between press and release. Unverified: that a lost release left the drag armed and a
-  later pointer move started a button-less drag carrying the last-pressed sprite.
-  Verified logging gaps: no paint step, commit or reset is traced (MainWindow.PaintHistory.cs
-  has no CrashLog), drag start and drop details are not traced, and `MoveSprites` logs the
-  same line on the undo path, so an undo line looks like the drag it reverses. No code
-  changed; the maintainer chose not to add trace lines for now.
-
 ### Animations and Clsn
 
 - Canvas and Export Animation: true arithmetic Subtract (render.go's reverse subtract) instead of

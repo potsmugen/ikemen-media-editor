@@ -2202,7 +2202,8 @@ public partial class MainWindow
             _actionCollapsePending = row.Action;
         }
         _actionDragPressed = row.Action;
-        _actionDragPressPoint = p.Position;
+        // Measured on the list, which stays put when its rows scroll under a still pointer
+        _actionDragPressPoint = e.GetPosition(ActionList);
         _actionDragArmed = _air.Actions.Contains(row.Action);
     }
 
@@ -2212,7 +2213,9 @@ public partial class MainWindow
         try
         {
             if (!_actionDragArmed || _actionDragPressed is not { } pressed || sender is not Control c) return;
-            var p = e.GetPosition(c);
+            // A dialog can swallow the release, leaving the press armed with no button held
+            if (!e.GetCurrentPoint(c).Properties.IsLeftButtonPressed) { _actionDragArmed = false; return; }
+            var p = e.GetPosition(ActionList);
             double dx = p.X - _actionDragPressPoint.X, dy = p.Y - _actionDragPressPoint.Y;
             if (dx * dx + dy * dy < 36) return; // 6px, squared
             _actionDragArmed = false;

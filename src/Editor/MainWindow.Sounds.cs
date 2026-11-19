@@ -436,7 +436,8 @@ public partial class MainWindow
             _soundCollapsePending = row.Sound;
         }
         _soundDragPressed = row.Sound;
-        _soundDragPressPoint = p.Position;
+        // Measured on the list, which stays put when its rows scroll under a still pointer
+        _soundDragPressPoint = e.GetPosition(SoundList);
         _soundDragArmed = _snd.Sounds.Contains(row.Sound);
     }
 
@@ -446,7 +447,9 @@ public partial class MainWindow
         try
         {
             if (!_soundDragArmed || _soundDragPressed is not { } pressed || sender is not Control c) return;
-            var p = e.GetPosition(c);
+            // A dialog can swallow the release, leaving the press armed with no button held
+            if (!e.GetCurrentPoint(c).Properties.IsLeftButtonPressed) { _soundDragArmed = false; return; }
+            var p = e.GetPosition(SoundList);
             double dx = p.X - _soundDragPressPoint.X, dy = p.Y - _soundDragPressPoint.Y;
             if (dx * dx + dy * dy < 36) return; // 6px, squared
             _soundDragArmed = false;

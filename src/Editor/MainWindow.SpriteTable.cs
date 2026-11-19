@@ -752,7 +752,8 @@ public partial class MainWindow
             ApplySpriteRowSelection(selected, suppressEvents: true);
             RefreshAssignPaletteButton();
             _spriteDragPressed = row.Sprite;
-            _spriteDragPressPoint = p.Position;
+            // Measured on the list, which stays put when its rows scroll under a still pointer
+            _spriteDragPressPoint = e.GetPosition(SpriteList);
             _spriteDragArmed = _file.PositionOf(row.Sprite) >= 0;
         }
         catch (Exception ex)
@@ -769,7 +770,7 @@ public partial class MainWindow
             if (!_spriteDragArmed || _spriteDragPressed is not { } pressed || sender is not Control c) return;
             // A dialog can swallow the release, leaving the press armed with no button held
             if (!e.GetCurrentPoint(c).Properties.IsLeftButtonPressed) { _spriteDragArmed = false; return; }
-            var p = e.GetPosition(c);
+            var p = e.GetPosition(SpriteList);
             double dx = p.X - _spriteDragPressPoint.X, dy = p.Y - _spriteDragPressPoint.Y;
             if (dx * dx + dy * dy < 36) return; // 6px, squared
             _spriteDragArmed = false;
