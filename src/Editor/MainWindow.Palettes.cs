@@ -947,6 +947,7 @@ public partial class MainWindow
     {
         var items = new List<(string, Action)>
         {
+            ("Center Axis in Canvas", PalettePreview.CenterAxis),
             ("Center Image in Canvas", PalettePreview.CenterImage),
             MenuSeparator,
             ("Select Color Here", () => PalettePreview.PickColorAt(pos)),

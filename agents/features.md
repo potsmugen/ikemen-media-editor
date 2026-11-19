@@ -216,6 +216,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   zooms at the pointer.
   A canvas with nothing to zoom (no sprite shown, e.g. none loaded) resets to 100% and ignores
   zoom; an animation frame whose sprite is missing keeps its zoom (`Show(preserveZoom)`).
+- **Canvas centering**: the sprite, animation and palette-preview canvas menus have Center Axis
+  in Canvas (what a middle click does, `SpriteView.CenterAxis`) and Center Image in Canvas.
+  The reference image has no axis, so it has only Center Image in Canvas.
 - **Paint history**: the pending session has its own undo, one step per stroke, fill, paste,
   selection drag, layer operation or layer show/hide. Undo past the start closes the empty
   session and continues in the main history. If `PaintUndoLimit` (default 100) dropped steps

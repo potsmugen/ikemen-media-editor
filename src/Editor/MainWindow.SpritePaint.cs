@@ -243,6 +243,7 @@ public partial class MainWindow
         if (boxIndex >= 0)
         {
             ShowContextMenu(SpriteCanvas,
+                ("Center Axis in Canvas", SpriteCanvas.CenterAxis),
                 ("Center Image in Canvas", SpriteCanvas.CenterImage),
                 MenuSeparator,
                 ("Find Similar Sprites", () => OnFindSimilarSprites(null, new RoutedEventArgs())),
@@ -250,6 +251,7 @@ public partial class MainWindow
             return;
         }
         ShowContextMenu(SpriteCanvas,
+            ("Center Axis in Canvas", SpriteCanvas.CenterAxis),
             ("Center Image in Canvas", SpriteCanvas.CenterImage),
             MenuSeparator,
             ("Eyedropper: Pick Color Here", () => SpriteCanvas.PickColorAt(pos)),

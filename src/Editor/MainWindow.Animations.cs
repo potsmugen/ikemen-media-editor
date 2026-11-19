@@ -1930,6 +1930,7 @@ public partial class MainWindow
             {
                 ItemsSource = new List<object>
                 {
+                    MenuAction("Center Axis in Canvas", AnimCanvas.CenterAxis),
                     MenuAction("Center Image in Canvas", AnimCanvas.CenterImage),
                     new Separator(),
                     MenuAction("Paste Clsn", PasteBoxes, canPaste),
@@ -1944,6 +1945,7 @@ public partial class MainWindow
         var menu = new ContextMenu();
         var items = new List<object>
         {
+            MenuAction("Center Axis in Canvas", AnimCanvas.CenterAxis),
             MenuAction("Center Image in Canvas", AnimCanvas.CenterImage),
             new Separator(),
             MenuAction("Delete", () => DeleteBox(index)),

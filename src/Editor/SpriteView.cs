@@ -739,6 +739,14 @@ public class SpriteView : Control
         InvalidateVisual();
     }
 
+    /// <summary>Puts the axis back at the canvas center without changing zoom, as a middle click does.</summary>
+    public void CenterAxis()
+    {
+        _pan = default;
+        RefreshCursorPosition();
+        InvalidateVisual();
+    }
+
     /// <summary>Moves the displayed sprite bounds to the canvas center without changing zoom.</summary>
     public void CenterImage()
     {
@@ -1757,7 +1765,7 @@ public class SpriteView : Control
         Focus();
         var p = e.GetCurrentPoint(this);
 
-        if (p.Properties.IsMiddleButtonPressed) { _pan = default; InvalidateVisual(); return; }
+        if (p.Properties.IsMiddleButtonPressed) { CenterAxis(); return; }
 
         if (p.Properties.IsRightButtonPressed)
         {

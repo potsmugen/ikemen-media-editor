@@ -45,8 +45,6 @@ Verified unless noted.
   palette draws with. Scope, output and actions to be decided.
 - List keyboard focus vs. selection, Windows style: Ctrl+arrows move focus only, Ctrl+Space toggles.
   Clicks already show the clicked row (Sprite and Palette lists). Check what Avalonia does now first.
-- Canvas menus: add Center Axis in Canvas beside Center Image in Canvas (sprite, animation and
-  palette-preview canvases); today it's only a middle click. Do after the focus item.
 
 ### Tooltips
 
