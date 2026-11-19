@@ -1285,7 +1285,7 @@
                                   ToolTip.Tip="Double-click to change this action's number and comment">
                             <!-- Keep virtualized action rows to one measured height;
                                  double-click opens the Action Number and Comment dialog. -->
-                            <TextBlock Text="{Binding CommentText}" FontSize="{DynamicResource UiFont13}" TextAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding CommentText}" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" TextAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                           </Border>
                         </Grid>
                       </DataTemplate>
