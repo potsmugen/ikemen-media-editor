@@ -41,6 +41,8 @@ Verified unless noted.
   index 0) move to it, the rest stay. Refuse when a sprite mixes both parts, listing them.
   Indexes are kept (no pixel changes; moved slots become padding in the source). v2 only, no
   temp-only variant. Borrowers/links follow Merge's rules. One undo step.
+- Add a Find Unused Colors tool for palettes: show which color indexes no sprite using the
+  palette draws with. Scope, output and actions to be decided.
 
 ### Tooltips
 

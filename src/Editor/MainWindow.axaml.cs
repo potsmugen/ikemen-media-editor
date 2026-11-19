@@ -140,6 +140,7 @@ public partial class MainWindow : Window
         ScratchImage.ImageContextRequested += OnScratchImageContextRequested;
         WireTimelineEvents();
         WireListLookahead();
+        WireListPaging();
         AddHandler(DragDrop.DropEvent, OnFileDropped);
         DragDrop.SetAllowDrop(this, true);
 
