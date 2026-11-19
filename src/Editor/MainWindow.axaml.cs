@@ -900,7 +900,13 @@ public partial class MainWindow : Window
 
         ActionList.ContextRequested += (_, e) =>
         {
-            SelectRowUnderPointer(ActionList, e.Source);
+            // A right-click inside a multi-selection keeps it and makes the clicked action current,
+            // as in the sprite list, so the single-action items act on the row under the pointer
+            if ((e.Source as Visual)?.FindAncestorOfType<ListBoxItem>(true) is { IsSelected: true, DataContext: ActionRow clicked })
+            {
+                if (!ReferenceEquals(clicked.Action, _action)) ActivateAction(clicked.Action);
+            }
+            else SelectRowUnderPointer(ActionList, e.Source);
             ShowContextMenu(ActionList,
                 ("Duplicate Action", () => OnDuplicateAction(null, new RoutedEventArgs())),
                 MenuSeparator,
@@ -961,7 +967,9 @@ public partial class MainWindow : Window
 
         SoundList.ContextRequested += (_, e) =>
         {
-            SelectRowUnderPointer(SoundList, e.Source);
+            // A right-click inside a multi-selection keeps it, as in the sprite and palette lists
+            if ((e.Source as Visual)?.FindAncestorOfType<ListBoxItem>(true) is not { IsSelected: true })
+                SelectRowUnderPointer(SoundList, e.Source);
             ShowContextMenu(SoundList,
                 ("Select All", () => SelectAllSounds()),
                 ("Invert Selection", () => InvertSoundSelection()),
@@ -2371,10 +2379,31 @@ public partial class MainWindow : Window
 
     private void SelectAllCurrentList()
     {
+        // A focused palette or action list takes Ctrl+A, as any list would; elsewhere it follows the tab
+        var focusedList = (KeyFocus() as Visual)?.FindAncestorOfType<ListBox>(true);
+        if (focusedList == PaletteList) { SelectAllPalettes(); return; }
+        if (focusedList == ActionList) { SelectAllActions(); return; }
         if (Tabs?.SelectedIndex == 0 && SpriteList is not null) SelectAllSprites();
         else if (Tabs?.SelectedIndex == 3 && SoundList is not null) SelectAllSounds();
         else if (Tabs?.SelectedIndex == 1 && _editingView is { } view) SelectAllSwatches(view);
         else if (Tabs?.SelectedIndex == 2) SelectAllFrames();
+    }
+
+    /// <summary>Selects every palette row; the shown palette stays the current one.</summary>
+    private void SelectAllPalettes()
+    {
+        _suppressEvents = true;
+        try { PaletteList.SelectAll(); }
+        finally { _suppressEvents = false; }
+        UpdatePaletteActionButtons();
+    }
+
+    /// <summary>Selects every action row; the current action and its playback stay.</summary>
+    private void SelectAllActions()
+    {
+        _suppressEvents = true;
+        try { ActionList.SelectAll(); }
+        finally { _suppressEvents = false; }
     }
 
     // ---- help -------------------------------------------------------------

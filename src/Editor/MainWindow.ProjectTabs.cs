@@ -271,6 +271,8 @@ public partial class MainWindow
             {
                 int row = rows.FindIndex(r => ReferenceEquals(r.Action, keepAction));
                 ActionList.SelectedIndex = row >= 0 ? row : 0;
+                int shown = ActionList.SelectedIndex;
+                ScrollListRowIntoView(ActionList, () => shown);
             }
         }
         if (_doc.AnimView is { } animView) AnimCanvas.View = animView;

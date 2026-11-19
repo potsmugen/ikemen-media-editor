@@ -1252,7 +1252,7 @@
                       <TextBlock Text="Comment" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
                     </Border>
                   </Grid>
-                  <ListBox Grid.Row="2" x:Name="ActionList" SelectionMode="Multiple" SelectionChanged="OnActionSelected" Background="{DynamicResource ThemeListBg}">
+                  <ListBox Grid.Row="2" x:Name="ActionList" SelectionMode="Multiple" SelectionChanged="OnActionSelected" AutoScrollToSelectedItem="False" Background="{DynamicResource ThemeListBg}">
                     <ListBox.Styles>
                       <Style Selector="ListBoxItem">
                         <Setter Property="Padding" Value="0" />
@@ -1505,7 +1505,7 @@
                         <TextBlock Text="Angle" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont11}" HorizontalAlignment="Center" />
                       </Border>
                     </Grid>
-                    <ListBox Grid.Row="1" x:Name="FrameTableList" SelectionMode="Multiple" SelectionChanged="OnFrameTableSelected" PointerMoved="OnFrameTableHover" PointerExited="OnFrameTableExited" Background="{DynamicResource ThemeListBg}">
+                    <ListBox Grid.Row="1" x:Name="FrameTableList" SelectionMode="Multiple" SelectionChanged="OnFrameTableSelected" AutoScrollToSelectedItem="False" PointerMoved="OnFrameTableHover" PointerExited="OnFrameTableExited" Background="{DynamicResource ThemeListBg}">
                       <ListBox.Styles>
                         <Style Selector="ListBoxItem">
                           <Setter Property="Padding" Value="0" />

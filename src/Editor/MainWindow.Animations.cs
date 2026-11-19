@@ -254,7 +254,11 @@ public partial class MainWindow
         ActionList.SelectedIndex = -1;
         _suppressEvents = false;
         CrashLog.Trace($"LoadAir: selecting first action ({_air!.Actions.Count} total)");
-        if (_air.Actions.Count > 0) ActionList.SelectedIndex = 0;
+        if (_air.Actions.Count > 0)
+        {
+            ActionList.SelectedIndex = 0;
+            ScrollListRowIntoView(ActionList, () => 0);
+        }
         UpdateTitle();
         CrashLog.Trace($"[air] encoding: {_air.TextEncoding} {_air.LegacyEncodingName}");
         foreach (var a in _air.Actions.Where(a => a.ChangesOnSave))
@@ -288,8 +292,17 @@ public partial class MainWindow
             })
             .ToList();
 
+        // The list no longer scrolls on selection; keep the view across the rebuild, like the sprite table
+        var scroller = ActionList.FindDescendantOfType<ScrollViewer>();
+        var offset = scroller?.Offset;
         _suppressEvents = true;
         ActionList.ItemsSource = rows;
+        if (scroller is not null && offset is { } before)
+        {
+            ActionList.UpdateLayout();
+            double max = Math.Max(0, scroller.Extent.Height - scroller.Viewport.Height);
+            scroller.Offset = new Vector(before.X, Math.Clamp(before.Y, 0, max));
+        }
         // Re-find by identity rather than the old row index, since filtering
         // (and reordering) both mean position no longer says which action it was.
         if (current is not null)
@@ -305,6 +318,8 @@ public partial class MainWindow
             }
         }
         _suppressEvents = false;
+        if (current?.Action is { } kept && rows.FindIndex(r => ReferenceEquals(r.Action, kept)) >= 0)
+            ScrollListRowIntoView(ActionList, () => ((List<ActionRow>)ActionList.ItemsSource!).FindIndex(r => ReferenceEquals(r.Action, kept)));
     }
 
     /// <summary>Actions selected in the list, in file order.</summary>
@@ -545,10 +560,16 @@ public partial class MainWindow
     private void OnActionSelected(object? sender, SelectionChangedEventArgs e)
     {
         if (_suppressEvents || _air is null || ActionList.SelectedItem is not ActionRow row) return;
-        // Adding or dropping other rows keeps the current action and its playback.
-        if (ReferenceEquals(row.Action, _action)
+        // Adding or dropping other rows keeps the current action and its playback, while it stays selected
+        if (_action is not null && ActionList.SelectedItems?.OfType<ActionRow>().Any(r => ReferenceEquals(r.Action, _action)) == true
             && (ActionList.SelectedItems?.Count > 1 || (e.AddedItems.Count == 0 && e.RemovedItems.Count > 0))) return;
-        _action = row.Action;
+        ActivateAction(row.Action);
+    }
+
+    /// <summary>Makes an action the current one: its frames, timeline, canvas and table.</summary>
+    private void ActivateAction(AnimationAction action)
+    {
+        _action = action;
         _tick = 0;
         ResetPlaybackCaches(); // keeps the bitmap cache to one action's sprites
 
@@ -563,6 +584,7 @@ public partial class MainWindow
         ShowFrame();
         SyncTextFromAction();
         RebuildFrameTable();
+        if (_frameTableActive) ScrollListRowIntoView(FrameTableList, () => FrameList.SelectedIndex);
     }
 
     /// <summary>

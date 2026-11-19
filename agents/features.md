@@ -318,11 +318,15 @@ and constraints that are easy to miss when reading one code path in isolation.
   anchor. Left to Avalonia, the list's ScrollViewer scrolled the view only, so the next arrow step
   jumped back to the old row. Home and End already worked through Avalonia. Ctrl and Alt
   combinations are left alone.
+- **Right-click inside a multi-selection** keeps it in every list; in the Sprite and Action lists the
+  clicked row becomes current, so single-item menu items act on it. An action stays current while it
+  is selected. **Ctrl+A** selects all rows of the focused list; elsewhere it follows the tab.
 - **List look-ahead** scrolls the next row fully into view after an arrow, Page, Home or End
   step, since Avalonia rebuilds every visible row when `ScrollIntoView` targets an unrealized
   one (measured ~50 ms per step on a 12k-sprite SFF).
-- **No auto-scroll on selection**: the Sprite, Palette and Sound lists set
-  `AutoScrollToSelectedItem="False"`; code that selects a row scrolls it explicitly. With it on,
+- **No auto-scroll on selection**: every row list (Sprite, Palette, Action, Sound, frame table) sets
+  `AutoScrollToSelectedItem="False"`; code that selects a row scrolls it explicitly. A rebuild keeps
+  the view and centers the kept row only when it is hidden. With it on,
   each `SelectedItems.Add` queued a scroll that rebuilt the visible rows (duplicating 72 palettes
   took 3.2 s after the handler returned: 59 scrolls, 1875 rows built).
 - **List jumps** land the row in the middle of the view in every table: Health Report and

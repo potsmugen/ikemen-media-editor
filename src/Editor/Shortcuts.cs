@@ -117,7 +117,7 @@ public static class Shortcuts
         new("PreviousTab", TabsSection, "Previous tab", ShortcutScope.Everywhere, "Ctrl+Shift+Tab", InTextBoxes: true),
         new("Undo", "Edit", "Undo", ShortcutScope.Everywhere, "Ctrl+Z"),
         new("Redo", "Edit", "Redo", ShortcutScope.Everywhere, "Ctrl+Y"),
-        new("SelectAll", "Edit", "Select all sprites, sounds, frames or palette colors", ShortcutScope.Everywhere, "Ctrl+A"),
+        new("SelectAll", "Edit", "Select all rows in the focused list, or the palette colors", ShortcutScope.Everywhere, "Ctrl+A"),
         new("Copy", "Edit", "Copy Clsn or frames", ShortcutScope.AnimationsTab, "Ctrl+C"),
         new("Paste", "Edit", "Paste Clsn or frames", ShortcutScope.AnimationsTab, "Ctrl+V"),
         new("Find", "Edit", "Filter (current tab's list)", ShortcutScope.Everywhere, "Ctrl+F", InTextBoxes: true),

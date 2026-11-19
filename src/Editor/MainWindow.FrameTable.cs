@@ -131,7 +131,11 @@ public partial class MainWindow
         {
             IReadOnlyCollection<int> wanted = keep is not null && keep.Contains(frame) ? keep : [frame];
             if (!SelectedFrameRows().SequenceEqual(wanted.Where(r => r < _frameTableRows.Count).Distinct().Order()))
+            {
                 ApplyFrameRowSelection(wanted);
+                // The table no longer scrolls on selection; show a current frame that changed
+                ScrollListRowIntoView(FrameTableList, () => FrameList.SelectedIndex);
+            }
         }
         FocusFrameTableRow();
     }
