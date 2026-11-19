@@ -2295,6 +2295,8 @@ public partial class MainWindow
         var air = _air;
         var before = air.Actions.ToList();
         if (MovedAsBlock(before, moving, to) is not { } after) return;
+        // Logged once per drop, so an undo or redo of it doesn't read like another drag
+        CrashLog.Trace($"[action reorder] drop: moving={moving.Count}, first={moving[0].Number}, to={to}, count={air.Actions.Count}");
 
         void Apply(List<AnimationAction> order)
         {

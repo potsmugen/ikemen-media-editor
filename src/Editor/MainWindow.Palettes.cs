@@ -1847,6 +1847,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         var palettes = OrderedPalettes;
         var before = palettes.ToList();
         if (MovedAsBlock(before, moving, to) is not { } after) return;
+        // Logged once per drop, so an undo or redo of it doesn't read like another drag
+        CrashLog.Trace($"[palette reorder] drop: moving={moving.Count}, first={moving[0].Group},{moving[0].Index}, to={to}, count={palettes.Count}");
         // Keep the editor on the same palette object, not the same position.
         var active = _file is not null
             ? (_paletteOverride >= 0 && _paletteOverride < palettes.Count ? palettes[_paletteOverride] : null)

@@ -824,10 +824,11 @@ public partial class MainWindow
         var before = file.Sprites.ToList();
         if (MovedAsBlock(before, moving, to) is not { } after) return;
         if (RefuseV1PaletteLoss(after, "Move")) return;
+        // Logged once per drop, so an undo or redo of it doesn't read like another drag
+        CrashLog.Trace($"[sprite reorder] drop: moving={moving.Count}, first={moving[0].Group},{moving[0].Index}, to={to}, count={file.Sprites.Count}");
 
         void Apply(List<Sprite> order)
         {
-            CrashLog.Trace($"[sprite reorder] apply: moving={moving.Count}, first={moving[0].Group},{moving[0].Index}, to={to}, count={file.Sprites.Count}");
             ApplyListOrder(file.Sprites, order, "sprites");
         }
         Edit("reorder sprites", () => Apply(after), () => Apply(before));

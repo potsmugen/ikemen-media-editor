@@ -333,7 +333,7 @@ and constraints that are easy to miss when reading one code path in isolation.
   menu jumps, palette, sound and action selection, and the frame table following a timeline
   click or frame step. A row already fully visible stays where it is; arrow steps and
   drag-fill keep the minimal scroll.
-- **Row drag threshold** (Sprite, Palette, Sound and Action lists) is measured against the list box,
+- **Row drag threshold** (Sprite, Palette, Sound and Action lists, frame table grip) is measured against the list box,
   not the row: a click on a half-hidden row scrolls it into view under a still pointer, and measured
   on the row that scroll started a drag that the edge band carried several rows away. A move with
   the left button up disarms the drag.

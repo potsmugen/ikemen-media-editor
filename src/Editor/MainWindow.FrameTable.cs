@@ -227,7 +227,8 @@ public partial class MainWindow
             _frameCollapsePending = row.FrameRow;
         }
         _frameDragPressed = row.FrameRow;
-        _frameDragPressPoint = p.Position;
+        // Measured on the list, which stays put when its rows scroll under a still pointer
+        _frameDragPressPoint = e.GetPosition(FrameTableList);
         _frameDragArmed = row.FrameRow < _action.Elements.Count;
     }
 
@@ -237,7 +238,9 @@ public partial class MainWindow
         try
         {
             if (!_frameDragArmed || _action is not { } action || sender is not Control c) return;
-            var p = e.GetPosition(c);
+            // A dialog can swallow the release, leaving the press armed with no button held
+            if (!e.GetCurrentPoint(c).Properties.IsLeftButtonPressed) { _frameDragArmed = false; return; }
+            var p = e.GetPosition(FrameTableList);
             double dx = p.X - _frameDragPressPoint.X, dy = p.Y - _frameDragPressPoint.Y;
             if (dx * dx + dy * dy < 36) return; // 6px, squared
             _frameDragArmed = false;
@@ -291,6 +294,7 @@ public partial class MainWindow
     private void MoveFrames(IReadOnlyList<AnimationElement> moving, int to)
     {
         if (_action is not { } action || MovedAsBlock(action.Elements, moving, to) is not { } order) return;
+        CrashLog.Trace($"[frame reorder] drop: action={action.Number}, moving={moving.Count}, first={action.Elements.IndexOf(moving[0]) + 1}, to={to}, count={action.Elements.Count}");
         int currentRow = FrameList.SelectedIndex;
         var current = currentRow >= 0 && currentRow < action.Elements.Count ? action.Elements[currentRow] : null;
         var moved = new HashSet<AnimationElement>(moving, ReferenceEqualityComparer.Instance);

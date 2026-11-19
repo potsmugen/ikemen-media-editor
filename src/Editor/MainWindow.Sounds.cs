@@ -506,6 +506,8 @@ public partial class MainWindow
         var file = _snd;
         var before = file.Sounds.ToList();
         if (MovedAsBlock(before, moving, to) is not { } after) return;
+        // Logged once per drop, so an undo or redo of it doesn't read like another drag
+        CrashLog.Trace($"[sound reorder] drop: moving={moving.Count}, first={moving[0].Group},{moving[0].Index}, to={to}, count={file.Sounds.Count}");
 
         void Apply(List<SoundEntry> order)
         {
