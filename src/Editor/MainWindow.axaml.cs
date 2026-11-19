@@ -1070,15 +1070,21 @@ public partial class MainWindow : Window
                 copy,
                 new Separator(),
                 Blocked(MenuAction("Create Gradient", () => OnCreateGradient(null, new RoutedEventArgs())), atLeastTwo),
-                Blocked(MenuAction("Sort Colors", () => OnSortColors()), atLeastTwo),
-                Blocked(MenuAction("Swap Colors", () => OnSwapColors()), swapBlocked),
+                Blocked(MenuAction("Sort Colors", () => OnSortColors()), atLeastTwo,
+                    "Sorts the selected colors. With several palettes selected, can sort them all the same way."),
+                Blocked(MenuAction("Swap Colors", () => OnSwapColors()), swapBlocked,
+                    "Swaps the two selected colors. With several palettes selected, can swap them in all."),
             },
         });
 
-        // Unavailable actions are disabled, with the reason as their tooltip
-        static MenuItem Blocked(MenuItem item, string? reason)
+        // Unavailable actions are disabled, with the reason as their tooltip in place of the usual one
+        static MenuItem Blocked(MenuItem item, string? reason, string? tip = null)
         {
-            if (reason is null) return item;
+            if (reason is null)
+            {
+                if (tip is not null) ToolTip.SetTip(item, tip);
+                return item;
+            }
             item.IsEnabled = false;
             ToolTip.SetTip(item, reason);
             return item;
@@ -1105,6 +1111,18 @@ public partial class MainWindow : Window
     private void Edit(string name, Action apply, Action undo, string? mergeKey = null, string kind = SffKind)
     {
         _undo.Do(name, () => { apply(); AfterEdit(); }, () => { undo(); AfterEdit(); }, mergeKey);
+        MarkKindChanged(kind);
+    }
+
+    /// <summary>One undo step that changes several file kinds at once, e.g. palettes from different files</summary>
+    private void EditKinds(string name, Action apply, Action undo, IEnumerable<string> kinds)
+    {
+        _undo.Do(name, () => { apply(); AfterEdit(); }, () => { undo(); AfterEdit(); });
+        foreach (var kind in kinds.Distinct()) MarkKindChanged(kind);
+    }
+
+    private void MarkKindChanged(string kind)
+    {
         if (kind.StartsWith("palette:", StringComparison.Ordinal))
         {
             if (!_undo.Tag(kind)) _undo.Untracked(kind);

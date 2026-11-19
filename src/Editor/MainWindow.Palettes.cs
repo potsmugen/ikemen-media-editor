@@ -1139,15 +1139,15 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             }
             var selected = view.Selection.Where(i => i >= 0 && i < pal.Colors.Length).OrderBy(i => i).ToList();
             if (selected.Count < 2) return; // the menu item is disabled then
-            var (canUpdate, reason) = SpriteUpdateAvailability(pal);
-            var choice = await Dialogs.PromptColorSort(this, canUpdate, reason);
+            var others = OtherSelectedPalettes(pal);
+            var choice = await Dialogs.PromptColorSort(this, ReorderScopeFor(pal, others));
             if (choice is not { } picked) return;
 
             if (picked.Key == ColorSortKey.Manual)
             {
                 var manual = await Dialogs.PromptManualColorOrder(this, pal.Colors, selected);
                 if (manual is null) return;
-                await ApplyColorReorder(pal, view, selected, manual, picked.UpdateSprites, $"Sorted {selected.Count} colors manually");
+                await ApplyColorReorder(pal, view, selected, manual, picked.UpdateSprites, others, "Sort Colors", $"Sorted {selected.Count} colors manually");
                 return;
             }
 
@@ -1165,7 +1165,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 ColorSortKey.Hue => "hue",
                 _ => "index",
             };
-            await ApplyColorReorder(pal, view, indices, order, picked.UpdateSprites, $"Sorted {indices.Count} colors by {by}");
+            await ApplyColorReorder(pal, view, indices, order, picked.UpdateSprites, others, "Sort Colors", $"Sorted {indices.Count} colors by {by}");
         }
         catch (Exception ex)
         {
@@ -1189,11 +1189,11 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             var indices = view.Selection.Where(i => i < pal.Colors.Length).OrderBy(i => i).ToList();
             if (indices.Count != 2 || indices[0] == 0) return; // the menu item is disabled then
 
-            var (canUpdate, reason) = SpriteUpdateAvailability(pal);
-            var updateSprites = await Dialogs.PromptColorSwap(this, indices[0], indices[1], canUpdate, reason);
-            if (updateSprites is not { } update) return;
+            var others = OtherSelectedPalettes(pal);
+            var swap = await Dialogs.PromptColorSwap(this, indices[0], indices[1], ReorderScopeFor(pal, others));
+            if (swap is not { } update) return;
 
-            await ApplyColorReorder(pal, view, indices, [1, 0], update, $"Swapped colors {indices[0]} and {indices[1]}");
+            await ApplyColorReorder(pal, view, indices, [1, 0], update, others, "Swap Colors", $"Swapped colors {indices[0]} and {indices[1]}");
         }
         catch (Exception ex)
         {
@@ -1208,11 +1208,30 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         return indices.Count >= 2 ? indices : null;
     }
 
-    /// <summary>Whether this palette's sprites can be updated, and the reason when they can't.</summary>
-    private (bool Enabled, string? Reason) SpriteUpdateAvailability(Palette pal)
+    /// <summary>Whether sprites using any of these palettes can be updated, and the reason when they can't.</summary>
+    private (bool Enabled, string? Reason) SpriteUpdateAvailability(IReadOnlyCollection<Palette> pals)
     {
-        if (_file is null) return (false, "No SFF is open, so no sprites use this palette.");
-        return _file.Sprites.Any(s => s.Palette == pal) ? (true, null) : (false, "No sprites use this palette.");
+        string what = pals.Count == 1 ? "this palette" : "these palettes";
+        if (_file is null) return (false, $"No SFF is open, so no sprites use {what}.");
+        return _file.Sprites.Any(s => s.Palette is { } p && pals.Contains(p)) ? (true, null) : (false, $"No sprites use {what}.");
+    }
+
+    /// <summary>The other palettes selected in the Palette List, which a reorder of pal offers to move too; empty unless pal is one of them.</summary>
+    private List<Palette> OtherSelectedPalettes(Palette pal)
+    {
+        var selected = SelectedPalettesInOrder();
+        return selected.Count < 2 || !selected.Contains(pal) ? [] : selected.Where(p => !ReferenceEquals(p, pal)).ToList();
+    }
+
+    private static string ReorderOthersQuestion(int n) => n == 1
+        ? "Another palette is selected. Reorder its indexes the same way?"
+        : $"{n} other palettes are selected. Reorder their indexes the same way?";
+
+    /// <summary>The Sort and Swap dialogs' scope: how many palettes they may reorder and whether those palettes' sprites can follow.</summary>
+    private ReorderScope ReorderScopeFor(Palette pal, List<Palette> others)
+    {
+        var (canUpdate, reason) = SpriteUpdateAvailability([pal, .. others]);
+        return new ReorderScope(others.Count + 1, canUpdate, reason);
     }
 
     /// <summary>Positions within indices in sorted order: result[k] is the position whose color lands at indices[k].</summary>
@@ -1234,15 +1253,26 @@ private void ClearOtherSwatchSelections(PaletteView keep)
 
     /// <summary>
     /// Moves the colors so the one at indices[order[k]] lands at indices[k]. With updateSprites,
-    /// sprites using the palette get matching pixel indexes, all in one undo step.
+    /// sprites using the palette get matching pixel indexes, all in one undo step. With other palettes
+    /// selected, asks whether they move the same way; Cancel stops here.
     /// </summary>
     private async Task ApplyColorReorder(Palette pal, PaletteView view, List<int> indices, int[] order,
-        bool updateSprites, string doneText)
+        bool updateSprites, IReadOnlyList<Palette> others, string title, string doneText)
     {
         if (order.Select((p, k) => p == k).All(same => same))
         {
             StatusText.Text = "Colors are already in that order.";
             return;
+        }
+        if (others.Count > 0)
+        {
+            bool? all = await Dialogs.AskReorderOtherPalettes(this, title, ReorderOthersQuestion(others.Count));
+            if (all is null) return;
+            if (all == true)
+            {
+                await ApplyColorReorderMany(pal, indices, order, updateSprites, others, doneText);
+                return;
+            }
         }
         if (!updateSprites || _file is not { } file)
         {
@@ -1321,6 +1351,64 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             sprites += usingPal.Count;
         }
         return (swaps, sprites);
+    }
+
+    /// <summary>
+    /// ApplyColorReorder on pal and the other selected palettes: the same slots move in each, in one
+    /// undo step. Each palette's own sprites follow. Palettes too short for the slots are skipped and listed.
+    /// </summary>
+    private async Task ApplyColorReorderMany(Palette pal, List<int> indices, int[] order, bool updateSprites,
+        IReadOnlyList<Palette> others, string doneText)
+    {
+        // Other palettes can't join the pending slider session, so it commits first and the reorder is its own step
+        CommitPendingColorAdjust();
+        var map = Enumerable.Range(0, 256).Select(i => (byte)i).ToArray();
+        for (int k = 0; k < indices.Count; k++) map[indices[order[k]]] = (byte)indices[k];
+
+        int needed = indices.Max() + 1;
+        var skippedPalettes = new List<string>();
+        var skippedSprites = new List<string>();
+        var changes = new List<(Palette Pal, Rgba[] Before, Rgba[] After, List<PixelSwap> Swaps)>();
+        int sprites = 0;
+        foreach (var p in others.Prepend(pal))
+        {
+            if (p.Colors.Length < needed)
+            {
+                skippedPalettes.Add($"Palette {PaletteLabel(p)}: only {p.Colors.Length} colors");
+                continue;
+            }
+            var before = p.Colors.ToArray();
+            var after = (Rgba[])before.Clone();
+            for (int k = 0; k < indices.Count; k++) after[indices[k]] = SlotAlpha(p, indices[k], before[indices[order[k]]]);
+            List<PixelSwap> swaps = [];
+            if (updateSprites && _file is { } file)
+            {
+                var (planned, count) = PlanSpritePixelSwaps(file, p, map, skippedSprites);
+                swaps = planned;
+                sprites += count;
+            }
+            changes.Add((p, before, after, swaps));
+        }
+
+        var kinds = changes.Select(c => _standalonePalettes.Contains(c.Pal) ? StandalonePaletteKindFor(c.Pal) : SffKind).ToList();
+        if (changes.Any(c => c.Swaps.Count > 0)) kinds.Add(SffKind);
+        string name = changes.Count == 1 ? doneText : $"{doneText} in {changes.Count} palettes";
+        EditKinds(name,
+            () => { foreach (var c in changes) ApplyReorderState(c.Pal, c.After, c.Swaps, forward: true); },
+            () => { foreach (var c in changes) ApplyReorderState(c.Pal, c.Before, c.Swaps, forward: false); },
+            kinds);
+        ResetColorAdjustBase();
+
+        int skipped = skippedPalettes.Count + skippedSprites.Count;
+        StatusText.Text = name
+            + (updateSprites ? $"; updated {sprites} sprite{(sprites == 1 ? "" : "s")}" : "")
+            + (skipped > 0 ? $"; skipped {skipped}." : ".");
+        if (skipped > 0)
+        {
+            string title = skippedPalettes.Count == 0 ? "Sprites Not Updated"
+                : skippedSprites.Count == 0 ? "Palettes Skipped" : "Palettes and Sprites Skipped";
+            await Dialogs.ShowMessage(this, title, string.Join("\n", skippedPalettes.Concat(skippedSprites)));
+        }
     }
 
     private void ApplyReorderState(Palette pal, Rgba[] colors, List<PixelSwap> swaps, bool forward)
@@ -2619,6 +2707,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     private void HighlightPaletteInList(Palette pal)
     {
         if (_file is null || PaletteList is null) return;
+        // An already selected row is left alone, so clicking a color keeps a multi-selection for Sort and Swap Colors
+        if (PaletteList.SelectedItems?.OfType<PaletteRow>().Any(r => ReferenceEquals(r.Palette, pal)) == true) return;
         bool wasSuppressed = _suppressEvents;
         _suppressEvents = true;
         ReselectPaletteRow(pal);

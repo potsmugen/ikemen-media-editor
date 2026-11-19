@@ -25,6 +25,9 @@ public enum ColorSortKey { Brightness, Hue, Index, Manual }
 /// <summary>What the color sort dialog returned.</summary>
 public sealed record ColorReorderChoice(ColorSortKey Key, bool Descending, bool UpdateSprites);
 
+/// <summary>What Sort and Swap Colors reach: how many palettes (the edited one plus the other selected ones), and whether their sprites can follow.</summary>
+public sealed record ReorderScope(int Palettes, bool CanUpdate, string? UpdateReason);
+
 /// <summary>What the user chose when asked about unsaved work.</summary>
 public enum SaveChoice { Save, Discard, Cancel }
 
@@ -3138,6 +3141,11 @@ public static partial class Dialogs
             $"This tab already has files open. Open {fileName} in a new tab, or close them and open it here?",
             [("Open in New Tab", true), ("Open in Current Tab", false), ("Cancel", null)]);
 
+    /// <summary>Sort or Swap Colors with other palettes selected: true reorders them the same way, false only the edited one, null cancels.</summary>
+    public static Task<bool?> AskReorderOtherPalettes(Window owner, string title, string message) =>
+        Show<bool?>(owner, title, message,
+            [("All Selected Palettes", true), ("This Palette Only", false), ("Cancel", null)]);
+
     /// <summary>Loading a session while tabs are in use: true appends its tabs, false replaces them, null cancels.</summary>
     public static Task<bool?> AskReplaceOrAppendTabs(Window owner, string fileName) =>
         Show<bool?>(owner, "Load Session",
@@ -3432,8 +3440,22 @@ public static partial class Dialogs
         return result.Task;
     }
 
-    /// <summary>Asks how to sort the selected colors, and whether sprites using the palette follow. Returns null if canceled.</summary>
-    public static Task<ColorReorderChoice?> PromptColorSort(Window owner, bool canUpdateSprites, string? disabledReason)
+    /// <summary>The "update sprites" box shared by Sort and Swap Colors.</summary>
+    private static CheckBox ReorderUpdateBox(ReorderScope scope)
+    {
+        var update = new CheckBox
+        {
+            Content = scope.Palettes > 1 ? "Update sprites that use these palettes" : "Update sprites that use this palette",
+            IsEnabled = scope.CanUpdate,
+            IsChecked = scope.CanUpdate,
+        };
+        // A disabled control still shows its tip, so the reason it is off rides along with it.
+        if (!scope.CanUpdate && scope.UpdateReason is not null) ToolTip.SetTip(update, scope.UpdateReason);
+        return update;
+    }
+
+    /// <summary>Asks how to sort the selected colors, and whether sprites using the palettes follow. Returns null if canceled.</summary>
+    public static Task<ColorReorderChoice?> PromptColorSort(Window owner, ReorderScope scope)
     {
         var result = new TaskCompletionSource<ColorReorderChoice?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var brightness = new RadioButton { GroupName = "ColorSortKey", Content = "Brightness" };
@@ -3445,9 +3467,7 @@ public static partial class Dialogs
         var descending = new RadioButton { GroupName = "ColorSortOrder", Content = "Descending" };
         // A manual order has no direction
         manual.IsCheckedChanged += (_, _) => ascending.IsEnabled = descending.IsEnabled = manual.IsChecked != true;
-        var update = new CheckBox { Content = "Update sprites that use this palette", IsEnabled = canUpdateSprites, IsChecked = canUpdateSprites };
-        // A disabled control still shows its tip, so the reason it is off rides along with it.
-        if (!canUpdateSprites && disabledReason is not null) ToolTip.SetTip(update, disabledReason);
+        var update = ReorderUpdateBox(scope);
 
         var dialog = new Window
         {
@@ -3611,12 +3631,10 @@ public static partial class Dialogs
         return result.Task;
     }
 
-    public static Task<bool?> PromptColorSwap(Window owner, int first, int second, bool canUpdateSprites, string? disabledReason)
+    public static Task<bool?> PromptColorSwap(Window owner, int first, int second, ReorderScope scope)
     {
         var result = new TaskCompletionSource<bool?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var update = new CheckBox { Content = "Update sprites that use this palette", IsEnabled = canUpdateSprites, IsChecked = canUpdateSprites };
-        // A disabled control still shows its tip, so the reason it is off rides along with it.
-        if (!canUpdateSprites && disabledReason is not null) ToolTip.SetTip(update, disabledReason);
+        var update = ReorderUpdateBox(scope);
 
         var dialog = new Window
         {
@@ -3639,7 +3657,11 @@ public static partial class Dialogs
         {
             Margin = new Avalonia.Thickness(20),
             Spacing = 8,
-            Children = { new TextBlock { Text = $"Swap colors {first} and {second}." }, update },
+            Children =
+            {
+                new TextBlock { Text = $"Swap colors {first} and {second}." },
+                update,
+            },
         };
         panel.Children.Add(new StackPanel
         {

@@ -537,6 +537,12 @@ and constraints that are easy to miss when reading one code path in isolation.
   (on; off and disabled when no sprite uses it). When on, indexes are remapped in the same undo step and pending slider edits commit
   first. Linked sprites follow their owner; shared pixels and undecoded sprites are skipped
   and listed, and true-color sprites are never touched.
+- **Reorder across selected palettes**: when the edited palette is one of several selected in the
+  Palette List, Sort and Swap Colors ask, after their dialog and before changing anything, whether the
+  other selected palettes move the same way (All Selected Palettes, This Palette Only, Cancel). The order is worked out on the edited palette,
+  then the same slot moves go to each other selected palette, sprites following per palette, in one
+  undo step. Palettes shorter than the highest selected slot are skipped and listed. Pending slider
+  edits commit first, since other palettes can't join that session.
 - **Box selection** drags a box that selects every swatch it touches; Ctrl adds it. Dragging
   from a selected swatch still copies the selection.
 - **Palette hue and saturation** sliders use OKLCH by default, so a hue move keeps perceived

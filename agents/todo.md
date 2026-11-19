@@ -43,6 +43,11 @@ Verified unless noted.
   temp-only variant. Borrowers/links follow Merge's rules. One undo step.
 - Add a Find Unused Colors tool for palettes: show which color indexes no sprite using the
   palette draws with. Scope, output and actions to be decided.
+- Palette List focus vs. selection, Windows style: the focused row is the visible palette inside a
+  multi-selection (Ctrl+click toggles and focuses, Ctrl+arrows move focus only, Ctrl+Space toggles).
+  Check what the list does now first.
+- Canvas menus: add Center Axis in Canvas beside Center Image in Canvas (sprite, animation and
+  palette-preview canvases); today it's only a middle click. Do after the focus item.
 
 ### Tooltips
 
@@ -204,6 +209,15 @@ Select tool gaps against image editor conventions:
 ## Not yet checked in the app
 
 Built, but not tried by the maintainer yet.
+
+### Reorder across selected palettes (2026-11-19)
+
+- Mix of SFF and external .act palettes in one sort: one undo restores all; each shows unsaved.
+- No SFF open, several standalone .act files: undo clears each file's unsaved mark.
+- A shorter palette in the selection is skipped and listed; the rest sort.
+- "This Palette Only" with several selected: only the edited palette and its own sprites change.
+- Cancel on the popup after Manual Sort: nothing changes.
+- Manual sort moving index 0 with others on.
 
 ### Palette reload from disk (2026-11-17)
 
