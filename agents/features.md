@@ -337,6 +337,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   not the row: a click on a half-hidden row scrolls it into view under a still pointer, and measured
   on the row that scroll started a drag that the edge band carried several rows away. A move with
   the left button up disarms the drag.
+- A jump centers its row again once layout settles (`ScrollListRowIntoView`, `ScrollSpriteIntoView`).
+  That second pass runs after waiting input, so any press, wheel turn or key in between cancels it:
+  the user's scroll wins.
 - Centering a list row keeps the scroll offset on a row boundary, so a rebuild cannot
   leave the first visible row clipped.
 - **Export Animation** writes one looping pass of the action as WebP (default) or GIF; the format

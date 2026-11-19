@@ -31,6 +31,10 @@ public partial class MainWindow
             _ => 0,
         }, RoutingStrategies.Tunnel, handledEventsToo: true);
         target.AddHandler(KeyDownEvent, (_, _) => _listNavDirection = 0, RoutingStrategies.Bubble, handledEventsToo: true);
+        // Any press, wheel turn or key counts as the user acting, so a deferred list scroll yields to it
+        target.AddHandler(PointerPressedEvent, (_, _) => _userInputCount++, RoutingStrategies.Tunnel, handledEventsToo: true);
+        target.AddHandler(PointerWheelChangedEvent, (_, _) => _userInputCount++, RoutingStrategies.Tunnel, handledEventsToo: true);
+        target.AddHandler(KeyDownEvent, (_, _) => _userInputCount++, RoutingStrategies.Tunnel, handledEventsToo: true);
     }
 
     private void QueueLookahead(ListBox list)

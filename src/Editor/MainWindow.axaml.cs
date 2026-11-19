@@ -1365,7 +1365,8 @@ public partial class MainWindow : Window
         // Center now, before the tab's first paint, so the list never shows at the old offset.
         CenterSpriteNow(sprite);
         // Second pass once layout settles, in case the tab wasn't realized yet; same target, so no visible move.
-        Dispatcher.UIThread.Post(() => CenterSpriteNow(sprite), DispatcherPriority.Background);
+        int input = _userInputCount;
+        Dispatcher.UIThread.Post(() => { if (input == _userInputCount) CenterSpriteNow(sprite); }, DispatcherPriority.Background);
     }
 
     private void CenterSpriteNow(Sprite sprite)

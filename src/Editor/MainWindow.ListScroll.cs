@@ -9,6 +9,9 @@ namespace Editor;
 /// Sprite, Palette, Animation, Sound and frame tables behave the same.</summary>
 public partial class MainWindow
 {
+    // Counts presses, wheel turns and keys (WireListNavKeys), so a deferred scroll can tell the user acted since
+    private int _userInputCount;
+
     /// <summary>Scrolls the list so the row sits in the middle of the visible area,
     /// clamped to the ends of the list. A row already fully in view stays where it is.</summary>
     private void CenterListRow(ListBox list, int row)
@@ -37,12 +40,15 @@ public partial class MainWindow
 
     /// <summary>Centers the row now and again once layout settles, so a jump that switches
     /// tabs still lands in the middle when the list wasn't realized yet. The row is looked
-    /// up both times, since the list may be rebuilt in between.</summary>
+    /// up both times, since the list may be rebuilt in between. User input in between cancels the second pass.</summary>
     private void ScrollListRowIntoView(ListBox list, Func<int> rowOf)
     {
         CenterListRow(list, rowOf());
+        int input = _userInputCount;
         Dispatcher.UIThread.Post(() =>
         {
+            // The second pass runs after waiting input; if the user scrolled or clicked meanwhile, their view wins
+            if (input != _userInputCount) return;
             try { CenterListRow(list, rowOf()); }
             catch (Exception ex) { CrashLog.Write("ScrollListRowIntoView", ex); }
         }, DispatcherPriority.Background);
