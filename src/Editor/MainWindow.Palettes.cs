@@ -2254,6 +2254,15 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             PaletteBox.SelectedIndex = 0;
             bool standaloneWasSuppressed = _suppressEvents;
             _suppressEvents = true;
+            // Same palettes as on screen: copy the cells into the shown rows, as the SFF branch does,
+            // so a color edit keeps the list's scroll offset and multi-selection
+            if (PaletteList.ItemsSource is List<PaletteRow> shown && shown.Count == visible.Count
+                && shown.Zip(visible).All(pair => ReferenceEquals(pair.First.Palette, pair.Second.Palette)))
+            {
+                for (int i = 0; i < visible.Count; i++) shown[i].CopyFrom(visible[i]);
+                _suppressEvents = standaloneWasSuppressed;
+                return;
+            }
             PaletteList.ItemsSource = visible;
             var selected = _standalonePaletteOverride >= 0 && _standalonePaletteOverride < _standalonePalettes.Count
                 ? _standalonePalettes[_standalonePaletteOverride] : null;
