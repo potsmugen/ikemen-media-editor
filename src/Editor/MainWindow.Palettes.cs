@@ -2749,7 +2749,9 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             if (_file is null)
             {
                 DiscardPendingColorAdjust();
-                _standalonePaletteOverride = PaletteList.SelectedItem is PaletteRow standaloneRow
+                var shownBefore = _standalonePaletteOverride >= 0 && _standalonePaletteOverride < _standalonePalettes.Count
+                    ? _standalonePalettes[_standalonePaletteOverride] : null;
+                _standalonePaletteOverride = ShownPaletteRow(e, shownBefore) is { } standaloneRow
                     ? _standalonePalettes.IndexOf(standaloneRow.Palette) : -1;
                 _editingPalette = ActivePalette();
                 _editingView = _editingPalette is null ? null : BigSwatches;
@@ -2780,7 +2782,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
             // one and only way to keep it, so there's nothing left to ask.
             DiscardPendingColorAdjust();
 
-            _paletteOverride = PaletteList.SelectedItem is PaletteRow row ? _file.Palettes.IndexOf(row.Palette) : -1;
+            var shown = ShownPaletteRow(e, _paletteOverride >= 0 && _paletteOverride < _file.Palettes.Count ? _file.Palettes[_paletteOverride] : null);
+            _paletteOverride = shown is { } row ? _file.Palettes.IndexOf(row.Palette) : -1;
             _editingPalette = ActivePalette();
             _editingView = _editingPalette is null ? null : BigSwatches;
             _selectedSwatch = _editingPalette is { Colors.Length: > 0 } ? 0 : -1;
@@ -2795,13 +2798,27 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 _suppressEvents = false;
             }
             ResetColorAdjustBase();
-            if (FollowsPalette && PaletteList.SelectedItem is PaletteRow followed)
+            if (FollowsPalette && shown is { } followed)
                 await FollowPalette(followed.Palette);
         }
         catch (Exception ex)
         {
             await Failed("OnPaletteListSelected", ex);
         }
+    }
+
+    /// <summary>
+    /// The row the swatches show after a selection change, like the sprite list showing the clicked sprite:
+    /// the row just clicked into the selection, else the shown palette while it stays selected, else the first selected
+    /// </summary>
+    private PaletteRow? ShownPaletteRow(SelectionChangedEventArgs e, Palette? shownBefore)
+    {
+        // The row's press handler runs before the list selects, so a Shift range still shows the row clicked, not its far end
+        var added = e.AddedItems.OfType<PaletteRow>().ToList();
+        if (added.FirstOrDefault(r => ReferenceEquals(r.Palette, _paletteDragPressed)) is { } pressed) return pressed;
+        if (added.Count > 0) return added[^1];
+        var selected = PaletteList.SelectedItems?.OfType<PaletteRow>().ToList() ?? [];
+        return selected.FirstOrDefault(r => ReferenceEquals(r.Palette, shownBefore)) ?? PaletteList.SelectedItem as PaletteRow;
     }
 
     /// <summary>Selects a palette's row in the current (possibly filtered) PaletteList without touching the filter — for reverting a canceled selection change, not for jumping to a palette the filter may be hiding (see SelectPalette for that).</summary>
@@ -2876,8 +2893,9 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         try
         {
             // Turning it on follows the palette that is already selected; turning it off leaves the preview where it is.
-            if (FollowsPalette && PaletteList.SelectedItem is PaletteRow row)
-                await FollowPalette(row.Palette);
+            if (FollowsPalette && _file is { } file && _paletteOverride >= 0 && _paletteOverride < file.Palettes.Count
+                && PaletteList.SelectedItems?.OfType<PaletteRow>().Any(r => ReferenceEquals(r.Palette, file.Palettes[_paletteOverride])) == true)
+                await FollowPalette(file.Palettes[_paletteOverride]);
         }
         catch (Exception ex)
         {

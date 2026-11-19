@@ -321,6 +321,9 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Right-click inside a multi-selection** keeps it in every list; in the Sprite and Action lists the
   clicked row becomes current, so single-item menu items act on it. An action stays current while it
   is selected. **Ctrl+A** selects all rows of the focused list; elsewhere it follows the tab.
+- **Shown palette in a multi-selection**: like the Sprite list, the Palette List shows the row just
+  clicked into the selection (Ctrl+click, or the clicked end of a Shift range), not the first selected.
+  Deselecting the shown row moves to the first still selected. Follow palette follows the shown one.
 - **List look-ahead** scrolls the next row fully into view after an arrow, Home or End step, since
   Avalonia rebuilds every visible row when `ScrollIntoView` targets an unrealized one (measured ~50 ms
   per step on a 12k-sprite SFF). Page Up/Down skip it: they land on the edge row, and a revealed row
