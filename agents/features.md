@@ -326,7 +326,11 @@ and constraints that are easy to miss when reading one code path in isolation.
   one (measured ~50 ms per step on a 12k-sprite SFF).
 - **No auto-scroll on selection**: every row list (Sprite, Palette, Action, Sound, frame table) sets
   `AutoScrollToSelectedItem="False"`; code that selects a row scrolls it explicitly. A rebuild keeps
-  the view and centers the kept row only when it is hidden. With it on,
+  the view and centers the kept row only when it is hidden. They also set
+  `ScrollViewer.BringIntoViewOnFocusChange="False"`: with it on, the list scrolled back to the selected row
+  whenever the window got focus back (Alt-Tab). A press on a half-hidden row scrolls it fully into view
+  explicitly (`WireListPressReveal`); keyboard steps scroll through Avalonia's own `ScrollIntoView` and the look-ahead, which also runs on a
+  focus-only step (Ctrl+arrow) and, at either end of the list, reveals the focused row itself. With it on,
   each `SelectedItems.Add` queued a scroll that rebuilt the visible rows (duplicating 72 palettes
   took 3.2 s after the handler returned: 59 scrolls, 1875 rows built).
 - **List jumps** land the row in the middle of the view in every table: Health Report and

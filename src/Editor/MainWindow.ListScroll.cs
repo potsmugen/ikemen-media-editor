@@ -1,5 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
@@ -11,6 +13,27 @@ public partial class MainWindow
 {
     // Counts presses, wheel turns and keys (WireListNavKeys), so a deferred scroll can tell the user acted since
     private int _userInputCount;
+
+    /// <summary>A press on a half-hidden row scrolls it fully into view, as in Windows lists. The lists turn off
+    /// scroll-on-focus, which did this too but also scrolled back to the selected row whenever the window got focus back.</summary>
+    private void WireListPressReveal()
+    {
+        foreach (var list in new ListBox[] { SpriteList, PaletteList, ActionList, FrameTableList, SoundList })
+            list.AddHandler(PointerPressedEvent, (_, e) =>
+            {
+                try { if (e.Source is Visual v && v.FindAncestorOfType<ListBoxItem>(true) is { } item) RevealListItem(list, item); }
+                catch (Exception ex) { CrashLog.Write("RevealListItem", ex); }
+            }, RoutingStrategies.Tunnel, handledEventsToo: true);
+    }
+
+    /// <summary>Scrolls just enough to show the whole row.</summary>
+    private static void RevealListItem(ListBox list, ListBoxItem item)
+    {
+        if (list.FindDescendantOfType<ScrollViewer>() is not { } scroller || item.TranslatePoint(default, scroller) is not { } top) return;
+        double h = item.Bounds.Height, view = scroller.Viewport.Height;
+        double shift = top.Y < 0 ? top.Y : top.Y + h > view ? top.Y + h - view : 0;
+        if (shift != 0) scroller.Offset = scroller.Offset.WithY(scroller.Offset.Y + shift);
+    }
 
     /// <summary>Scrolls the list so the row sits in the middle of the visible area,
     /// clamped to the ends of the list. A row already fully in view stays where it is.</summary>

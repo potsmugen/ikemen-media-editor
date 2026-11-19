@@ -18,7 +18,11 @@ public partial class MainWindow
     {
         WireListNavKeys(this);
         foreach (var list in new ListBox[] { SpriteList, PaletteList, ActionList, FrameTableList, SoundList })
+        {
             list.SelectionChanged += (_, _) => QueueLookahead(list);
+            // Ctrl+arrow moves focus without changing the selection; it needs the same reveal
+            list.GotFocus += (_, _) => QueueLookahead(list);
+        }
     }
 
     /// <summary>Tracks the navigation key direction; floating panel windows wire it too.</summary>
@@ -56,13 +60,15 @@ public partial class MainWindow
         // The focused row is the moving end of a Shift range; without list focus it's the selection.
         int index = TopLevel.GetTopLevel(list)?.FocusManager?.GetFocusedElement() is Visual v && v.FindAncestorOfType<ListBoxItem>(true) is { } focused
             && focused.FindAncestorOfType<ListBox>() == list ? list.IndexFromContainer(focused) : list.SelectedIndex;
-        if (index + dir < 0 || index + dir >= list.ItemCount || !list.IsEffectivelyVisible) return;
+        if (index < 0 || index >= list.ItemCount || !list.IsEffectivelyVisible) return;
+        // At either end there is no next row; show the focused row itself, which may be half hidden
+        int next = Math.Clamp(index + dir, 0, list.ItemCount - 1);
         if (list.ContainerFromIndex(index) is not Control item) return; // a long jump; ScrollIntoView handled it
         if (list.FindDescendantOfType<ScrollViewer>() is not { } scroller) return;
         if (item.TranslatePoint(default, scroller) is not { } top) return;
 
         // Rows are uniform, so the next row sits one row height away.
-        double h = item.Bounds.Height, nextTop = top.Y + dir * h;
+        double h = item.Bounds.Height, nextTop = top.Y + (next - index) * h;
         double shift = dir > 0 ? Math.Max(0, nextTop + h - scroller.Viewport.Height) : Math.Min(0, nextTop);
         if (shift != 0) scroller.Offset = scroller.Offset.WithY(scroller.Offset.Y + shift);
     }

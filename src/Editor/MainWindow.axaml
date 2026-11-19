@@ -339,7 +339,7 @@
                        so only the rows on screen are ever realized as controls regardless
                        of sprite count. _current tracks the active sprite; multi-selection
                        is used by the palette buttons. -->
-                  <ListBox Grid.Row="1" x:Name="SpriteList" SelectionMode="Multiple" SelectionChanged="OnSpriteSelected" AutoScrollToSelectedItem="False" Background="{DynamicResource ThemeListBg}">
+                  <ListBox Grid.Row="1" x:Name="SpriteList" SelectionMode="Multiple" SelectionChanged="OnSpriteSelected" AutoScrollToSelectedItem="False" ScrollViewer.BringIntoViewOnFocusChange="False" Background="{DynamicResource ThemeListBg}">
                     <ListBox.Styles>
                       <Style Selector="ListBoxItem">
                         <Setter Property="Padding" Value="0" />
@@ -860,7 +860,7 @@
                     <TextBlock Text="Link" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
                   </Border>
                 </Grid>
-                <ListBox Grid.Row="1" x:Name="PaletteList" SelectionMode="Multiple" SelectionChanged="OnPaletteListSelected" AutoScrollToSelectedItem="False"
+                <ListBox Grid.Row="1" x:Name="PaletteList" SelectionMode="Multiple" SelectionChanged="OnPaletteListSelected" AutoScrollToSelectedItem="False" ScrollViewer.BringIntoViewOnFocusChange="False"
                          Background="{DynamicResource ThemeListBg}">
                   <ListBox.Styles>
                     <Style Selector="ListBoxItem">
@@ -1252,7 +1252,7 @@
                       <TextBlock Text="Comment" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
                     </Border>
                   </Grid>
-                  <ListBox Grid.Row="2" x:Name="ActionList" SelectionMode="Multiple" SelectionChanged="OnActionSelected" AutoScrollToSelectedItem="False" Background="{DynamicResource ThemeListBg}">
+                  <ListBox Grid.Row="2" x:Name="ActionList" SelectionMode="Multiple" SelectionChanged="OnActionSelected" AutoScrollToSelectedItem="False" ScrollViewer.BringIntoViewOnFocusChange="False" Background="{DynamicResource ThemeListBg}">
                     <ListBox.Styles>
                       <Style Selector="ListBoxItem">
                         <Setter Property="Padding" Value="0" />
@@ -1505,7 +1505,7 @@
                         <TextBlock Text="Angle" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont11}" HorizontalAlignment="Center" />
                       </Border>
                     </Grid>
-                    <ListBox Grid.Row="1" x:Name="FrameTableList" SelectionMode="Multiple" SelectionChanged="OnFrameTableSelected" AutoScrollToSelectedItem="False" PointerMoved="OnFrameTableHover" PointerExited="OnFrameTableExited" Background="{DynamicResource ThemeListBg}">
+                    <ListBox Grid.Row="1" x:Name="FrameTableList" SelectionMode="Multiple" SelectionChanged="OnFrameTableSelected" AutoScrollToSelectedItem="False" ScrollViewer.BringIntoViewOnFocusChange="False" PointerMoved="OnFrameTableHover" PointerExited="OnFrameTableExited" Background="{DynamicResource ThemeListBg}">
                       <ListBox.Styles>
                         <Style Selector="ListBoxItem">
                           <Setter Property="Padding" Value="0" />
@@ -1854,7 +1854,7 @@
                     <TextBlock Text="Rate" Foreground="{DynamicResource ThemeMutedText}" FontWeight="Bold" FontSize="{DynamicResource UiFont13}" HorizontalAlignment="Center" />
                   </Border>
                 </Grid>
-                <ListBox Grid.Row="1" x:Name="SoundList" SelectionMode="Multiple" SelectionChanged="OnSoundSelected" AutoScrollToSelectedItem="False" Background="{DynamicResource ThemeListBg}">
+                <ListBox Grid.Row="1" x:Name="SoundList" SelectionMode="Multiple" SelectionChanged="OnSoundSelected" AutoScrollToSelectedItem="False" ScrollViewer.BringIntoViewOnFocusChange="False" Background="{DynamicResource ThemeListBg}">
                   <ListBox.Styles>
                     <Style Selector="ListBoxItem">
                       <Setter Property="Padding" Value="0" />

@@ -141,6 +141,7 @@ public partial class MainWindow : Window
         WireTimelineEvents();
         WireListLookahead();
         WireListPaging();
+        WireListPressReveal();
         AddHandler(DragDrop.DropEvent, OnFileDropped);
         DragDrop.SetAllowDrop(this, true);
 
