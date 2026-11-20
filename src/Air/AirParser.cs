@@ -237,7 +237,7 @@ public static class AirParser
         a.LoopStart = 0;
         a.DroppedLines = contentLines - 1; // all but the one Copy Action line written
         // Those lines are dropped, not rewritten, and the comments stay in file order.
-        a.ReorderedComments = a.SwappedBoxCorners = a.MisnumberedClsnLines = a.MismatchedClsnCounts = 0;
+        a.ReorderedComments = a.SwappedBoxCorners = a.WrongTypeClsnLines = a.MisnumberedClsnLines = a.MismatchedClsnCounts = 0;
     }
 
     private static bool IsActionHeader(string line)
@@ -317,6 +317,8 @@ public static class AirParser
             // The [n] is ignored (boxes go in file order); count lines where it's off or missing.
             if (found.Number != boxes.Count) action.MisnumberedClsnLines++;
             if (found.Swapped) action.SwappedBoxCorners++;
+            // Both engines read the line as the declaration's type and ignore its own (a Clsn1, Clsn3 or bare Clsn line alike).
+            if (found.Type != lower[4]) action.WrongTypeClsnLines++;
             boxes.Add(found.Box);
             // The main loop never sees these lines, so their comments are kept here (and whether on a line of their own).
             for (int k = i + 1; k <= found.Line; k++)
@@ -327,8 +329,8 @@ public static class AirParser
     }
 
     /// <summary>The next box line after line i, skipping blank ones, without consuming anything; null if none.
-    /// Number is its [n], or -1 when missing or unreadable.</summary>
-    private static (int Line, ClsnBox Box, int Number, bool Swapped)? NextBoxLine(string[] lines, int i)
+    /// Number is its [n], or -1 when missing or unreadable. Type is the character after "Clsn" (lowercase), or a space if the line ends there.</summary>
+    private static (int Line, ClsnBox Box, int Number, bool Swapped, char Type)? NextBoxLine(string[] lines, int i)
     {
         for (int j = i + 1; j < lines.Length; j++)
         {
@@ -340,7 +342,8 @@ public static class AirParser
             int open = next.IndexOf('['), close = next.IndexOf(']');
             int n = open >= 0 && close > open && close < eq
                 && int.TryParse(next[(open + 1)..close].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int v) ? v : -1;
-            return (j, parsed.Box, n, parsed.Swapped);
+            char type = next.Length > 4 ? char.ToLowerInvariant(next[4]) : ' ';
+            return (j, parsed.Box, n, parsed.Swapped, type);
         }
         return null;
     }

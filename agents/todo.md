@@ -24,10 +24,7 @@ Verified unless noted.
 
 ### Sprites and palettes
 
-- Change Group and Index (Palettes tab, double-click a palette's group or index): the first Down
-  key press does nothing, Up works. The dialog is a stock NumericUpDown with no custom key code and
-  no app-wide handler catches Down. Unverified theory: the inner TextBox uses the first Down to move
-  the caret to the end. Ask whether it's the key or the − button, and whether End then Down works.
+- Number boxes: Down with the number highlighted only dropped the highlight (Up stepped at once), seen in the Linux build's Resize dialog. App.StepNumberBoxesOnDown now clears the highlight first. Unconfirmed in the app until built: check Down and Up in the Resize and Change Group and Index dialogs.
 - Test and revisit the nearest-color alpha threshold: pixels below
   NearestColorAlphaThreshold (settings.json, default 32) map to index 0. Check
   against real sprites and the official tools.

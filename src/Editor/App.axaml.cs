@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -41,12 +42,22 @@ public partial class App : Application
         Styles.Add(bars);
     }
 
+    /// <summary>With a number highlighted, Down only drops the highlight and Up already steps. Dropping it first makes Down step on the first press too.</summary>
+    private static void StepNumberBoxesOnDown() =>
+        InputElement.KeyDownEvent.AddClassHandler<NumericUpDown>((_, e) =>
+        {
+            if (e.Key == Key.Down && e.KeyModifiers == KeyModifiers.None
+                && e.Source is TextBox { SelectionStart: var from, SelectionEnd: var to } box && from != to)
+                box.ClearSelection();
+        }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+
     public override async void OnFrameworkInitializationCompleted()
     {
         try
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
+                StepNumberBoxesOnDown();
                 var splash = new SplashWindow();
                 desktop.MainWindow = splash;
                 splash.Show();

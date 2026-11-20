@@ -420,6 +420,7 @@ public partial class MainWindow
                     a.ReorderedComments > 0 ? $"{a.ReorderedComments} comment lines moved" : null,
                     a.DroppedLines > 0 ? $"{a.DroppedLines} unused lines dropped" : null,
                     a.SwappedBoxCorners > 0 ? $"{a.SwappedBoxCorners} Clsn boxes reordered" : null,
+                    a.WrongTypeClsnLines > 0 ? $"{a.WrongTypeClsnLines} Clsn lines retyped" : null,
                 }.Where(p => p is not null)), Jump(() => JumpToAction(a)))));
                 Section("Written differently on save", written);
             }

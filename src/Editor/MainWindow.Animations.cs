@@ -264,7 +264,7 @@ public partial class MainWindow
         foreach (var a in _air.Actions.Where(a => a.ChangesOnSave))
             CrashLog.Trace($"[air] action {a.Number}: changes on save: {a.MisnumberedClsnLines} Clsn lines misnumbered, "
                 + $"{a.MismatchedClsnCounts} Clsn counts not matching their lines, {a.MovedComments} end-of-line comments to move onto their own line, "
-                + $"{a.ReorderedComments} comment lines to move past Clsn, Loopstart or Interpolate lines, {a.DroppedLines} unused lines to drop, {a.SwappedBoxCorners} Clsn boxes to write top-left corner first");
+                + $"{a.ReorderedComments} comment lines to move past Clsn, Loopstart or Interpolate lines, {a.DroppedLines} unused lines to drop, {a.SwappedBoxCorners} Clsn boxes to write top-left corner first, {a.WrongTypeClsnLines} Clsn lines to write as their declaration's type");
         foreach (var a in _air.Actions)
             if (a.FramesWithDefaultAndOwnClsn() is { Count: > 0 } both)
                 CrashLog.Trace($"[air] action {a.Number}: default and own Clsn on frame {string.Join(", ", both.Select(i => i + 1))}");
@@ -452,7 +452,7 @@ public partial class MainWindow
         if (_air is null) return;
         foreach (var a in _air.Actions)
         {
-            a.MisnumberedClsnLines = a.MismatchedClsnCounts = a.MovedComments = a.ReorderedComments = a.DroppedLines = a.SwappedBoxCorners = 0; // comments are where they're written now
+            a.MisnumberedClsnLines = a.MismatchedClsnCounts = a.MovedComments = a.ReorderedComments = a.DroppedLines = a.SwappedBoxCorners = a.WrongTypeClsnLines = 0; // comments are where they're written now
         }
     }
 

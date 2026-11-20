@@ -669,6 +669,39 @@ public class AirTests
     }
 
     [Fact]
+    public void ClsnBoxLineOfTheWrongTypeIsReadAsTheDeclarationsTypeAndCounted()
+    {
+        // Both engines read every line under the declaration as its type and ignore the line's own.
+        var air = AirParser.Parse("""
+            [Begin Action 0]
+            Clsn2Default: 4
+             Clsn2[0] = -72, -48, 72, 0
+             Clsn2[1] = -48, -64, 48, -8
+             Clsn2[2] = -32, -80, 32, -16
+             Clsn1[3] = -24, -120, 24, -24
+            0,0, 0,0, 1
+            """);
+        var a = air.Actions[0];
+        Assert.Equal(4, a.DefaultHurtSegments[0].Boxes.Count);
+        Assert.Empty(a.DefaultAttackSegments);
+        Assert.Equal(1, a.WrongTypeClsnLines);
+        Assert.True(a.ChangesOnSave);
+        Assert.False(a.WarnsOnSave); // report only, no save popup
+        Assert.Contains("Clsn2[3] = -24, -120, 24, -24", AirWriter.WriteAction(a));
+
+        // Any other character after "Clsn" counts too, and the engines read those lines the same way.
+        var other = AirParser.Parse("""
+            [Begin Action 0]
+            Clsn2: 2
+             Clsn2[0] = 1, 2, 3, 4
+             Clsn3[1] = 5, 6, 7, 8
+            0,0, 0,0, 1
+            """).Actions[0];
+        Assert.Equal(2, other.Elements[0].Hurt.Count);
+        Assert.Equal(1, other.WrongTypeClsnLines);
+    }
+
+    [Fact]
     public void ClsnBoxLinesAreAllReadWhateverTheCount()
     {
         var air = AirParser.Parse("""

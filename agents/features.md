@@ -1113,9 +1113,12 @@ summaries; treat anything marked unverified as unknown.
   before the first frame, an extra Loopstart or repeated Interpolate, a Clsn block with
   no frame after it, unreadable lines, and every line in a Copy Action action but its
   Copy Action line (that action's frame comments are kept as trailing comments). Boxes are stored top-left corner first, so a
-  box line written otherwise is rewritten and counted (`SwappedBoxCorners`). A standalone
+  box line written otherwise is rewritten and counted (`SwappedBoxCorners`). A box line whose
+  type (the character after "Clsn") differs from its declaration (a `Clsn1[3]` under
+  `Clsn2Default: 4`) is read as the declaration's type, as MUGEN (mugen-unleashed `clsn.c`) and Ikemen GO (`anim.go` `readClsn`)
+  do, written as that type, and counted (`WrongTypeClsnLines`). A standalone
   .air is saved with LF line endings (`AirFile.CrLineEndings`); a .def keeps its own.
-  Swapped corners and CRLF are in nearly every old file, so they're listed only in the
+  Swapped corners, wrong-type Clsn lines and CRLF are listed only in the
   Media Health Report; the rest (`WarnsOnSave`) get one popup before saving that counts the actions
   and points to the report; afterwards only the status bar notes it.
   Reserved character-action names are suggested for standalone AIR files, not

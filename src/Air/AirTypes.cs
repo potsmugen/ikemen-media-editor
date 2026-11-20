@@ -217,10 +217,12 @@ public sealed class AnimationAction
     public int DroppedLines;
     /// <summary>Box lines whose corners weren't top-left first; boxes are stored, and written, that way.</summary>
     public int SwappedBoxCorners;
+    /// <summary>Box lines whose type (the character after "Clsn") differs from their declaration's, such as a Clsn1 line under Clsn2Default; the engines read them as the declaration's type, and saving writes them that way.</summary>
+    public int WrongTypeClsnLines;
 
     /// <summary>Saving would write something the user didn't edit differently from the file.</summary>
-    public bool ChangesOnSave => WarnsOnSave || SwappedBoxCorners > 0;
-    /// <summary>A save change worth a popup; swapped corners are common in old files, so they're only listed in reports.</summary>
+    public bool ChangesOnSave => WarnsOnSave || SwappedBoxCorners > 0 || WrongTypeClsnLines > 0;
+    /// <summary>A save change worth a popup; swapped corners are common in old files and wrong-type Clsn lines are harmless (engines read them as the declaration's type), so both are only listed in reports.</summary>
     public bool WarnsOnSave => HasClsnLint || MovedComments > 0 || ReorderedComments > 0 || DroppedLines > 0;
 
     /// <summary>
