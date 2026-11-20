@@ -154,6 +154,7 @@ and constraints that are easy to miss when reading one code path in isolation.
   and Copy/Paste for Select; colors plus a synced Brush box for Replace; Fill and Eyedropper
   have none. An Eyedropper pick selects that index in the sprite panel's palette grid, same
   as clicking the swatch, so the color Pencil and Fill will use is always highlighted.
+- **Brush at sprite edges**: Pencil, Eraser and Replace keep working while the pointer is just off the sprite, as long as the brush square still covers a sprite pixel. The outline and crosshair stay, and covered edge pixels are painted (`BrushTouchesSprite`).
 - **Paint color square**: Pencil and Fill show their color and index in a display-only box the
   size of the Brush box. Picking stays with the Eyedropper tool and right-click Eyedropper.
 - **Replace inverse**: Shift-drag paints New → Old, fixed at the press (the brush outline

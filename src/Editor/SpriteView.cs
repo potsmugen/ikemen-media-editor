@@ -1358,7 +1358,7 @@ public class SpriteView : Control
 
         // An armed replace slot means the next click is a color pick, not a stamp, so no brush square.
         if (PaintMode && !ArmedForExternalPick && ActiveTool is PaintTool.Pencil or PaintTool.Eraser or PaintTool.Replace
-            && _hoverPos is { } hp && TryPixelAt(hp, out int hx, out int hy))
+            && _hoverPos is { } hp && BrushTouchesSprite(hp) && BrushPixelAt(hp, out int hx, out int hy))
         {
             var sr = SpriteRect();
             double z = Zoom;
@@ -1535,6 +1535,28 @@ public class SpriteView : Control
         return px >= 0 && px < _sprite.Width && py >= 0 && py < _sprite.Height;
     }
 
+    /// <summary>Brush-center pixel under a screen point, which may lie just outside the sprite so the brush square can reach edge pixels.</summary>
+    private bool BrushPixelAt(Point p, out int px, out int py)
+    {
+        px = py = 0;
+        if (_sprite is not { Width: > 0, Height: > 0 }) return false;
+        var r = SpriteRect();
+        px = (int)Math.Floor((p.X - r.X) / Zoom);
+        py = (int)Math.Floor((p.Y - r.Y) / Zoom);
+        return true;
+    }
+
+    /// <summary>True when the brush square at a screen point overlaps at least one sprite pixel (Pencil, Eraser, Replace).</summary>
+    private bool BrushTouchesSprite(Point p)
+    {
+        if (!BrushPixelAt(p, out int x, out int y)) return false;
+        int half = BrushSize / 2;
+        return x - half < _sprite!.Width && x - half + BrushSize > 0
+            && y - half < _sprite.Height && y - half + BrushSize > 0;
+    }
+
+    private bool IsBrushTool => PaintMode && ActiveTool is PaintTool.Pencil or PaintTool.Eraser or PaintTool.Replace;
+
     /// <summary>Eyedropper pick at a screen point, regardless of the active tool — used by the right-click context menu.</summary>
     public void PickColorAt(Point p)
     {
@@ -1563,7 +1585,13 @@ public class SpriteView : Control
         if (ReadOnly) return; // belt-and-braces: OnPointerPressed already can't reach this when ReadOnly
         if (ReplaceAllStroke) return; // the double-click already replaced everything at the press
         if (_sprite is not { Width: int w, Height: int h } sprite) return;
-        if (!TryPixelAt(p, out int x, out int y)) return;
+        int x, y;
+        // Brush tools may start off the sprite edge, since the square still covers edge pixels
+        if (ActiveTool is PaintTool.Pencil or PaintTool.Eraser or PaintTool.Replace)
+        {
+            if (!BrushPixelAt(p, out x, out y) || !BrushTouchesSprite(p)) return;
+        }
+        else if (!TryPixelAt(p, out x, out y)) return;
         int i = y * w + x;
 
         if (ActiveTool == PaintTool.Eyedropper)
@@ -1745,7 +1773,7 @@ public class SpriteView : Control
                 && TryPixelAt(p, out int x, out int y) && sel.Contains(x - sel.X, y - sel.Y);
             return inSelection ? MoveCursor : CrossCursor;
         }
-        if (PaintMode && onSprite) return CrossCursor;
+        if (PaintMode && (onSprite || (IsBrushTool && BrushTouchesSprite(p)))) return CrossCursor;
         if (onSprite && SpriteVisibleAt(p) && (!DragChangesOffset || OffsetDraggingEnabled)) return MoveCursor;
         // Empty canvas pans, but keeps the arrow until pressed, as in other image editors.
         return Cursor.Default;
@@ -1951,7 +1979,7 @@ public class SpriteView : Control
             return;
         }
 
-        if (PaintMode && onSprite)
+        if (PaintMode && (onSprite || (IsBrushTool && BrushTouchesSprite(p.Position))))
         {
             // A pick moves the color and nothing else, so it runs the same press/move/release
             // path (which keeps drag-picking continuous) but reports no stroke: raising one
