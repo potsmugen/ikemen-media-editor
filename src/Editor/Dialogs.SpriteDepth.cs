@@ -28,8 +28,8 @@ public static partial class Dialogs
         body.Children.Add(new TextBlock
         {
             Text = spriteCount > 1
-                ? $"Choose the depth for the {spriteCount} selected sprites."
-                : "Choose the depth for this sprite.",
+                ? $"Depth for the {spriteCount} selected sprites:"
+                : "Depth for this sprite:",
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
         });
         body.Children.Add(indexed);

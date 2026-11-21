@@ -2027,7 +2027,15 @@ public partial class MainWindow
         var linear = new RadioButton { Content = "Linear", IsChecked = true };
         var equalPower = new RadioButton { Content = "Equal-power" };
         equalPower.IsCheckedChanged += (_, _) => curve = equalPower.IsChecked == true ? FadeCurve.EqualPower : FadeCurve.Linear;
-        var curves = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 16, Children = { linear, equalPower } };
+        var curves = new StackPanel
+        {
+            Spacing = 6,
+            Children =
+            {
+                new TextBlock { Text = "Curve:" },
+                new StackPanel { Orientation = Orientation.Horizontal, Spacing = 16, Children = { linear, equalPower } },
+            },
+        };
 
         string? Parse(string raw, out int frames)
         {
@@ -2044,7 +2052,7 @@ public partial class MainWindow
             : SndEdit.Fade(s, fadeIn, frames, c);
 
         string label = sel is { } shown
-            ? $"Fades {(fadeIn ? "in" : "out")} across the selection ({(shown.End - shown.Start) * 1000.0 / s.SampleRate:0} ms). Curve:"
+            ? $"Fades {(fadeIn ? "in" : "out")} across the selection ({(shown.End - shown.Start) * 1000.0 / s.SampleRate:0} ms)."
             : $"{(fadeIn ? "Fade-in" : "Fade-out")} length in ms (the sound is {totalMs:0} ms):";
         double defaultMs = Settings.Checked(nameof(Settings.SoundsSection.FadeMilliseconds), _settings.Sounds.FadeMilliseconds,
             Settings.DefaultFadeMilliseconds, v => double.IsFinite(v) && v > 0);
@@ -2119,6 +2127,8 @@ public partial class MainWindow
             Settings.DefaultEchoDecayStep, v => v is >= 1 and <= 100);
         var decayBox = new NumericUpDown { Minimum = 1, Maximum = (decimal)maxDecay, Increment = (decimal)decayStep, Value = (decimal)defaultDecay, FormatString = "0", Width = 110 };
         var auto = new CheckBox { Content = "Auto", IsChecked = true };
+        ToolTip.SetTip(auto, "Adds echoes until they fall below the Trim Silence threshold.");
+        ToolTip.SetTip(decayBox, "Each echo plays at this percentage of the one before.");
         var repeatsBox = new NumericUpDown { Minimum = 1, Maximum = maxRepeats, Increment = 1, FormatString = "0", Width = 110, IsEnabled = false };
         var tail = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
         double lastDelayMs = defaultDelay;
@@ -2145,11 +2155,11 @@ public partial class MainWindow
             {
                 new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children =
                 {
-                    new TextBlock { Text = "Decay %", Width = 70, VerticalAlignment = VerticalAlignment.Center }, decayBox,
+                    new TextBlock { Text = "Decay %", MinWidth = 70, VerticalAlignment = VerticalAlignment.Center }, decayBox,
                 } },
                 new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children =
                 {
-                    new TextBlock { Text = "Repeats", Width = 70, VerticalAlignment = VerticalAlignment.Center }, repeatsBox, auto,
+                    new TextBlock { Text = "Repeats", MinWidth = 70, VerticalAlignment = VerticalAlignment.Center }, repeatsBox, auto,
                 } },
                 tail,
             },

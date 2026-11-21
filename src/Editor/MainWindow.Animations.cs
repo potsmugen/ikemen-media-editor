@@ -1525,7 +1525,7 @@ public partial class MainWindow
                 StatusText.Text = "Open an .air first.";
                 return;
             }
-            if (await Dialogs.PromptBoxSortOrder(this, "Reorder every frame's own Clsn1/Clsn2 and every default by:") is not { } order) return;
+            if (await Dialogs.PromptBoxSortOrder(this, "Reorder each frame's Clsn1/Clsn2 boxes and the Clsn defaults by:") is not { } order) return;
 
             // Work on copies first, so the confirm can count real changes and Cancel leaves everything as it was.
             var before = air.Actions.ToDictionary(a => a, CaptureActionBoxes);

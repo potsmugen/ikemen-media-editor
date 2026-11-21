@@ -255,7 +255,15 @@ public partial class MainWindow
         string title = fadeIn ? "Fade In" : "Fade Out";
         var linear = new RadioButton { Content = "Linear", IsChecked = true };
         var equalPower = new RadioButton { Content = "Equal-power" };
-        var curves = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 16, Children = { linear, equalPower } };
+        var curves = new StackPanel
+        {
+            Spacing = 6,
+            Children =
+            {
+                new TextBlock { Text = "Curve:" },
+                new StackPanel { Orientation = Orientation.Horizontal, Spacing = 16, Children = { linear, equalPower } },
+            },
+        };
         double defaultMs = Settings.Checked(nameof(Settings.SoundsSection.FadeMilliseconds), _settings.Sounds.FadeMilliseconds,
             Settings.DefaultFadeMilliseconds, v => double.IsFinite(v) && v > 0);
 
@@ -312,6 +320,8 @@ public partial class MainWindow
 
         var decayBox = new NumericUpDown { Minimum = 1, Maximum = (decimal)maxDecay, Increment = (decimal)decayStep, Value = (decimal)defaultDecay, FormatString = "0", Width = 110 };
         var auto = new CheckBox { Content = "Auto", IsChecked = true };
+        ToolTip.SetTip(auto, "Adds echoes until they fall below the Trim Silence threshold.");
+        ToolTip.SetTip(decayBox, "Each echo plays at this percentage of the one before.");
         var repeatsBox = new NumericUpDown { Minimum = 1, Maximum = maxRepeats, Increment = 1, Value = 1, FormatString = "0", Width = 110, IsEnabled = false };
         auto.IsCheckedChanged += (_, _) => repeatsBox.IsEnabled = auto.IsChecked != true;
         var extra = new StackPanel
@@ -321,11 +331,11 @@ public partial class MainWindow
             {
                 new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children =
                 {
-                    new TextBlock { Text = "Decay %", Width = 70, VerticalAlignment = VerticalAlignment.Center }, decayBox,
+                    new TextBlock { Text = "Decay %", MinWidth = 70, VerticalAlignment = VerticalAlignment.Center }, decayBox,
                 } },
                 new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children =
                 {
-                    new TextBlock { Text = "Repeats", Width = 70, VerticalAlignment = VerticalAlignment.Center }, repeatsBox, auto,
+                    new TextBlock { Text = "Repeats", MinWidth = 70, VerticalAlignment = VerticalAlignment.Center }, repeatsBox, auto,
                 } },
             },
         };

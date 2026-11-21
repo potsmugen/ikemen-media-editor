@@ -237,7 +237,7 @@ public partial class MainWindow
                 return;
             }
             int initial = into is not null && candidates.Contains(into) ? candidates.IndexOf(into) : 0;
-            if (await Dialogs.PromptMergeOptions(this, "Merge Palettes", "Continue", candidates.Select(p => PaletteKey(file, p)).ToList(),
+            if (await Dialogs.PromptMergeOptions(this, "Merge Palettes", "Merge", candidates.Select(p => PaletteKey(file, p)).ToList(),
                     initial, paddings, $"Colors: {count} of 256") is not { } choice
                 || !ReferenceEquals(_file, file)) return;
             var target = candidates[choice.Target];

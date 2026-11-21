@@ -63,7 +63,7 @@
              each tab's Open and Save item shows them. Menu gesture text comes from ApplyMenuGestures. -->
         <MenuItem Header="_Save" x:Name="SaveSpritesItem" Click="OnSave" />
         <MenuItem Header="Save _As" x:Name="SaveAsSpritesItem" Click="OnSaveAs" />
-        <MenuItem Header="Save Like Spr_Maker" x:Name="SaveLikeSprMakerItem" Click="OnSaveLikeSprMaker"
+        <MenuItem Header="Save like Spr_Maker" x:Name="SaveLikeSprMakerItem" Click="OnSaveLikeSprMaker"
                   ToolTip.Tip="Saves a copy built the way SprMaker 0.97 or 2.01 would." />
         <Separator />
         <MenuItem Header="Sort Asc_ending" x:Name="SortSpritesItem" Click="OnSortSpritesAscending"
@@ -513,7 +513,7 @@
                     <TextBlock Text="{Binding Value, ElementName=OnionOpacitySlider, StringFormat={}{0:0}%}"
                                VerticalAlignment="Center" MinWidth="34" />
                     <CheckBox x:Name="OnionGrayscaleBox" Content="Grayscale" Click="OnToggleOnionGrayscale" VerticalAlignment="Center" />
-                    <CheckBox x:Name="OnionOnTopBox" Content="On Top" Click="OnToggleOnionOnTop" VerticalAlignment="Center" />
+                    <CheckBox x:Name="OnionOnTopBox" Content="On top" Click="OnToggleOnionOnTop" VerticalAlignment="Center" />
                     </StackPanel>
                   </StackPanel>
                 </Border>
@@ -735,7 +735,7 @@
                         <Button Grid.Column="2" x:Name="SpriteResizeCanvasButton" Content="Resize Canvas" HorizontalAlignment="Stretch" Click="OnResizeSpriteCanvas"
                                 ToolTip.Tip="Grows or shrinks each selected sprite's canvas around its pixels." />
                       </Grid>
-                      <Button x:Name="SpriteResizePixelsButton" Content="Resize" HorizontalAlignment="Stretch" Click="OnResizeSpritePixels"
+                      <Button x:Name="SpriteResizePixelsButton" Content="Scale" HorizontalAlignment="Stretch" Click="OnResizeSpritePixels"
                               ToolTip.Tip="Scales each selected sprite's pixels to a new size." />
                       <Grid ColumnDefinitions="*,Auto,*">
                         <Button Grid.Column="0" x:Name="SpriteFlipButton" Content="Flip" HorizontalAlignment="Stretch" Click="OnFlipSprite"
@@ -942,7 +942,7 @@
               <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <DockPanel Grid.Row="0" Grid.Column="0" Margin="{DynamicResource PanelContentMargin}">
-              <TextBlock DockPanel.Dock="Top" Text="Current palette" Foreground="{DynamicResource ThemeMutedText}"
+              <TextBlock DockPanel.Dock="Top" Text="Current Palette" Foreground="{DynamicResource ThemeMutedText}"
                          Margin="0,0,0,4" />
               <Border Background="{DynamicResource ThemePanelBg}" Padding="4">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
@@ -952,7 +952,7 @@
             </DockPanel>
 
             <DockPanel Grid.Row="2" Grid.Column="0" Margin="{DynamicResource PanelContentMargin}">
-              <TextBlock DockPanel.Dock="Top" Text="Scratch (not saved)" Foreground="{DynamicResource ThemeMutedText}"
+              <TextBlock DockPanel.Dock="Top" Text="Scratch (Not Saved)" Foreground="{DynamicResource ThemeMutedText}"
                          Margin="0,0,0,4" />
               <Button DockPanel.Dock="Bottom" Content="Clear" Click="OnClearScratch" HorizontalAlignment="Stretch"
                       Margin="0,4,0,0" ToolTip.Tip="Empties every scratch swatch." />
@@ -980,7 +980,7 @@
             <Border x:Name="ColorEditor" Background="{DynamicResource ThemePanelBg}" CornerRadius="3"
                     Padding="{DynamicResource PanelContentPadding}" IsEnabled="False" HorizontalAlignment="Stretch" VerticalAlignment="Center" MaxWidth="320">
                 <StackPanel Spacing="8">
-                  <TextBlock Text="Pending changes" Foreground="{DynamicResource ThemeMutedText}" />
+                  <TextBlock Text="Pending Changes" Foreground="{DynamicResource ThemeMutedText}" />
                   <!-- Before = the color Reset restores; After = the live color. Filled by UpdateColorCompare. -->
                   <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="8" HorizontalAlignment="Center">
                     <StackPanel Grid.Column="0" Spacing="2">
@@ -1125,7 +1125,7 @@
                                    IsEnabled="{Binding IsEnabled, ElementName=LightenSlider}" />
                   </Grid>
                   <Separator />
-                  <TextBlock Text="Color operations" Foreground="{DynamicResource ThemeMutedText}" />
+                  <TextBlock Text="Color Operations" Foreground="{DynamicResource ThemeMutedText}" />
                   <Grid ColumnDefinitions="*,Auto,*">
                     <Button Grid.Column="0" Content="Invert" Click="OnInvertColor" HorizontalAlignment="Stretch"
                             ToolTip.Tip="Inverts the selected colors." />
@@ -1356,7 +1356,7 @@
                            VerticalAlignment="Center" MinWidth="34" />
                 <CheckBox x:Name="AnimOnionGrayscaleBox" Content="Grayscale" Click="OnToggleAnimOnionGrayscale" VerticalAlignment="Center" />
                 <CheckBox x:Name="AnimOnionClsnBox" Content="Clsn" Click="OnToggleAnimOnionClsn" VerticalAlignment="Center" />
-                <CheckBox x:Name="AnimOnionOnTopBox" Content="On Top" Click="OnToggleAnimOnionOnTop" VerticalAlignment="Center" />
+                <CheckBox x:Name="AnimOnionOnTopBox" Content="On top" Click="OnToggleAnimOnionOnTop" VerticalAlignment="Center" />
                 </StackPanel>
               </StackPanel>
             </Border>
@@ -1378,7 +1378,7 @@
                 <ScrollBar x:Name="TimelineScroll" Orientation="Horizontal" AllowAutoHide="False" Margin="0,4,0,0" />
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource UiButtonGap}">
-                <ToggleButton x:Name="PlayButton" Content="Play" Click="OnPlayPause" Width="80" ToolTip.Tip="Plays or pauses the action." />
+                <ToggleButton x:Name="PlayButton" Content="Play" Click="OnPlayPause" MinWidth="80" ToolTip.Tip="Plays or pauses the action." />
                 <Border Width="1" Height="{DynamicResource UiDividerHeight}" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource ThemeLine}" IsHitTestVisible="False" />
                 <Button x:Name="FirstFrameButton" Content="|&lt;" Click="OnFirstFrame" Width="44" ToolTip.Tip="First frame" />
                 <Button x:Name="PrevFrameButton" Content="&lt;" Click="OnPrevFrame" Width="44" ToolTip.Tip="Previous frame" />
@@ -1933,9 +1933,9 @@
                              TextTrimming="CharacterEllipsis" ToolTip.Tip="Drag to select, click to clear." />
                 </Grid>
                 <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="{DynamicResource UiButtonGap}" Margin="0,4,0,0">
-                  <Button x:Name="SoundPlayButton" Content="Play" Click="OnPlaySound" Width="70" ToolTip.Tip="Plays the selected sound once." />
-                  <Button x:Name="SoundLoopButton" Content="Loop" Click="OnPlaySoundLoop" Width="70" ToolTip.Tip="Repeats the sound until Stop." />
-                  <Button x:Name="SoundStopButton" Content="Stop" Click="OnStopSound" Width="70" ToolTip.Tip="Stops playback." />
+                  <Button x:Name="SoundPlayButton" Content="Play" Click="OnPlaySound" MinWidth="70" ToolTip.Tip="Plays the selected sound once." />
+                  <Button x:Name="SoundLoopButton" Content="Loop" Click="OnPlaySoundLoop" MinWidth="70" ToolTip.Tip="Repeats the sound until Stop." />
+                  <Button x:Name="SoundStopButton" Content="Stop" Click="OnStopSound" MinWidth="70" ToolTip.Tip="Stops playback." />
                 </StackPanel>
                 <ScrollBar DockPanel.Dock="Bottom" x:Name="WaveformScroll" Orientation="Horizontal" AllowAutoHide="False" Margin="0,4,0,0" />
                 <local:WaveformView x:Name="Waveform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
@@ -1966,7 +1966,7 @@
                       </WrapPanel>
                     </StackPanel>
                     <StackPanel Spacing="4">
-                      <TextBlock Text="Time &amp; pitch" Foreground="{DynamicResource ThemeMutedText}" />
+                      <TextBlock Text="Time &amp; Pitch" Foreground="{DynamicResource ThemeMutedText}" />
                       <WrapPanel>
                         <Button Content="Change Pitch" Click="OnChangePitch" Margin="{DynamicResource UiGapRightBottom}"
                                 ToolTip.Tip="Changes pitch, keeping the length." />

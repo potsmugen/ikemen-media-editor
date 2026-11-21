@@ -74,6 +74,8 @@ Punctuation (https://plugins.jetbrains.com/docs/intellij/punctuation.html)
 - Dialog and popup titles use Title Case ("Global Shared Palette"); so do panel headers and
   section headings. Field labels use sentence case. (Matches the guidelines.)
 - Dependent options are disabled until their parent option is chosen, never hidden.
+- Exception: a choice that switches between whole sets of settings (a style or mode, such as
+  the Background style in Preferences) shows only the set that applies.
 
 ## Not yet migrated
 

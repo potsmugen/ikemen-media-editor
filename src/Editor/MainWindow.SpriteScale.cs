@@ -21,13 +21,13 @@ public partial class MainWindow
                 Settings.DefaultSpriteScaleMaxPercent, v => v >= minPercent);
             initialPercent = Settings.Checked(nameof(Settings.SpritesSection.SpriteScalePercent), initialPercent,
                 Settings.DefaultSpriteScalePercent, v => v >= minPercent && v <= maxPercent);
-            if (targets.Count == 1 && RefuseBorrowerEdit(sprite, "resize")) return;
+            if (targets.Count == 1 && RefuseBorrowerEdit(sprite, "scale")) return;
             if (!await ResolvePendingPaintBeforeSwitch()) return; // the edit changes the pixels and size under the session
             var choice = await Dialogs.PromptSpriteScale(this,
                 targets.Count == 1 ? sprite.Width : null, targets.Count == 1 ? sprite.Height : null,
                 indexed, initialPercent, minPercent, maxPercent);
             if (choice is null) return;
-            await ScaleSelection("resize", "Resizing", targets, choice);
+            await ScaleSelection("scale", "Scaling", targets, choice);
         }
         catch (Exception ex)
         {
@@ -83,10 +83,10 @@ public partial class MainWindow
         if (changes.Count == 0)
         {
             StatusText.Text = outOfRange.Count > 0
-                ? "Nothing to resize — the output size is outside the 1 to 65535 range for every selected sprite."
+                ? "Nothing to scale — the output size is outside the 1 to 65535 range for every selected sprite."
                 : linked.Count > 0
-                    ? $"Nothing to resize — every selected sprite links to another sprite ({linked.Count} of {targets.Count})."
-                    : "Nothing to resize — every selected sprite is already that size.";
+                    ? $"Nothing to scale — every selected sprite links to another sprite ({linked.Count} of {targets.Count})."
+                    : "Nothing to scale — every selected sprite is already that size.";
             return;
         }
 
@@ -96,11 +96,11 @@ public partial class MainWindow
             ApplyShifts(shifts, after);
             AfterEdit();
         }
-        _undo.Record($"resize {changes.Count} sprite(s)", () => ApplyAll(false), () => ApplyAll(true));
+        _undo.Record($"scale {changes.Count} sprite(s)", () => ApplyAll(false), () => ApplyAll(true));
         MarkDirty();
         AfterEdit();
         if (targets.Count > 1) ApplySpriteRowSelection(selectedRows, suppressEvents: true);
-        StatusText.Text = $"Resized {changes.Count} of {targets.Count} sprite(s)"
+        StatusText.Text = $"Scaled {changes.Count} of {targets.Count} sprite(s)"
             + (unchanged > 0 ? $"; {unchanged} already that size." : "")
             + (outOfRange.Count > 0 ? $"; {outOfRange.Count} outside the 1 to 65535 range." : "")
             + (linked.Count > 0 ? $"; skipped {linked.Count} linked sprite(s)." : "")

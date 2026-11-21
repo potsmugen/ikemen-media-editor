@@ -451,7 +451,7 @@ and constraints that are easy to miss when reading one code path in isolation.
   shares an entry. Colors keep their old index when it is free, walking palettes in list
   order; the rest fill free slots most used first. Index 0 is the first palette's mask, and
   the size is the largest chosen palette, grown to a power of two only when needed. The
-  dialog offers "Based on" (whose indexes and mask win) and "Padding" dropdowns and shows
+  dialog offers "Keep indexes from" (whose indexes and mask win) and "Fill unused entries with" dropdowns and shows
   "Colors: n of 256".
 - **Combine Into New** makes a temp palette and changes nothing else. Over 256 colors its
   button reads "Reduce and Combine" and it reduces by frequency-weighted median cut,

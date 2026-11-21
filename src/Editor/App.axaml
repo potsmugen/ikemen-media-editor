@@ -26,6 +26,11 @@
       <!-- Title bar and taskbar icon for every window, dialogs included. -->
       <Setter Property="Icon" Value="/Assets/app.ico" />
     </Style>
+    <!-- Tooltip text is left-aligned everywhere. Without this it inherits the control's alignment,
+         so number boxes (centered below) gave their tooltips centered text. -->
+    <Style Selector="ToolTip">
+      <Setter Property="TextBlock.TextAlignment" Value="Left" />
+    </Style>
     <!-- Tooltips also show on disabled controls, so a grayed-out button still says what it does. -->
     <Style Selector="Button, ToggleButton, RepeatButton, MenuItem, CheckBox, RadioButton, ComboBox, NumericUpDown, Slider, TextBox">
       <Setter Property="ToolTip.ShowOnDisabled" Value="True" />

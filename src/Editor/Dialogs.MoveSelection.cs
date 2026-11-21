@@ -87,6 +87,7 @@ public static partial class Dialogs
             Margin = new Avalonia.Thickness(20), Spacing = 10,
             Children =
             {
+                new TextBlock { Text = "Move to:" },
                 top, beforeRow, bottom,
                 new StackPanel
                 {

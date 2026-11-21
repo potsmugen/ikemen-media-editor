@@ -581,7 +581,7 @@ public partial class MainWindow
             long maxY = Math.Min((long)int.MaxValue, selected.Min(sprite => (long)SpriteAxisMax - sprite.AxisY));
             if (minX > maxX || minY > maxY)
             {
-                await Dialogs.ShowMessage(this, "Can't Shift Offsets", "The selected sprites cannot all be shifted into the permitted axis range.");
+                await Dialogs.ShowMessage(this, "Can't Shift Axes", "The selected sprites cannot all be shifted into the permitted axis range.");
                 return;
             }
 
@@ -592,10 +592,10 @@ public partial class MainWindow
 
             var before = selected.Select(sprite => (Sprite: sprite, X: sprite.AxisX, Y: sprite.AxisY)).ToList();
             var after = before.Select(item => (item.Sprite, X: item.X + shift.X, Y: item.Y + shift.Y)).ToList();
-            _undo.Do($"shift offsets for {selected.Count} sprites",
+            _undo.Do($"shift axes for {selected.Count} sprites",
                 () => ApplySpriteAxes(after), () => ApplySpriteAxes(before));
             MarkDirty();
-            StatusText.Text = $"Shifted {selected.Count} sprite(s) by X {shift.X}, Y {shift.Y}.";
+            StatusText.Text = $"Shifted the axis of {selected.Count} sprite(s) by X {shift.X}, Y {shift.Y}.";
         }
         catch (Exception ex)
         {
@@ -839,8 +839,7 @@ public partial class MainWindow
             var selected = SelectedSpriteTargets();
             if (selected.Count == 0 || ShownSpriteOnion() is not { } onion) return;
             string onionKey = $"{onion.Group},{onion.Index}";
-            string what = selected.Count == 1 ? $"sprite {selected[0].Group},{selected[0].Index}" : $"{selected.Count} sprites";
-            var method = await Dialogs.PromptOnionAlign(this, _onionAlignMethod, $"Aligns {what} with sprite {onionKey}.");
+            var method = await Dialogs.PromptOnionAlign(this, _onionAlignMethod);
             if (method is null || !ReferenceEquals(_file, file)) return;
             _onionAlignMethod = method.Value;
 
