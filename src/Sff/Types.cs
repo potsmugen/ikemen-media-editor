@@ -1041,13 +1041,22 @@ public sealed class SffFile
         var changed = new List<(Sprite, Palette?)>();
         if (!SffVersions.IsV1(Version) || old is null || sprite.Palette is not { } now || ReferenceEquals(old, now))
             return changed;
+        foreach (var t in FollowerRun(sprite, old)) { changed.Add((t, old)); t.Palette = now; }
+        return changed;
+    }
+
+    /// <summary>The v1 sprites after this one that share its palette <paramref name="old"/>, up to the next sprite carrying its own.</summary>
+    public List<Sprite> FollowerRun(Sprite sprite, Palette? old)
+    {
+        var run = new List<Sprite>();
+        if (!SffVersions.IsV1(Version) || old is null) return run;
         for (int i = PositionOf(sprite) + 1; i < Sprites.Count; i++)
         {
             var t = Sprites[i];
-            if (ReferenceEquals(t.Palette, old)) { changed.Add((t, old)); t.Palette = now; }
+            if (ReferenceEquals(t.Palette, old)) run.Add(t);
             else if (t.SharesWith is null) break; // a sprite carrying its own palette ends the run
         }
-        return changed;
+        return run;
     }
 
     /// <summary>

@@ -66,7 +66,7 @@ public enum SffV1PaletteChoice { Own, Previous }
 /// <summary>What to do with duplicate embedded palettes.</summary>
 public enum DuplicatePaletteAction { Merge, Link }
 
-public enum DeleteSpritesPaletteChoice { DeleteSpritesAndPalettes, DeleteSpritesOnly, Cancel }
+public enum UnusedPaletteChoice { Delete, Keep, Cancel }
 
 public enum StandalonePaletteChoice { Keep, Discard }
 public enum StandalonePaletteOpenChoice { Save, Discard, Cancel }
@@ -352,21 +352,22 @@ public static partial class Dialogs
             StandalonePaletteOpenChoice.Cancel);
     }
 
-    public static Task<DeleteSpritesPaletteChoice> PromptDeleteSpritesAndPalettes(Window owner,
+    /// <summary>Asked after a sprite delete or replace leaves palettes with no sprite users.</summary>
+    public static Task<UnusedPaletteChoice> PromptDeleteUnusedPalettes(Window owner,
         IReadOnlyList<Palette> palettes, int linkedPaletteCount)
     {
         string list = string.Join(", ", palettes.Select(p => $"{p.Group},{p.Index}"));
-        string message = $"After deleting the selected sprites, these palettes will have no remaining sprite users:\n{list}\nDelete these palettes too?";
+        string message = $"These palettes will be left unused: {list}\nDelete them?";
         if (linkedPaletteCount > 0)
         {
             string noun = linkedPaletteCount == 1 ? "linked palette will be" : "linked palettes will be";
             message += $"\n{linkedPaletteCount} {noun} unlinked with their current colors preserved.";
         }
-        return Show(owner, "Delete Sprites and Palettes?", message,
-            [("Delete Sprites and Palettes", DeleteSpritesPaletteChoice.DeleteSpritesAndPalettes),
-                ("Delete Sprites Only", DeleteSpritesPaletteChoice.DeleteSpritesOnly),
-                ("Cancel", DeleteSpritesPaletteChoice.Cancel)],
-            DeleteSpritesPaletteChoice.Cancel);
+        return Show(owner, "Delete Unused Palettes?", message,
+            [("Delete Palettes", UnusedPaletteChoice.Delete),
+                ("Keep Palettes", UnusedPaletteChoice.Keep),
+                ("Cancel", UnusedPaletteChoice.Cancel)],
+            UnusedPaletteChoice.Cancel);
     }
 
     public static Task<bool> PromptShortPalette(Window owner, int needed, int available) =>

@@ -1961,44 +1961,55 @@ public partial class MainWindow
             var beforePalette = sprite.Palette;
             var beforeFormat = (sprite.SrcFormat, sprite.SrcDepth);
 
+            // Built before anything changes, so the palette question can still cancel the replace
             ImageImport.Report report;
+            Sprite replacement;
             if (gif)
             {
                 // A single-frame GIF, so frame 0 is the whole image.
                 var frames = Sff.GifImport.DecodeFrames(picked[0].Bytes);
-                var first = Sff.GifImport.ToSprites([frames[0]], plan, out var gifReports)[0];
+                replacement = Sff.GifImport.ToSprites([frames[0]], plan, out var gifReports)[0];
                 report = gifReports[0];
-                sprite.SharesWith = null;
-                sprite.Indexed = first.Indexed;
-                sprite.Direct = first.Direct;
-                sprite.Palette = first.Palette;
-                sprite.Width = first.Width;
-                sprite.Height = first.Height;
-                sprite.DecodeError = first.DecodeError;
-                sprite.PixelsDirty = first.PixelsDirty;
-                sprite.SrcFormat = first.SrcFormat;
-                sprite.SrcDepth = first.SrcDepth;
             }
             else
             {
                 CrashLog.Trace($"OnReplaceSprite: image import start {picked[0].Name}");
                 var watch = Stopwatch.StartNew();
-                var replacement = prepared is null
+                replacement = prepared is null
                     ? ImageImport.FromImage(picked[0].Bytes, plan, out report)
                     : prepared.Build(out report);
                 CrashLog.Trace($"OnReplaceSprite: image import done {picked[0].Name}: {report.Width}x{report.Height}, "
                     + $"{report.Colors} colors, reduced={report.Reduced}, {watch.ElapsedMilliseconds} ms");
-                sprite.SharesWith = replacement.SharesWith;
-                sprite.Indexed = replacement.Indexed;
-                sprite.Direct = replacement.Direct;
-                sprite.Palette = replacement.Palette;
-                sprite.Width = replacement.Width;
-                sprite.Height = replacement.Height;
-                sprite.DecodeError = replacement.DecodeError;
-                sprite.PixelsDirty = replacement.PixelsDirty;
-                sprite.SrcFormat = replacement.SrcFormat;
-                sprite.SrcDepth = replacement.SrcDepth;
             }
+
+            // The old palette may lose its last sprite; v1 drops it silently, v2 asks (same rules as Delete)
+            var orphaned = PalettesOrphanedByReplace(file, sprite, beforePalette, replacement.Palette);
+            bool deletePalettes = orphaned.Count > 0 && SffVersions.IsV1(file.Version);
+            if (orphaned.Count > 0 && !deletePalettes)
+            {
+                int linkedPalettes = file.Palettes.Count(p => p.LinksTo is { } target && orphaned.Contains(target));
+                var paletteChoice = await Dialogs.PromptDeleteUnusedPalettes(this, orphaned, linkedPalettes);
+                if (paletteChoice == UnusedPaletteChoice.Cancel || !ReferenceEquals(_file, file)
+                    || !file.Sprites.Contains(sprite)) return;
+                deletePalettes = paletteChoice == UnusedPaletteChoice.Delete;
+            }
+            if (deletePalettes)
+            {
+                orphaned = orphaned.Where(file.Palettes.Contains).ToList(); // rechecked after the prompt
+                deletePalettes = orphaned.Count > 0;
+            }
+            if (deletePalettes && !await SettlePendingColorAdjustFor(file, orphaned)) return;
+
+            sprite.SharesWith = replacement.SharesWith;
+            sprite.Indexed = replacement.Indexed;
+            sprite.Direct = replacement.Direct;
+            sprite.Palette = replacement.Palette;
+            sprite.Width = replacement.Width;
+            sprite.Height = replacement.Height;
+            sprite.DecodeError = replacement.DecodeError;
+            sprite.PixelsDirty = replacement.PixelsDirty;
+            sprite.SrcFormat = replacement.SrcFormat;
+            sprite.SrcDepth = replacement.SrcDepth;
             // An own-palette import builds a new Palette object, so it is safe to
             // stamp the dialog's chosen numbers onto it here.
             if (!plan.TrueColor && plan.OwnPalette && sprite.Palette is { } newPal)
@@ -2009,6 +2020,8 @@ public partial class MainWindow
             file.EnsurePalette(sprite.Palette);
             // SFF v1: sprites after it that shared its old palette take the new one, as they would on disk
             var followers = file.FollowNewPalette(sprite, beforePalette);
+            (Action Remove, Action Restore)? paletteRemoval = deletePalettes ? BuildPaletteRemoval(file, orphaned) : null;
+            paletteRemoval?.Remove();
 
             var after = (sprite.SharesWith, sprite.Indexed, sprite.Direct, sprite.Width, sprite.Height, sprite.PixelsDirty);
             var afterPalette = sprite.Palette;
@@ -2019,25 +2032,124 @@ public partial class MainWindow
                 {
                     Restore(sprite, before); sprite.Palette = beforePalette; (sprite.SrcFormat, sprite.SrcDepth) = beforeFormat;
                     foreach (var (t, old) in followers) t.Palette = old;
+                    paletteRemoval?.Restore();
                     AfterEdit();
                 },
                 () =>
                 {
                     Restore(sprite, after); sprite.Palette = afterPalette; (sprite.SrcFormat, sprite.SrcDepth) = afterFormat;
                     foreach (var (t, _) in followers) t.Palette = afterPalette;
+                    paletteRemoval?.Remove();
                     AfterEdit();
                 });
             MarkDirty();
             AfterEdit();
             string followed = followers.Count == 0 ? ""
                 : $" {followers.Count} following {(followers.Count == 1 ? "sprite uses" : "sprites use")} its new palette.";
-            StatusText.Text = $"Replaced from {picked[0].Name}. {report}{followed}";
+            string removed = deletePalettes
+                ? $" Deleted {orphaned.Count} unused palette{(orphaned.Count == 1 ? "" : "s")}."
+                : "";
+            StatusText.Text = $"Replaced from {picked[0].Name}. {report}{followed}{removed}";
         }
         catch (Exception ex)
         {
             CrashLog.Write("OnReplaceSprite", ex);
             await Dialogs.ShowMessage(this, "Could Not Import", ex.Message);
         }
+    }
+
+    /// <summary>
+    /// The sprite's old palette when replacing the sprite leaves it with no sprite users (v1: after
+    /// its following sprites move to the new palette); embedded and, in v2, not group 1, as for Delete.
+    /// </summary>
+    private static List<Palette> PalettesOrphanedByReplace(SffFile file, Sprite sprite, Palette? old, Palette? now)
+    {
+        if (old is null || ReferenceEquals(old, now) || old.Source != PaletteSource.Embedded
+            || !file.Palettes.Contains(old))
+            return [];
+        bool v1 = SffVersions.IsV1(file.Version);
+        if (!v1 && old.IsCharacterPalette) return [];
+        HashSet<Sprite> following = v1 && now is not null ? file.FollowerRun(sprite, old).ToHashSet() : [];
+        bool stillUsed = file.Sprites.Any(s => !ReferenceEquals(s, sprite) && !following.Contains(s)
+            && ReferenceEquals(s.Palette, old));
+        return stillUsed ? [] : [old];
+    }
+
+    /// <summary>Same question as the one Delete asks, for the palettes a replace is about to remove.</summary>
+    private async Task<bool> SettlePendingColorAdjustFor(SffFile file, List<Palette> targets)
+    {
+        var linkers = file.Palettes.Where(p => p.LinksTo is { } t && targets.Contains(t) && !targets.Contains(p)).ToList();
+        if (!HasPendingColorAdjust() || _editingPalette is not { Source: PaletteSource.Embedded } pending
+            || !(targets.Contains(pending) || linkers.Contains(pending)))
+            return true;
+        var choice = await Dialogs.AskAboutPendingColorAdjust(this);
+        if (choice == PendingAdjustChoice.Cancel || !ReferenceEquals(_file, file)) return false;
+        if (choice == PendingAdjustChoice.Commit) CommitPendingColorAdjust();
+        else DiscardPendingColorAdjust();
+        return true;
+    }
+
+    /// <summary>
+    /// Removes embedded palettes inside a larger undo step: linked palettes are unlinked with their
+    /// colors kept, and the color editor, preview selection and palette order come back on undo.
+    /// Build it when the palette list is in its final shape, since Restore puts that list back.
+    /// </summary>
+    private (Action Remove, Action Restore) BuildPaletteRemoval(SffFile file, List<Palette> targets)
+    {
+        var order = file.Palettes.ToList();
+        var linkers = file.Palettes.Where(p => p.LinksTo is { } t && targets.Contains(t) && !targets.Contains(p)).ToList();
+        var linkStates = linkers.Select(p => (Palette: p, State: PaletteLinkState.Capture(p))).ToList();
+        var selected = _paletteOverride >= 0 && _paletteOverride < order.Count ? order[_paletteOverride] : null;
+        bool editingDeleted = _editingPalette is { } editing && targets.Contains(editing);
+        var editingPalette = _editingPalette;
+        var editingView = _editingView;
+        int swatch = _selectedSwatch;
+        bool editorEnabled = ColorEditor.IsEnabled;
+        string? swatchInfo = SwatchInfo.Text;
+
+        void Remove()
+        {
+            foreach (var (palette, state) in linkStates)
+                new PaletteLinkState(null, state.Colors).Restore(palette);
+            file.Palettes.RemoveAll(targets.Contains);
+            _paletteOverride = selected is null ? -1 : file.Palettes.IndexOf(selected);
+            SyncPreviewPaletteBox();
+            if (!editingDeleted) return;
+            _editingPalette = null;
+            _editingView = null;
+            _selectedSwatch = -1;
+            ColorEditor.IsEnabled = false;
+            ASlider.IsEnabled = false;
+            ResetColorAdjustBase();
+        }
+
+        void Restore()
+        {
+            file.Palettes.Clear();
+            file.Palettes.AddRange(order);
+            foreach (var (palette, state) in linkStates)
+                state.Restore(palette);
+            _paletteOverride = selected is null ? -1 : file.Palettes.IndexOf(selected);
+            SyncPreviewPaletteBox();
+            if (!editingDeleted || editingPalette is null) return;
+            _editingPalette = editingPalette;
+            _editingView = editingView;
+            _selectedSwatch = swatch;
+            SwatchInfo.Text = swatchInfo;
+            ColorEditor.IsEnabled = editorEnabled;
+            ASlider.IsEnabled = editorEnabled && CanEditPaletteAlpha(editingPalette);
+            if (swatch >= 0 && swatch < editingPalette.Colors.Length)
+            {
+                var color = editingPalette.Colors[swatch];
+                _suppressEvents = true;
+                RSlider.Value = color.R; GSlider.Value = color.G; BSlider.Value = color.B; ASlider.Value = color.A;
+                _suppressEvents = false;
+                SpriteCanvas.PaintColorIndex = swatch;
+            }
+            ResetColorAdjustBase();
+        }
+
+        return (Remove, Restore);
     }
 
     private async void OnDeleteSprite(object? sender, RoutedEventArgs e)
@@ -2092,10 +2204,10 @@ public partial class MainWindow
                 var candidateSet = palettesToDelete.ToHashSet();
                 int linkedPalettes = file.Palettes.Count(palette => palette.LinksTo is { } target
                     && candidateSet.Contains(target) && !candidateSet.Contains(palette));
-                var paletteChoice = await Dialogs.PromptDeleteSpritesAndPalettes(this, palettesToDelete, linkedPalettes);
-                if (paletteChoice == DeleteSpritesPaletteChoice.Cancel || !ReferenceEquals(_file, file)
+                var paletteChoice = await Dialogs.PromptDeleteUnusedPalettes(this, palettesToDelete, linkedPalettes);
+                if (paletteChoice == UnusedPaletteChoice.Cancel || !ReferenceEquals(_file, file)
                     || spritesToDelete.Any(sprite => !file.Sprites.Contains(sprite))) return;
-                deletePalettes = paletteChoice == DeleteSpritesPaletteChoice.DeleteSpritesAndPalettes;
+                deletePalettes = paletteChoice == UnusedPaletteChoice.Delete;
             }
 
             if (deletePalettes)

@@ -683,8 +683,13 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Sprite deletion** refuses sprites with pixel borrowers outside the selection; a linker
   selected with its target goes with it, and undo keeps the link. In v1, deleting the last
   user of a palette removes it. In v2, deleting the last direct users of an embedded
-  non-group-1 palette asks a second time whether to delete those palettes too, and doing so
+  non-group-1 palette asks a second time whether to delete those palettes, and doing so
   unlinks dependents while keeping their colors. Each deletion is one undo step.
+  Sprite Replace follows the same rules for the sprite's old palette: when the new image
+  leaves it with no users (v1: after its following sprites move to the new palette), v1
+  removes it and v2 asks ("Delete Unused Palettes?", the dialog Delete uses). The removal
+  is part of the replace's one undo step. Bulk replace (`ReplaceSpriteHeadless`) does not
+  do this yet.
 - **Create Palette Template** (Sprites menu) exports one PNG indexed to a chosen palette:
   the palette PNG export's 16×16 swatch grid at the top left, then sprites trimmed to their
   visible pixels, packed in rows tallest first after it (sprite 0,0 first when picked), on index 0. Sprites are those whose palette is the chosen

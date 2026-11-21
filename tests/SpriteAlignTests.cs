@@ -9,8 +9,9 @@ namespace IkemenMediaEditor.Tests;
 /// </summary>
 public class SpriteAlignTests
 {
+    // Index 0 is clear because the palette stores it that way, as real palettes do
     private static Palette Palette() =>
-        new() { Colors = Enumerable.Range(0, 256).Select(i => new Rgba((byte)i, (byte)(255 - i), 7, 255)).ToArray() };
+        new() { Colors = Enumerable.Range(0, 256).Select(i => new Rgba((byte)i, (byte)(255 - i), 7, (byte)(i == 0 ? 0 : 255))).ToArray() };
 
     /// <summary>A w×h indexed sprite of seeded noise, with index 0 for transparent around a border.</summary>
     private static byte[] Noise(int w, int h, int seed, int border = 2)
