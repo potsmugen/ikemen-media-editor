@@ -610,14 +610,14 @@ and constraints that are easy to miss when reading one code path in isolation.
   %, and trace.log `[align]` lines its time. It always moves to the best result and shows the move and match % in the status
   line. Sprites with no visible pixels, no close colors, or an axis that would leave the
   range stay put and are listed in a popup. `Sff.SpriteAlign` holds the math.
-- **Sprite import palettes**: "A new palette from the image" always adds palettes, numbered
-  from its Group/Index boxes; reusing an existing palette is the specific-palette option, which the
-  dialog opens on when a palette reproduces every image. "One palette for all images" (default)
+- **Sprite import palettes**: "Create a palette from the image" always adds palettes, numbered
+  from its Group/Index boxes; reusing one is "Use an existing palette", which the
+  dialog opens on when a palette reproduces every image. "Use one palette for all images" (default)
   merges the batch's new palettes with `PaletteMerge` (unused entries left out, indexes kept where
   their slot is free; over 255 colors asks to reduce or use 32-bit); unchecked, each sprite gets its
   own copy, GIF frames and sheet cells included. Disabled controls' tooltips say why.
 - **Sprite import palette help** counts how many images each palette reproduces exactly
-  (full RGBA) or by index or nearest color, with index 0 excluded. The specific-palette
+  (full RGBA) or by index or nearest color, with index 0 excluded. The existing-palette
   dropdown opens on a palette matching every image, else the previous sprite's, which it tags
   (in v1 the only one saved without a copy of its colors; there is no separate option for it). A square
   preview rebuilds off the UI thread and fits the visible pixels. `<` `>` buttons under it step

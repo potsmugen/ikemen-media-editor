@@ -2222,11 +2222,11 @@ public static partial class Dialogs
 
         var own = new RadioButton
         {
-            GroupName = "ImportPalette", Content = "A new palette from the image",
+            GroupName = "ImportPalette", Content = "Create a palette from the image",
         };
         var specific = new RadioButton
         {
-            GroupName = "ImportPalette", Content = "A specific palette:", IsEnabled = palettes.Count > 0,
+            GroupName = "ImportPalette", Content = "Use an existing palette:", IsEnabled = palettes.Count > 0,
         };
         var baseLabels = paletteLabels ?? palettes.Select((p, i) => $"{i + 1}. {p.Describe()}").ToList();
         var paletteBox = new ComboBox { IsEnabled = palettes.Count > 0, MinWidth = 180 };
@@ -2248,7 +2248,7 @@ public static partial class Dialogs
         };
         var shareBox = new CheckBox
         {
-            Content = "One palette for all images", IsChecked = initial.SharedPalette, Margin = new Avalonia.Thickness(20, 0, 0, 0),
+            Content = "Use one palette for all images", IsChecked = initial.SharedPalette, Margin = new Avalonia.Thickness(20, 0, 0, 0),
         };
 
         var bitDepth = new ComboBox { MinWidth = 220 };
@@ -2304,7 +2304,7 @@ public static partial class Dialogs
         {
             bool tc = bitDepth.SelectedIndex == 1 && trueColorAvailable;
             bool ownSelected = own.IsChecked == true;
-            // With a new palette from the image there is only one possible mapping
+            // With a palette created from the image there is only one possible mapping
             // (matching against itself is exact), so both index options gray out.
             own.IsEnabled = !tc;
             specific.IsEnabled = !tc && palettes.Count > 0;
@@ -2319,14 +2319,14 @@ public static partial class Dialogs
 
             // A disabled control's tooltip says only why it is disabled
             const string eightBit = "Only for 8-bit color.";
-            const string onlyNew = "Only for a new palette from the image.";
+            const string onlySpecific = "Only when using an existing palette.";
+            const string onlyNew = "Only when creating a palette from the image.";
             string? notIndexed = framesGif
                 ? "A GIF's frames have no palette of their own, so they have no indexes to keep."
                 : "Only indexed images have indexes to keep.";
             Tip(own, "Adds a palette made from the image's colors.", eightBit);
             Tip(specific, null, tc ? eightBit : "This SFF has no palettes yet.");
-            Tip(paletteBox, null, tc ? eightBit : palettes.Count == 0 ? "This SFF has no palettes yet." : "Pick A specific palette first.");
-            const string onlySpecific = "Only for a specific palette.";
+            Tip(paletteBox, null, tc ? eightBit : palettes.Count == 0 ? "This SFF has no palettes yet." : onlySpecific);
             Tip(keep, "Keeps pixel indexes, using the chosen palette.",
                 tc ? eightBit : ownSelected ? onlySpecific : notIndexed);
             Tip(nearest, "Uses the closest color in the chosen palette.",
@@ -2413,7 +2413,7 @@ public static partial class Dialogs
             });
         }
         if (askPlacement) body.Children.Add(Line());
-        body.Children.Add(Section("Color depth"));
+        body.Children.Add(Section("Color Depth"));
         body.Children.Add(bitDepth);
         body.Children.Add(Line());
         body.Children.Add(Section("Palette"));
@@ -2441,7 +2441,7 @@ public static partial class Dialogs
             Orientation = Orientation.Horizontal, Spacing = 6,
             Children = { specific, paletteBox },
         });
-        // Index mapping only applies to a specific palette, so it sits under it like Group/Index under a new palette
+        // Index mapping only applies to an existing palette, so it sits under it like Group/Index under a created one
         keep.Margin = nearest.Margin = new Avalonia.Thickness(20, 0, 0, 0);
         keepMask.Margin = new Avalonia.Thickness(40, 0, 0, 0);
         body.Children.Add(keep);

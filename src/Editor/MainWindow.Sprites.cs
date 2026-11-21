@@ -1499,7 +1499,7 @@ public partial class MainWindow
     {
         var file = _file!;
 
-        // A new palette from the images always adds palettes; reusing an existing one is the specific-palette option.
+        // Creating a palette from the images always adds palettes; reusing one is the existing-palette option.
         // The batch shares one palette or gives each sprite its own, as the dialog's checkbox says.
         bool own = !plan.TrueColor && plan.OwnPalette;
         string depthNote = "";

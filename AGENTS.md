@@ -1,7 +1,7 @@
 # Agent briefing
 
 Read this before working in the repo. Feature behavior and implementation
-notes live in `agents/features.md`; read the relevant sections before changes
+notes live in `agents/features.md`; UI conventions in `agents/ui.md`; read the relevant sections before changes
 and keep them current. Open, unchecked work is in `agents/todo.md`.
 
 ## Rules
@@ -48,26 +48,8 @@ and keep them current. Open, unchecked work is in `agents/todo.md`.
   invalid values fall back and are logged. Algorithm internals need not be settings.
 - Settings files need no backward compatibility, even across releases: renamed
   keys need no aliases or migration; old keys may be ignored.
-- Tooltips: keep them concise. Say what the control does and any distinction that
-  matters. Don't repeat the label or explain units, ranges, format quirks,
-  undo, or selection caveats. Explain all dropdown options or none; usually
-  none. Put shared behavior on the shared control.
-  Icon-only buttons (✕, +, float, collapse) get a short command with no period, as
-  their missing label ("Close tab", "Float panel"). Labeled buttons get a "Does X."
-  sentence. Interaction hints on cells and grids stay imperative ("Double-click to …").
-  Tooltips also show on disabled controls (App.axaml), so a grayed-out control still
-  explains itself. When the reason it's disabled isn't obvious (not just "nothing is
-  open"), say why, e.g. by switching the tip while disabled ("Available for
-  true-color sprites only.").
-- Keep dialog drift low: a dialog shows the same controls from one use to the next. Prefer
-  disabling a control that doesn't apply (with a tooltip saying why) over hiding it.
-- Dialog and popup titles use Title Case ("Global Shared Palette"), and so do panel
-  headers and section headings ("Sprite Tools", "Tool Options"). Field labels stay
-  sentence case ("Preview with", "Pin sprite").
-- No "..." in UI text; ask first if a case seems to need it. Approved
-  exceptions: splash "Loading...", the ", …" sprite-number truncation, and text
-  trimmed to fit (TextTrimming), such as button labels too wide for their button.
-  Don't put the user's name in files or code.
+- UI controls, layout, labels, tooltips and wording follow `agents/ui.md`.
+- Don't put the user's name in files or code.
 - Never commit, publish, or share the sample character files in `working/`
   (kfm, zangief, and similar). It's gitignored; keep them out of zips and shared
   folders too. Test samples go there too, never under `tests/`.
