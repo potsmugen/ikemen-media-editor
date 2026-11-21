@@ -59,6 +59,8 @@ and keep them current. Open, unchecked work is in `agents/todo.md`.
   explains itself. When the reason it's disabled isn't obvious (not just "nothing is
   open"), say why, e.g. by switching the tip while disabled ("Available for
   true-color sprites only.").
+- Keep dialog drift low: a dialog shows the same controls from one use to the next. Prefer
+  disabling a control that doesn't apply (with a tooltip saying why) over hiding it.
 - Dialog and popup titles use Title Case ("Global Shared Palette"), and so do panel
   headers and section headings ("Sprite Tools", "Tool Options"). Field labels stay
   sentence case ("Preview with", "Pin sprite").

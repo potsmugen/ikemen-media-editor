@@ -608,12 +608,20 @@ and constraints that are easy to miss when reading one code path in isolation.
   %, and trace.log `[align]` lines its time. It always moves to the best result and shows the move and match % in the status
   line. Sprites with no visible pixels, no close colors, or an axis that would leave the
   range stay put and are listed in a popup. `Sff.SpriteAlign` holds the math.
+- **Sprite import palettes**: "A new palette from the image" always adds palettes, numbered
+  from its Group/Index boxes; reusing an existing palette is the specific-palette option, which the
+  dialog opens on when a palette reproduces every image. "One palette for all images" (default)
+  merges the batch's new palettes with `PaletteMerge` (unused entries left out, indexes kept where
+  their slot is free; over 255 colors asks to reduce or use 32-bit); unchecked, each sprite gets its
+  own copy, GIF frames and sheet cells included. Disabled controls' tooltips say why.
 - **Sprite import palette help** counts how many images each palette reproduces exactly
   (full RGBA) or by index or nearest color, with index 0 excluded. The specific-palette
-  dropdown opens on a palette matching every image, else the previous sprite's. A square
+  dropdown opens on a palette matching every image, else the previous sprite's, which it tags
+  (in v1 the only one saved without a copy of its colors; there is no separate option for it). A square
   preview rebuilds off the UI thread and fits the visible pixels. `<` `>` buttons under it step
   through every image the import adds (GIF frames and sheet cells included);
-  hidden for a single image. The Preview heading is followed by the shown image's file name.
+  hidden for a single image. The Preview heading is followed by the shown image's file name
+  (trimmed from the start) and, when adding, the group,number it will get (`NumberAt`).
 - **GIF import** composites frame rectangles onto the logical screen and honors disposal and
   interlace. Transparency is binary at index 0, and truncated LZW leaves pixels transparent.
   Repeated frames can be dropped, which shortens pose time. Frames share one palette in play

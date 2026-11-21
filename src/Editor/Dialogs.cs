@@ -59,7 +59,7 @@ public enum PaletteTargetDialogAction { UseGroupIndex, PickFromList }
 public sealed record PaletteTargetDialogResult(PaletteTargetDialogAction Action, int Group = 0, int Index = 0);
 
 /// <summary>Which palette a newly imported sprite should use.</summary>
-public enum ImportPaletteChoice { Own, Previous, Specific }
+public enum ImportPaletteChoice { Own, Specific }
 
 public enum SffV1PaletteChoice { Own, Previous }
 
@@ -78,8 +78,7 @@ public enum GifOverflowChoice { TrueColor, Reduce }
 public enum ImportIndexChoice { Keep, Nearest }
 
 /// <summary>What PromptSpriteImport collected. Group/Number only apply when adding.
-/// PaletteGroup/PaletteIndex only apply when Own creates a genuinely new palette
-/// (not one reused because it's identical to an existing one).</summary>
+/// PaletteGroup/PaletteIndex number the new palettes Own adds.</summary>
 public enum BitDepthChoice { EightBit, ThirtyTwoBit }
 
 public sealed record ImportChoices(
@@ -89,14 +88,19 @@ public sealed record ImportChoices(
 {
     /// <summary>With nearest matching from an indexed image, its index 0 stays the mask.</summary>
     public bool KeepMask { get; init; } = true;
+
+    /// <summary>With Own, the images share one new palette rather than one each.</summary>
+    public bool SharedPalette { get; init; } = true;
 }
 
 /// <summary>How many of the imported images each palette (by list position) reproduces exactly, per index mode.</summary>
 public sealed record ImportPaletteMatches(int[] Keep, int[] Nearest, int Total);
 
 /// <summary>The import dialog's preview: builds image number At (of Count) under given choices, drawn over the canvas look.
-/// Name gives the file an image comes from.</summary>
-public sealed record ImportPreview(Func<ImportChoices, int, Sprite> Build, int Count, Func<int, string> Name, CanvasLook Look);
+/// Name gives the file an image comes from. Number, when adding, gives the sprite number image At gets
+/// for a group and first number (null when none is left).</summary>
+public sealed record ImportPreview(Func<ImportChoices, int, Sprite> Build, int Count, Func<int, string> Name, CanvasLook Look,
+    Func<int, int, int, int?>? Number = null);
 
 /// <summary>How the sprite canvas dimensions should change.</summary>
 public sealed record SpriteResizeChoices(bool Relative, int Width, int Height);
@@ -2196,8 +2200,8 @@ public static partial class Dialogs
     /// Asks how to bring images in as sprites: which palette they should use,
     /// how their indexes map onto it, and — when adding rather than replacing
     /// — the group and first number (one more per image). PreviousPalette is
-    /// what "the previous sprite's palette" refers to; null disables that
-    /// option. ImagesIndexed enables "keep the image's indexes", which only
+    /// tagged in the palette list, since in SFF v1 it is the one saved without a copy of its colors.
+    /// ImagesIndexed enables "keep the image's indexes", which only
     /// means something for indexed images. paletteGroup/paletteIndex seed the
     /// Group/Index a genuinely new "own palette" gets, defaulting to the
     /// sprite's own group and the next free palette number in it — only shown
@@ -2218,12 +2222,7 @@ public static partial class Dialogs
 
         var own = new RadioButton
         {
-            GroupName = "ImportPalette", Content = "The image's own palette",
-        };
-        ToolTip.SetTip(own, "Keeps the image's own palette.");
-        var previous = new RadioButton
-        {
-            GroupName = "ImportPalette", Content = "The previous sprite's palette", IsEnabled = previousPalette is not null,
+            GroupName = "ImportPalette", Content = "A new palette from the image",
         };
         var specific = new RadioButton
         {
@@ -2239,19 +2238,18 @@ public static partial class Dialogs
         {
             GroupName = "ImportIndex", Content = "Keep the image's indexes", IsEnabled = imagesIndexed,
         };
-        ToolTip.SetTip(keep, framesGif
-            ? "A GIF's frames have no palette of their own, so they cannot keep its indexes."
-            : "Keeps pixel indexes, using the chosen palette.");
         var nearest = new RadioButton
         {
             GroupName = "ImportIndex", Content = "Match the nearest color",
         };
-        ToolTip.SetTip(nearest, "Uses the closest color in the chosen palette.");
         var keepMask = new CheckBox
         {
             Content = "Keep mask", IsChecked = initial.KeepMask, Margin = new Avalonia.Thickness(20, 0, 0, 0),
         };
-        ToolTip.SetTip(keepMask, "Pixels at the image's index 0 stay transparent.");
+        var shareBox = new CheckBox
+        {
+            Content = "One palette for all images", IsChecked = initial.SharedPalette, Margin = new Avalonia.Thickness(20, 0, 0, 0),
+        };
 
         var bitDepth = new ComboBox { MinWidth = 220 };
         bitDepth.Items.Add(new ComboBoxItem { Content = "8-bit color" });
@@ -2270,21 +2268,26 @@ public static partial class Dialogs
         var palIndexBox = new NumericUpDown { Minimum = 0, Maximum = 65535, Increment = 1, FormatString = "0", Value = initial.PaletteGroup != 0 || initial.PaletteIndex != 0 ? initial.PaletteIndex : paletteIndex, Width = 100 };
 
         // Labels are plain text, so they dim with their boxes by hand (same 0.5 as disabled buttons).
-        var palGroupLabel = new TextBlock { Text = "New palette group", VerticalAlignment = VerticalAlignment.Center };
+        var palGroupLabel = new TextBlock { Text = "Group", VerticalAlignment = VerticalAlignment.Center };
         var palIndexLabel = new TextBlock { Text = "Index", VerticalAlignment = VerticalAlignment.Center };
 
-        (initial.PaletteChoice == ImportPaletteChoice.Previous && previousPalette is not null ? previous
-            : initial.PaletteChoice == ImportPaletteChoice.Specific && palettes.Count > 0 ? specific
+        (initial.PaletteChoice == ImportPaletteChoice.Specific && palettes.Count > 0 ? specific
             : own).IsChecked = true;
         (initial.IndexChoice == ImportIndexChoice.Keep && imagesIndexed ? keep : nearest).IsChecked = true;
 
         // Labels count matches for the index mode in use, so they follow the Indexes radios.
+        // The previous sprite's palette is tagged: in SFF v1 it is the only one saved without a copy of its colors
+        int previousAt = -1;
+        for (int i = 0; i < palettes.Count && previousAt < 0; i++)
+            if (ReferenceEquals(palettes[i], previousPalette)) previousAt = i;
         string Suffix(int i, bool keepMode)
         {
-            if (matches is null || i >= matches.Keep.Length) return "";
-            int m = keepMode ? matches.Keep[i] : matches.Nearest[i];
-            return m == 0 ? "" : matches.Total == 1 ? " — match"
-                : m == matches.Total ? $" — matches all {m}" : $" — matches {m} of {matches.Total}";
+            var parts = new List<string>();
+            if (i == previousAt) parts.Add("previous sprite's");
+            int m = matches is null || i >= matches.Keep.Length ? 0 : keepMode ? matches.Keep[i] : matches.Nearest[i];
+            if (m > 0)
+                parts.Add(matches!.Total == 1 ? "match" : m == matches.Total ? $"matches all {m}" : $"matches {m} of {matches.Total}");
+            return parts.Count == 0 ? "" : " — " + string.Join(", ", parts);
         }
         void Relabel()
         {
@@ -2301,21 +2304,43 @@ public static partial class Dialogs
         {
             bool tc = bitDepth.SelectedIndex == 1 && trueColorAvailable;
             bool ownSelected = own.IsChecked == true;
-            // With the image's own palette there is only one possible mapping
+            // With a new palette from the image there is only one possible mapping
             // (matching against itself is exact), so both index options gray out.
             own.IsEnabled = !tc;
-            previous.IsEnabled = !tc && previousPalette is not null;
             specific.IsEnabled = !tc && palettes.Count > 0;
             paletteBox.IsEnabled = !tc && specific.IsChecked == true;
             keep.IsEnabled = !tc && !ownSelected && imagesIndexed;
             nearest.IsEnabled = !tc && !ownSelected;
             keepMask.IsEnabled = nearest.IsEnabled && nearest.IsChecked == true && imagesIndexed;
-            // Only matters when Own actually creates a new palette object.
             palGroupBox.IsEnabled = !tc && ownSelected;
             palIndexBox.IsEnabled = !tc && ownSelected;
+            shareBox.IsEnabled = !tc && ownSelected && imageCount > 1;
             palGroupLabel.Opacity = palIndexLabel.Opacity = palGroupBox.IsEnabled ? 1 : 0.5;
+
+            // A disabled control's tooltip says only why it is disabled
+            const string eightBit = "Only for 8-bit color.";
+            const string onlyNew = "Only for a new palette from the image.";
+            string? notIndexed = framesGif
+                ? "A GIF's frames have no palette of their own, so they have no indexes to keep."
+                : "Only indexed images have indexes to keep.";
+            Tip(own, "Adds a palette made from the image's colors.", eightBit);
+            Tip(specific, null, tc ? eightBit : "This SFF has no palettes yet.");
+            Tip(paletteBox, null, tc ? eightBit : palettes.Count == 0 ? "This SFF has no palettes yet." : "Pick A specific palette first.");
+            const string onlySpecific = "Only for a specific palette.";
+            Tip(keep, "Keeps pixel indexes, using the chosen palette.",
+                tc ? eightBit : ownSelected ? onlySpecific : notIndexed);
+            Tip(nearest, "Uses the closest color in the chosen palette.",
+                tc ? eightBit : onlySpecific);
+            Tip(keepMask, "Pixels at the image's index 0 stay transparent.",
+                tc ? eightBit : ownSelected ? onlySpecific
+                : !imagesIndexed ? "Only indexed images have an index 0 to keep." : "Only with Match the nearest color.");
+            Tip(palGroupBox, null, tc ? eightBit : onlyNew);
+            Tip(palIndexBox, null, tc ? eightBit : onlyNew);
+            Tip(shareBox, "Unchecked, each image gets a palette of its own.",
+                tc ? eightBit : !ownSelected ? onlyNew : "There is only one image.");
         }
-        foreach (var c in new ToggleButton[] { own, previous, specific, keep, nearest })
+        static void Tip(Control c, string? on, string? off) => ToolTip.SetTip(c, c.IsEnabled ? on : off ?? on);
+        foreach (var c in new ToggleButton[] { own, specific, keep, nearest })
             c.IsCheckedChanged += (_, _) => UpdateEnabled();
         bitDepth.SelectionChanged += (_, _) => UpdateEnabled();
         UpdateEnabled();
@@ -2337,7 +2362,6 @@ public static partial class Dialogs
         ImportChoices Current()
         {
             var palChoice = specific.IsChecked == true && palettes.Count > 0 ? ImportPaletteChoice.Specific
-                : previous.IsEnabled && previous.IsChecked == true ? ImportPaletteChoice.Previous
                 : ImportPaletteChoice.Own;
             // GIF frames carry no indexes to keep, so the disabled option must
             // not be read back as if it had been chosen.
@@ -2352,6 +2376,7 @@ public static partial class Dialogs
                 (int)(palIndexBox.Value ?? paletteIndex))
             {
                 KeepMask = keepMask.IsChecked == true,
+                SharedPalette = shareBox.IsChecked == true,
             };
         }
         ok.Click += (_, _) =>
@@ -2363,10 +2388,12 @@ public static partial class Dialogs
 
         // Sections top to bottom: where the sprites go, then how their colors come in.
         TextBlock Section(string text) => new() { Text = text, Foreground = ThemeBrush("ThemeMutedText"), FontWeight = FontWeight.Bold };
+        // A hairline between sections, like the ones in the side panels
+        Border Line() => new() { Height = 1, Margin = new Avalonia.Thickness(0, 4), Background = ThemeBrush("ThemeLine"), IsHitTestVisible = false };
         var body = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 10 };
         if (askPlacement)
         {
-            body.Children.Add(Section("Sprite"));
+            body.Children.Add(Section(imageCount > 1 ? "Sprites" : "Sprite"));
             body.Children.Add(new StackPanel
             {
                 Orientation = Orientation.Horizontal, Spacing = 14,
@@ -2385,8 +2412,10 @@ public static partial class Dialogs
                 },
             });
         }
+        if (askPlacement) body.Children.Add(Line());
         body.Children.Add(Section("Color depth"));
         body.Children.Add(bitDepth);
+        body.Children.Add(Line());
         body.Children.Add(Section("Palette"));
         body.Children.Add(own);
         body.Children.Add(new StackPanel
@@ -2406,13 +2435,15 @@ public static partial class Dialogs
                 },
             },
         });
-        body.Children.Add(previous);
+        body.Children.Add(shareBox);
         body.Children.Add(new StackPanel
         {
             Orientation = Orientation.Horizontal, Spacing = 6,
             Children = { specific, paletteBox },
         });
-        body.Children.Add(Section("Indexes"));
+        // Index mapping only applies to a specific palette, so it sits under it like Group/Index under a new palette
+        keep.Margin = nearest.Margin = new Avalonia.Thickness(20, 0, 0, 0);
+        keepMask.Margin = new Avalonia.Thickness(40, 0, 0, 0);
         body.Children.Add(keep);
         body.Children.Add(nearest);
         body.Children.Add(keepMask);
@@ -2432,10 +2463,14 @@ public static partial class Dialogs
             buttons.Margin = new Avalonia.Thickness(20, 0, 20, 20);
             var previewPanel = ImportPreviewPanel(dialog, preview, Current, Section,
                 refresh => {
-                    foreach (var c in new ToggleButton[] { own, previous, specific, keep, nearest, keepMask })
+                    foreach (var c in new ToggleButton[] { own, specific, keep, nearest, keepMask })
                         c.IsCheckedChanged += (_, _) => refresh();
                     paletteBox.SelectionChanged += (_, _) => refresh();
                     bitDepth.SelectionChanged += (_, _) => refresh();
+                },
+                rename => {
+                    groupBox.ValueChanged += (_, _) => rename();
+                    numberBox.ValueChanged += (_, _) => rename();
                 });
             var separator = new Border { Width = 1, Margin = new Avalonia.Thickness(0, 20), Background = ThemeBrush("ThemeLine") };
             Grid.SetColumn(separator, 1);
@@ -2468,7 +2503,7 @@ public static partial class Dialogs
     /// <summary>The import dialog's preview pane. It rebuilds off the UI thread on each
     /// change; a build overtaken by a newer one is dropped.</summary>
     private static Control ImportPreviewPanel(Window dialog, ImportPreview preview, Func<ImportChoices> current,
-        Func<string, TextBlock> section, Action<Action> hookChanges)
+        Func<string, TextBlock> section, Action<Action> hookChanges, Action<Action> hookPlacement)
     {
         var view = new FitPreviewView { Look = preview.Look };
         var error = new TextBlock
@@ -2512,16 +2547,24 @@ public static partial class Dialogs
         var position = new TextBlock { VerticalAlignment = VerticalAlignment.Center, MinWidth = 60, TextAlignment = TextAlignment.Center };
         var fileName = new TextBlock
         {
-            VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis,
+            // Trimmed from the start, so the sprite number and a frame number at the end stay visible
+            VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.LeadingCharacterEllipsis,
             Foreground = ThemeBrush("ThemeMutedText"),
         };
+        void Rename()
+        {
+            var c = current();
+            fileName.Text = preview.Number?.Invoke(c.Group, c.Number, at) is int n
+                ? $"{preview.Name(at)} → {c.Group},{n}" : preview.Name(at);
+        }
+        hookPlacement(Rename);
         void Step(int to)
         {
             at = Math.Clamp(to, 0, preview.Count - 1);
             prev.IsEnabled = at > 0;
             next.IsEnabled = at < preview.Count - 1;
             position.Text = $"{at + 1} / {preview.Count}";
-            fileName.Text = preview.Name(at);
+            Rename();
             Refresh();
         }
         prev.Click += (_, _) => Step(at - 1);
@@ -2529,7 +2572,7 @@ public static partial class Dialogs
         prev.IsEnabled = false;
         next.IsEnabled = preview.Count > 1;
         position.Text = $"1 / {preview.Count}";
-        fileName.Text = preview.Name(0);
+        Rename();
         var stepper = new StackPanel
         {
             Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Avalonia.Thickness(0, 10, 0, 0),
@@ -3129,11 +3172,11 @@ public static partial class Dialogs
     }
 
     public static Task<TooManyColorsChoice?> PromptTooManyColors(
-        Window owner, string name, int colors, bool trueColorAvailable)
+        Window owner, string name, int colors, bool trueColorAvailable, bool plural = false)
     {
         int max = Sff.GifImport.MaxSharedColors;
-        string message = $"{name} has {colors} colors, more than the {max} one palette holds. "
-            + $"Reducing to {max} keeps it 8-bit but shifts colors that do not fit. ";
+        string message = $"{name} {(plural ? "have" : "has")} {colors} colors, more than the {max} one palette holds. "
+            + $"Reducing to {max} keeps {(plural ? "them" : "it")} 8-bit but shifts colors that do not fit. ";
         var buttons = new List<(string Label, TooManyColorsChoice? Value)>
         {
             ($"Reduce to {max} Colors", TooManyColorsChoice.Reduce),

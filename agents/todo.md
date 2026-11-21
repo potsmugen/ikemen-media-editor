@@ -190,6 +190,8 @@ Select tool gaps against image editor conventions:
   radio options (Find Similar Sprites, Align With Onion Skin), instead of tooltips. Both used
   that once (a SemiBold label over a ThemeMutedText line). The SFF v1 Palette dialog explains
   its two options in one line above them, which is a third shape to weigh.
+- Section separators: the sprite import dialog now has hairlines between its sections (`Line()` in
+  Dialogs.cs, same look as the side panels'). Consider them in other dialogs with several sections.
 
 ### Other
 

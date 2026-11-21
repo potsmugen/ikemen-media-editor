@@ -1499,33 +1499,35 @@ public partial class MainWindow
     {
         var file = _file!;
 
-        // "The image's own palette" reuses an identical palette the file
-        // already has, so a re-import does not pile up duplicates. Scanned
-        // in batch order, so a run of identical images shares one palette.
-        // A genuinely new one gets the dialog's chosen Group/Index, walking
-        // past taken numbers the same way sprite numbers do below — several
-        // new palettes in one batch can't all claim the same number.
+        // A new palette from the images always adds palettes; reusing an existing one is the specific-palette option.
+        // The batch shares one palette or gives each sprite its own, as the dialog's checkbox says.
         bool own = !plan.TrueColor && plan.OwnPalette;
-        int reused = 0;
-        var seen = file.Palettes.ToList();
+        string depthNote = "";
+        if (own && choices.SharedPalette)
+        {
+            if (await ShareOnePalette(built, file) is not { } note) return false;
+            depthNote = note;
+        }
+        else if (own)
+        {
+            var firstUse = new HashSet<Palette>();
+            foreach (var (s, _) in built)
+                if (s.Palette is { } p && !firstUse.Add(p))
+                    s.Palette = new Palette { Colors = (Rgba[])p.Colors.Clone() };
+        }
+
+        // Each new palette gets the chosen Group/Index, walking past taken numbers as sprite numbers do below
+        var freshPalettes = own ? built.Select(b => b.Sprite.Palette).OfType<Palette>().Distinct().ToList() : new List<Palette>();
         var usedPalNumbers = file.Palettes.Where(p => p.Group == choices.PaletteGroup).Select(p => p.Index).ToHashSet();
         int palNumber = choices.PaletteIndex;
-        if (own)
-            foreach (var (s, _) in built)
-            {
-                if (seen.FirstOrDefault(p => p.Colors.AsSpan().SequenceEqual(s.Palette!.Colors)) is { } match)
-                { s.Palette = match; reused++; }
-                else
-                {
-                    while (usedPalNumbers.Contains(palNumber)) palNumber++;
-                    s.Palette!.Group = choices.PaletteGroup;
-                    s.Palette!.Index = palNumber;
-                    usedPalNumbers.Add(palNumber);
-                    palNumber++;
-                    seen.Add(s.Palette!);
-                }
-            }
-        int fresh = own ? seen.Count - file.Palettes.Count : 0;
+        foreach (var p in freshPalettes)
+        {
+            while (usedPalNumbers.Contains(palNumber)) palNumber++;
+            p.Group = choices.PaletteGroup;
+            p.Index = palNumber;
+            usedPalNumbers.Add(palNumber++);
+        }
+        int fresh = freshPalettes.Count;
 
         // Numbers run from the chosen one; taken numbers are skipped.
         var used = file.Sprites.Where(s => s.Group == choices.Group).Select(s => s.Index).ToHashSet();
@@ -1572,14 +1574,10 @@ public partial class MainWindow
         string skipNote = skipped.Count > 0
             ? $"; skipped taken number{(skipped.Count == 1 ? "" : "s")} {string.Join(", ", skipped.Distinct())}"
             : "";
-        string paletteFate = own
-            ? (fresh, reused) switch
-            {
-                (> 0, 0) => $"Added {fresh} new palette{(fresh == 1 ? "" : "s")} to the file",
-                (0, > 0) => $"Reused identical palette{(reused == 1 ? "" : "s")} already in the file",
-                _ => $"Added {fresh} new palette{(fresh == 1 ? "" : "s")}, {reused} reused",
-            }
-            : "";
+        string paletteFate = string.Join(". ", new[]
+        {
+            fresh > 0 ? $"Added {fresh} new palette{(fresh == 1 ? "" : "s")} to the file" : "", depthNote,
+        }.Where(t => t.Length > 0));
         StatusText.Text = added.Count == 1
             ? $"Added {choices.Group},{numbers[0]} from {sourceName}. {built[0].Report}"
               + (paletteFate.Length > 0 ? $" {paletteFate}." : "")
@@ -1673,7 +1671,7 @@ public partial class MainWindow
             if (await PromptImport("Import from Sheet", [source], layout.Count, file, previous,
                     askPlacement: true, group, number, group, layout) is not { } choices) return;
 
-            var plan = BuildPlan(choices, previous);
+            var plan = BuildPlan(choices);
             Palette? sharedPalette = null;
             string colorNote = "";
             if (!plan.TrueColor && plan.OwnPalette && !ImageImport.ImageIsIndexed(bytes))
@@ -1851,7 +1849,7 @@ public partial class MainWindow
                     askPlacement: true, group, number, group) is not { } choices) return;
 
             CrashLog.Trace($"OnAddSprite: {count} sprite(s) into group {choices.Group} from number {choices.Number}");
-            var plan = BuildPlan(choices, previous);
+            var plan = BuildPlan(choices);
             var prepared = new ImageImport.PreparedOwnPaletteImport?[sources.Count];
             var reductions = new List<string>();
             if (!plan.TrueColor && plan.OwnPalette)
@@ -1936,7 +1934,7 @@ public partial class MainWindow
                 return;
 
             CrashLog.Trace($"OnReplaceSprite: {sprite.Group},{sprite.Index} from {picked[0].Name}");
-            var plan = BuildPlan(choices, previous);
+            var plan = BuildPlan(choices);
             ImageImport.PreparedOwnPaletteImport? prepared = null;
             if (!gif && !plan.TrueColor && plan.OwnPalette)
             {
@@ -2391,6 +2389,69 @@ public partial class MainWindow
         return NextFreeNumber(_file.Sprites.Where(s => s.Group == group).Select(s => s.Index).ToHashSet(), after);
     }
 
+    /// <summary>
+    /// Merges the batch's new palettes into one and remaps the pixels, keeping each color's index where it can.
+    /// Over 255 colors asks to reduce or use 32-bit color. Returns a note for the status line ("" if none), null if canceled.
+    /// </summary>
+    private async Task<string?> ShareOnePalette(List<(Sprite Sprite, ImageImport.Report Report)> built, SffFile file)
+    {
+        var sprites = built.Select(b => b.Sprite).Where(s => s.Palette is not null && s.Indexed is not null).ToList();
+        var palettes = sprites.Select(s => s.Palette!).Distinct().ToList();
+        if (palettes.Count < 2) return "";
+        // Unused entries are left out, so they don't crowd out colors the pixels need
+        var sources = palettes.Select(p =>
+        {
+            var weights = new long[p.Colors.Length];
+            foreach (var s in sprites.Where(s => ReferenceEquals(s.Palette, p)))
+                foreach (byte i in s.Indexed!)
+                    if (i < weights.Length) weights[i]++;
+            var skip = weights.Select((w, i) => w == 0 && i != Sprite.TransparentIndex).ToArray();
+            return new PaletteMerge.Source(p.Colors, weights, skip);
+        }).ToList();
+        var merged = PaletteMerge.Build(sources);
+        if (merged.Reduced)
+        {
+            var choice = await Dialogs.PromptTooManyColors(this, $"Together, the {built.Count} images", merged.UniqueColors,
+                SffVersions.SupportsPng(file.Version), plural: true);
+            if (choice is null) return null;
+            if (choice == Dialogs.TooManyColorsChoice.TrueColor)
+            {
+                foreach (var s in sprites)
+                {
+                    s.Direct = SpriteDepth.ToTrueColor(s, s.Palette!);
+                    s.Indexed = null;
+                    s.Palette = null;
+                    s.SrcFormat = SpriteFormat.Png32;
+                    s.SrcDepth = 32;
+                }
+                return "Imported as 32-bit color";
+            }
+        }
+        var shared = new Palette { Colors = merged.Colors };
+        for (int k = 0; k < palettes.Count; k++)
+        {
+            var map = merged.Maps[k];
+            foreach (var s in sprites.Where(s => ReferenceEquals(s.Palette, palettes[k])).ToList())
+            {
+                s.Indexed = s.Indexed!.Select(i => map[i]).ToArray();
+                s.Palette = shared;
+            }
+        }
+        return merged.Reduced ? $"Colors were reduced to {Sff.GifImport.MaxSharedColors} by median cut" : "";
+    }
+
+    /// <summary>The number the at-th added sprite gets, counting up from first past taken numbers as AddBuiltBatch does; null past 65535.</summary>
+    private static int? NumberAt(SffFile file, int group, int first, int at)
+    {
+        var used = file.Sprites.Where(s => s.Group == group).Select(s => s.Index).ToHashSet();
+        for (int k = 0, n = first; ; k++, n++)
+        {
+            while (used.Contains(n)) n++;
+            if (n > 65535) return null;
+            if (k == at) return n;
+        }
+    }
+
     /// <summary>The first number above after that isn't used, else the lowest free one; 65536 when all are taken.</summary>
     private static int NextFreeNumber(HashSet<int> used, int after)
     {
@@ -2471,8 +2532,8 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// The add/replace import-options dialog. previousPalette is what "the
-    /// previous sprite's palette" means here; imagesIndexed decides whether
+    /// The add/replace import-options dialog. previousPalette is tagged in the
+    /// palette list; imagesIndexed decides whether
     /// "keep the image's indexes" is offered at all. paletteGroup defaults the
     /// new-palette-group field to the sprite's own group; its Index field
     /// defaults to the next free number in that group. sheet is the detected
@@ -2493,7 +2554,7 @@ public partial class MainWindow
             PaletteDropdownName(file, palette, externalOrdinals, carriers)).ToArray();
         // Defaults come from the images, not the last import: a true-color
         // image has no palette to keep, so it starts as 32-bit color, while an
-        // indexed batch starts on its own palette.
+        // indexed batch starts on a new palette, or on a palette that already reproduces it (below).
         var initial = new ImportChoices(
             ImportPaletteChoice.Own, null, ImportIndexChoice.Keep, anyGif || !allIndexed ? BitDepthChoice.ThirtyTwoBit : BitDepthChoice.EightBit,
             group, number, paletteGroup, NextFreePaletteIndex(paletteGroup));
@@ -2521,14 +2582,16 @@ public partial class MainWindow
         var fullMatch = new[] { _current?.Palette, previousPalette }.FirstOrDefault(Full)
             ?? palettes.FirstOrDefault(Full);
         var specificInitial = fullMatch ?? previousPalette ?? _current?.Palette;
+        if (fullMatch is not null) initial = initial with { PaletteChoice = ImportPaletteChoice.Specific };
 
         // One preview position per image the import adds, in import order.
         var previewItems = new List<(PickedSource Source, int At)>();
         foreach (var source in scored)
             for (int i = 0, n = source.Frames?.Count ?? sheet?.Count ?? 1; i < n; i++) previewItems.Add((source, i));
         var preview = new ImportPreview(
-            (c, n) => BuildPreview(previewItems[n].Source, previewItems[n].At, sheet, BuildPlan(c, previousPalette)),
-            previewItems.Count, n => previewItems[n].Source.Name, _canvasLook);
+            (c, n) => BuildPreview(previewItems[n].Source, previewItems[n].At, sheet, BuildPlan(c)),
+            previewItems.Count, n => previewItems[n].Source.Name, _canvasLook,
+            askPlacement ? (g, first, n) => NumberAt(file, g, first, n) : null);
 
         var choices = await Dialogs.PromptSpriteImport(this, title, spriteCount, SffVersions.SupportsPng(file.Version),
             file.Palettes, previousPalette, specificInitial,
@@ -2587,15 +2650,13 @@ public partial class MainWindow
     }
 
     /// <summary>Turns the dialog's choices into a plan for ImageImport.</summary>
-    private static ImportPlan BuildPlan(ImportChoices c, Palette? previous)
+    private static ImportPlan BuildPlan(ImportChoices c)
     {
         if (c.BitDepth == BitDepthChoice.ThirtyTwoBit) return ImportPlan.TrueColor32();
         bool keep = c.IndexChoice == ImportIndexChoice.Keep;
         return c.PaletteChoice switch
         {
-            // The dialog only offers these when the palette exists; fall back to
-            // the image's own rather than guessing if one ever slips through.
-            ImportPaletteChoice.Previous when previous is not null => ImportPlan.Given(previous, keep, c.KeepMask),
+            // The dialog only offers this when a palette exists; fall back to the image's own if none slips through
             ImportPaletteChoice.Specific when c.SpecificPalette is not null => ImportPlan.Given(c.SpecificPalette, keep, c.KeepMask),
             _ => ImportPlan.Own(),
         };
