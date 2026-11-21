@@ -611,7 +611,9 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Sprite import palette help** counts how many images each palette reproduces exactly
   (full RGBA) or by index or nearest color, with index 0 excluded. The specific-palette
   dropdown opens on a palette matching every image, else the previous sprite's. A square
-  preview rebuilds off the UI thread and fits the visible pixels.
+  preview rebuilds off the UI thread and fits the visible pixels. `<` `>` buttons under it step
+  through every image the import adds (GIF frames and sheet cells included);
+  hidden for a single image. The Preview heading is followed by the shown image's file name.
 - **GIF import** composites frame rectangles onto the logical screen and honors disposal and
   interlace. Transparency is binary at index 0, and truncated LZW leaves pixels transparent.
   Repeated frames can be dropped, which shortens pose time. Frames share one palette in play

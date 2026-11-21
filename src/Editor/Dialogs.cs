@@ -94,8 +94,9 @@ public sealed record ImportChoices(
 /// <summary>How many of the imported images each palette (by list position) reproduces exactly, per index mode.</summary>
 public sealed record ImportPaletteMatches(int[] Keep, int[] Nearest, int Total);
 
-/// <summary>The import dialog's preview: builds the first image under given choices, drawn over the canvas look.</summary>
-public sealed record ImportPreview(Func<ImportChoices, Sprite> Build, CanvasLook Look);
+/// <summary>The import dialog's preview: builds image number At (of Count) under given choices, drawn over the canvas look.
+/// Name gives the file an image comes from.</summary>
+public sealed record ImportPreview(Func<ImportChoices, int, Sprite> Build, int Count, Func<int, string> Name, CanvasLook Look);
 
 /// <summary>How the sprite canvas dimensions should change.</summary>
 public sealed record SpriteResizeChoices(bool Relative, int Width, int Height);
@@ -2268,6 +2269,10 @@ public static partial class Dialogs
         var palGroupBox = new NumericUpDown { Minimum = 0, Maximum = 65535, Increment = 1, FormatString = "0", Value = initial.PaletteGroup != 0 || initial.PaletteIndex != 0 ? initial.PaletteGroup : paletteGroup, Width = 100 };
         var palIndexBox = new NumericUpDown { Minimum = 0, Maximum = 65535, Increment = 1, FormatString = "0", Value = initial.PaletteGroup != 0 || initial.PaletteIndex != 0 ? initial.PaletteIndex : paletteIndex, Width = 100 };
 
+        // Labels are plain text, so they dim with their boxes by hand (same 0.5 as disabled buttons).
+        var palGroupLabel = new TextBlock { Text = "New palette group", VerticalAlignment = VerticalAlignment.Center };
+        var palIndexLabel = new TextBlock { Text = "Index", VerticalAlignment = VerticalAlignment.Center };
+
         (initial.PaletteChoice == ImportPaletteChoice.Previous && previousPalette is not null ? previous
             : initial.PaletteChoice == ImportPaletteChoice.Specific && palettes.Count > 0 ? specific
             : own).IsChecked = true;
@@ -2308,6 +2313,7 @@ public static partial class Dialogs
             // Only matters when Own actually creates a new palette object.
             palGroupBox.IsEnabled = !tc && ownSelected;
             palIndexBox.IsEnabled = !tc && ownSelected;
+            palGroupLabel.Opacity = palIndexLabel.Opacity = palGroupBox.IsEnabled ? 1 : 0.5;
         }
         foreach (var c in new ToggleButton[] { own, previous, specific, keep, nearest })
             c.IsCheckedChanged += (_, _) => UpdateEnabled();
@@ -2358,7 +2364,6 @@ public static partial class Dialogs
         // Sections top to bottom: where the sprites go, then how their colors come in.
         TextBlock Section(string text) => new() { Text = text, Foreground = ThemeBrush("ThemeMutedText"), FontWeight = FontWeight.Bold };
         var body = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 10 };
-        if (imageCount > 1) body.Children.Add(new TextBlock { Text = framesGif ? $"{imageCount} frames" : $"{imageCount} images" });
         if (askPlacement)
         {
             body.Children.Add(Section("Sprite"));
@@ -2392,12 +2397,12 @@ public static partial class Dialogs
                 new StackPanel
                 {
                     Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center,
-                    Children = { new TextBlock { Text = "New palette group", VerticalAlignment = VerticalAlignment.Center }, palGroupBox },
+                    Children = { palGroupLabel, palGroupBox },
                 },
                 new StackPanel
                 {
                     Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center,
-                    Children = { new TextBlock { Text = "Index", VerticalAlignment = VerticalAlignment.Center }, palIndexBox },
+                    Children = { palIndexLabel, palIndexBox },
                 },
             },
         });
@@ -2432,20 +2437,27 @@ public static partial class Dialogs
                     paletteBox.SelectionChanged += (_, _) => refresh();
                     bitDepth.SelectionChanged += (_, _) => refresh();
                 });
-            Grid.SetColumn(previewPanel, 1);
+            var separator = new Border { Width = 1, Margin = new Avalonia.Thickness(0, 20), Background = ThemeBrush("ThemeLine") };
+            Grid.SetColumn(separator, 1);
+            Grid.SetColumn(previewPanel, 2);
             Grid.SetRow(buttons, 1);
             dialog.Content = new Grid
             {
                 RowDefinitions = new RowDefinitions("*,Auto"),
                 Children =
                 {
-                    new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), Children = { body, previewPanel } },
+                    // A thin line separates the options from the preview, like the dividers between panels.
+                    new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*"), Children = { body, separator, previewPanel } },
                     buttons,
                 },
             };
             // Resizable from its opening size, so a maximized dialog gives the preview the room.
             dialog.CanResize = true;
-            dialog.Opened += (_, _) => { dialog.MinWidth = dialog.Bounds.Width; dialog.MinHeight = dialog.Bounds.Height; };
+            // Bounds at Opened are still the window's default size, so the lock waits for the content-sized layout
+            dialog.Opened += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                dialog.MinWidth = dialog.Bounds.Width; dialog.MinHeight = dialog.Bounds.Height;
+            }, Avalonia.Threading.DispatcherPriority.Background);
         }
         dialog.Closed += (_, _) => result.TrySetResult(null);
 
@@ -2465,6 +2477,7 @@ public static partial class Dialogs
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
         };
 
+        int at = 0;
         int generation = 0;
         async void Refresh()
         {
@@ -2472,9 +2485,10 @@ public static partial class Dialogs
             {
                 int mine = ++generation;
                 var choices = current();
+                int shown = at;
                 Sprite? sprite = null;
                 string? failure = null;
-                try { sprite = await Task.Run(() => preview.Build(choices)); }
+                try { sprite = await Task.Run(() => preview.Build(choices, shown)); }
                 catch (Exception ex)
                 {
                     failure = ex.Message;
@@ -2490,22 +2504,64 @@ public static partial class Dialogs
         hookChanges(Refresh);
         dialog.Opened += (_, _) => Refresh();
 
-        var heading = section("Preview");
-        heading.Margin = new Avalonia.Thickness(0, 0, 0, 10);
-        // Square: the pane takes the options column's height, and its width follows.
-        var pane = new Grid { Children = { view, error } };
-        pane.SizeChanged += (_, e) => { if (e.HeightChanged && dialog.SizeToContent != SizeToContent.Manual) pane.Width = e.NewSize.Height; };
-        // Once the user resizes the window, the pane fills the room instead of staying square.
-        dialog.PropertyChanged += (_, e) =>
+        // Steps through every image the import adds; hidden for a single one.
+        var prev = new Button { Content = "<", Width = 44 };
+        var next = new Button { Content = ">", Width = 44 };
+        ToolTip.SetTip(prev, "Previous image");
+        ToolTip.SetTip(next, "Next image");
+        var position = new TextBlock { VerticalAlignment = VerticalAlignment.Center, MinWidth = 60, TextAlignment = TextAlignment.Center };
+        var fileName = new TextBlock
         {
-            if (e.Property == Window.SizeToContentProperty && dialog.SizeToContent == SizeToContent.Manual) pane.Width = double.NaN;
+            VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis,
+            Foreground = ThemeBrush("ThemeMutedText"),
+        };
+        void Step(int to)
+        {
+            at = Math.Clamp(to, 0, preview.Count - 1);
+            prev.IsEnabled = at > 0;
+            next.IsEnabled = at < preview.Count - 1;
+            position.Text = $"{at + 1} / {preview.Count}";
+            fileName.Text = preview.Name(at);
+            Refresh();
+        }
+        prev.Click += (_, _) => Step(at - 1);
+        next.Click += (_, _) => Step(at + 1);
+        prev.IsEnabled = false;
+        next.IsEnabled = preview.Count > 1;
+        position.Text = $"1 / {preview.Count}";
+        fileName.Text = preview.Name(0);
+        var stepper = new StackPanel
+        {
+            Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Avalonia.Thickness(0, 10, 0, 0),
+            HorizontalAlignment = HorizontalAlignment.Center, IsVisible = preview.Count > 1,
+            Children = { prev, position, next },
+        };
+        var stepperHost = new Border { HorizontalAlignment = HorizontalAlignment.Left, Child = stepper };
+        Grid.SetRow(stepperHost, 2);
+        // The file name follows the heading and is cut short to the pane's width
+        var heading = section("Preview");
+        fileName.Margin = new Avalonia.Thickness(8, 0, 0, 0);
+        Grid.SetColumn(fileName, 1);
+        var headingHost = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("Auto,*"), HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Avalonia.Thickness(0, 0, 0, 10), Children = { heading, fileName },
+        };
+        // Square, as tall as the options column and next to it; the arrows center under it.
+        var pane = new Grid { HorizontalAlignment = HorizontalAlignment.Left, Children = { view, error } };
+        pane.SizeChanged += (_, e) =>
+        {
+            if (!e.HeightChanged) return;
+            pane.Width = e.NewSize.Height;
+            stepperHost.Width = e.NewSize.Height;
+            headingHost.Width = e.NewSize.Height;
         };
         Grid.SetRow(pane, 1);
         return new Grid
         {
-            Margin = new Avalonia.Thickness(0, 20, 20, 20),
-            RowDefinitions = new RowDefinitions("Auto,*"),
-            Children = { heading, pane },
+            Margin = new Avalonia.Thickness(20),
+            RowDefinitions = new RowDefinitions("Auto,*,Auto"),
+            Children = { headingHost, pane, stepperHost },
         };
     }
 

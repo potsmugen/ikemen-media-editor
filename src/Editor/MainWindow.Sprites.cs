@@ -2522,8 +2522,13 @@ public partial class MainWindow
             ?? palettes.FirstOrDefault(Full);
         var specificInitial = fullMatch ?? previousPalette ?? _current?.Palette;
 
+        // One preview position per image the import adds, in import order.
+        var previewItems = new List<(PickedSource Source, int At)>();
+        foreach (var source in scored)
+            for (int i = 0, n = source.Frames?.Count ?? sheet?.Count ?? 1; i < n; i++) previewItems.Add((source, i));
         var preview = new ImportPreview(
-            c => BuildPreview(scored[0], sheet, BuildPlan(c, previousPalette)), _canvasLook);
+            (c, n) => BuildPreview(previewItems[n].Source, previewItems[n].At, sheet, BuildPlan(c, previousPalette)),
+            previewItems.Count, n => previewItems[n].Source.Name, _canvasLook);
 
         var choices = await Dialogs.PromptSpriteImport(this, title, spriteCount, SffVersions.SupportsPng(file.Version),
             file.Palettes, previousPalette, specificInitial,
@@ -2561,21 +2566,21 @@ public partial class MainWindow
     private static ImportPlan LosslessPlan(byte[] image) =>
         ImageImport.ImageIsIndexed(image) ? ImportPlan.Own() : ImportPlan.TrueColor32();
 
-    /// <summary>The first sprite the import would add under a plan. Shared colors that
-    /// overflow a palette show reduced, one of the choices the import then offers.</summary>
-    private static Sprite BuildPreview(PickedSource source, SheetLayout? sheet, ImportPlan plan)
+    /// <summary>The sprite at position `at` of a source (its frame or sheet cell) the import would add
+    /// under a plan. Shared colors that overflow a palette show reduced, one of the choices the import then offers.</summary>
+    private static Sprite BuildPreview(PickedSource source, int at, SheetLayout? sheet, ImportPlan plan)
     {
         bool own = !plan.TrueColor && plan.OwnPalette;
         if (source.Frames is { } frames)
         {
-            var first = frames.Take(1).ToList();
+            var first = frames.Skip(at).Take(1).ToList();
             if (!own) return GifImport.ToSprites(first, plan, out _)[0];
             var colors = GifImport.SharedColors(frames);
             return GifImport.ToSprites(first, plan, colors.Overflows ? colors.Reduced() : colors.ToPalette(), out _)[0];
         }
         var bytes = source.Bytes!;
         if (sheet is null) return ImageImport.FromImage(bytes, plan, out _);
-        var firstCell = new SheetLayout([sheet.Cells[0]], sheet.Background, sheet.AssumedBackground);
+        var firstCell = new SheetLayout([sheet.Cells[at]], sheet.Background, sheet.AssumedBackground);
         if (!own || ImageImport.ImageIsIndexed(bytes)) return SheetImport.ToSprites(bytes, firstCell, plan, out _)[0];
         var shared = SheetImport.SharedColors(bytes, sheet);
         return SheetImport.ToSprites(bytes, firstCell, plan, shared.Overflows ? shared.Reduced() : shared.ToPalette(), out _)[0];
