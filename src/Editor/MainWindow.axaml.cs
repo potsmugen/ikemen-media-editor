@@ -1055,9 +1055,7 @@ public partial class MainWindow : Window
             : null;
         var ordered = picked.OrderBy(i => i).ToList();
         string? atLeastTwo = ordered.Count < 2 ? "Select at least two colors." : null;
-        string? swapBlocked = ordered.Count != 2 ? "Select exactly two colors."
-            : ordered[0] == 0 ? "Index 0 is the transparent slot and can't be swapped."
-            : null;
+        string? swapBlocked = ordered.Count != 2 ? "Select exactly two colors." : null;
         var copy = MenuAction(toScratch ? "Copy to Scratch Palette" : "Copy to Current Palette",
             () => _ = CopyColorsToSameIndex(pal!, picked, target!, toScratch ? ScratchSwatches : BigSwatches), blocked is null);
         OpenContextMenu(view, new ContextMenu
@@ -1073,7 +1071,7 @@ public partial class MainWindow : Window
                 Blocked(MenuAction("Sort Colors", () => OnSortColors()), atLeastTwo,
                     "Sorts the selected colors. With several palettes selected, can sort them all the same way."),
                 Blocked(MenuAction("Swap Colors", () => OnSwapColors()), swapBlocked,
-                    "Swaps the two selected colors. With several palettes selected, can swap them in all."),
+                    "Swaps the two selected colors; swapping with index 0 changes the mask. With several palettes selected, can swap them in all."),
             },
         });
 

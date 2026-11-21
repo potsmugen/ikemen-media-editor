@@ -192,6 +192,8 @@ Select tool gaps against image editor conventions:
   its two options in one line above them, which is a third shape to weigh.
 - Section separators: the sprite import dialog now has hairlines between its sections (`Line()` in
   Dialogs.cs, same look as the side panels'). Consider them in other dialogs with several sections.
+- Panel section headings (Axis, Tools, Layers, Transform, Palette Tools, ...): tried bold like the import
+  dialog's sections (2026-11-21); little gain, reverted. Try another way to set them apart.
 
 ### Other
 

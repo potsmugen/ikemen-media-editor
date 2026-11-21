@@ -424,8 +424,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   pixels become opaque or the mask (threshold as in import). A selected link follows its converted
   original; links outside the selection follow too, after a confirmation, and take the original's new
   palette (none for 32-bit). A link whose original is not converted is skipped. Only 8-bit and
-  32-bit are offered: 24-bit is chosen by the writer for opaque sprites. Not verified against engine
-  source: whether 2.0.1.0 engines force index 0 clear regardless of palette alpha.
+  32-bit are offered: 24-bit is chosen by the writer for opaque sprites. 2.0.1.0 engines force no
+  alpha anywhere, index 0 included (maintainer, 2026-11-21).
 - **Mask on import**: index 0 is never picked for an opaque pixel by color distance. **Keep
   mask** (indexed images) sends pixels at the image's index 0 to 0 whatever their color, so a
   black mask and black outlines stay apart. Otherwise the mask comes from alpha, or in images
@@ -563,10 +563,12 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Channel slider colors**: the palette R/G/B sliders in Color and Adjustments fill their
   track with the theme's `SliderRed`/`SliderGreen`/`SliderBlue` keys; H, S, L and A use
   `SliderNeutral`. `ApplySliderChannelColors` sets them as local slider resources on each theme apply.
-- **Swap Colors** swaps exactly two selected colors, refusing index 0, with the same sprite
-  update rules as Sort Colors.
+- **Swap Colors** swaps exactly two selected colors, index 0 included, with the same sprite
+  update rules and slot alpha as Manual Sort. Swapping with index 0 changes the mask: with sprites
+  updated, pixels of the other color become index 0. In 2.0.1.0 alpha moves with the color, so an
+  opaque color moved to index 0 stays opaque (engines force no alpha there).
 - **Unavailable swatch actions**: Create Gradient and Sort Colors are disabled with fewer than
-  two colors selected, and Swap Colors unless exactly two are selected, neither index 0. The
+  two colors selected, and Swap Colors unless exactly two are selected. The
   disabled item's tooltip says why. Unavailable actions are disabled, not answered with a popup.
 - **Reference image view** keeps its own zoom, independent of the canvas and preview. Like the
   canvas, it draws and hit-tests at the pan snapped to whole device pixels.

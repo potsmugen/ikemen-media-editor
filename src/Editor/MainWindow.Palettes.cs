@@ -1188,7 +1188,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
                 return;
             }
             var indices = view.Selection.Where(i => i < pal.Colors.Length).OrderBy(i => i).ToList();
-            if (indices.Count != 2 || indices[0] == 0) return; // the menu item is disabled then
+            if (indices.Count != 2) return; // the menu item is disabled then
 
             var others = OtherSelectedPalettes(pal);
             var swap = await Dialogs.PromptColorSwap(this, indices[0], indices[1], ReorderScopeFor(pal, others));
