@@ -556,6 +556,9 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Palette hue and saturation** sliders use OKLCH by default, so a hue move keeps perceived
   lightness; settings.json `PalettePerceptualHue: false` restores HSV. Saturation is a
   percent of the most chroma sRGB allows. Lighten and RGB add to RGB directly.
+- **Select Colors Used by This Sprite** (right-click menu of the Palettes tab's sprite preview):
+  replaces the swatch selection with every index the previewed sprite draws with, skipping index 0
+  (the mask). Only for indexed sprites; true color has no indexes.
 - **Shuffle** (Palettes tab, under the Adjustments sliders, `MainWindow.PaletteShuffle.cs`): random
   alternative of the selected colors. Hues (OKLCH) are grouped wherever sorted hues jump by more than
   `PaletteShuffleHueGapDegrees` (30; a skin ramp measured 23° between neighbors at 20 it split), or

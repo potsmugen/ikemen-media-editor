@@ -40,6 +40,10 @@ Verified unless noted.
   temp-only variant. Borrowers/links follow Merge's rules. One undo step.
 - Add a Find Unused Colors tool for palettes: show which color indexes no sprite using the
   palette draws with. Scope, output and actions to be decided.
+- Fix Invert Selection in the palette swatches (what is wrong with it is not recorded yet; reproduce first).
+- Changing the previewed sprite on the Palettes tab (nav slider, < and >) should neither commit nor
+  discard a pending palette change. Check what it does today, then keep the change pending. Related
+  to the keep-or-discard rule under Other.
 - List keyboard focus vs. selection, Windows style: Ctrl+arrows move focus only, Ctrl+Space toggles.
   Clicks already show the clicked row (Sprite and Palette lists). Check what Avalonia does now first.
 
@@ -213,6 +217,10 @@ Select tool gaps against image editor conventions:
 ## Not yet checked in the app
 
 Built, but not tried by the maintainer yet.
+
+### Select Colors Used by This Sprite (Palettes tab, preview right-click menu)
+
+- Not compiled yet. Replaces the swatch selection with the colors the previewed sprite uses (index 0 left out); the first one becomes the edited color. A linked sprite uses its target's pixels. Hidden for true-color sprites. A pending slider adjustment is discarded first, like any swatch click.
 
 ### Shuffle (Palettes tab, under the Adjustments sliders)
 

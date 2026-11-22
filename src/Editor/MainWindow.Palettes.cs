@@ -956,7 +956,31 @@ public partial class MainWindow
             ("Select Color Here", () => PalettePreview.PickColorAt(pos)),
         };
         if (PalettePreviewSprite()?.Palette is { } pal) items.Add(("Switch to This Sprite's Palette", () => SelectPalette(pal)));
+        if (PalettePreviewSprite()?.Indexed is not null) items.Add(("Select Colors Used by This Sprite", SelectColorsUsedByPreviewSprite));
         ShowContextMenu(PalettePreview, items.ToArray());
+    }
+
+    /// <summary>Replaces the swatch selection with every color index the previewed sprite draws with. Index 0 is the mask, so it is left out.</summary>
+    private async void SelectColorsUsedByPreviewSprite()
+    {
+        try
+        {
+            if (PalettePreviewSprite() is not { Indexed: { } pixels } || ActivePalette() is not { } pal) return;
+            var used = new bool[256];
+            foreach (byte index in pixels) used[index] = true;
+            used[Sprite.TransparentIndex] = false;
+            var indices = Enumerable.Range(0, Math.Min(256, pal.Colors.Length)).Where(i => used[i]).ToList();
+            if (indices.Count == 0) { StatusText.Text = "This sprite draws with no colors besides index 0."; return; }
+
+            // Same path as a click: the selection goes to the grid, then the first color becomes the edited one.
+            BigSwatches.Select(indices);
+            OnSwatchClicked(pal, BigSwatches, indices[0]);
+            StatusText.Text = $"Selected {indices.Count} color(s) used by this sprite.";
+        }
+        catch (Exception ex)
+        {
+            await Failed("SelectColorsUsedByPreviewSprite", ex);
+        }
     }
 
     /// <summary>
