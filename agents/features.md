@@ -556,6 +556,32 @@ and constraints that are easy to miss when reading one code path in isolation.
 - **Palette hue and saturation** sliders use OKLCH by default, so a hue move keeps perceived
   lightness; settings.json `PalettePerceptualHue: false` restores HSV. Saturation is a
   percent of the most chroma sRGB allows. Lighten and RGB add to RGB directly.
+- **Shuffle** (Palettes tab, under the Adjustments sliders, `MainWindow.PaletteShuffle.cs`): random
+  alternative of the selected colors. Hues (OKLCH) are grouped wherever sorted hues jump by more than
+  `PaletteShuffleHueGapDegrees` (30; a skin ramp measured 23° between neighbors at 20 it split), or
+  by more than `PaletteShuffleNeighborHueGapDegrees` (45) between swatches at neighboring palette
+  indexes (ramps sit side by side, so position helps when the hue is borderline); each group gets one random hue shift over the full circle and
+  one random lightness change, down by up to `PaletteShuffleDarkenPercent` (25) or up by up to
+  `PaletteShuffleBrightenPercent` (15) and one random
+  saturation change of up to `PaletteShuffleSaturationPercent` (30) of its own value. Saturation is
+  a share of what sRGB allows. Near-grays (chroma under 5% of what sRGB allows at their lightness) form their own group with one random
+  hue, tinted at `PaletteShuffleGrayTintPercent` (50) of the most color allowed; pure black and white stay neutral (sRGB
+  allows no tint there). Brightening closes a share of the gap to white and darkening scales down,
+  so ramps never flatten at the ends. Every press starts from the colors before the first press (`_shuffleBase`), cleared
+  by any slider move or other color operation. Behaves like Invert: pending until Commit, Reset undoes.
+  Findings that shaped Shuffle (2026-11-23), from an official palette database (about 30 characters'
+  variants, judged by eye) and two ramps measured from user screenshots:
+  - A ramp changes hue as a unit and different groups change independently, so colors are grouped
+    by hue and each group gets its own shift.
+  - White and gray clothes turn into tinted colors, so near-grays form their own tinted group.
+  - Brightness and saturation vary widely between variants, hence separate darken, brighten and
+    saturation limits.
+  - Hue drifts along a ramp (a skin ramp ran 73.7, 51.1, 36.3, 38.5 degrees from light to dark), so
+    the hue gap is 30 degrees and neighboring swatches get a looser one.
+  - A blue gradient's pale end has low absolute chroma (under 0.03), so "gray" is judged against the
+    most chroma sRGB allows at that lightness.
+  - Skin, belts and hair often stay unchanged in the originals, but a palette has no labels to find
+    them by; the user leaves them out of the selection.
 - **Palette slider boxes**: each Color and Adjustments slider has a number box
   (`MainWindow.SliderBoxes.cs`). Typed values apply on Enter or focus loss, spinner and arrow
   steps apply at once, and an empty box restores the slider value. The box follows the

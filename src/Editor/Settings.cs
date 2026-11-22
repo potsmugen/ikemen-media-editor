@@ -100,6 +100,8 @@ public sealed class Settings
     // Palettes
     public const double DefaultPaletteCellMin = 6, DefaultPaletteCellMax = 64;
     public const bool DefaultPalettePerceptualHue = true;
+    public const double DefaultPaletteShuffleHueGapDegrees = 30, DefaultPaletteShuffleNeighborHueGapDegrees = 45, DefaultPaletteShuffleDarkenPercent = 25, DefaultPaletteShuffleBrightenPercent = 15,
+        DefaultPaletteShuffleSaturationPercent = 30, DefaultPaletteShuffleGrayTintPercent = 50;
     public const int DefaultPalettePngSwatchSize = 16;
     public const int DefaultColorPickerBoxWidth = 256, DefaultColorPickerBoxHeight = 256;
 
@@ -543,6 +545,18 @@ public sealed class Settings
         public int PalettePngSwatchSize { get; set; } = DefaultPalettePngSwatchSize;
         /// <summary>True keeps perceived lightness (OKLCH) as hue moves; false uses HSV, where brightness shifts with hue.</summary>
         public bool PalettePerceptualHue { get; set; } = DefaultPalettePerceptualHue;
+        /// <summary>Shuffle: colors whose hues are closer than this (degrees) share a hue group.</summary>
+        public double PaletteShuffleHueGapDegrees { get; set; } = DefaultPaletteShuffleHueGapDegrees;
+        /// <summary>Shuffle: the most a group's lightness can drop, as a percent of its own.</summary>
+        public double PaletteShuffleDarkenPercent { get; set; } = DefaultPaletteShuffleDarkenPercent;
+        /// <summary>Shuffle: the most a group's lightness can rise, as a percent of the gap to white.</summary>
+        public double PaletteShuffleBrightenPercent { get; set; } = DefaultPaletteShuffleBrightenPercent;
+        /// <summary>Shuffle: swatches at neighboring palette indexes share a group when their hues are closer than this (degrees), which is looser than the normal gap.</summary>
+        public double PaletteShuffleNeighborHueGapDegrees { get; set; } = DefaultPaletteShuffleNeighborHueGapDegrees;
+        /// <summary>Shuffle: each group's saturation changes by up to this percent of its own value, up or down.</summary>
+        public double PaletteShuffleSaturationPercent { get; set; } = DefaultPaletteShuffleSaturationPercent;
+        /// <summary>Shuffle: how strongly the near-gray colors are tinted, as a percent of the most color sRGB allows.</summary>
+        public double PaletteShuffleGrayTintPercent { get; set; } = DefaultPaletteShuffleGrayTintPercent;
         /// <summary>Color picker box size in pixels (hue runs down the height).</summary>
         public int ColorPickerBoxWidth { get; set; } = DefaultColorPickerBoxWidth;
         public int ColorPickerBoxHeight { get; set; } = DefaultColorPickerBoxHeight;

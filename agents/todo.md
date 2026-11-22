@@ -197,6 +197,12 @@ Select tool gaps against image editor conventions:
 
 ### Other
 
+- Decide whether leaving a pending color change should ask before discarding it. Today, after
+  Shuffle (or any slider move or color operation), clicking another swatch drops the uncommitted
+  change with no prompt; only Commit keeps it. It is part of a larger question: which actions
+  (swatch click, selecting another palette or sprite, switching tabs) should prompt to keep or
+  discard, which should keep the change pending, and which should discard silently. Settle one
+  rule for all of them.
 - Audit actions that open a popup or status message when they can't run (wrong selection,
   nothing open) and make them disabled, with the reason as tooltip, like the swatch menu.
 - SFF v1 character palette display (see Official tools in features.md): decide (A) draw
@@ -207,6 +213,13 @@ Select tool gaps against image editor conventions:
 ## Not yet checked in the app
 
 Built, but not tried by the maintainer yet.
+
+### Shuffle (Palettes tab, under the Adjustments sliders)
+
+- Not compiled yet. Shuffle a selection: each press is a new alternative of the colors before the first press; a slider move, Invert or another operation starts a new base; Reset restores everything.
+- Near-grays (chroma under 5% of what sRGB allows at their lightness) get one shared random hue. Check the 5% cutoff and the darken (25%) and brighten (15%) limits on real palettes, including pale tints near white.
+- Skin is not detected: a palette has no labels, and a hue rule would hit orange clothing and miss non-human skin. Leave skin out of the selection instead (Select Colors Used by This Sprite, then Ctrl+click skin off).
+- Tune the settings.json defaults (hue gap 30°, neighbor hue gap 45°, darken 25%, brighten 15%, saturation 30%, gray tint 50%) on real palettes.
 
 ### Shown palette in a multi-selection (2026-11-19)
 

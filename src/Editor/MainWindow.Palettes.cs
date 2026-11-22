@@ -266,6 +266,7 @@ public partial class MainWindow
     /// </summary>
     private void ResetColorAdjustBase()
     {
+        _shuffleBase = null;
         _suppressEvents = true;
         ResetSlidersToZero();
         CaptureAdjustBase();
@@ -281,8 +282,9 @@ public partial class MainWindow
     /// the operation produced or the next slider move would wipe it out. The session baseline
     /// stays where it was, so Reset still reaches back past the operation too.
     /// </summary>
-    private void RebaseAfterColorOp()
+    private void RebaseAfterColorOp(bool keepShuffleBase = false)
     {
+        if (!keepShuffleBase) _shuffleBase = null;
         _suppressEvents = true;
         ResetSlidersToZero();
         CaptureAdjustBase();
@@ -570,6 +572,7 @@ public partial class MainWindow
     private void OnColorAdjustChanged(object? sender, RangeBaseValueChangedEventArgs e)
     {
         if (_suppressEvents || _adjustBase is not { Count: > 0 } based || _editingPalette is not { } pal) return;
+        _shuffleBase = null; // a slider move is a new starting point for the next Shuffle
         double lighten = LightenSlider.Value, hue = HueSlider.Value;
         // Relative, like every other slider here: a delta in percentage points off
         // each swatch's OWN starting saturation, not one shared absolute target —
