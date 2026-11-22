@@ -139,6 +139,8 @@ public partial class MainWindow
     {
         _respanTimer.Stop();
         if (!_frameTextActive) return;
+        // Unchanged text is just our own sync echoing back: spans are already right, and moving the frame would pause playback
+        if (FrameTextView.Text == _lastSyncedFrameText) return;
 
         _frameSpans = ComputeLiveFrameSpans(FrameTextView.Text);
         OnFrameTextCaretMoved(FrameTextView.CaretIndex);
