@@ -40,7 +40,6 @@ Verified unless noted.
   temp-only variant. Borrowers/links follow Merge's rules. One undo step.
 - Add a Find Unused Colors tool for palettes: show which color indexes no sprite using the
   palette draws with. Scope, output and actions to be decided.
-- Fix Invert Selection in the palette swatches (what is wrong with it is not recorded yet; reproduce first).
 - Changing the previewed sprite on the Palettes tab (nav slider, < and >) should neither commit nor
   discard a pending palette change. Check what it does today, then keep the change pending. Related
   to the keep-or-discard rule under Other.

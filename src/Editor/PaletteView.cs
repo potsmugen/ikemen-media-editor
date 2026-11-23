@@ -180,7 +180,8 @@ public class PaletteView : Control
     public void InvertSelection()
     {
         if (_palette is not { } p) { Select([]); return; }
-        Select(Enumerable.Range(0, p.Colors.Length).Where(i => !_selected.Contains(i)));
+        // ToList: Select clears the selection first, which would empty a lazy filter's source
+        Select(Enumerable.Range(0, p.Colors.Length).Where(i => !_selected.Contains(i)).ToList());
     }
 
     /// <summary>
