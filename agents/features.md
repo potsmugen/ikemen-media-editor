@@ -558,7 +558,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   from a selected swatch still copies the selection.
 - **Palette hue and saturation** sliders use OKLCH by default, so a hue move keeps perceived
   lightness; settings.json `PalettePerceptualHue: false` restores HSV. Saturation is a
-  percent of the most chroma sRGB allows. Lighten and RGB add to RGB directly.
+  percent of the most chroma sRGB allows. L offsets lightness by -100 to 100 percentage points (OKLCH L, or HSL L
+  when off), with saturation measured at the new lightness. R, G and B add to RGB directly.
 - **Select Colors Used by This Sprite** (right-click menu of the Palettes tab's sprite preview):
   replaces the swatch selection with every index the previewed sprite draws with, skipping index 0
   (the mask). Only for indexed sprites; true color has no indexes.

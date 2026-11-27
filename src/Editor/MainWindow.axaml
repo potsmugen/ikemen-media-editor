@@ -1113,8 +1113,8 @@
                     </Slider>
                     <NumericUpDown Grid.Row="4" Grid.Column="2" x:Name="SaturationBox" Width="72" Margin="6,0,0,0" Increment="1" FormatString="0"
                                    IsEnabled="{Binding IsEnabled, ElementName=SaturationSlider}" />
-                    <TextBlock Grid.Row="5" Grid.Column="0" Text="L" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" ToolTip.Tip="Lighten" />
-                    <Slider Grid.Row="5" Grid.Column="1" x:Name="LightenSlider" Minimum="-255" Maximum="255" Value="0" ValueChanged="OnColorAdjustChanged">
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="L" Foreground="{DynamicResource ThemeMutedText}" VerticalAlignment="Center" ToolTip.Tip="Lightness" />
+                    <Slider Grid.Row="5" Grid.Column="1" x:Name="LightenSlider" Minimum="-100" Maximum="100" Value="0" ValueChanged="OnColorAdjustChanged">
                       <Slider.Resources>
                         <GridLength x:Key="SliderPreContentMargin">0</GridLength>
                         <GridLength x:Key="SliderPostContentMargin">0</GridLength>

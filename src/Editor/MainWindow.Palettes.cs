@@ -780,15 +780,15 @@ public partial class MainWindow
         StatusText.Text = "";
     }
 
-    /// <summary>Applies a hue rotation and an absolute saturation target (OKLCH, or HSV when PalettePerceptualHue is off), then an overall lighten and per-channel add, each clamped to a byte.</summary>
+    /// <summary>Applies a hue rotation, an absolute saturation target and a lightness offset in percentage points (OKLCH, or HSV with HSL lightness when PalettePerceptualHue is off), then a per-channel add, each clamped to a byte.</summary>
     private static Rgba AdjustColor(Rgba baseColor, double lighten, double hue, double saturation, double rAdd, double gAdd, double bAdd, bool perceptual)
     {
         var (r, g, b) = perceptual
-            ? AdjustOklch(baseColor.R, baseColor.G, baseColor.B, hue, saturation)
-            : AdjustHsv(baseColor.R, baseColor.G, baseColor.B, hue, saturation);
-        r += lighten + rAdd;
-        g += lighten + gAdd;
-        b += lighten + bAdd;
+            ? AdjustOklch(baseColor.R, baseColor.G, baseColor.B, hue, saturation, lighten)
+            : LightenHsl(AdjustHsv(baseColor.R, baseColor.G, baseColor.B, hue, saturation), lighten);
+        r += rAdd;
+        g += gAdd;
+        b += bAdd;
         return new Rgba(ClampByte(r), ClampByte(g), ClampByte(b), baseColor.A);
     }
 
@@ -849,12 +849,14 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// Rotates hue in OKLCH with lightness held, so perceived brightness doesn't move with hue.
+    /// Rotates hue in OKLCH with lightness held, so perceived brightness doesn't move with hue. L moves only by the lighten offset.
     /// Saturation is a percent of the most chroma sRGB allows at that lightness and hue, like HSV.
     /// </summary>
-    private static (double R, double G, double B) AdjustOklch(double r, double g, double b, double degrees, double saturationPercent)
+    private static (double R, double G, double B) AdjustOklch(double r, double g, double b, double degrees, double saturationPercent, double lightenPercent)
     {
         var (L, a, bb) = RgbToOklab(r, g, b);
+        // Saturation is measured at the new lightness, so a color keeps its share of what sRGB allows as it lightens
+        L = Math.Clamp(L + lightenPercent / 100, 0, 1);
         double hue = Math.Atan2(bb, a) + degrees * Math.PI / 180;
         double chroma = Math.Clamp(saturationPercent / 100, 0, 1) * MaxChroma(L, hue);
         var (lr, lg, lb) = OklabToLinear(L, chroma * Math.Cos(hue), chroma * Math.Sin(hue));
@@ -903,6 +905,15 @@ public partial class MainWindow
             _ => (c, 0.0, x),
         };
         return ((r2 + m) * 255, (g2 + m) * 255, (b2 + m) * 255);
+    }
+
+    /// <summary>Offsets HSL lightness by percentage points, keeping HSL hue and saturation.</summary>
+    private static (double R, double G, double B) LightenHsl((double R, double G, double B) c, double lightenPercent)
+    {
+        if (lightenPercent == 0) return c;
+        var (h, s, l) = ColorPickerView.RgbToHsl(Color.FromRgb(ClampByte(c.R), ClampByte(c.G), ClampByte(c.B)));
+        var result = ColorPickerView.HslToRgb(h, s, Math.Clamp(l + lightenPercent / 100, 0, 1));
+        return (result.R, result.G, result.B);
     }
 
     /// <summary>A box selection changed the edited grid's selection, so rebase the sliders as SelectAll does.</summary>
