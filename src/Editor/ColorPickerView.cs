@@ -211,7 +211,7 @@ public sealed class ColorPickerView : Control
 
 /// <summary>
 /// Opens a ColorPickerView in a drop-down under an anchor, with OK and Cancel.
-/// Clicking outside does nothing; Enter = OK, Esc = Cancel.
+/// Clicking outside keeps the live color, like OK; Enter = OK, Esc = Cancel.
 /// </summary>
 public static class ColorPickerFlyout
 {
@@ -249,7 +249,7 @@ public static class ColorPickerFlyout
             result();
             flyout.Hide();
         }
-        flyout.Closing += (_, e) => { if (!closing) e.Cancel = true; }; // outside clicks don't close it
+        flyout.Closed += (_, _) => { if (!closing) { closing = true; ok(); } }; // outside click: keep the live color
         okButton.Click += (_, _) => Close(ok);
         cancelButton.Click += (_, _) => Close(cancel);
         content.AddHandler(InputElement.KeyDownEvent, (_, e) =>
