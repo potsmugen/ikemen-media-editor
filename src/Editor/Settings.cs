@@ -428,6 +428,8 @@ public sealed class Settings
         public double PanelContentInset { get; set; } = DefaultPanelContentInset;
         /// <summary>Buttons and tabs draw with rounded corners (Preferences); off draws them square.</summary>
         public bool RoundedCorners { get; set; } = true;
+        /// <summary>Dialogs draw a hairline between their sections (Preferences).</summary>
+        public bool SectionSeparators { get; set; } = true;
     }
 
     public sealed class CanvasSection

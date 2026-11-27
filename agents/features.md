@@ -851,6 +851,11 @@ and constraints that are easy to miss when reading one code path in isolation.
   default): `ApplyUiScale` sets `UiButtonCornerRadius` (3, Fluent's) and `UiTabCornerRadius`
   (4,4,0,0) to the rounded values or 0. App.axaml styles Button/ToggleButton/RepeatButton and
   `TabItem` with them, and so does the project-tab strip. Template-bound radii (Fluent parts) win.
+- **Section separators** (Preferences > Appearance, settings.json `Appearance SectionSeparators`, on by
+  default): dialogs with sections draw a 1px `ThemeLine` hairline above each heading but the
+  first. `Dialogs.SectionSeparators` carries it (set at startup and after Preferences OK; dialogs
+  read it when built). Covers the sprite import dialog, the Keyboard Shortcuts list and the
+  Preferences General page.
 - **Separators**: draggable ones are `PanelSeparatorWidth` bars in `ThemeSeparator`; fixed ones are
   1px `ThemeLine` hairlines, except the menu, tab-strip and status-bar lines, which match the tab
   outlines (`TabAndBarLineWidth`, Preferences > Appearance "Tab and bar line width", separate

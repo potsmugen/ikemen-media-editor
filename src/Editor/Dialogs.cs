@@ -141,6 +141,10 @@ public static partial class Dialogs
     /// <summary>Monospace fonts by platform: Windows, macOS, then common Linux ones.</summary>
     internal static readonly FontFamily MonoFont = new("Consolas,Menlo,DejaVu Sans Mono,Liberation Mono,monospace");
 
+    /// <summary>Dialogs with several sections draw a hairline between them (Preferences > Appearance). Set by
+    /// MainWindow; read when a dialog is built.</summary>
+    public static bool SectionSeparators { get; set; } = true;
+
     /// <summary>
     /// Looks up a themed brush by resource key. Dialogs are short-lived (built,
     /// shown modally, discarded), so a snapshot at creation time is enough —
@@ -229,12 +233,22 @@ public static partial class Dialogs
 
         void AddHeading(string text)
         {
+            bool first = grid.RowDefinitions.Count == 0;
+            bool rule = !first && SectionSeparators;
+            if (rule)
+            {
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                var line = new Border { Height = 1, Margin = new Avalonia.Thickness(0, 6, 0, 0), Background = ThemeBrush("ThemeLine"), IsHitTestVisible = false };
+                Grid.SetRow(line, grid.RowDefinitions.Count - 1);
+                Grid.SetColumnSpan(line, 2);
+                grid.Children.Add(line);
+            }
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             var heading = new TextBlock
             {
                 Text = text,
                 FontWeight = FontWeight.Bold,
-                Margin = new Avalonia.Thickness(0, grid.RowDefinitions.Count == 1 ? 0 : 12, 0, 2),
+                Margin = new Avalonia.Thickness(0, first ? 0 : rule ? 6 : 12, 0, 2),
             };
             Grid.SetRow(heading, grid.RowDefinitions.Count - 1);
             Grid.SetColumnSpan(heading, 2);
@@ -275,7 +289,7 @@ public static partial class Dialogs
         };
 
         var customize = new Button { Content = "Customize", MinWidth = 90 };
-        ToolTip.SetTip(customize, "Opens Preferences on the Shortcuts tab.");
+        ToolTip.SetTip(customize, "Opens Preferences on the Shortcuts tab");
         ok.Click += (_, _) => { result.TrySetResult(false); dialog.Close(); };
         customize.Click += (_, _) => { result.TrySetResult(true); dialog.Close(); };
         dialog.Content = new StackPanel
@@ -465,8 +479,8 @@ public static partial class Dialogs
         body.Children.Add(relative);
         body.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children =
         {
-            new TextBlock { Text = "Width", VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, MinWidth = 55 }, width,
-            new TextBlock { Text = "Height", VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, MinWidth = 55 }, height,
+            new TextBlock { Text = "Width:", VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, MinWidth = 55 }, width,
+            new TextBlock { Text = "Height:", VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, MinWidth = 55 }, height,
         }});
         var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8 };
         row.Children.Add(ok); row.Children.Add(cancel); body.Children.Add(row);
@@ -511,7 +525,7 @@ public static partial class Dialogs
         foreach (var mode in samplings)
             sampling.Items.Add(new ComboBoxItem { Content = mode.ToString(), IsEnabled = !indexed || mode != SpriteRotate.Interpolation.Bilinear });
         sampling.SelectedIndex = 0;
-        if (indexed) ToolTip.SetTip(sampling, "Bilinear is available for true-color sprites only.");
+        if (indexed) ToolTip.SetTip(sampling, "Bilinear is available for true-color sprites only");
 
         var ok = new Button { Content = "Scale", MinWidth = 90, IsDefault = true };
         ToolTip.SetTip(ok, single
@@ -537,8 +551,8 @@ public static partial class Dialogs
         body.Children.Add(absolute);
         body.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Avalonia.Thickness(20, 0, 0, 0), Children =
         {
-            new TextBlock { Text = "Width", VerticalAlignment = VerticalAlignment.Center, MinWidth = 55 }, width,
-            new TextBlock { Text = "Height", VerticalAlignment = VerticalAlignment.Center, MinWidth = 55 }, height,
+            new TextBlock { Text = "Width:", VerticalAlignment = VerticalAlignment.Center, MinWidth = 55 }, width,
+            new TextBlock { Text = "Height:", VerticalAlignment = VerticalAlignment.Center, MinWidth = 55 }, height,
         }});
         body.Children.Add(percentage);
         body.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Avalonia.Thickness(20, 0, 0, 0), Children =
@@ -548,7 +562,7 @@ public static partial class Dialogs
         }});
         body.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children =
         {
-            new TextBlock { Text = "Sampling", VerticalAlignment = VerticalAlignment.Center }, sampling,
+            new TextBlock { Text = "Sampling:", VerticalAlignment = VerticalAlignment.Center }, sampling,
         }});
         body.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
             Spacing = 8, Children = { ok, cancel } });
@@ -861,14 +875,14 @@ public static partial class Dialogs
         var angle = Number(0, 0, 360, 1, "0.#", 90);
         var left = new RadioButton { GroupName = "RotateDir", Content = "Left" };
         var right = new RadioButton { GroupName = "RotateDir", Content = "Right", IsChecked = true };
-        ToolTip.SetTip(left, "Turns counterclockwise.");
-        ToolTip.SetTip(right, "Turns clockwise.");
+        ToolTip.SetTip(left, "Turns counterclockwise");
+        ToolTip.SetTip(right, "Turns clockwise");
         var pivotSprite = new RadioButton { GroupName = "RotatePivot", Content = "Sprite", IsChecked = true };
         var pivotAxis = new RadioButton { GroupName = "RotatePivot", Content = "Axis" };
         var pivotNone = new RadioButton { GroupName = "RotatePivot", Content = "None" };
-        ToolTip.SetTip(pivotSprite, "Turns around the center of the sprite.");
-        ToolTip.SetTip(pivotAxis, "Keeps the axis point in place.");
-        ToolTip.SetTip(pivotNone, "Keeps the same coordinates.");
+        ToolTip.SetTip(pivotSprite, "Turns around the center of the sprite");
+        ToolTip.SetTip(pivotAxis, "Keeps the axis point in place");
+        ToolTip.SetTip(pivotNone, "Keeps the same coordinates");
         // All three are always listed, the ones that cannot work for this sprite disabled with
         // the reason, as EnumCombo does for the SprMaker options.
         var samplings = new[] { SpriteRotate.Interpolation.Nearest, SpriteRotate.Interpolation.Area, SpriteRotate.Interpolation.Bilinear };
@@ -879,7 +893,7 @@ public static partial class Dialogs
         // ignored, which left the combo showing nothing at all.
         smooth.SelectedIndex = 0;
         if (indexed)
-            ToolTip.SetTip(smooth, "Available for true-color sprites only.");
+            ToolTip.SetTip(smooth, "Available for true-color sprites only");
 
         Control Field(string label, Control content)
         {
@@ -897,13 +911,13 @@ public static partial class Dialogs
         var ok = new Button { Content = "Rotate", MinWidth = 90, IsDefault = true };
         var cancel = new Button { Content = "Cancel", MinWidth = 90, IsCancel = true };
         var body = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 10 };
-        body.Children.Add(Field("Angle", angle));
-        body.Children.Add(Field("Direction", new StackPanel
+        body.Children.Add(Field("Angle:", angle));
+        body.Children.Add(Field("Direction:", new StackPanel
         {
             Orientation = Orientation.Horizontal, Spacing = 16, Children = { left, right },
         }));
-        body.Children.Add(Field("Pivot", new StackPanel { Children = { pivotSprite, pivotAxis, pivotNone } }));
-        body.Children.Add(Field("Sampling", smooth));
+        body.Children.Add(Field("Pivot:", new StackPanel { Children = { pivotSprite, pivotAxis, pivotNone } }));
+        body.Children.Add(Field("Sampling:", smooth));
         body.Children.Add(new StackPanel
         {
             Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
@@ -1129,7 +1143,7 @@ public static partial class Dialogs
         };
         return OptionsDialog(owner, "Save like SprMaker 2.01", notes,
             [crop, link, detect, verbose, veryVerbose, quiet,
-             Row("5-bit sprites", c5), Row("8-bit sprites", c8), Row("True color", c24), decompress, discard],
+             Row("5-bit sprites:", c5), Row("8-bit sprites:", c8), Row("True color:", c24), decompress, discard],
             () => Show(new SprMaker2Options()),
             () => new SprMaker2Options
             {
@@ -1170,7 +1184,7 @@ public static partial class Dialogs
     {
         var result = new TaskCompletionSource<T?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var resetButton = new Button { Content = "Reset to Defaults" };
-        ToolTip.SetTip(resetButton, "Restores the tool's own defaults.");
+        ToolTip.SetTip(resetButton, "Restores the tool's own defaults");
         var ok = new Button { Content = "Save", MinWidth = 90, IsDefault = true };
         var cancel = new Button { Content = "Cancel", MinWidth = 90, IsCancel = true };
         var body = new StackPanel { Spacing = 8, Margin = new Avalonia.Thickness(20), MaxWidth = 460 };
@@ -1292,8 +1306,8 @@ public static partial class Dialogs
         var result = new TaskCompletionSource<SpriteShareDialogAction?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var unlink = new Button { Content = "Unlink", MinWidth = 90 };
         var link = new Button { Content = "Link", MinWidth = 90, IsDefault = true };
-        ToolTip.SetTip(link, "Picks another sprite whose pixels this sprite reuses.");
-        ToolTip.SetTip(unlink, "Gives this sprite its own copy of the pixels it reuses.");
+        ToolTip.SetTip(link, "Picks another sprite whose pixels this sprite reuses");
+        ToolTip.SetTip(unlink, "Gives this sprite its own copy of the pixels it reuses");
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
         var buttons = new StackPanel
         {
@@ -1360,7 +1374,7 @@ public static partial class Dialogs
         var hint = new TextBlock { Text = "Only earlier sprites in the list can be targets.", Foreground = ThemeBrush("ThemeMutedText") };
         var chooseTarget = new Button { Content = "Choose Target", MinWidth = 100, IsDefault = true };
         var pickFromList = new Button { Content = "Pick from List", MinWidth = 100 };
-        ToolTip.SetTip(pickFromList, "Picks the target from the sprite list instead of typing it.");
+        ToolTip.SetTip(pickFromList, "Picks the target from the sprite list instead of typing it");
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
         var error = new TextBlock { Foreground = ThemeBrush("ThemeMutedText"), TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         var body = new StackPanel { Spacing = 12, Margin = new Avalonia.Thickness(20), MaxWidth = 440 };
@@ -1432,9 +1446,9 @@ public static partial class Dialogs
         var unlink = new Button { Content = "Unlink", MinWidth = 90 };
         var link = new Button { Content = "Link", MinWidth = 90, IsDefault = true };
         var merge = new Button { Content = "Merge", MinWidth = 90 };
-        ToolTip.SetTip(link, "Picks an earlier palette whose colors this palette reuses.");
-        ToolTip.SetTip(unlink, "Gives this palette its own copy of the colors it reuses.");
-        ToolTip.SetTip(merge, "Points this palette's sprites and links to another palette.");
+        ToolTip.SetTip(link, "Picks an earlier palette whose colors this palette reuses");
+        ToolTip.SetTip(unlink, "Gives this palette its own copy of the colors it reuses");
+        ToolTip.SetTip(merge, "Points this palette's sprites and links to another palette");
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
         var buttons = new StackPanel
         {
@@ -1475,7 +1489,7 @@ public static partial class Dialogs
         var hint = new TextBlock { Text = "Only earlier palettes with their own colors can be targets.", Foreground = ThemeBrush("ThemeMutedText") };
         var usePair = new Button { Content = "Choose Target", MinWidth = 100, IsDefault = true };
         var pickFromList = new Button { Content = "Pick from List", MinWidth = 100 };
-        ToolTip.SetTip(pickFromList, "Picks the target from the palette list instead of typing it.");
+        ToolTip.SetTip(pickFromList, "Picks the target from the palette list instead of typing it");
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
         var error = new TextBlock { Foreground = ThemeBrush("ThemeMutedText"), TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         var body = new StackPanel { Spacing = 12, Margin = new Avalonia.Thickness(20), MaxWidth = 440 };
@@ -1564,12 +1578,12 @@ public static partial class Dialogs
                 new StackPanel
                 {
                     Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center,
-                    Children = { new TextBlock { Text = "Group", VerticalAlignment = VerticalAlignment.Center }, group },
+                    Children = { new TextBlock { Text = "Group:", VerticalAlignment = VerticalAlignment.Center }, group },
                 },
                 new StackPanel
                 {
                     Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center,
-                    Children = { new TextBlock { Text = "Index", VerticalAlignment = VerticalAlignment.Center }, index },
+                    Children = { new TextBlock { Text = "Index:", VerticalAlignment = VerticalAlignment.Center }, index },
                 },
             },
         });
@@ -1694,12 +1708,12 @@ public static partial class Dialogs
             ColumnDefinitions = new ColumnDefinitions("Auto,8,*"),
             RowDefinitions = new RowDefinitions("Auto,8,Auto"),
         };
-        var numberLabel = new TextBlock { Text = "Number", VerticalAlignment = VerticalAlignment.Center };
+        var numberLabel = new TextBlock { Text = "Number:", VerticalAlignment = VerticalAlignment.Center };
         fields.Children.Add(numberLabel);
         number.HorizontalAlignment = HorizontalAlignment.Left;
         Grid.SetColumn(number, 2);
         fields.Children.Add(number);
-        var commentLabel = new TextBlock { Text = "Comment", VerticalAlignment = VerticalAlignment.Center };
+        var commentLabel = new TextBlock { Text = "Comment:", VerticalAlignment = VerticalAlignment.Center };
         Grid.SetRow(commentLabel, 2);
         fields.Children.Add(commentLabel);
         Grid.SetColumn(comment, 2);
@@ -1978,7 +1992,7 @@ public static partial class Dialogs
             buttons.Add(button);
         }
         var palette = new CheckBox { Content = "Require the same palette", IsChecked = initialRequirePalette };
-        ToolTip.SetTip(palette, "Leaves out sprites whose colors come from a different palette.");
+        ToolTip.SetTip(palette, "Leaves out sprites whose colors come from a different palette");
 
         var ok = new Button { Content = "Find", MinWidth = 90, IsDefault = true };
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
@@ -2171,7 +2185,7 @@ public static partial class Dialogs
         var close = new Button { Content = "Close", MinWidth = 90, IsCancel = true };
         close.Click += (_, _) => dialog.Close();
         var copy = new Button { Content = "Copy Text", MinWidth = 90 };
-        ToolTip.SetTip(copy, "Copies the whole report as text.");
+        ToolTip.SetTip(copy, "Copies the whole report as text");
         copy.Click += async (_, _) =>
         {
             try
@@ -2266,17 +2280,17 @@ public static partial class Dialogs
             IsEnabled = trueColorAvailable,
         });
         bitDepth.SelectedIndex = initial.BitDepth == BitDepthChoice.ThirtyTwoBit && trueColorAvailable ? 1 : 0;
-        ToolTip.SetTip(bitDepth, "Chooses indexed or 32-bit color storage.");
+        ToolTip.SetTip(bitDepth, "Chooses indexed or 32-bit color storage");
 
         var groupBox = new NumericUpDown { Minimum = 0, Maximum = 65535, Increment = 1, FormatString = "0", Value = group, Width = 100 };
         var numberBox = new NumericUpDown { Minimum = 0, Maximum = 65535, Increment = 1, FormatString = "0", Value = number, Width = 100 };
-        if (imageCount > 1) ToolTip.SetTip(numberBox, "Numbered upward from here, skipping numbers already taken.");
+        if (imageCount > 1) ToolTip.SetTip(numberBox, "Numbered upward from here, skipping numbers already taken");
         var palGroupBox = new NumericUpDown { Minimum = 0, Maximum = 65535, Increment = 1, FormatString = "0", Value = initial.PaletteGroup != 0 || initial.PaletteIndex != 0 ? initial.PaletteGroup : paletteGroup, Width = 100 };
         var palIndexBox = new NumericUpDown { Minimum = 0, Maximum = 65535, Increment = 1, FormatString = "0", Value = initial.PaletteGroup != 0 || initial.PaletteIndex != 0 ? initial.PaletteIndex : paletteIndex, Width = 100 };
 
         // Labels are plain text, so they dim with their boxes by hand (same 0.5 as disabled buttons).
-        var palGroupLabel = new TextBlock { Text = "Group", VerticalAlignment = VerticalAlignment.Center };
-        var palIndexLabel = new TextBlock { Text = "Index", VerticalAlignment = VerticalAlignment.Center };
+        var palGroupLabel = new TextBlock { Text = "Group:", VerticalAlignment = VerticalAlignment.Center };
+        var palIndexLabel = new TextBlock { Text = "Index:", VerticalAlignment = VerticalAlignment.Center };
 
         (initial.PaletteChoice == ImportPaletteChoice.Specific && palettes.Count > 0 ? specific
             : own).IsChecked = true;
@@ -2409,7 +2423,7 @@ public static partial class Dialogs
                     new StackPanel
                     {
                         Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center,
-                        Children = { new TextBlock { Text = "Group", VerticalAlignment = VerticalAlignment.Center }, groupBox },
+                        Children = { new TextBlock { Text = "Group:", VerticalAlignment = VerticalAlignment.Center }, groupBox },
                     },
                     new StackPanel
                     {
@@ -2419,10 +2433,10 @@ public static partial class Dialogs
                 },
             });
         }
-        if (askPlacement) body.Children.Add(Line());
+        if (askPlacement && SectionSeparators) body.Children.Add(Line());
         body.Children.Add(Section("Color Depth"));
         body.Children.Add(bitDepth);
-        body.Children.Add(Line());
+        if (SectionSeparators) body.Children.Add(Line());
         body.Children.Add(Section("Palette"));
         body.Children.Add(own);
         body.Children.Add(new StackPanel
@@ -2639,7 +2653,7 @@ public static partial class Dialogs
         var result = new TaskCompletionSource<SheetDetectChoices?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var foundBox = new NumericUpDown { Minimum = 0, Maximum = 4096, Increment = 1, FormatString = "0", Value = floor, Width = 100 };
-        ToolTip.SetTip(foundBox, "Raising this drops the stray pixels a keyed sheet leaves behind; lowering it keeps sprites too small to be real.");
+        ToolTip.SetTip(foundBox, "Raising this drops the stray pixels a keyed sheet leaves behind; lowering it keeps sprites too small to be real");
         var foundLabel = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Foreground = ThemeBrush("ThemeMutedText") };
 
         // The picker shows two choices when detection had to guess: the most
@@ -2704,9 +2718,9 @@ public static partial class Dialogs
         }
 
         var deleteBox = new Button { Content = "Delete", MinWidth = 90, IsEnabled = false };
-        ToolTip.SetTip(deleteBox, "Removes the selected rectangle.");
+        ToolTip.SetTip(deleteBox, "Removes the selected rectangle");
         var resetBox = new Button { Content = "Reset", MinWidth = 90, IsEnabled = false };
-        ToolTip.SetTip(resetBox, "Discards all edits and restores the detected rectangles.");
+        ToolTip.SetTip(resetBox, "Discards all edits and restores the detected rectangles");
 
         void Redraw()
         {
@@ -3354,7 +3368,7 @@ public static partial class Dialogs
         if (!alphaEnabled)
         {
             aBox.IsEnabled = false;
-            ToolTip.SetTip(aBox, "SFF v1 stores RGB only.");
+            ToolTip.SetTip(aBox, "SFF v1 stores RGB only");
         }
 
         var dialog = new Window
@@ -3430,7 +3444,7 @@ public static partial class Dialogs
         };
         var boxes = new CheckBox { Content = "Draw Clsn boxes", IsChecked = false };
         var background = new CheckBox { Content = "Draw background", IsChecked = initialBackground };
-        ToolTip.SetTip(background, "Draws the Animations canvas background under each frame and applies the frame's blend to it.");
+        ToolTip.SetTip(background, "Draws the Animations canvas background under each frame and applies the frame's blend to it");
 
         var dialog = new Window
         {
@@ -3537,12 +3551,14 @@ public static partial class Dialogs
     {
         var result = new TaskCompletionSource<BoxSortOrder?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        var top = new RadioButton { GroupName = "SortOrder", Content = "Top to bottom", IsChecked = true };
-        var bottom = new RadioButton { GroupName = "SortOrder", Content = "Bottom to top" };
-        var left = new RadioButton { GroupName = "SortOrder", Content = "Leftmost to rightmost" };
-        var right = new RadioButton { GroupName = "SortOrder", Content = "Rightmost to leftmost" };
-        var small = new RadioButton { GroupName = "SortOrder", Content = "Smallest area first" };
-        var large = new RadioButton { GroupName = "SortOrder", Content = "Largest area first" };
+        // Six choices: a dropdown, in BoxSortOrder's order below. The prompt ends with a colon and is its label
+        var orders = new[] { BoxSortOrder.TopToBottom, BoxSortOrder.BottomToTop, BoxSortOrder.LeftToRight,
+            BoxSortOrder.RightToLeft, BoxSortOrder.SmallestFirst, BoxSortOrder.LargestFirst };
+        var orderBox = new ComboBox
+        {
+            ItemsSource = new[] { "Top to bottom", "Bottom to top", "Leftmost to rightmost", "Rightmost to leftmost", "Smallest area first", "Largest area first" },
+            SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
 
         var dialog = new Window
         {
@@ -3559,13 +3575,7 @@ public static partial class Dialogs
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
         ok.Click += (_, _) =>
         {
-            var order = top.IsChecked == true ? BoxSortOrder.TopToBottom
-                : bottom.IsChecked == true ? BoxSortOrder.BottomToTop
-                : left.IsChecked == true ? BoxSortOrder.LeftToRight
-                : right.IsChecked == true ? BoxSortOrder.RightToLeft
-                : small.IsChecked == true ? BoxSortOrder.SmallestFirst
-                : BoxSortOrder.LargestFirst;
-            result.TrySetResult(order);
+            result.TrySetResult(orders[Math.Clamp(orderBox.SelectedIndex, 0, orders.Length - 1)]);
             dialog.Close();
         };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
@@ -3577,7 +3587,7 @@ public static partial class Dialogs
             Children =
             {
                 new TextBlock { Text = prompt },
-                top, bottom, left, right, small, large,
+                orderBox,
                 new StackPanel
                 {
                     Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
@@ -3695,7 +3705,7 @@ public static partial class Dialogs
         };
 
         var reset = new Button { Content = "Reset", MinWidth = 90, IsEnabled = false };
-        ToolTip.SetTip(reset, "Restores the starting order.");
+        ToolTip.SetTip(reset, "Restores the starting order");
         var ok = new Button { Content = "OK", MinWidth = 90, IsDefault = true };
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
         view.Changed += () => reset.IsEnabled = view.IsChanged;
@@ -4083,8 +4093,8 @@ public static partial class Dialogs
                     Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Avalonia.Thickness(40, 0, 0, 0),
                     Children =
                     {
-                        new TextBlock { Text = "Source", VerticalAlignment = VerticalAlignment.Center }, srcBox,
-                        new TextBlock { Text = "Destination", VerticalAlignment = VerticalAlignment.Center }, dstBox,
+                        new TextBlock { Text = "Source:", VerticalAlignment = VerticalAlignment.Center }, srcBox,
+                        new TextBlock { Text = "Destination:", VerticalAlignment = VerticalAlignment.Center }, dstBox,
                     },
                 },
                 new StackPanel
@@ -4264,7 +4274,7 @@ public static partial class Dialogs
     public sealed record PreferencesValues(bool SwitchTabOnOpen, bool SyncSprite, string ThemeName, int BackupCount,
         double InfiniteAnimationTimeout, double SilenceThreshold, bool DebugMode,
         double FontScalePercent, double ButtonScalePercent, double ButtonGap, double PanelSeparatorWidth, double TabAndBarLineWidth,
-        double PanelContentInset, bool RoundedCorners, CanvasValues Canvas, ClsnValues Clsn);
+        double PanelContentInset, bool RoundedCorners, bool SectionSeparators, CanvasValues Canvas, ClsnValues Clsn);
 
     /// <summary>Preferences > Clsn. Colors are #RRGGBB, opacities 0-100, thicknesses in pixels.</summary>
     public sealed record ClsnValues(string Clsn1, string Clsn2, string Clsn1Default, string Clsn2Default,
@@ -4299,7 +4309,7 @@ public static partial class Dialogs
 
         var switchTab = new CheckBox { Content = "Switch to the relevant tab when opening a file", IsChecked = initial.SwitchTabOnOpen };
         var syncSprite = new CheckBox { Content = "Same sprite on the Sprites, Animations and Palettes tabs", IsChecked = initial.SyncSprite };
-        ToolTip.SetTip(syncSprite, "Leaving Animations or Palettes selects the sprite shown there.");
+        ToolTip.SetTip(syncSprite, "Leaving Animations or Palettes selects the sprite shown there");
         var theme = new ComboBox
         {
             ItemsSource = themeNames.Select(n => n == Themes.Fallback.Name ? n + " (default)" : n).ToList(),
@@ -4319,25 +4329,27 @@ public static partial class Dialogs
             return n;
         }
         var backupCount = Number(initial.BackupCount, 0, 1, "0", Settings.DefaultBackupCountMax);
-        ToolTip.SetTip(backupCount, "Keeps this many previous versions when saving over a file.");
+        ToolTip.SetTip(backupCount, "Keeps this many previous versions when saving over a file");
         var debug = new CheckBox { Content = "Debug mode", IsChecked = initial.DebugMode };
-        ToolTip.SetTip(debug, "Lifts limits such as the group/number and axis ranges, for testing the engine.");
+        ToolTip.SetTip(debug, "Lifts limits such as the group/number and axis ranges, for testing the engine");
         var fontScale = Number(initial.FontScalePercent, minScale, 5, "0", maxScale);
         var buttonScale = Number(initial.ButtonScalePercent, minScale, 5, "0", maxScale);
         var buttonGap = Number(initial.ButtonGap, 0, 1, "0", Settings.DefaultButtonGapMax);
-        ToolTip.SetTip(buttonGap, "Space between buttons.");
+        ToolTip.SetTip(buttonGap, "Space between buttons");
         var panelSeparatorWidth = Number(initial.PanelSeparatorWidth, 1, 1, "0", Settings.DefaultPanelSeparatorWidthMax);
-        ToolTip.SetTip(panelSeparatorWidth, "Sets the visible thickness of panel separators.");
+        ToolTip.SetTip(panelSeparatorWidth, "Sets the visible thickness of panel separators");
         var tabAndBarLineWidth = Number(initial.TabAndBarLineWidth, 1, 1, "0", Settings.DefaultTabAndBarLineWidthMax);
-        ToolTip.SetTip(tabAndBarLineWidth, "Sets the thickness of tab outlines and the lines along the tab strips, menu and status bar.");
+        ToolTip.SetTip(tabAndBarLineWidth, "Sets the thickness of tab outlines and the lines along the tab strips, menu and status bar");
         var panelContentInset = Number(initial.PanelContentInset, 0, 1, "0", Settings.DefaultPanelContentInsetMax);
-        ToolTip.SetTip(panelContentInset, "Space around the contents of each panel.");
+        ToolTip.SetTip(panelContentInset, "Space around the contents of each panel");
         var roundedCorners = new CheckBox { Content = "Rounded buttons and tabs", IsChecked = initial.RoundedCorners };
-        ToolTip.SetTip(roundedCorners, "Draws buttons and tabs with rounded corners; off draws them square.");
+        ToolTip.SetTip(roundedCorners, "Draws buttons and tabs with rounded corners; off draws them square");
+        var sectionSeparators = new CheckBox { Content = "Separators between dialog sections", IsChecked = initial.SectionSeparators };
+        ToolTip.SetTip(sectionSeparators, "Draws a line between the sections of a dialog");
 
         TextBlock Section(string text)
         {
-            var t = new TextBlock { Text = text, FontWeight = FontWeight.Bold, Margin = new Avalonia.Thickness(0, 6, 0, 0) };
+            var t = new TextBlock { Text = text, FontWeight = FontWeight.Bold, Margin = new Avalonia.Thickness(0, 6, 0, 0), Tag = "section" };
             t.Bind(TextBlock.ForegroundProperty, t.GetResourceObservable("ThemeMutedText")); // follows the theme preview
             return t;
         }
@@ -4409,6 +4421,7 @@ public static partial class Dialogs
                 tabAndBarLineWidth.Value is { } tlw ? (double)tlw : initial.TabAndBarLineWidth,
                 panelContentInset.Value is { } pci ? (double)pci : initial.PanelContentInset,
                 roundedCorners.IsChecked == true,
+                sectionSeparators.IsChecked == true,
                 canvasValues(),
                 clsnValues());
         }
@@ -4421,6 +4434,7 @@ public static partial class Dialogs
         tabAndBarLineWidth.ValueChanged += (_, _) => Changed();
         panelContentInset.ValueChanged += (_, _) => Changed();
         roundedCorners.IsCheckedChanged += (_, _) => Changed();
+        sectionSeparators.IsCheckedChanged += (_, _) => Changed();
 
         var ok = new Button { Content = "OK", MinWidth = 90, IsDefault = true };
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
@@ -4455,6 +4469,7 @@ public static partial class Dialogs
             tabAndBarLineWidth.Value = (decimal)Math.Clamp(d.TabAndBarLineWidth, 1, Settings.DefaultTabAndBarLineWidthMax);
             panelContentInset.Value = (decimal)Math.Clamp(d.PanelContentInset, 0, Settings.DefaultPanelContentInsetMax);
             roundedCorners.IsChecked = d.RoundedCorners;
+            sectionSeparators.IsChecked = d.SectionSeparators;
         });
         Action resetBackground = () => ResetTab(() => setBackground(defaults.Canvas));
         Action resetCrosshair = () => ResetTab(() => setCrosshair(defaults.Canvas));
@@ -4469,7 +4484,7 @@ public static partial class Dialogs
                 switchTab,
                 syncSprite,
                 Section("Saving"),
-                Row($"Backup versions (0-{Settings.DefaultBackupCountMax})", backupCount),
+                Row($"Backup versions (0-{Settings.DefaultBackupCountMax}):", backupCount),
                 Section("Debug"),
                 debug,
             },
@@ -4480,16 +4495,28 @@ public static partial class Dialogs
             Children =
             {
                 Section("Interface"),
-                Row("Theme", theme),
-                Row($"Font size % ({minScale:0}-{maxScale:0})", fontScale),
-                Row($"Button size % ({minScale:0}-{maxScale:0})", buttonScale),
-                Row($"Button gap (0-{Settings.DefaultButtonGapMax:0})", buttonGap),
-                Row($"Panel separator width (1-{Settings.DefaultPanelSeparatorWidthMax:0})", panelSeparatorWidth),
-                Row($"Tab and bar line width (1-{Settings.DefaultTabAndBarLineWidthMax:0})", tabAndBarLineWidth),
-                Row($"Panel content inset (0-{Settings.DefaultPanelContentInsetMax:0})", panelContentInset),
+                Row("Theme:", theme),
+                Row($"Font size % ({minScale:0}-{maxScale:0}):", fontScale),
+                Row($"Button size % ({minScale:0}-{maxScale:0}):", buttonScale),
+                Row($"Button gap (0-{Settings.DefaultButtonGapMax:0}):", buttonGap),
+                Row($"Panel separator width (1-{Settings.DefaultPanelSeparatorWidthMax:0}):", panelSeparatorWidth),
+                Row($"Tab and bar line width (1-{Settings.DefaultTabAndBarLineWidthMax:0}):", tabAndBarLineWidth),
+                Row($"Panel content inset (0-{Settings.DefaultPanelContentInsetMax:0}):", panelContentInset),
                 roundedCorners,
+                sectionSeparators,
             },
         };
+
+        // A hairline above each section heading but the first, like the sprite import dialog's
+        void AddSectionLines(StackPanel panel)
+        {
+            if (!SectionSeparators) return;
+            for (int i = panel.Children.Count - 1; i > 0; i--)
+                if (panel.Children[i] is TextBlock { Tag: "section" })
+                    panel.Children.Insert(i, new Border { Height = 1, Margin = new Avalonia.Thickness(0, 4), Background = ThemeBrush("ThemeLine"), IsHitTestVisible = false });
+        }
+        AddSectionLines(general);
+        AddSectionLines(appearance);
 
         TabItem Tab(string header, Control content)
         {
@@ -4545,7 +4572,7 @@ public static partial class Dialogs
             [crosshairPage] = resetCrosshair, [clsnPage] = resetClsn, [shortcutsPage] = resetShortcuts,
         };
         var reset = new Button { Content = "Reset to Defaults" };
-        ToolTip.SetTip(reset, "Puts this tab back to its defaults.");
+        ToolTip.SetTip(reset, "Puts this tab back to its defaults");
         reset.Click += (_, _) =>
         {
             if (preferenceTabs.SelectedItem is TabItem { Content: Control page } && resets.TryGetValue(page, out var fill)) fill();
@@ -4605,7 +4632,7 @@ public static partial class Dialogs
         {
             View = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { _swatchButton, _hex } };
             _swatchButton.Content = _swatch;
-            ToolTip.SetTip(_swatchButton, "Opens the color picker.");
+            ToolTip.SetTip(_swatchButton, "Opens the color picker");
             _swatchButton.Click += (_, _) =>
             {
                 var start = Color;
@@ -4670,7 +4697,7 @@ public static partial class Dialogs
         var flatR = new RadioButton { GroupName = "BgStyle", Content = "Flat", IsChecked = init.Style == BackgroundStyle.Flat };
         var checkerR = new RadioButton { GroupName = "BgStyle", Content = "Checkerboard", IsChecked = init.Style == BackgroundStyle.Checkerboard };
         var imageR = new RadioButton { GroupName = "BgStyle", Content = "Image", IsChecked = init.Style == BackgroundStyle.Image };
-        ToolTip.SetTip(imageR, "Falls back to Flat until an image is chosen.");
+        ToolTip.SetTip(imageR, "Falls back to Flat until an image is chosen");
         BackgroundStyle SelectedStyle() =>
             imageR.IsChecked == true ? BackgroundStyle.Image
             : checkerR.IsChecked == true ? BackgroundStyle.Checkerboard
@@ -4687,9 +4714,9 @@ public static partial class Dialogs
         var checkerSize = number(Math.Clamp(init.CheckerSize, Settings.CheckerSizeMin, Settings.CheckerSizeMax),
             Settings.CheckerSizeMin, 1, "0", Settings.CheckerSizeMax);
         var checkerFollowZoom = new CheckBox { Content = "Scale with zoom", IsChecked = init.CheckerFollowZoom };
-        ToolTip.SetTip(checkerFollowZoom, "Scales the squares with the zoom.");
+        ToolTip.SetTip(checkerFollowZoom, "Scales the squares with the zoom");
         var checkerFollowPan = new CheckBox { Content = "Follow pan", IsChecked = init.CheckerFollowPan };
-        ToolTip.SetTip(checkerFollowPan, "Moves the squares with the view when panning.");
+        ToolTip.SetTip(checkerFollowPan, "Moves the squares with the view when panning");
 
         string? bgPath = init.BackgroundPath;
         // Browse opens in the shipped patterns folder the first time; afterward it follows the
@@ -4699,11 +4726,11 @@ public static partial class Dialogs
         var bgBrowse = new Button { Content = "Browse" };
         var bgClear = new Button { Content = "Clear" };
         var tile = new CheckBox { Content = "Tile", IsChecked = init.Tile };
-        ToolTip.SetTip(tile, "Repeats the image to fill the canvas.");
+        ToolTip.SetTip(tile, "Repeats the image to fill the canvas");
         var offX = number(init.OffsetX, -limits.OffsetMax, 1, "0", limits.OffsetMax);
         var offY = number(init.OffsetY, -limits.OffsetMax, 1, "0", limits.OffsetMax);
-        ToolTip.SetTip(offX, "Moves the image in pixels at 100% zoom.");
-        ToolTip.SetTip(offY, "Moves the image in pixels at 100% zoom.");
+        ToolTip.SetTip(offX, "Moves the image in pixels at 100% zoom");
+        ToolTip.SetTip(offY, "Moves the image in pixels at 100% zoom");
         var opacity = new Slider
         {
             Minimum = 0, Maximum = 100, Value = Math.Clamp(init.OpacityPercent, 0, 100),
@@ -4713,9 +4740,9 @@ public static partial class Dialogs
         CompactSlider(opacity);
         MainWindow.PairSliderBox(opacity, opacityBox);
         var followZoom = new CheckBox { Content = "Scale with zoom", IsChecked = init.FollowZoom };
-        ToolTip.SetTip(followZoom, "Scales the image with the zoom.");
+        ToolTip.SetTip(followZoom, "Scales the image with the zoom");
         var followPan = new CheckBox { Content = "Follow pan", IsChecked = init.FollowPan };
-        ToolTip.SetTip(followPan, "Moves the image with the view when panning.");
+        ToolTip.SetTip(followPan, "Moves the image with the view when panning");
 
         // Rows are shown only for the styles they apply to; SyncBackground toggles them.
         var checkerColorRow = row("Checker color", Inline(checkerMode, checkerPicker.View));
@@ -4796,10 +4823,10 @@ public static partial class Dialogs
         var chLines = new RadioButton { GroupName = "CrosshairStyle", Content = "Lines", IsChecked = !init.CrosshairImageStyle };
         var chImage = new RadioButton { GroupName = "CrosshairStyle", Content = "Image", IsChecked = init.CrosshairImageStyle };
         var chPicker = new ColorPicker(Parse(init.Color) ?? CrosshairStyle.DefaultColor);
-        ToolTip.SetTip(chPicker.View, "Also used by the axis guides.");
+        ToolTip.SetTip(chPicker.View, "Also used by the axis guides");
         var arm = number(Math.Clamp(init.ArmLength, limits.ArmMin, limits.ArmMax), limits.ArmMin, 1, "0.##", limits.ArmMax);
         var thick = number(Math.Clamp(init.Thickness, limits.ThicknessMin, limits.ThicknessMax), limits.ThicknessMin, 1, "0.##", limits.ThicknessMax);
-        ToolTip.SetTip(thick, "Also used by the axis guides.");
+        ToolTip.SetTip(thick, "Also used by the axis guides");
 
         string? chPath = init.CrosshairImagePath;
         var chName = NameBlock();
@@ -4807,8 +4834,8 @@ public static partial class Dialogs
         var chClear = new Button { Content = "Clear" };
         var hotX = number(Math.Max(0, init.HotspotX), 0, 1, "0", null);
         var hotY = number(Math.Max(0, init.HotspotY), 0, 1, "0", null);
-        ToolTip.SetTip(hotX, "The image pixel placed on the axis.");
-        ToolTip.SetTip(hotY, "The image pixel placed on the axis.");
+        ToolTip.SetTip(hotX, "The image pixel placed on the axis");
+        ToolTip.SetTip(hotY, "The image pixel placed on the axis");
         void SetHotspotRange(int w, int h)
         {
             hotX.Maximum = Math.Max(0, w - 1);
@@ -4820,7 +4847,7 @@ public static partial class Dialogs
             catch (Exception ex) { CrashLog.Write("Preferences.CrosshairImage", ex); }
         }
         var scale = new CheckBox { Content = "Scale with zoom", IsChecked = init.ScaleWithZoom };
-        ToolTip.SetTip(scale, "Scales the crosshair with the zoom.");
+        ToolTip.SetTip(scale, "Scales the crosshair with the zoom");
         var armRow = row($"Arm length ({limits.ArmMin:0.##}-{limits.ArmMax:0.##})", arm);
         var chImageRow = row("Image", Inline(chName, chBrowse, chClear));
         var hotspotRow = row("Hotspot", Inline(Label("X", lead: true), hotX, Label("Y"), hotY));
@@ -4875,7 +4902,9 @@ public static partial class Dialogs
             Children =
             {
                 section("Style"),
-                Inline(flatR, checkerR, imageR),
+                flatR,
+                checkerR,
+                imageR,
                 section("Settings"),
                 row("Base color", Inline(baseMode, basePicker.View)),
                 checkerColorRow,
@@ -4986,10 +5015,10 @@ public static partial class Dialogs
         var c2 = new ColorPicker(Parse(init.Clsn2, d.Clsn2));
         var c1d = new ColorPicker(Parse(init.Clsn1Default, d.Clsn1Default));
         var c2d = new ColorPicker(Parse(init.Clsn2Default, d.Clsn2Default));
-        ToolTip.SetTip(c1.View, "Also used by the timeline and Export Animation.");
-        ToolTip.SetTip(c2.View, "Also used by the timeline and Export Animation.");
-        ToolTip.SetTip(c1d.View, "Boxes a frame inherits from Clsn1Default.");
-        ToolTip.SetTip(c2d.View, "Boxes a frame inherits from Clsn2Default.");
+        ToolTip.SetTip(c1.View, "Also used by the timeline and Export Animation");
+        ToolTip.SetTip(c2.View, "Also used by the timeline and Export Animation");
+        ToolTip.SetTip(c1d.View, "Boxes a frame inherits from Clsn1Default");
+        ToolTip.SetTip(c2d.View, "Boxes a frame inherits from Clsn2Default");
         foreach (var p in new[] { c1, c2, c1d, c2d }) p.Changed += changed;
 
         (Slider Slider, StackPanel View) OpacitySlider(double value)
@@ -5020,8 +5049,8 @@ public static partial class Dialogs
         var line = ThicknessBox(init.LineThickness);
         var selectedLine = ThicknessBox(init.SelectedLineThickness);
         var activeLine = ThicknessBox(init.ActiveLineThickness);
-        ToolTip.SetTip(line, "Also used by onion skin boxes and Export Animation.");
-        ToolTip.SetTip(selectedLine, "With Scale with zoom, the extra over Plain stays fixed in screen px.");
+        ToolTip.SetTip(line, "Also used by onion skin boxes and Export Animation");
+        ToolTip.SetTip(selectedLine, "With Scale with zoom, the extra over Plain stays fixed in screen px");
         ToolTip.SetTip(activeLine, "The box with resize handles. With Scale with zoom, the extra over Plain stays fixed in screen px.");
 
         // Same 230 label column as the other tabs' rows.
