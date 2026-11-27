@@ -1462,6 +1462,8 @@ public class SpriteView : Control
         var text = new FormattedText(index.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight, Typeface.Default, 11, new SolidColorBrush(color));
         // Sits inside the line, which is drawn inward and can be thick at high zoom
+        // Hidden when the text plus padding doesn't fit inside the line
+        if (r.Width < text.Width + 2 * (pen + 2) || r.Height < text.Height + 2 * (pen + 1)) return;
         ctx.DrawText(text, new Point(r.X + pen + 2, r.Y + pen + 1));
     }
 
