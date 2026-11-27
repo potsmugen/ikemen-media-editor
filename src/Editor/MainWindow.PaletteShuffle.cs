@@ -74,11 +74,12 @@ public partial class MainWindow
     /// lightness only, or with grayTintChancePercent chance gets one random hue tinted between a third of and the full grayTintPercent.
     /// Pure black and white stay neutral because sRGB allows no tint there.
     /// </summary>
-    private static Dictionary<int, Rgba> ShuffleColors(Dictionary<int, Rgba> source, Random rng,
+    internal static Dictionary<int, Rgba> ShuffleColors(Dictionary<int, Rgba> source, Random rng,
         double hueGapDegrees, double neighborGapDegrees, double satGapPercent, double darkenPercent, double brightenPercent, double saturationPercent, double grayTintPercent, double grayTintChancePercent, double keepPercent, double keepDarkPercent, out int groupCount)
     {
-        // A color is gray when its chroma is a small share of what sRGB allows at its lightness (so pale tints near white are not).
-        const double GrayShare = 0.05;
+        // A color is gray when its chroma is a small share of what sRGB allows at its lightness (so pale tints near white are not)
+        // Very low chroma also counts, so a tinted gray ramp isn't split where dark ends inflate the share
+        const double GrayShare = 0.05, GrayChroma = 0.012;
         double gap = hueGapDegrees * Math.PI / 180, neighborGap = neighborGapDegrees * Math.PI / 180, darkenRange = darkenPercent / 100, brightenRange = brightenPercent / 100, satRange = saturationPercent / 100, satGap = satGapPercent / 100;
         var result = new Dictionary<int, Rgba>(source);
         var colored = new List<(int Index, double L, double Hue, double Sat, byte A)>();
@@ -89,7 +90,7 @@ public partial class MainWindow
             var (L, a, b) = RgbToOklab(c.R, c.G, c.B);
             double chroma = Math.Sqrt(a * a + b * b), hue = Math.Atan2(b, a);
             double max = MaxChroma(L, hue), share = max <= 1e-6 ? 0 : Math.Clamp(chroma / max, 0, 1);
-            if (share < GrayShare) { grays.Add((i, L, c.A)); continue; }
+            if (share < GrayShare || chroma < GrayChroma) { grays.Add((i, L, c.A)); continue; }
             colored.Add((i, L, hue, share, c.A));
         }
 

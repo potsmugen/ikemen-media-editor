@@ -103,4 +103,7 @@
           Condition="'$(Configuration)' == 'Debug' and '$(IsCrossTargetingBuild)' != 'true' and '$(DesignTimeBuild)' != 'true'">
     <Exec Command="dotnet &quot;$(TargetPath)&quot; --reset-settings" ContinueOnError="WarnAndContinue" />
   </Target>
+  <ItemGroup>
+    <InternalsVisibleTo Include="IkemenMediaEditor.Tests" />
+  </ItemGroup>
 </Project>

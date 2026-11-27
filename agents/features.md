@@ -574,7 +574,7 @@ and constraints that are easy to miss when reading one code path in isolation.
   `PaletteShuffleBrightenPercent` (35), with the chance of darkening equal to the group's average lightness
   clamped to 0.3-0.7 (light groups darken more often, dark ones brighten, as in official variants), and one random
   saturation change of up to `PaletteShuffleSaturationPercent` (30) of its own value. Saturation is
-  a share of what sRGB allows. Near-grays (chroma under 5% of what sRGB allows at their lightness) form their own group,
+  a share of what sRGB allows. Near-grays (chroma under 5% of what sRGB allows at their lightness, or OKLab chroma under 0.012) form their own group,
   kept or changed by the same rule; a changed one changes lightness only, or with `PaletteShuffleGrayTintChancePercent` (50)
   chance also gets one random hue tinted between a third of and the full `PaletteShuffleGrayTintPercent` (90)
   of the most color allowed; pure black and white stay neutral (sRGB
@@ -593,6 +593,8 @@ and constraints that are easy to miss when reading one code path in isolation.
     the hue gap is 30 degrees and neighboring swatches get a looser one.
   - A blue gradient's pale end has low absolute chroma (under 0.03), so "gray" is judged against the
     most chroma sRGB allows at that lightness.
+  - That share alone split an evenly tinted gray ramp (chroma 0.007-0.009) at the dark end, where the
+    share rose past 5%, so chroma under 0.012 also counts as gray (pale blues near white stay above 0.0127).
   - Skin, belts and hair often stay unchanged in the originals, but a palette has no labels to find
     them by; the user leaves them out of the selection.
   - Measured on capcomcolors.neocities.org (2026-11-27; SF3 3rd Strike, SFA2 Gold, Vampire Savior, MvC2;
