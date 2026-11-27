@@ -100,8 +100,9 @@ public sealed class Settings
     // Palettes
     public const double DefaultPaletteCellMin = 6, DefaultPaletteCellMax = 64;
     public const bool DefaultPalettePerceptualHue = true;
-    public const double DefaultPaletteShuffleHueGapDegrees = 30, DefaultPaletteShuffleNeighborHueGapDegrees = 45, DefaultPaletteShuffleDarkenPercent = 25, DefaultPaletteShuffleBrightenPercent = 15,
-        DefaultPaletteShuffleSaturationPercent = 30, DefaultPaletteShuffleGrayTintPercent = 50;
+    public const double DefaultPaletteShuffleHueGapDegrees = 25, DefaultPaletteShuffleNeighborHueGapDegrees = 30, DefaultPaletteShuffleSaturationGapPercent = 30, DefaultPaletteShuffleDarkenPercent = 35, DefaultPaletteShuffleBrightenPercent = 35,
+        DefaultPaletteShuffleSaturationPercent = 30, DefaultPaletteShuffleGrayTintPercent = 90, DefaultPaletteShuffleGrayTintChancePercent = 50,
+        DefaultPaletteShuffleKeepPercent = 15, DefaultPaletteShuffleKeepDarkPercent = 30;
     public const int DefaultPalettePngSwatchSize = 16;
     public const int DefaultColorPickerBoxWidth = 256, DefaultColorPickerBoxHeight = 256;
 
@@ -547,7 +548,7 @@ public sealed class Settings
         public int PalettePngSwatchSize { get; set; } = DefaultPalettePngSwatchSize;
         /// <summary>True keeps perceived lightness (OKLCH) as hue moves; false uses HSV, where brightness shifts with hue.</summary>
         public bool PalettePerceptualHue { get; set; } = DefaultPalettePerceptualHue;
-        /// <summary>Shuffle: colors whose hues are closer than this (degrees) share a hue group.</summary>
+        /// <summary>Shuffle: colors whose hues are closer than this (degrees) and whose saturations are close enough (see PaletteShuffleSaturationGapPercent) share a group.</summary>
         public double PaletteShuffleHueGapDegrees { get; set; } = DefaultPaletteShuffleHueGapDegrees;
         /// <summary>Shuffle: the most a group's lightness can drop, as a percent of its own.</summary>
         public double PaletteShuffleDarkenPercent { get; set; } = DefaultPaletteShuffleDarkenPercent;
@@ -557,8 +558,16 @@ public sealed class Settings
         public double PaletteShuffleNeighborHueGapDegrees { get; set; } = DefaultPaletteShuffleNeighborHueGapDegrees;
         /// <summary>Shuffle: each group's saturation changes by up to this percent of its own value, up or down.</summary>
         public double PaletteShuffleSaturationPercent { get; set; } = DefaultPaletteShuffleSaturationPercent;
-        /// <summary>Shuffle: how strongly the near-gray colors are tinted, as a percent of the most color sRGB allows.</summary>
+        /// <summary>Shuffle: colors whose saturations (as a percent of what sRGB allows) differ by more than this never share a group, however close their hues.</summary>
+        public double PaletteShuffleSaturationGapPercent { get; set; } = DefaultPaletteShuffleSaturationGapPercent;
+        /// <summary>Shuffle: the strongest tint a near-gray group can get, as a percent of the most color sRGB allows (the weakest is a third of it).</summary>
         public double PaletteShuffleGrayTintPercent { get; set; } = DefaultPaletteShuffleGrayTintPercent;
+        /// <summary>Shuffle: chance that a changed near-gray group is tinted at all; otherwise it only changes lightness.</summary>
+        public double PaletteShuffleGrayTintChancePercent { get; set; } = DefaultPaletteShuffleGrayTintChancePercent;
+        /// <summary>Shuffle: chance that a color group is left as it is.</summary>
+        public double PaletteShuffleKeepPercent { get; set; } = DefaultPaletteShuffleKeepPercent;
+        /// <summary>Shuffle: the same chance for a dark group (average lightness under 0.3).</summary>
+        public double PaletteShuffleKeepDarkPercent { get; set; } = DefaultPaletteShuffleKeepDarkPercent;
         /// <summary>Color picker box size in pixels (hue runs down the height).</summary>
         public int ColorPickerBoxWidth { get; set; } = DefaultColorPickerBoxWidth;
         public int ColorPickerBoxHeight { get; set; } = DefaultColorPickerBoxHeight;

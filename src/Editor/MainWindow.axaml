@@ -1125,7 +1125,7 @@
                                    IsEnabled="{Binding IsEnabled, ElementName=LightenSlider}" />
                   </Grid>
                   <Button Content="Shuffle" Click="OnShuffleColors" HorizontalAlignment="Stretch"
-                          ToolTip.Tip="Gives the selected colors a random alternative: each hue group gets its own hue shift and a small brightness change. Press again for another." />
+                          ToolTip.Tip="Gives the selected colors a random alternative, changing related colors together and keeping each ramp in order" />
                   <Separator />
                   <TextBlock Text="Color Operations" Foreground="{DynamicResource ThemeMutedText}" />
                   <Grid ColumnDefinitions="*,Auto,*">

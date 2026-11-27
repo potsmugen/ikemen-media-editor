@@ -233,6 +233,9 @@ public partial class MainWindow
     /// </summary>
     private Dictionary<int, Rgba>? _adjustSession;
 
+    /// <summary>The edited palette's Dirty flag when the session began, so Reset leaves it as it was (not changed is not dirty).</summary>
+    private bool _adjustSessionDirty;
+
     /// <summary>Which swatches a pending change covers: the grid's selection, else the one selected swatch.</summary>
     private List<int> AdjustIndices()
     {
@@ -271,6 +274,7 @@ public partial class MainWindow
         ResetSlidersToZero();
         CaptureAdjustBase();
         _adjustSession = _adjustBase is null ? null : new Dictionary<int, Rgba>(_adjustBase);
+        _adjustSessionDirty = _editingPalette?.Dirty ?? false;
         _suppressEvents = false;
         SyncAdjustCommitButton();
     }
@@ -303,6 +307,7 @@ public partial class MainWindow
         if (_editingPalette is not { } pal) return;
         List<int> indices = AdjustIndices();
         _adjustSession = indices.Count == 0 ? null : indices.ToDictionary(i => i, i => pal.Colors[i]);
+        _adjustSessionDirty = pal.Dirty;
     }
 
     /// <summary>
@@ -321,12 +326,19 @@ public partial class MainWindow
 
         var before = new Dictionary<int, Rgba>(session);
         var after = before.Keys.Where(i => i < pal.Colors.Length).ToDictionary(i => i, i => pal.Colors[i]);
-        void Apply(Dictionary<int, Rgba> block)
+        bool dirtyBefore = _adjustSessionDirty;
+        void Apply(Dictionary<int, Rgba> block, bool dirty)
         {
             foreach (var (i, c) in block) if (i < pal.Colors.Length) pal.Colors[i] = c;
             RefreshPaletteViews(pal);
+            // The refresh marks external palettes dirty; undoing back to the start leaves them as they were
+            if (pal.Source == PaletteSource.External && !_standalonePalettes.Contains(pal) && pal.Dirty != dirty)
+            {
+                pal.Dirty = dirty;
+                RebuildPaletteList();
+            }
         }
-        Edit("color edits", () => Apply(after), () => Apply(before), kind: _standalonePalettes.Contains(pal) ? StandalonePaletteKindFor(pal) : SffKind);
+        Edit("color edits", () => Apply(after, true), () => Apply(before, dirtyBefore), kind: _standalonePalettes.Contains(pal) ? StandalonePaletteKindFor(pal) : SffKind);
         SyncAdjustCommitButton();
     }
 
@@ -339,7 +351,17 @@ public partial class MainWindow
         {
             foreach (var (i, c) in session) if (i < pal.Colors.Length) pal.Colors[i] = c;
             if (ReferenceEquals(pal, _scratchPalette)) _editingView?.InvalidateVisual();
-            else RefreshPaletteViews(pal);
+            else
+            {
+                RefreshPaletteViews(pal);
+                // The refresh marks external palettes dirty, but the colors are back where they started
+                if (!_standalonePalettes.Contains(pal) && pal.Dirty != _adjustSessionDirty)
+                {
+                    pal.Dirty = _adjustSessionDirty;
+                    RebuildPaletteList();
+                    UpdateTitle();
+                }
+            }
         }
 
         if (_selectedSwatch >= 0 && session.TryGetValue(_selectedSwatch, out var sc))
@@ -2943,15 +2965,20 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     }
 
     /// <summary>
-    /// Moves the Palettes tab preview to the first visible sprite using <paramref name="pal"/>, or to sprite 0,0 for an external palette (.act).
+    /// Moves the Palettes tab preview to the first visible sprite using <paramref name="pal"/>, or to sprite 0,0 for an external palette (.act)
+    /// or a group 1 palette when 0,0 uses a group 1 palette. Stays when the shown sprite already uses it.
     /// Leaves it alone when there is no such visible sprite.
     /// </summary>
     private async Task FollowPalette(Palette pal)
     {
         if (_file is not { } file) return;
-        // An external palette (.act) has no sprites of its own, so it shows sprite 0,0
-        var sprite = pal.Source == PaletteSource.External
-            ? file.Sprites.FirstOrDefault(s => s.Group == 0 && s.Index == 0 && VisibleRowOf(s) >= 0)
+        // A preview sprite that already uses the palette stays put
+        if (PalettePreviewSprite() is { } shown && ReferenceEquals(shown.Palette, pal)) return;
+        // An external palette (.act) has no sprites of its own, so it shows sprite 0,0.
+        // A character palette (group 1) also shows 0,0 when that sprite uses a group 1 palette
+        var origin = file.Sprites.FirstOrDefault(s => s.Group == 0 && s.Index == 0 && VisibleRowOf(s) >= 0);
+        var sprite = pal.Source == PaletteSource.External || (pal.IsCharacterPalette && origin?.Palette is { IsCharacterPalette: true })
+            ? origin
             : file.Sprites.FirstOrDefault(s => ReferenceEquals(s.Palette, pal) && VisibleRowOf(s) >= 0);
         if (sprite is null || ReferenceEquals(PalettePreviewSprite(), sprite)) return;
 

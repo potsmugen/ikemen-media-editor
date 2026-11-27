@@ -524,8 +524,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   growing fills with opaque black. Depth changes undo and keep indexes and colors.
 - **Follow palette** (right of the Palettes tab's Sprite Preview title, on at launch, not
   saved) moves the preview to the first visible sprite using the selected palette whenever
-  the palette selection changes or the toggle is turned on. An external palette (.act) shows
-  sprite 0,0 instead. Unused palettes, and palettes with no visible sprite (or no visible 0,0
+  the palette selection changes or the toggle is turned on. It stays when the shown sprite
+  already uses the palette. An external palette (.act) shows sprite 0,0 instead, as does a
+  group 1 palette when sprite 0,0 uses a group 1 palette. Unused palettes, and palettes with no visible sprite (or no visible 0,0
   for an .act), leave the preview where it is.
 - **Pending color edits** apply live, form one undoable session, and compose with prior
   edits; Reset restores the baseline and Commit records the result. One swatch grid is
@@ -562,17 +563,24 @@ and constraints that are easy to miss when reading one code path in isolation.
   replaces the swatch selection with every index the previewed sprite draws with, skipping index 0
   (the mask). Only for indexed sprites; true color has no indexes.
 - **Shuffle** (Palettes tab, under the Adjustments sliders, `MainWindow.PaletteShuffle.cs`): random
-  alternative of the selected colors. Hues (OKLCH) are grouped wherever sorted hues jump by more than
-  `PaletteShuffleHueGapDegrees` (30; a skin ramp measured 23° between neighbors at 20 it split), or
-  by more than `PaletteShuffleNeighborHueGapDegrees` (45) between swatches at neighboring palette
-  indexes (ramps sit side by side, so position helps when the hue is borderline); each group gets one random hue shift over the full circle and
-  one random lightness change, down by up to `PaletteShuffleDarkenPercent` (25) or up by up to
-  `PaletteShuffleBrightenPercent` (15) and one random
+  alternative of the selected colors. Colors (OKLCH) are linked pairwise and chained into groups when their hues
+  are within `PaletteShuffleHueGapDegrees` (25) and their saturations (share of the sRGB maximum) within
+  `PaletteShuffleSaturationGapPercent` (30) of each other; swatches at neighboring palette indexes get the looser
+  `PaletteShuffleNeighborHueGapDegrees` (30) for hue. Palette order is only a bonus: the rule works from color
+  values and behaves the same on shuffled palettes (a skin ramp measured 23° between neighbors, so 20 split it). Each group is left as it is with `PaletteShuffleKeepPercent` (15) chance, or
+  `PaletteShuffleKeepDarkPercent` (30) when its average lightness is under 0.3; at least one group always
+  changes. A changed group gets one random hue shift over the full circle (intentional), one random
+  lightness change, down by up to `PaletteShuffleDarkenPercent` (35) or up by up to
+  `PaletteShuffleBrightenPercent` (35), with the chance of darkening equal to the group's average lightness
+  clamped to 0.3-0.7 (light groups darken more often, dark ones brighten, as in official variants), and one random
   saturation change of up to `PaletteShuffleSaturationPercent` (30) of its own value. Saturation is
-  a share of what sRGB allows. Near-grays (chroma under 5% of what sRGB allows at their lightness) form their own group with one random
-  hue, tinted at `PaletteShuffleGrayTintPercent` (50) of the most color allowed; pure black and white stay neutral (sRGB
-  allows no tint there). Brightening closes a share of the gap to white and darkening scales down,
-  so ramps never flatten at the ends. Every press starts from the colors before the first press (`_shuffleBase`), cleared
+  a share of what sRGB allows. Near-grays (chroma under 5% of what sRGB allows at their lightness) form their own group,
+  kept or changed by the same rule; a changed one changes lightness only, or with `PaletteShuffleGrayTintChancePercent` (50)
+  chance also gets one random hue tinted between a third of and the full `PaletteShuffleGrayTintPercent` (90)
+  of the most color allowed; pure black and white stay neutral (sRGB
+  allows no tint there). Darkening scales lightness down and brightening is its mirror, L*(1+c)/(1+c*L): both
+  move light colors more than dark ones (at c 0.35, L 0.2 / 0.5 / 0.9 rises by 0.05 / 0.07 / 0.02), and
+  the curve is monotonic and fixes 0 and 1, so ramps never flatten at the ends. Every press starts from the colors before the first press (`_shuffleBase`), cleared
   by any slider move or other color operation. Behaves like Invert: pending until Commit, Reset undoes.
   Findings that shaped Shuffle (2026-11-23), from an official palette database (about 30 characters'
   variants, judged by eye) and two ramps measured from user screenshots:
@@ -587,6 +595,44 @@ and constraints that are easy to miss when reading one code path in isolation.
     most chroma sRGB allows at that lightness.
   - Skin, belts and hair often stay unchanged in the originals, but a palette has no labels to find
     them by; the user leaves them out of the selection.
+  - Measured on capcomcolors.neocities.org (2026-11-27; SF3 3rd Strike, SFA2 Gold, Vampire Savior, MvC2;
+    about 100 characters, 596 variants, sprites only). Each variant was compared with the character's first one,
+    pixel by pixel in OKLab, per original color. Median variant: lightness change 0.05 either way (90th percentile
+    0.15), chroma ratio 0.91 (10th to 90th percentile 0.57 to 1.30, so desaturating is more common), hue shift
+    38 degrees (90th percentile 104), 9% of pixels unchanged (up to 42%). Lights (L over 0.7) drop 0.03 at
+    the median (10th percentile -0.20) while darks (L under 0.4) stay at 0 (-0.10 to +0.12): darks darken more
+    than lights in only 31% of variants, so official variants lose contrast from the light side.
+  - Full audit of how official variants relate to the default (2026-11-27, same four pages, 103 sprite groups,
+    546 variants; run by a subagent, not spot-checked by hand; ramps from index order on 3S and SFA2 Gold,
+    by hue elsewhere). Shuffle was simulated on the same default palettes for comparison.
+    - Grouping factors (21,424 color pairs, 103,463 pair-by-variant observations; label: hue shift within 25°,
+      lightness change within 0.05 and chroma ratio within 25% all agree, base rate 7.8%): hue difference
+      predicts best (all three agree 0.24 under 10°, 0.02 over 90°), then saturation difference (once hue is
+      similar: 0.27 under 0.1 down to 0.07 over 0.35), then touching in the sprite, then lightness difference,
+      then palette index (neighbors only help when hue is already similar; a neighbor with a different hue is
+      at the base rate). Logistic AUC: color only 0.80, plus index 0.81, plus sprite 0.82, index only 0.71.
+      Rule "hue 25° and saturation 0.30" raised all-agree F1 from 0.241 to 0.275 on color values alone; adding
+      lightness 0.25 and hue 20° reached 0.290 (tighter groups, lower per-component F1). Index order shuffled
+      changed nothing. Gray pairs agree mainly on lightness difference (0.42 at 0.05-0.1, 0.05 above 0.35).
+    - Groups: colors of one ramp get the same transform only loosely (hue shift spread inside a ramp 15 degrees
+      median against 44 between ramps), so one transform per group is a fair approximation. The 30 degree
+      hue gap is right; the 45 degree neighbor link over-merges slightly. Groups behave almost independently
+      (hue swaps between two groups under 1% of pairs), and ramps keep their lightness order 95% of the time.
+    - Lightness: group change is larger than Shuffle's (absolute median 0.069, 90th percentile 0.23, against
+      0.031 and 0.081; dark groups 0.12 against 0.024). Light groups tend to darken and dark ones to lighten
+      (correlation with default lightness -0.27). Contrast changes per ramp (slope 0.80 to 1.13 between the
+      25th and 75th percentile). Additive, multiplicative and Shuffle's model fit equally well.
+    - Saturation: share of the sRGB maximum fits as well as absolute chroma, so Shuffle's model stays. Spread
+      matches (chroma ratio 10th to 90th percentile 0.29 to 1.65 against Shuffle's 0.40 to 1.52), but official
+      variants pull toward the middle: groups under 0.4 saturation rise to about 0.4, over 0.7 fall to about 0.84.
+    - Hue: median |shift| 41 degrees (90th percentile 145), leaning small with a long tail, not two peaks.
+      Shuffle's full-circle shift is intentional.
+    - Unchanged: 21% of groups per variant (grays 51%, near-black 30%, colored 16%), 63% of variants are partial
+      recolors. Skin-like colors stay unchanged 39% of the time. Shuffle changes everything it is given.
+    - Neutrals: gray originals stay neutral 54% of the time (tinted ones saturation median 0.67), black 81%,
+      white 58% (tinted white is pastel, chroma about 0.03). Shuffle tints every gray at 50%.
+    - Whole variant: median mean lightness change -0.02 (10th to 90th percentile -0.13 to +0.075, about 2.5
+      times Shuffle's range). 16% of variants are one-hue themes, 10% share one rotation across groups.
 - **Palette slider boxes**: each Color and Adjustments slider has a number box
   (`MainWindow.SliderBoxes.cs`). Typed values apply on Enter or focus loss, spinner and arrow
   steps apply at once, and an empty box restores the slider value. The box follows the
