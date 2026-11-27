@@ -4403,7 +4403,7 @@ public static partial class Dialogs
             dialog, initial.Canvas, limits, pickImage, themeCanvasColor, Changed, Number, Section, Row);
         Control clsnTab;
         Action<ClsnValues> setClsn;
-        (clsnTab, clsnValues, setClsn) = BuildClsnTab(initial.Clsn, Changed, Number, Section);
+        (clsnTab, clsnValues, setClsn) = BuildClsnTab(initial.Clsn, Changed, Number, Section, Row);
 
         PreferencesValues Current()
         {
@@ -4542,6 +4542,18 @@ public static partial class Dialogs
         var measureHost = new Grid();
         foreach (var page in pages) measureHost.Children.Add(page);
         dialog.Content = measureHost;
+        measureHost.Measure(Avalonia.Size.Infinity);
+        // Before their first real layout the scroll bars inside one-line boxes count as visible,
+        // which makes every such row 77 px tall instead of 32; hide them so each tab measures as it draws
+        foreach (var page in pages)
+            foreach (var box in page.GetVisualDescendants().OfType<TextBox>().Where(b => !b.AcceptsReturn).ToList())
+            {
+                foreach (var bar in box.GetVisualDescendants().OfType<ScrollBar>()) bar.Visibility = ScrollBarVisibility.Hidden;
+            }
+        // Invalidating a control does not invalidate its parents, so a measure of the host would
+        // return its cached size; invalidate everything so the second measure really runs
+        foreach (var part in measureHost.GetVisualDescendants().OfType<Layoutable>()) part.InvalidateMeasure();
+        measureHost.InvalidateMeasure();
         measureHost.Measure(Avalonia.Size.Infinity);
         double pageWidth = measureHost.DesiredSize.Width;
         double pageHeight = measureHost.DesiredSize.Height;
@@ -4993,10 +5005,9 @@ public static partial class Dialogs
         return (backgroundTab, crosshairTab, Values, SetBackground, SetCrosshair);
     }
 
-    /// <summary>Preferences > Clsn: box colors, fill opacities and outline thicknesses, laid out in one grid
-    /// so the Own/Default and Plain/Selected/Active columns line up.</summary>
+    /// <summary>Preferences > Clsn: box colors, fill opacities and outline thicknesses, one labeled row each like the other tabs.</summary>
     private static (Control Tab, Func<ClsnValues> Values, Action<ClsnValues> Set) BuildClsnTab(ClsnValues init, Action changed,
-        Func<double, double, double, string, double?, NumericUpDown> number, Func<string, TextBlock> section)
+        Func<double, double, double, string, double?, NumericUpDown> number, Func<string, TextBlock> section, Func<string, Control, Grid> row)
     {
         var d = new ClsnStyle();
         Color Parse(string? s, Color fallback) => s is not null && Color.TryParse(s, out var c) ? Color.FromRgb(c.R, c.G, c.B) : fallback;
@@ -5005,12 +5016,6 @@ public static partial class Dialogs
             var p = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
             foreach (var c in cs) p.Children.Add(c);
             return p;
-        }
-        TextBlock Header(string text)
-        {
-            var t = new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Bottom };
-            t.Bind(TextBlock.ForegroundProperty, t.GetResourceObservable("ThemeMutedText")); // follows the theme preview
-            return t;
         }
 
         var c1 = new ColorPicker(Parse(init.Clsn1, d.Clsn1));
@@ -5028,7 +5033,7 @@ public static partial class Dialogs
             var s = new Slider
             {
                 Minimum = 0, Maximum = 100, Value = Math.Clamp(value, 0, 100),
-                SmallChange = 1, LargeChange = 10, TickFrequency = 1, IsSnapToTickEnabled = true, Width = 100,
+                SmallChange = 1, LargeChange = 10, TickFrequency = 1, IsSnapToTickEnabled = true, Width = 160,
             };
             var box = new NumericUpDown { Width = 72, Increment = 1, FormatString = "0", VerticalAlignment = VerticalAlignment.Center };
             CompactSlider(s);
@@ -5043,7 +5048,6 @@ public static partial class Dialogs
         NumericUpDown ThicknessBox(int value)
         {
             var n = number(Math.Clamp(value, 1, max), 1, 1, "0", max);
-            n.Width = 72;
             n.HorizontalAlignment = HorizontalAlignment.Left;
             n.ValueChanged += (_, _) => changed();
             return n;
@@ -5055,30 +5059,29 @@ public static partial class Dialogs
         ToolTip.SetTip(selectedLine, "With Scale with zoom, the extra over Plain stays fixed in screen px");
         ToolTip.SetTip(activeLine, "The box with resize handles. With Scale with zoom, the extra over Plain stays fixed in screen px.");
 
-        // Same 230 label column as the other tabs' rows.
-        var tab = new Grid
-        {
-            ColumnDefinitions = { new ColumnDefinition { Width = GridLength.Auto, MinWidth = 230 }, new ColumnDefinition { Width = GridLength.Auto }, new ColumnDefinition { Width = GridLength.Auto }, new ColumnDefinition { Width = GridLength.Auto } },
-            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto,Auto,Auto,Auto"),
-            ColumnSpacing = 12, RowSpacing = 8,
-        };
-        void Put(Control c, int r, int col)
-        {
-            Grid.SetRow(c, r);
-            Grid.SetColumn(c, col);
-            tab.Children.Add(c);
-        }
-        TextBlock Name(string text) => new() { Text = text, VerticalAlignment = VerticalAlignment.Center };
-        Put(section("Colors"), 0, 0); Put(Header("Own"), 0, 1); Put(Header("Default"), 0, 2);
-        Put(Name("Clsn1"), 1, 0); Put(c1.View, 1, 1); Put(c1d.View, 1, 2);
-        Put(Name("Clsn2"), 2, 0); Put(c2.View, 2, 1); Put(c2d.View, 2, 2);
-        Put(section("Boxes"), 3, 0); Put(Header("Plain"), 3, 1); Put(Header("Selected"), 3, 2); Put(Header("Active"), 3, 3);
-        Put(Name("Fill opacity %"), 4, 0); Put(fill.View, 4, 1); Put(selectedFill.View, 4, 2);
-        Put(Name($"Line thickness (1-{max})"), 5, 0); Put(line, 5, 1); Put(selectedLine, 5, 2); Put(activeLine, 5, 3);
-        var scaleWithZoom = new CheckBox { Content = "Scale with zoom", IsChecked = init.ScaleWithZoom, VerticalAlignment = VerticalAlignment.Center };
+        var scaleWithZoom = new CheckBox { Content = "Scale with zoom", IsChecked = init.ScaleWithZoom };
         ToolTip.SetTip(scaleWithZoom, "Plain thickness follows the canvas zoom, never below 1 px. Selected/Active add their extra over Plain unscaled.");
         scaleWithZoom.IsCheckedChanged += (_, _) => changed();
-        Put(scaleWithZoom, 6, 0);
+
+        var tab = new StackPanel
+        {
+            Spacing = 8,
+            Children =
+            {
+                section("Colors"),
+                row("Clsn1:", c1.View),
+                row("Clsn2:", c2.View),
+                row("Clsn1 default:", c1d.View),
+                row("Clsn2 default:", c2d.View),
+                section("Boxes"),
+                row("Fill opacity %:", fill.View),
+                row("Selected fill opacity %:", selectedFill.View),
+                row($"Line thickness (1-{max}):", line),
+                row($"Selected line thickness (1-{max}):", selectedLine),
+                row($"Active line thickness (1-{max}):", activeLine),
+                scaleWithZoom,
+            },
+        };
 
         ClsnValues Values() => new(
             Hex(c1.Color), Hex(c2.Color), Hex(c1d.Color), Hex(c2d.Color),
