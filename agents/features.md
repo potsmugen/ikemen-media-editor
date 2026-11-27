@@ -524,8 +524,9 @@ and constraints that are easy to miss when reading one code path in isolation.
   growing fills with opaque black. Depth changes undo and keep indexes and colors.
 - **Follow palette** (right of the Palettes tab's Sprite Preview title, on at launch, not
   saved) moves the preview to the first visible sprite using the selected palette whenever
-  the palette selection changes or the toggle is turned on. File and temp palettes, unused
-  palettes and palettes with no visible sprite leave the preview where it is.
+  the palette selection changes or the toggle is turned on. An external palette (.act) shows
+  sprite 0,0 instead. Unused palettes, and palettes with no visible sprite (or no visible 0,0
+  for an .act), leave the preview where it is.
 - **Pending color edits** apply live, form one undoable session, and compose with prior
   edits; Reset restores the baseline and Commit records the result. One swatch grid is
   selected at a time.

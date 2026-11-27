@@ -45,7 +45,6 @@ Verified unless noted.
   to the keep-or-discard rule under Other.
 - List keyboard focus vs. selection, Windows style: Ctrl+arrows move focus only, Ctrl+Space toggles.
   Clicks already show the clicked row (Sprite and Palette lists). Check what Avalonia does now first.
-- With Follow sprite on, a selected .act file should show sprite 0,0.
 
 ### Paint Mode
 
@@ -80,7 +79,6 @@ Select tool gaps against image editor conventions:
 - Reload a .air or .def changed on disk, like palettes do (silent when unchanged here, ask when
   there are unsaved edits). People edit these in text editors alongside. Today only Save warns.
   SFF stays as is: rarely edited elsewhere at once, and its reload drops undo history.
-- Hide the Clsn index number when the box is too small for it to fit inside.
 
 ### Sounds
 
@@ -193,7 +191,6 @@ Select tool gaps against image editor conventions:
   its two options in one line above them, which is a third shape to weigh.
 - Panel section headings (Axis, Tools, Layers, Transform, Palette Tools, ...): tried bold like the import
   dialog's sections (2026-11-21); little gain, reverted. Try another way to set them apart.
-- With a color picker open, clicking outside it should close it.
 
 ### Other
 
@@ -296,6 +293,18 @@ Built, but not tried by the maintainer yet.
 - Test palette adjustment speed on big sprites.
 - Test Tiled pixel smoothing at high zoom (ImageBrush may ignore
   nearest-neighbor).
+
+### Follow palette and .act
+
+- Not compiled yet. Selecting an external .act with Follow palette on shows sprite 0,0. Check an SFF with no 0,0 (preview stays), and 0,0 hidden by the sprite filter.
+
+### Clsn index number
+
+- Not compiled yet. The index hides when the text plus padding doesn't fit inside the line. Check thick Clsn lines, with scale-with-zoom on and off.
+
+### Color picker
+
+- Not compiled yet. Clicking outside a color picker keeps the live color, like OK. On the Palettes tab the color should stay pending until Commit.
 
 ### Sprites and palettes
 

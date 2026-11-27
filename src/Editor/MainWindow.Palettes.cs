@@ -2943,15 +2943,16 @@ private void ClearOtherSwatchSelections(PaletteView keep)
     }
 
     /// <summary>
-    /// Moves the Palettes tab preview to the first visible sprite using
-    /// <paramref name="pal"/>; file/temp palettes and palettes with no visible
-    /// sprite leave the preview alone.
+    /// Moves the Palettes tab preview to the first visible sprite using <paramref name="pal"/>, or to sprite 0,0 for an external palette (.act).
+    /// Leaves it alone when there is no such visible sprite.
     /// </summary>
     private async Task FollowPalette(Palette pal)
     {
-        if (_file is not { } file || pal.Source == PaletteSource.External) return;
-        var sprite = file.Sprites.FirstOrDefault(s =>
-            ReferenceEquals(s.Palette, pal) && VisibleRowOf(s) >= 0);
+        if (_file is not { } file) return;
+        // An external palette (.act) has no sprites of its own, so it shows sprite 0,0
+        var sprite = pal.Source == PaletteSource.External
+            ? file.Sprites.FirstOrDefault(s => s.Group == 0 && s.Index == 0 && VisibleRowOf(s) >= 0)
+            : file.Sprites.FirstOrDefault(s => ReferenceEquals(s.Palette, pal) && VisibleRowOf(s) >= 0);
         if (sprite is null || ReferenceEquals(PalettePreviewSprite(), sprite)) return;
 
         int row = VisibleRowOf(sprite);

@@ -89,7 +89,6 @@ changing these across the app:
   label added since, and labels set by callers.
 - "…" on actions that open an input dialog: done 2026-11-27 for the menu bar and panel buttons in
   MainWindow.axaml and the splash. Menu items built in code (context menus) are not checked.
-- Contractions in messages and status text (about 40; none in tooltips). Tooltip periods were
-  migrated 2026-11-27: no period on a single sentence, one after each when there are several.
-- Double quotes around option names in tooltips and messages.
+- Tooltip periods, contractions in messages and status text, and double quotes in user-visible
+  messages were migrated 2026-11-27 (log lines and file text were left alone).
 - Radio groups with no group label, and groups of 5 or more outside single-setting dialogs.
