@@ -529,7 +529,8 @@ and constraints that are easy to miss when reading one code path in isolation.
   for an .act), leave the preview where it is.
 - **Pending color edits** apply live, form one undoable session, and compose with prior
   edits; Reset restores the baseline and Commit records the result. One swatch grid is
-  selected at a time.
+  selected at a time. Moving the preview to another sprite (nav slider, < and >) keeps a pending
+  change, with no prompt, and stays on the palette being edited. Selecting a swatch, even from the preview, still discards it.
 - **Palette eyedroppers** distinguish replacing a swatch's RGBA from selecting an entry; a
   true-color preview has no index to select but can still replace a swatch.
 - **Sort Colors by Index, Descending** reverses order among selected indexes, not by click

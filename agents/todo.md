@@ -24,6 +24,8 @@ Verified unless noted.
 
 ### Sprites and palettes
 
+- Idea: opening a character .def could select sprite 0,0 and zoom it to fit, centered. Not decided or built.
+  Open points: fit vs 100%; the canvas is hidden when another tab is active; character .defs only or all kinds.
 - Number boxes: Down with the number highlighted only dropped the highlight (Up stepped at once), seen in the Linux build's Resize dialog. App.StepNumberBoxesOnDown now clears the highlight first. Unconfirmed in the app until built: check Down and Up in the Resize and Change Group and Index dialogs.
 - Test and revisit the nearest-color alpha threshold: pixels below
   NearestColorAlphaThreshold (settings.json, default 32) map to index 0. Check
@@ -40,9 +42,6 @@ Verified unless noted.
   temp-only variant. Borrowers/links follow Merge's rules. One undo step.
 - Add a Find Unused Colors tool for palettes: show which color indexes no sprite using the
   palette draws with. Scope, output and actions to be decided.
-- Changing the previewed sprite on the Palettes tab (nav slider, < and >) should neither commit nor
-  discard a pending palette change. Check what it does today, then keep the change pending. Related
-  to the keep-or-discard rule under Other.
 - List keyboard focus vs. selection, Windows style: Ctrl+arrows move focus only, Ctrl+Space toggles.
   Clicks already show the clicked row (Sprite and Palette lists). Check what Avalonia does now first.
 

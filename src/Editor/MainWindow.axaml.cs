@@ -1422,13 +1422,8 @@ public partial class MainWindow : Window
             int row = (int)PalettePreviewNav.Value;
             if (_settings.General.SyncSpriteAcrossTabs && _file is not null && row >= 0 && row < _visible.Count)
             {
-                // Selecting a sprite drops a pending adjustment, so ask first.
-                if (HasPendingColorAdjust())
-                {
-                    var choice = await Dialogs.AskAboutPendingColorAdjust(this);
-                    if (choice == PendingAdjustChoice.Cancel) { SyncPalettePreviewNav(); return; }
-                    if (choice == PendingAdjustChoice.Commit) CommitPendingColorAdjust();
-                }
+                // A pending color change stays on the palette being edited while the preview moves
+                if (HasPendingColorAdjust()) PinEditedPalette();
                 SelectOnlySpriteRow(row); // the preview follows the selection
                 ScrollSpriteIntoView(_file!.Sprites[_visible[row]]);
                 UpdatePalettePreviewLabel();
@@ -1443,6 +1438,19 @@ public partial class MainWindow : Window
         {
             await Failed("OnPalettePreviewNavChanged", ex);
         }
+    }
+
+    /// <summary>Selects the palette being edited, so a sprite change does not move the editor to that sprite's palette.</summary>
+    private void PinEditedPalette()
+    {
+        if (_file is null || _paletteOverride >= 0 || _editingPalette is not { } pal) return;
+        int index = _file.Palettes.IndexOf(pal);
+        if (index < 0) return;
+        _paletteOverride = index;
+        _suppressEvents = true;
+        ReselectPaletteRow(pal);
+        _suppressEvents = false;
+        SyncPreviewPaletteBox();
     }
 
     private void OnPalettePreviewPrev(object? sender, RoutedEventArgs e) =>

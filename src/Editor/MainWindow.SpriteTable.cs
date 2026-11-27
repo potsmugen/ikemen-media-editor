@@ -690,7 +690,8 @@ public partial class MainWindow
             if (_paintBaselineSprite is { } pending && !ReferenceEquals(pending, target)
                 && !await ResolvePendingPaintBeforeSwitch())
                 return false;
-            if (_editingPalette is not null) DiscardPendingColorAdjust();
+            // On the Palettes tab the preview moving keeps a pending color change; elsewhere it is dropped
+            if (_editingPalette is not null && Tabs?.SelectedIndex != 1) DiscardPendingColorAdjust();
             _current = target;
             _palettePreviewSprite = null;
             RefreshSprite();
