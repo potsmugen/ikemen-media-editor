@@ -1972,6 +1972,9 @@ public partial class MainWindow
         if (!_dirty) _undo.MarkSaved(SffKind);
         if (!_airDirty) _undo.MarkSaved(AirKind);
         if (!_sndDirty) _undo.MarkSaved(SndKind);
+        // Open ACT palettes are cleaned the same way; Clear left their save points unreachable, so they read as dirty
+        foreach (var palette in _standalonePalettes)
+            if (!palette.Dirty) _undo.MarkSaved(StandalonePaletteKindFor(palette));
     }
 
     /// <summary>After undo/redo: a file back at its save point is unchanged again; pending edits keep it changed.</summary>
