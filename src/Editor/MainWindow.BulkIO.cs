@@ -316,7 +316,7 @@ public partial class MainWindow
             {
                 LogBulkProblems("ImportAllSpritesAndPalettes", errors, []);
                 CrashLog.Error("ImportAllSpritesAndPalettes", $"{txtPath}: unexpected entry types: {string.Join(", ", unexpectedTypes)}");
-                await Dialogs.ShowMessage(this, "Not a Sprite Export", "This manifest contains entries that aren't sprites or palettes.");
+                await Dialogs.ShowMessage(this, "Not a Sprite Export", "This manifest contains entries that are not sprites or palettes.");
                 return;
             }
 
@@ -330,7 +330,7 @@ public partial class MainWindow
             int oldPalettes = entries.Count(x => x.Type == "palette" && FindPalette(x.Group, x.Index) is not null);
             if (oldSprites + oldPalettes > 0 && !await Dialogs.Confirm(this, "Import",
                     $"{oldSprites} sprite(s) and {oldPalettes} palette(s) in this manifest already exist in the open file " +
-                    "and will be overwritten. Entries that don't exist yet will be added.", "Overwrite"))
+                    "and will be overwritten. Entries that do not exist yet will be added.", "Overwrite"))
                 return;
 
             var spritesBefore = file.Sprites.ToList();
@@ -390,7 +390,7 @@ public partial class MainWindow
                     }
                     if (usePal is null)
                     {
-                        errors.Add($"{entry.File}: palette {pk.Group},{pk.Index} isn't in this file or the manifest");
+                        errors.Add($"{entry.File}: palette {pk.Group},{pk.Index} is not in this file or the manifest");
                         continue;
                     }
                 }

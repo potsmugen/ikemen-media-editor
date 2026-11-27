@@ -348,7 +348,7 @@ public partial class MainWindow
     private bool RefuseBorrowerEdit(Sprite sprite, string action)
     {
         if (sprite.SharesWith is not { } t) return false;
-        ShowPopup("Linked Sprite", $"Can't {action} {sprite.Group},{sprite.Index}: it links to {t.Group},{t.Index}. Unlink it first.");
+        ShowPopup("Linked Sprite", $"Cannot {action} {sprite.Group},{sprite.Index}: it links to {t.Group},{t.Index}. Unlink it first.");
         CrashLog.Error(action, $"refused: {sprite.Group},{sprite.Index} links to {t.Group},{t.Index}");
         return true;
     }
@@ -458,7 +458,7 @@ public partial class MainWindow
         if (!indexed)
         {
             if (!SffVersions.SupportsPng(_file.Version))
-                return (before, before, "true-color image, but this file's SFF version doesn't support 32-bit sprites");
+                return (before, before, "true-color image, but this file's SFF version does not support 32-bit sprites");
             plan = ImportPlan.TrueColor32();
         }
         else if ((palette ?? sprite.Palette) is { } pal)
@@ -581,7 +581,7 @@ public partial class MainWindow
             long maxY = Math.Min((long)int.MaxValue, selected.Min(sprite => (long)SpriteAxisMax - sprite.AxisY));
             if (minX > maxX || minY > maxY)
             {
-                await Dialogs.ShowMessage(this, "Can't Shift Axes", "The selected sprites cannot all be shifted into the permitted axis range.");
+                await Dialogs.ShowMessage(this, "Cannot Shift Axes", "The selected sprites cannot all be shifted into the permitted axis range.");
                 return;
             }
 
@@ -652,7 +652,7 @@ public partial class MainWindow
             if (selected.Any(s => (long)s.AxisX + dx < SpriteAxisMin || (long)s.AxisX + dx > SpriteAxisMax
                 || (long)s.AxisY + dy < SpriteAxisMin || (long)s.AxisY + dy > SpriteAxisMax))
             {
-                StatusText.Text = $"The selected sprites can't move further {direction}.";
+                StatusText.Text = $"The selected sprites cannot move further {direction}.";
                 return;
             }
 
@@ -719,7 +719,7 @@ public partial class MainWindow
             {
                 CrashLog.Error("Set Sprite Axis", $"refused position {positionLabel} for sprites outside the permitted axis range: "
                     + string.Join(", ", outOfRange.Select(item => $"{item.Sprite.Group},{item.Sprite.Index} ({item.X},{item.Y})")));
-                await Dialogs.ShowMessage(this, "Can't Set Axis", $"Can't set axis position: {outOfRange.Count} selected sprite(s) exceed the permitted axis range.");
+                await Dialogs.ShowMessage(this, "Cannot Set Axis", $"Cannot set axis position: {outOfRange.Count} selected sprite(s) exceed the permitted axis range.");
                 return;
             }
             if (before.SequenceEqual(after)) return;
@@ -759,7 +759,7 @@ public partial class MainWindow
         if (OnionSwapButton is null) return;
         bool same = onion is not null && ReferenceEquals(onion, _current);
         OnionSwapButton.IsEnabled = onion is not null && !same;
-        ToolTip.SetTip(OnionSwapButton, same ? "The onion skin is the active sprite." : "Swaps the onion skin with the active sprite.");
+        ToolTip.SetTip(OnionSwapButton, same ? "The onion skin is the active sprite" : "Swaps the onion skin with the active sprite");
     }
 
     /// <summary>
@@ -847,7 +847,7 @@ public partial class MainWindow
             if (SpriteAlign.Prepare(onion) is not { } reference)
             {
                 CrashLog.Error("Align With Onion Skin", $"refused: onion sprite {onionKey} has no visible pixels");
-                await Dialogs.ShowMessage(this, "Can't Align", $"Sprite {onionKey} (the onion skin) has no visible pixels.");
+                await Dialogs.ShowMessage(this, "Cannot Align", $"Sprite {onionKey} (the onion skin) has no visible pixels.");
                 return;
             }
             if (!TryBeginBusy()) return;
@@ -1340,7 +1340,7 @@ public partial class MainWindow
     {
         if (SffVersions.IsV1(file.Version) && sprite.SharesWith is not null)
         {
-            ShowPopup("Linked Sprite", "A linked sprite's palette can't be changed; unlink it first.");
+            ShowPopup("Linked Sprite", "A linked sprite's palette cannot be changed; unlink it first.");
             return;
         }
         var previous = file.PreviousPalette(sprite);
@@ -1915,7 +1915,7 @@ public partial class MainWindow
             {
                 CrashLog.Error("OnReplaceSprite", $"{picked[0].Name}: {total} frames, refused");
                 await Dialogs.ShowMessage(this, "Cannot Replace Sprite",
-                    $"{picked[0].Name} has {total} frames, which would make {total} sprites.\nOne sprite can't be replaced by multiple sprites.\nUse Add to import the frames as new sprites.");
+                    $"{picked[0].Name} has {total} frames, which would make {total} sprites.\nOne sprite cannot be replaced by multiple sprites.\nUse Add to import the frames as new sprites.");
                 return;
             }
 

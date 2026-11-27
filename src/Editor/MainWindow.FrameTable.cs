@@ -586,7 +586,7 @@ public partial class MainWindow
         if (text.Length == 0) { RebuildFrameTable(); return; }
         if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int val))
         {
-            StatusText.Text = "Couldn't parse that as a whole number.";
+            StatusText.Text = "Could not parse that as a whole number.";
             RebuildFrameTable();
             return;
         }
@@ -600,7 +600,7 @@ public partial class MainWindow
         if (text.Length == 0) val = blankValue;
         else if (!float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out val))
         {
-            StatusText.Text = "Couldn't parse that as a number.";
+            StatusText.Text = "Could not parse that as a number.";
             RebuildFrameTable();
             return;
         }

@@ -122,7 +122,7 @@ public partial class MainWindow
     {
         string t = raw.Trim();
         if (t.EndsWith("ms", StringComparison.OrdinalIgnoreCase)) t = t[..^2].Trim();
-        if (!TryParseNumber(t, out ms) || ms <= 0) return $"\"{t}\" isn't a {what} in ms.";
+        if (!TryParseNumber(t, out ms) || ms <= 0) return $"'{t}' is not a {what} in ms.";
         return null;
     }
 
@@ -130,7 +130,7 @@ public partial class MainWindow
     private static string? ParseInRange(string raw, double min, double max, string rangeText, out double v)
     {
         string t = raw.Trim().TrimEnd('%').Trim();
-        if (!TryParseNumber(t, out v) || v < min || v > max) return $"\"{t}\" isn't {rangeText}.";
+        if (!TryParseNumber(t, out v) || v < min || v > max) return $"'{t}' is not {rangeText}.";
         return null;
     }
 
@@ -138,7 +138,7 @@ public partial class MainWindow
     {
         string t = raw.Trim().TrimEnd('%').Trim();
         percent = 0;
-        if (!TryParseNumber(t, out double p) || p <= 0 || p > maxPercent) return $"\"{t}\" isn't a volume between 1 and {maxPercent:0.##}%.";
+        if (!TryParseNumber(t, out double p) || p <= 0 || p > maxPercent) return $"'{t}' is not a volume between 1 and {maxPercent:0.##}%.";
         percent = (float)p;
         return null;
     }
@@ -153,7 +153,7 @@ public partial class MainWindow
         if (t.EndsWith("hz", StringComparison.OrdinalIgnoreCase)) t = t[..^2].Trim();
         if (!int.TryParse(t, NumberStyles.Integer, CultureInfo.InvariantCulture, out rate)
             || rate < SndEdit.MinSampleRate || rate > SndEdit.MaxSampleRate)
-            return $"\"{t}\" isn't a sample rate between {SndEdit.MinSampleRate} and {SndEdit.MaxSampleRate} Hz.";
+            return $"'{t}' is not a sample rate between {SndEdit.MinSampleRate} and {SndEdit.MaxSampleRate} Hz.";
         return null;
     }
 
@@ -241,7 +241,7 @@ public partial class MainWindow
         ParseInRange(text, min, max, rangeText, out double value);
         if (Math.Abs(value - neutral) < 0.001)
         {
-            StatusText.Text = "That's the same as it already is.";
+            StatusText.Text = "That is the same as it already is.";
             return;
         }
         string verb = title.ToLowerInvariant();
@@ -320,8 +320,8 @@ public partial class MainWindow
 
         var decayBox = new NumericUpDown { Minimum = 1, Maximum = (decimal)maxDecay, Increment = (decimal)decayStep, Value = (decimal)defaultDecay, FormatString = "0", Width = 110 };
         var auto = new CheckBox { Content = "Auto", IsChecked = true };
-        ToolTip.SetTip(auto, "Adds echoes until they fall below the Trim Silence threshold.");
-        ToolTip.SetTip(decayBox, "Each echo plays at this percentage of the one before.");
+        ToolTip.SetTip(auto, "Adds echoes until they fall below the Trim Silence threshold");
+        ToolTip.SetTip(decayBox, "Each echo plays at this percentage of the one before");
         var repeatsBox = new NumericUpDown { Minimum = 1, Maximum = maxRepeats, Increment = 1, Value = 1, FormatString = "0", Width = 110, IsEnabled = false };
         auto.IsCheckedChanged += (_, _) => repeatsBox.IsEnabled = auto.IsChecked != true;
         var extra = new StackPanel
@@ -384,13 +384,13 @@ public partial class MainWindow
         int raising = many.Count(x => x.Problem is null && x.SampleRate > 0 && x.SampleRate < rate);
         if (raising > 0 && !await Dialogs.Confirm(this, "Upsample",
                 $"{raising} of these sounds would go up to {rate} Hz, which adds no detail and makes them bigger.\n" +
-                "It's only worth it right before Change Pitch or Change Speed shifts them up.",
+                "It is only worth it right before Change Pitch or Change Speed shifts them up.",
                 "Upsample")) return;
         await EditSounds(many, "Resampling", $"resample to {rate} Hz", n => $"Resampled {n} sound(s) to {rate} Hz", s =>
         {
             if (s.SampleRate == rate) return (null, null);
             if (SndEdit.Resample(s, rate) is { } data) return (data, null);
-            return (null, "PCM data couldn't be read");
+            return (null, "PCM data could not be read");
         });
     }
 
@@ -415,7 +415,7 @@ public partial class MainWindow
         int raising = many.Count(x => x.Problem is null && x.BitsPerSample < to);
         if (raising > 0 && !await Dialogs.Confirm(this, "Raise Bit Depth",
                 $"{raising} of these sounds would go up to {to}-bit, which adds no detail and makes them bigger.\n" +
-                "It's only worth it before several edits on them.",
+                "It is only worth it before several edits on them.",
                 "Raise")) return;
         await EditSounds(many, "Changing bit depth", $"change to {to}-bit", n => $"Changed {n} sound(s) to {to}-bit",
             s => (SndEdit.ChangeBitDepth(s, to, dither), null));

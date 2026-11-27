@@ -96,8 +96,8 @@ public partial class MainWindow
         string n = turned.Count == 1 ? "1 linked palette" : $"{turned.Count} linked palettes";
         return done
             ? $"{n} pointing at a later palette now {(turned.Count == 1 ? "stores" : "store")} the colors, and the rest of each linked set links back ({keys})."
-            : $"{n} {(turned.Count == 1 ? "points" : "point")} at a later palette, which Ikemen GO loads with the wrong colors ({keys}). "
-              + "Saving stores the colors on the earlier palette of each linked set and links the rest back to it. Nothing else changes.";
+            : $"{n} {(turned.Count == 1 ? "points" : "point")} at a later palette ({keys}), which Ikemen GO loads with the wrong colors. "
+              + "Saving moves the colors to the earlier palette and links the rest back to it.";
     }
 
     /// <summary>Loaded links to a later sprite that saving as <paramref name="version"/> turns around, and the
@@ -123,14 +123,13 @@ public partial class MainWindow
         string n = turned.Count == 1 ? "1 linked sprite" : $"{turned.Count} linked sprites";
         var text = done
             ? $"{n} pointing at a later sprite now {(turned.Count == 1 ? "stores" : "store")} the pixels, and the rest of each linked set links back ({Keys(turned)})."
-            : $"{n} {(turned.Count == 1 ? "points" : "point")} at a later sprite, which Ikemen GO loads as blank ({Keys(turned)}). "
-              + "Saving stores the pixels on the earlier sprite of each linked set and links the rest back to it.";
+            : $"{n} {(turned.Count == 1 ? "points" : "point")} at a later sprite ({Keys(turned)}), which Ikemen GO loads as blank. "
+              + "Saving moves the pixels to the earlier sprite and links the rest back to it.";
         if (lose.Count > 0)
             text += Environment.NewLine + Environment.NewLine
                 + $"{(lose.Count == 1 ? "1 sprite" : $"{lose.Count} sprites")} {(done ? (lose.Count == 1 ? "now shows" : "now show") : "will show")} "
                 + $"the linked sprite's palette instead of {(lose.Count == 1 ? "its" : "their")} own: an SFF v1 link can only use "
                 + $"that one or the previous sprite's ({Keys(lose)}).";
-        else if (!done) text += " Nothing else changes.";
         return text;
     }
 
@@ -713,7 +712,7 @@ public partial class MainWindow
 
         CrashLog.Error("DetectDefKind", $"no character, stage, common FX, screenpack, lifebar or storyboard sprite line: {path}");
         await Dialogs.ShowMessage(this, "Could Not Open the Definition",
-            $"{Path.GetFileName(path)} isn't a character, stage, common FX, screenpack, lifebar or storyboard .def: "
+            $"{Path.GetFileName(path)} is not a character, stage, common FX, screenpack, lifebar or storyboard .def: "
             + "it has none of their file lines ([Files] sprite=/air=/spr=/sff=, [BGdef] spr=, [SceneDef] spr=).");
         return null;
     }
@@ -787,7 +786,7 @@ public partial class MainWindow
         if (def.StageSpritePath is null)
         {
             await Dialogs.ShowMessage(this, "Could Not Read the Stage Definition",
-                "No [BGdef] spr= line found — this doesn't look like a stage .def.");
+                "No [BGdef] spr= line found — this does not look like a stage .def.");
             return;
         }
 
@@ -899,7 +898,7 @@ public partial class MainWindow
         else
         {
             await Dialogs.ShowMessage(this, "Could Not Read the Definition",
-                "Doesn't look like a common FX, screenpack, lifebar, or storyboard .def — "
+                "Does not look like a common FX, screenpack, lifebar, or storyboard .def — "
                 + "no [Files] air=/spr=/sff= or [SceneDef] spr= line found.");
             return;
         }
@@ -1516,7 +1515,7 @@ public partial class MainWindow
             .Select(s => $"{s.Group},{s.Index}").ToList();
         if (bad.Count == 0) return true;
         CrashLog.Error("CanWriteV1", $"SFF v1 save refused: {bad.Count} true-color or undecoded sprite(s)");
-        await Dialogs.ShowMessage(this, "Can't Save as SFF v1",
+        await Dialogs.ShowMessage(this, "Cannot Save as SFF v1",
             $"SFF v1 holds 8-bit sprites only; {bad.Count} sprite{(bad.Count == 1 ? " is" : "s are")} true color or undecoded: "
             + string.Join(", ", bad.Take(5)) + (bad.Count > 5 ? ", …" : "") + ".");
         return false;
@@ -1696,14 +1695,14 @@ public partial class MainWindow
 
         int png = SffVersions.SupportsPng(version) ? 0 : SffWriter.StoredAsPng(_file);
         if (png > 0 && !await Dialogs.Confirm(this, "PNG Sprites",
-            $"{png} sprite(s) are stored as PNG, which SFF {version} can't hold. "
+            $"{png} sprite(s) are stored as PNG, which SFF {version} cannot hold. "
             + "Re-encode them in a format it can hold in the saved file? No pixels change.", "Re-encode"))
             return false;
 
         int alpha = SffWriter.PalettesLosingAlphaOnSave(_file, version).Count;
         if (alpha == 0) return true;
         return await Dialogs.Confirm(this, "Palette Alpha",
-            $"{(alpha == 1 ? "1 palette has" : $"{alpha} palettes have")} alpha, which SFF {version} can't store. "
+            $"{(alpha == 1 ? "1 palette has" : $"{alpha} palettes have")} alpha, which SFF {version} cannot store. "
             + $"Saving writes {(alpha == 1 ? "it" : "them")} without alpha.", "Save");
     }
 
@@ -1897,7 +1896,7 @@ public partial class MainWindow
         {
             // "__" shows a literal underscore; a single one would be taken as the access key.
             var item = new MenuItem { Header = path.Replace("_", "__"), Tag = path };
-            ToolTip.SetTip(item, "Press Delete to remove it from this list."); // see TryRemoveRecent
+            ToolTip.SetTip(item, "Press Delete to remove it from this list"); // see TryRemoveRecent
             item.Click += async (_, _) =>
             {
                 if (!File.Exists(path))

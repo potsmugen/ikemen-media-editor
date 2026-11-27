@@ -102,7 +102,7 @@ public partial class MainWindow
                 if (fallback is null || !file.Palettes.Contains(fallback))
                 {
                     ShowPopup(one ? "Delete Palette" : "Delete Palettes",
-                        $"Can't delete palette {PaletteLabel(pal)}: sprites use it and no valid fallback palette is available.");
+                        $"Cannot delete palette {PaletteLabel(pal)}: sprites use it and no valid fallback palette is available.");
                     string target = fallback is null ? "none" : $"{fallback.Group},{fallback.Index} is not in the palette table";
                     CrashLog.Error("OnDeletePalette", $"refused: sprites use {pal.Group},{pal.Index}, and fallback target is {target}");
                     return false;

@@ -413,7 +413,7 @@ public partial class MainWindow
         if (_airEmbeddedInDef || _air is not { TextEncoding: AirEncoding.Legacy } air) return null;
         var sample = AirWriter.Write(air).Split('\n').FirstOrDefault(l => l.Any(c => c > '\u007F'));
         return (done ? $"The file was converted from {air.LegacyEncodingName} (guessed) to UTF-8."
-                     : $"This file isn't UTF-8; it was read as {air.LegacyEncodingName} (a guess). Saving converts it to UTF-8.")
+                     : $"This file is not UTF-8; it was read as {air.LegacyEncodingName} (a guess). Saving converts it to UTF-8.")
             + (sample is null ? "" : $"{Environment.NewLine}Check this line reads right: {sample.Trim()}");
     }
 
@@ -426,7 +426,7 @@ public partial class MainWindow
         if (linted.Count == 0 && encoding is null) return true;
         var text = new List<string>();
         if (linted.Count > 0)
-            text.Add($"Saving will adjust {Plural(linted.Count, "action", "actions")} you didn't edit. "
+            text.Add($"Saving will adjust {Plural(linted.Count, "action", "actions")} you did not edit. "
                 + "File > Media Health Report lists what changes.");
         if (encoding is not null) text.Add(encoding);
         return await Dialogs.Confirm(this, "Saving Will Change the File", string.Join(Environment.NewLine + Environment.NewLine, text), "Save");
@@ -442,7 +442,7 @@ public partial class MainWindow
             CrashLog.Trace($"[air] saved action {x.Number}: {x.Misnumbered} Clsn lines renumbered, {x.Mismatched} Clsn counts rewritten, "
                 + $"{x.Moved} end-of-line comments moved, {x.Reordered} comment lines moved, {x.Dropped} unused lines dropped");
         if (encoding is not null) CrashLog.Trace($"[air] {encoding}");
-        if (linted.Count > 0) StatusText.Text += $" Adjusted {Plural(linted.Count, "action", "actions")} you didn't edit.";
+        if (linted.Count > 0) StatusText.Text += $" Adjusted {Plural(linted.Count, "action", "actions")} you did not edit.";
         if (encoding is not null) StatusText.Text += " Converted to UTF-8.";
     }
 
@@ -1474,7 +1474,7 @@ public partial class MainWindow
             }
             if (!element.OwnAttackBoxes && !element.OwnHurtBoxes)
             {
-                StatusText.Text = "This frame has no boxes of its own to sort — only a default it's inheriting.";
+                StatusText.Text = "This frame has no boxes of its own to sort — only a default it is inheriting.";
                 return;
             }
             if (await Dialogs.PromptBoxSortOrder(this) is not { } order) return;
@@ -1647,7 +1647,7 @@ public partial class MainWindow
             }
             if (element.NoSprite)
             {
-                StatusText.Text = "This frame has no sprite (-1), so there's nothing for Auto Clsn to cover.";
+                StatusText.Text = "This frame has no sprite (-1), so there is nothing for Auto Clsn to cover.";
                 return;
             }
             var sprite = _file?.Find(element.Group, element.Index);
@@ -1664,7 +1664,7 @@ public partial class MainWindow
             else if (Enum.TryParse<CoverLayout>(_settings.Animations.AutoBoxesLayout, true, out var a) && Enum.IsDefined(a)) initialLayout = a;
             else
             {
-                CrashLog.Error("Settings", $"AutoBoxesLayout = {_settings.Animations.AutoBoxesLayout} isn't valid; using Stacked");
+                CrashLog.Error("Settings", $"AutoBoxesLayout = {_settings.Animations.AutoBoxesLayout} is not valid; using Stacked");
                 initialLayout = CoverLayout.Stacked;
             }
             if (await Dialogs.PromptAutoBoxCount(this, initialBoxes, initialLayout, _settings.Animations.MaxAutoBoxes) is not { } choice) return;
@@ -1716,7 +1716,7 @@ public partial class MainWindow
         int noSprite = targets.Count - frames.Count;
         if (frames.Count == 0)
         {
-            StatusText.Text = "None of the selected frames has a sprite (-1), so there's nothing for Auto Clsn to cover.";
+            StatusText.Text = "None of the selected frames has a sprite (-1), so there is nothing for Auto Clsn to cover.";
             return;
         }
         var sprites = frames.Select(i => _file?.Find(action.Elements[i].Group, action.Elements[i].Index))
@@ -1734,7 +1734,7 @@ public partial class MainWindow
         else if (Enum.TryParse<CoverLayout>(_settings.Animations.AutoBoxesLayout, true, out var a) && Enum.IsDefined(a)) initialLayout = a;
         else
         {
-            CrashLog.Error("Settings", $"AutoBoxesLayout = {_settings.Animations.AutoBoxesLayout} isn't valid; using Stacked");
+            CrashLog.Error("Settings", $"AutoBoxesLayout = {_settings.Animations.AutoBoxesLayout} is not valid; using Stacked");
             initialLayout = CoverLayout.Stacked;
         }
         if (await Dialogs.PromptAutoBoxCount(this, initialBoxes, initialLayout, _settings.Animations.MaxAutoBoxes) is not { } choice) return;
@@ -1794,7 +1794,7 @@ public partial class MainWindow
             else if (Enum.TryParse<CoverLayout>(_settings.Animations.AutoBoxesLayout, true, out var a) && Enum.IsDefined(a)) initialLayout = a;
             else
             {
-                CrashLog.Error("Settings", $"AutoBoxesLayout = {_settings.Animations.AutoBoxesLayout} isn't valid; using Stacked");
+                CrashLog.Error("Settings", $"AutoBoxesLayout = {_settings.Animations.AutoBoxesLayout} is not valid; using Stacked");
                 initialLayout = CoverLayout.Stacked;
             }
             if (await Dialogs.PromptAutoBoxCount(this, initialBoxes, initialLayout, _settings.Animations.MaxAutoBoxes, forAll: true) is not { } choice) return;
@@ -2000,7 +2000,7 @@ public partial class MainWindow
         bool canSplit = _action is { } a && hit is { } h && h.Frame < a.Elements.Count
             && a.Elements[h.Frame].Duration >= 2 && h.Elapsed >= 1;
         var split = MenuAction("Split Frame", () => SplitFrame(hit!.Value.Frame, hit.Value.Elapsed), canSplit);
-        if (!canSplit) ToolTip.SetTip(split, "Right-click past the first tick of a timed frame.");
+        if (!canSplit) ToolTip.SetTip(split, "Right-click past the first tick of a timed frame");
         OpenContextMenu(TimelineView, new ContextMenu { ItemsSource = new List<object> { split } });
     }
 
@@ -2490,7 +2490,7 @@ public partial class MainWindow
                 return;
             }
             if (!await Dialogs.Confirm(this, "Apply Suggested Names",
-                    $"Save the suggested name as the comment for {targets.Count} action(s) that don't have one yet?", "Apply"))
+                    $"Save the suggested name as the comment for {targets.Count} action(s) that do not have one yet?", "Apply"))
                 return;
 
             void Apply(bool useSuggestion)

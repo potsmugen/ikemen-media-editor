@@ -163,7 +163,7 @@ public static class Shortcuts
             if (!map.ContainsKey(id)) { CrashLog.Error("Settings", $"Shortcuts: unknown command {id}; ignored"); continue; }
             if (string.IsNullOrWhiteSpace(text)) { map[id] = null; continue; }
             if (Chord.TryParse(text, out var chord)) map[id] = chord;
-            else CrashLog.Error("Settings", $"Shortcuts: {id} = \"{text}\" isn't a valid shortcut; using the default");
+            else CrashLog.Error("Settings", $"Shortcuts: {id} = '{text}' is not a valid shortcut; using the default");
         }
         return map;
     }

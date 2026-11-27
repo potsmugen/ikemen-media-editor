@@ -74,7 +74,7 @@ public partial class MainWindow
             long width = (long)worldW * scale, height = (long)worldH * scale;
             if (width > maxSide || height > maxSide)
             {
-                StatusText.Text = $"Can't export: the {(webp ? "WebP" : "GIF")} would be {width}x{height} pixels (up to {maxSide} a side).";
+                StatusText.Text = $"Cannot export: the {(webp ? "WebP" : "GIF")} would be {width}x{height} pixels (up to {maxSide} a side).";
                 return;
             }
 
@@ -130,7 +130,7 @@ public partial class MainWindow
         {
             using var pixmap = new SKPixmap(info, pin.AddrOfPinnedObject(), width * 4);
             using var data = pixmap.Encode(new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossless, 100));
-            return data?.ToArray() ?? throw new InvalidOperationException($"Skia couldn't encode a {width}x{height} WebP frame.");
+            return data?.ToArray() ?? throw new InvalidOperationException($"Skia could not encode a {width}x{height} WebP frame.");
         }
         finally { pin.Free(); }
     }

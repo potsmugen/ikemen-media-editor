@@ -134,7 +134,7 @@ public partial class MainWindow
             string names = string.Join(", ", tooHigh.Take(8).Select(s => $"{s.Group},{s.Index}")) + (tooHigh.Count > 8 ? ", …" : "");
             CrashLog.Error("OnReplacePalette", $"refused: {fileName} has {colors.Length} colors; sprites over it or undecoded: {names}");
             await Dialogs.ShowMessage(this, "Cannot Replace Palette",
-                $"{fileName} has {colors.Length} colors, but sprites using palette {key} need more or couldn't be checked: {names}.");
+                $"{fileName} has {colors.Length} colors, but sprites using palette {key} need more or could not be checked: {names}.");
             return;
         }
 

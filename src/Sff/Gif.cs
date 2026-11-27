@@ -12,7 +12,7 @@ public static class Gif
     public static byte[] Encode(int width, int height, IReadOnlyList<GifFrame> frames, bool loop = true)
     {
         if (width is < 1 or > 65535 || height is < 1 or > 65535)
-            throw new ArgumentOutOfRangeException(nameof(width), $"A GIF can't be {width}x{height}.");
+            throw new ArgumentOutOfRangeException(nameof(width), $"A GIF cannot be {width}x{height}.");
         if (frames.Count == 0) throw new ArgumentException("A GIF needs at least one frame.", nameof(frames));
 
         using var ms = new MemoryStream();

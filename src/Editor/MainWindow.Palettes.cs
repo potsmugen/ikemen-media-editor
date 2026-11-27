@@ -2201,8 +2201,8 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         DepthText = PaletteDepthText(p),
         // Same convention as the sprites' Shared column: the target's # in this list.
         LinkText = p.LinksTo is { } t && _file?.Palettes.IndexOf(t) is int ti and >= 0 ? $"{ti + 1}" : "",
-        LinkToolTip = p.Source == PaletteSource.External ? "Only embedded palettes can be linked or merged."
-            : v1 ? "Palette links and merges are available in SFF v2." : "Double-click to link, merge, change or unlink this palette.",
+        LinkToolTip = p.Source == PaletteSource.External ? "Only embedded palettes can be linked or merged"
+            : v1 ? "Palette links and merges are available in SFF v2." : "Double-click to link, merge, change or unlink this palette",
         Kind = p.Source == PaletteSource.External
             ? IsTempPalette(p) ? TempPaletteKind : $"Imported from {System.IO.Path.GetFileName(p.SourcePath)}"
             : v1 && carriers.TryGetValue(p, out var carrier)
@@ -2390,7 +2390,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         try
         {
             var values = await Dialogs.PromptNumberFields(this, "Change Group and Index",
-                ["Group", "Index"], [pal.Group, pal.Index], 0, SpriteFieldMax, isGroup ? 0 : 1);
+                ["Group:", "Index:"], [pal.Group, pal.Index], 0, SpriteFieldMax, isGroup ? 0 : 1);
             if (values is null || _file is null) return;
 
             int newGroup = values[0];
@@ -2920,7 +2920,7 @@ private void ClearOtherSwatchSelections(PaletteView keep)
         bool hasSelectedPalette = PreviewOverridePalette() is not null;
         bool several = (PaletteList?.SelectedItems?.Count ?? 0) > 1;
         PaletteReplaceButton.IsEnabled = hasSelectedPalette && !several;
-        ToolTip.SetTip(PaletteReplaceButton, several ? "Select one palette to replace." : ReplacePaletteTip);
+        ToolTip.SetTip(PaletteReplaceButton, several ? "Select one palette to replace" : ReplacePaletteTip);
         PaletteDeleteButton.IsEnabled = hasSelectedPalette;
     }
 

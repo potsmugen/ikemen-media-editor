@@ -212,6 +212,7 @@ public partial class MainWindow : Window
     private void ApplyStartupSettings()
     {
         var s = _settings;
+        Dialogs.SectionSeparators = s.Appearance.SectionSeparators;
         int undoLimit = Settings.Checked(nameof(s.General.UndoLimit), s.General.UndoLimit, Settings.DefaultUndoLimit, v => v >= 1);
         var undoMerge = TimeSpan.FromSeconds(Settings.Checked(nameof(s.General.UndoMergeSeconds), s.General.UndoMergeSeconds,
             Settings.DefaultUndoMergeSeconds, v => double.IsFinite(v) && v >= 0));
@@ -373,7 +374,7 @@ public partial class MainWindow : Window
             Math.Clamp(s.Appearance.ButtonGap, 0, Settings.DefaultButtonGapMax),
             Math.Clamp(s.Appearance.PanelSeparatorWidth, 1, Settings.DefaultPanelSeparatorWidthMax),
             Math.Clamp(s.Appearance.TabAndBarLineWidth, 1, Settings.DefaultTabAndBarLineWidthMax),
-            Math.Clamp(s.Appearance.PanelContentInset, 0, Settings.DefaultPanelContentInsetMax), s.Appearance.RoundedCorners,
+            Math.Clamp(s.Appearance.PanelContentInset, 0, Settings.DefaultPanelContentInsetMax), s.Appearance.RoundedCorners, s.Appearance.SectionSeparators,
             _appliedCanvas ?? CanvasValuesFromSettings(), _appliedClsn ?? ClsnValuesFromSettings());
         var d = new Settings();
         var defaults = new Dialogs.PreferencesValues(d.General.SwitchTabOnOpen, d.General.SyncSpriteAcrossTabs, d.General.ThemeName, d.Files.BackupCount,
@@ -382,7 +383,7 @@ public partial class MainWindow : Window
             Math.Clamp(d.Appearance.ButtonGap, 0, Settings.DefaultButtonGapMax),
             Math.Clamp(d.Appearance.PanelSeparatorWidth, 1, Settings.DefaultPanelSeparatorWidthMax),
             Math.Clamp(d.Appearance.TabAndBarLineWidth, 1, Settings.DefaultTabAndBarLineWidthMax),
-            Math.Clamp(d.Appearance.PanelContentInset, 0, Settings.DefaultPanelContentInsetMax), d.Appearance.RoundedCorners,
+            Math.Clamp(d.Appearance.PanelContentInset, 0, Settings.DefaultPanelContentInsetMax), d.Appearance.RoundedCorners, d.Appearance.SectionSeparators,
             CanvasValuesFromSettings(d), ClsnValuesFromSettings(d));
         string previewTheme = s.General.ThemeName;
         var previewUiScale = (Font: initial.FontScalePercent, Button: initial.ButtonScalePercent,
@@ -434,6 +435,8 @@ public partial class MainWindow : Window
         s.Appearance.PanelContentInset = Settings.Checked(nameof(Settings.AppearanceSection.PanelContentInset), p.PanelContentInset,
             Settings.DefaultPanelContentInset, v => v >= 0 && v <= Settings.DefaultPanelContentInsetMax);
         s.Appearance.RoundedCorners = p.RoundedCorners;
+        s.Appearance.SectionSeparators = p.SectionSeparators;
+        Dialogs.SectionSeparators = p.SectionSeparators;
         StoreCanvasValues(p.Canvas);
         StoreClsnValues(p.Clsn);
         s.General.ThemeName = p.ThemeName;

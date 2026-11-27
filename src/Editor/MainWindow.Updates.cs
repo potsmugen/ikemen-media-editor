@@ -37,7 +37,7 @@ public partial class MainWindow
                 bool limited = ex is HttpRequestException { StatusCode: HttpStatusCode.Forbidden or HttpStatusCode.TooManyRequests };
                 await Dialogs.ShowMessage(this, title, limited
                     ? "GitHub is limiting requests right now. Try again later."
-                    : "Couldn't check for updates. Check your internet connection and try again.");
+                    : "Could not check for updates. Check your internet connection and try again.");
                 return;
             }
 

@@ -46,7 +46,7 @@ public partial class MainWindow
     private static T CheckedEnum<T>(string name, string? value, T fallback) where T : struct, Enum
     {
         if (Enum.TryParse<T>(value, true, out var v) && Enum.IsDefined(v)) return v;
-        CrashLog.Error("Settings", $"{name} = {value} isn't valid; using {fallback}");
+        CrashLog.Error("Settings", $"{name} = {value} is not valid; using {fallback}");
         return fallback;
     }
 
@@ -55,7 +55,7 @@ public partial class MainWindow
     {
         if (value is null) return null;
         if (Color.TryParse(value, out var c)) return Color.FromRgb(c.R, c.G, c.B);
-        CrashLog.Error("Settings", $"{name} = {value} isn't valid; using the default");
+        CrashLog.Error("Settings", $"{name} = {value} is not valid; using the default");
         return null;
     }
 

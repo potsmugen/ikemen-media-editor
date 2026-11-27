@@ -557,8 +557,8 @@ public static partial class Dialogs
         body.Children.Add(percentage);
         body.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Avalonia.Thickness(20, 0, 0, 0), Children =
         {
-            new TextBlock { Text = "X %", VerticalAlignment = VerticalAlignment.Center, MinWidth = 55 }, scaleX,
-            new TextBlock { Text = "Y %", VerticalAlignment = VerticalAlignment.Center, MinWidth = 55 }, scaleY,
+            new TextBlock { Text = "X %:", VerticalAlignment = VerticalAlignment.Center, MinWidth = 55 }, scaleX,
+            new TextBlock { Text = "Y %:", VerticalAlignment = VerticalAlignment.Center, MinWidth = 55 }, scaleY,
         }});
         body.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children =
         {
@@ -1668,7 +1668,7 @@ public static partial class Dialogs
             {
                 if (boxes[i].Value is not { } value || value != decimal.Truncate(value))
                 {
-                    error.Text = $"Type a whole number for {labels[i]}.";
+                    error.Text = $"Type a whole number for {labels[i].TrimEnd(':')}.";
                     boxes[i].Focus();
                     return;
                 }
@@ -1934,7 +1934,7 @@ public static partial class Dialogs
             catch (Exception ex)
             {
                 CrashLog.Write("PromptTextWithPreview", ex);
-                message = $"Couldn't preview: {ex.Message}";
+                message = $"Could not preview: {ex.Message}";
             }
             if (run != previewRun) return; // an older, restarted run doesn't overwrite a newer one
             ShowError(message);
@@ -3150,7 +3150,7 @@ public static partial class Dialogs
                 ? selectedColors > currentColors
                     ? "Fills the new entries with opaque black."
                     : "Keeps the existing colors and indexes."
-                : "This depth would cut colors that aren't padding, indexes a sprite uses, or leave an undecoded sprite.");
+                : "This depth would cut colors that are not padding, indexes a sprite uses, or leave an undecoded sprite.");
             apply.IsEnabled = enabled;
         }
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
@@ -3329,19 +3329,19 @@ public static partial class Dialogs
 
     public static Task<PendingPaintChoice> AskAboutPendingPaint(Window owner) =>
         Show(owner, "Uncommitted Paint Changes",
-            "This sprite has paint strokes that haven't been committed yet.",
+            "This sprite has paint strokes that have not been committed yet.",
             [("Commit", PendingPaintChoice.Commit), ("Discard", PendingPaintChoice.Discard), ("Cancel", PendingPaintChoice.Cancel)],
             PendingPaintChoice.Cancel);
 
     public static Task<PendingAdjustChoice> AskAboutPendingColorAdjust(Window owner) =>
         Show(owner, "Uncommitted Color Adjustment",
-            "This palette has a color adjustment that hasn't been committed yet.",
+            "This palette has a color adjustment that has not been committed yet.",
             [("Commit", PendingAdjustChoice.Commit), ("Discard", PendingAdjustChoice.Discard), ("Cancel", PendingAdjustChoice.Cancel)],
             PendingAdjustChoice.Cancel);
 
     public static Task<PendingSoundEditChoice> AskAboutPendingSoundEdits(Window owner) =>
         Show(owner, "Uncommitted Sound Changes",
-            "This sound has edits that haven't been committed yet.",
+            "This sound has edits that have not been committed yet.",
             [("Commit", PendingSoundEditChoice.Commit), ("Discard", PendingSoundEditChoice.Discard), ("Cancel", PendingSoundEditChoice.Cancel)],
             PendingSoundEditChoice.Cancel);
 
@@ -3551,14 +3551,12 @@ public static partial class Dialogs
     {
         var result = new TaskCompletionSource<BoxSortOrder?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        // Six choices: a dropdown, in BoxSortOrder's order below. The prompt ends with a colon and is its label
-        var orders = new[] { BoxSortOrder.TopToBottom, BoxSortOrder.BottomToTop, BoxSortOrder.LeftToRight,
-            BoxSortOrder.RightToLeft, BoxSortOrder.SmallestFirst, BoxSortOrder.LargestFirst };
-        var orderBox = new ComboBox
-        {
-            ItemsSource = new[] { "Top to bottom", "Bottom to top", "Leftmost to rightmost", "Rightmost to leftmost", "Smallest area first", "Largest area first" },
-            SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch,
-        };
+        var top = new RadioButton { GroupName = "SortOrder", Content = "Top to bottom", IsChecked = true };
+        var bottom = new RadioButton { GroupName = "SortOrder", Content = "Bottom to top" };
+        var left = new RadioButton { GroupName = "SortOrder", Content = "Leftmost to rightmost" };
+        var right = new RadioButton { GroupName = "SortOrder", Content = "Rightmost to leftmost" };
+        var small = new RadioButton { GroupName = "SortOrder", Content = "Smallest area first" };
+        var large = new RadioButton { GroupName = "SortOrder", Content = "Largest area first" };
 
         var dialog = new Window
         {
@@ -3575,7 +3573,13 @@ public static partial class Dialogs
         var cancel = new Button { Content = "Cancel", MinWidth = 90 };
         ok.Click += (_, _) =>
         {
-            result.TrySetResult(orders[Math.Clamp(orderBox.SelectedIndex, 0, orders.Length - 1)]);
+            var order = top.IsChecked == true ? BoxSortOrder.TopToBottom
+                : bottom.IsChecked == true ? BoxSortOrder.BottomToTop
+                : left.IsChecked == true ? BoxSortOrder.LeftToRight
+                : right.IsChecked == true ? BoxSortOrder.RightToLeft
+                : small.IsChecked == true ? BoxSortOrder.SmallestFirst
+                : BoxSortOrder.LargestFirst;
+            result.TrySetResult(order);
             dialog.Close();
         };
         cancel.Click += (_, _) => { result.TrySetResult(null); dialog.Close(); };
@@ -3587,7 +3591,7 @@ public static partial class Dialogs
             Children =
             {
                 new TextBlock { Text = prompt },
-                orderBox,
+                top, bottom, left, right, small, large,
                 new StackPanel
                 {
                     Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
@@ -4745,12 +4749,12 @@ public static partial class Dialogs
         ToolTip.SetTip(followPan, "Moves the image with the view when panning");
 
         // Rows are shown only for the styles they apply to; SyncBackground toggles them.
-        var checkerColorRow = row("Checker color", Inline(checkerMode, checkerPicker.View));
-        var checkerSizeRow = row("Checker size", checkerSize);
+        var checkerColorRow = row("Checker color:", Inline(checkerMode, checkerPicker.View));
+        var checkerSizeRow = row("Checker size:", checkerSize);
         var checkerBoolRow = Inline(checkerFollowZoom, checkerFollowPan);
-        var imageRow = row("Image", Inline(bgName, bgBrowse, bgClear));
-        var offsetRow = row("Offset", Inline(Label("X", lead: true), offX, Label("Y"), offY));
-        var opacityRow = row("Opacity %", Inline(opacity, opacityBox));
+        var imageRow = row("Image:", Inline(bgName, bgBrowse, bgClear));
+        var offsetRow = row("Offset:", Inline(Label("X:", lead: true), offX, Label("Y:"), offY));
+        var opacityRow = row("Opacity %:", Inline(opacity, opacityBox));
         var imageBoolRow = Inline(followZoom, followPan, tile);
 
         void SyncBackground()
@@ -4848,9 +4852,9 @@ public static partial class Dialogs
         }
         var scale = new CheckBox { Content = "Scale with zoom", IsChecked = init.ScaleWithZoom };
         ToolTip.SetTip(scale, "Scales the crosshair with the zoom");
-        var armRow = row($"Arm length ({limits.ArmMin:0.##}-{limits.ArmMax:0.##})", arm);
-        var chImageRow = row("Image", Inline(chName, chBrowse, chClear));
-        var hotspotRow = row("Hotspot", Inline(Label("X", lead: true), hotX, Label("Y"), hotY));
+        var armRow = row($"Arm length ({limits.ArmMin:0.##}-{limits.ArmMax:0.##}):", arm);
+        var chImageRow = row("Image:", Inline(chName, chBrowse, chClear));
+        var hotspotRow = row("Hotspot:", Inline(Label("X:", lead: true), hotX, Label("Y:"), hotY));
 
         void SyncCrosshair()
         {
@@ -4902,11 +4906,9 @@ public static partial class Dialogs
             Children =
             {
                 section("Style"),
-                flatR,
-                checkerR,
-                imageR,
+                Inline(flatR, checkerR, imageR),
                 section("Settings"),
-                row("Base color", Inline(baseMode, basePicker.View)),
+                row("Base color:", Inline(baseMode, basePicker.View)),
                 checkerColorRow,
                 checkerSizeRow,
                 checkerBoolRow,
@@ -4924,9 +4926,9 @@ public static partial class Dialogs
                 section("Style"),
                 Inline(chLines, chImage),
                 section("Settings"),
-                row("Color", chPicker.View),
+                row("Color:", chPicker.View),
                 armRow,
-                row($"Thickness ({limits.ThicknessMin:0.##}-{limits.ThicknessMax:0.##})", thick),
+                row($"Thickness ({limits.ThicknessMin:0.##}-{limits.ThicknessMax:0.##}):", thick),
                 chImageRow,
                 hotspotRow,
                 scale,

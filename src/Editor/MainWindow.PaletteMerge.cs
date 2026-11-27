@@ -62,14 +62,14 @@ public partial class MainWindow
             if (ownerSource is null)
             {
                 foreach (var s in users.Where(s => SourceOf(s) is not null))
-                    blocked.Add($"{s.Group},{s.Index}: pixels from {owner.Group},{owner.Index} on palette {PaletteKey(file, owner.Palette)}, which isn't merged");
+                    blocked.Add($"{s.Group},{s.Index}: pixels from {owner.Group},{owner.Index} on palette {PaletteKey(file, owner.Palette)}, which is not merged");
                 continue;
             }
             var outside = users.Where(s => SourceOf(s) is null).ToList();
             if (outside.Count > 0)
             {
                 foreach (var s in outside)
-                    blocked.Add($"{s.Group},{s.Index}: on palette {PaletteKey(file, s.Palette)}, which isn't merged, but shares pixels with {owner.Group},{owner.Index}");
+                    blocked.Add($"{s.Group},{s.Index}: on palette {PaletteKey(file, s.Palette)}, which is not merged, but shares pixels with {owner.Group},{owner.Index}");
                 continue;
             }
             if (owner.Indexed is not { } pixels)
@@ -223,7 +223,7 @@ public partial class MainWindow
                 foreach (string item in users.Blocked) CrashLog.Error("Merge palettes", "refused: " + item);
                 string shown = string.Join("\n", users.Blocked.Take(10));
                 if (users.Blocked.Count > 10) shown += $"\n…and {users.Blocked.Count - 10} more (see errors.log).";
-                await Dialogs.ShowMessage(this, "Cannot Merge Palettes", "These sprites can't be remapped:\n" + shown);
+                await Dialogs.ShowMessage(this, "Cannot Merge Palettes", "These sprites cannot be remapped:\n" + shown);
                 return;
             }
             var padOf = DetectPadding(chosen);

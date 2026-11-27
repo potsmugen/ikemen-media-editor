@@ -17,7 +17,7 @@ public static class WebP
     public static byte[] Encode(int width, int height, IReadOnlyList<WebPFrame> frames, Func<byte[], int, int, byte[]> encodeStill, bool loop = true)
     {
         if (width is < 1 or > MaxSide || height is < 1 or > MaxSide)
-            throw new ArgumentOutOfRangeException(nameof(width), $"A WebP can't be {width}x{height}.");
+            throw new ArgumentOutOfRangeException(nameof(width), $"A WebP cannot be {width}x{height}.");
         if (frames.Count == 0) throw new ArgumentException("A WebP animation needs at least one frame.", nameof(frames));
 
         int count = width * height;
@@ -74,7 +74,7 @@ public static class WebP
     internal static byte[] ImageChunks(byte[] still)
     {
         if (still.Length < 12 || !still.AsSpan(0, 4).SequenceEqual("RIFF"u8) || !still.AsSpan(8, 4).SequenceEqual("WEBP"u8))
-            throw new InvalidDataException("The frame encoder didn't return a WebP file.");
+            throw new InvalidDataException("The frame encoder did not return a WebP file.");
         using var ms = new MemoryStream();
         for (int i = 12; i + 8 <= still.Length;)
         {

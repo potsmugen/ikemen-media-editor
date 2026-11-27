@@ -247,7 +247,7 @@ public partial class MainWindow
         var parsed = AirParser.Parse(FrameTextView.Text).Actions.FirstOrDefault();
         if (parsed is null)
         {
-            StatusText.Text = "Couldn't find a [Begin Action] line in that text — nothing applied.";
+            StatusText.Text = "Could not find a [Begin Action] line in that text — nothing applied.";
             SyncTextFromAction(); // put back the canonical text, discarding the unparseable edit
             return;
         }

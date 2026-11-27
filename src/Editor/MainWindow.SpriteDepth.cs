@@ -18,7 +18,7 @@ public partial class MainWindow
             CanConvertSpriteDepth() && selected.Count > 0);
         // Disabled items still show their tip, so say why it is grayed out
         if (_file is not null && !CanConvertSpriteDepth())
-            ToolTip.SetTip(item, "Available in SFF 2.0.1.0 files only.");
+            ToolTip.SetTip(item, "Available in SFF 2.0.1.0 files only");
         return item;
     }
 

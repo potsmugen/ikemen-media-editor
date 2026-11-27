@@ -26,11 +26,11 @@ public static partial class Dialogs
         var palette = new ComboBox { ItemsSource = palettes, SelectedIndex = paletteIndex, MinWidth = 220 };
         var sprites = new NumericUpDown { Minimum = 1, Maximum = Math.Max(1, count), Increment = 1, FormatString = "0", Width = 100, Value = count };
         var spacingBox = new NumericUpDown { Minimum = 0, Maximum = maxSpacing, Increment = 1, FormatString = "0", Width = 100, Value = spacing };
-        ToolTip.SetTip(spacingBox, "Pixels between sprites and around the sheet.");
+        ToolTip.SetTip(spacingBox, "Pixels between sprites and around the sheet");
         var swatchBox = new NumericUpDown { Minimum = 1, Maximum = maxSwatchSize, Increment = 1, FormatString = "0", Width = 100, Value = swatchSize };
-        ToolTip.SetTip(swatchBox, "Pixels per palette entry in the swatch grid.");
+        ToolTip.SetTip(swatchBox, "Pixels per palette entry in the swatch grid");
         var shuffle = new Button { Content = "Shuffle" };
-        ToolTip.SetTip(shuffle, "Picks a different set of sprites.");
+        ToolTip.SetTip(shuffle, "Picks a different set of sprites");
         var info = new TextBlock { Foreground = ThemeBrush("ThemeMutedText"), TextWrapping = TextWrapping.Wrap };
         var image = new Image { Stretch = Stretch.Uniform };
         RenderOptions.SetBitmapInterpolationMode(image, Avalonia.Media.Imaging.BitmapInterpolationMode.None);

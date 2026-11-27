@@ -44,6 +44,8 @@ Layout (https://plugins.jetbrains.com/docs/intellij/layout.html)
 Capitalization (https://plugins.jetbrains.com/docs/intellij/capitalization.html)
 - Title Case: actions in buttons, menus and tooltips; headers of tables, popups, message
   boxes and dialogs; headers of control groups (section headings).
+  Capitalize the first and last words and all between except articles, and, or, but, and
+  prepositions of four or fewer letters ("Save like SprMaker").
 - Sentence case: control labels; items in dropdowns, lists, trees and tables; links; body
   text of tooltips, errors, status lines and instructions.
 
@@ -65,8 +67,8 @@ Punctuation (https://plugins.jetbrains.com/docs/intellij/punctuation.html)
   undo, or selection caveats. Explain all dropdown options or none; usually
   none. Put shared behavior on the shared control.
   Icon-only buttons (✕, +, float, collapse) get a short command with no period, as
-  their missing label ("Close tab", "Float panel"). Labeled buttons get a "Does X."
-  sentence. Interaction hints on cells and grids stay imperative ("Double-click to …").
+  their missing label ("Close tab", "Float panel"). Labeled buttons get a "Does X"
+  sentence, with no period when it is the only one. Interaction hints on cells and grids stay imperative ("Double-click to …").
   Tooltips also show on disabled controls (App.axaml), so a grayed-out control still
   explains itself. When the reason it's disabled isn't obvious (not just "nothing is
   open"), say why, e.g. by switching the tip while disabled ("Available for
@@ -74,6 +76,8 @@ Punctuation (https://plugins.jetbrains.com/docs/intellij/punctuation.html)
 - Dialog and popup titles use Title Case ("Global Shared Palette"); so do panel headers and
   section headings. Field labels use sentence case. (Matches the guidelines.)
 - Dependent options are disabled until their parent option is chosen, never hidden.
+- A dialog whose only setting is one list of options keeps radios even above 4 (Sort Boxes,
+  Blend, Palette Format): nothing competes with them and a dropdown would hide the choices.
 - Exception: a choice that switches between whole sets of settings (a style or mode, such as
   the Background style in Preferences) shows only the set that applies.
 
@@ -81,10 +85,11 @@ Punctuation (https://plugins.jetbrains.com/docs/intellij/punctuation.html)
 
 Existing UI that predates the guideline. Follow the guideline in new work; ask before
 changing these across the app:
-- Field labels without a colon ("Group" instead of "Group:").
-- The old "no ..." rule: actions that open an input dialog have no "…", and the splash uses
-  three periods ("Loading...").
-- Tooltips: the editor ends single sentences with a period ("Does X.") and uses
-  contractions; the guideline uses neither. JetBrains' tooltip page hasn't been checked yet.
+- Field labels without a colon: migrated 2026-11-27 in the dialogs and Preferences. Check any
+  label added since, and labels set by callers.
+- "…" on actions that open an input dialog: done 2026-11-27 for the menu bar and panel buttons in
+  MainWindow.axaml and the splash. Menu items built in code (context menus) are not checked.
+- Contractions in messages and status text (about 40; none in tooltips). Tooltip periods were
+  migrated 2026-11-27: no period on a single sentence, one after each when there are several.
 - Double quotes around option names in tooltips and messages.
-- Radio groups with no group label, and groups of 5 or more.
+- Radio groups with no group label, and groups of 5 or more outside single-setting dialogs.

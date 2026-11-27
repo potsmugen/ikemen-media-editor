@@ -971,8 +971,8 @@ public partial class MainWindow
                 running = null;
                 if (bytes is null)
                 {
-                    CrashLog.Error(title, $"preview of sound {s.Group},{s.Index}: PCM data couldn't be read");
-                    return "Can't preview: this sound's PCM data couldn't be read.";
+                    CrashLog.Error(title, $"preview of sound {s.Group},{s.Index}: PCM data could not be read");
+                    return "Cannot preview: this sound's PCM data could not be read.";
                 }
 
                 finished = (key, bytes);
@@ -984,7 +984,7 @@ public partial class MainWindow
                 catch (Exception ex)
                 {
                     CrashLog.Write("PromptSoundEdit", ex);
-                    return $"Couldn't play the preview: {ex.Message}";
+                    return $"Could not play the preview: {ex.Message}";
                 }
                 return null;
             },
@@ -1102,7 +1102,7 @@ public partial class MainWindow
                 {
                     LogBulkProblems("ImportAllSounds", errors, []);
                     CrashLog.Error("ImportAllSounds", $"{txtPath}: unexpected entry types: {string.Join(", ", unexpectedTypes)}");
-                    await Dialogs.ShowMessage(this, "Not a Sound Export", "This manifest contains entries that aren't sounds.");
+                    await Dialogs.ShowMessage(this, "Not a Sound Export", "This manifest contains entries that are not sounds.");
                     return;
                 }
 
@@ -1111,7 +1111,7 @@ public partial class MainWindow
                 int existing = entries.Count(x => x.Type == "sound" && Find(x.Group, x.Index) is not null);
                 if (existing > 0 && !await Dialogs.Confirm(this, "Import",
                         $"{existing} sound(s) in this manifest already exist in the open file and will be overwritten. " +
-                        "Sounds that don't exist yet will be added.", "Overwrite"))
+                        "Sounds that do not exist yet will be added.", "Overwrite"))
                     return;
                 var soundsBefore = file.Sounds.ToList();
                 var changes = new List<(SoundEntry Sound,
@@ -1392,7 +1392,7 @@ public partial class MainWindow
     private void TrimSilenceCurrent()
     {
         if (CurrentSound is not { } s) return;
-        if (s.Problem is not null) { StatusText.Text = "Can't trim: this sound's header couldn't be read."; return; }
+        if (s.Problem is not null) { StatusText.Text = "Cannot trim: this sound's header could not be read."; return; }
 
         if (SndEdit.TrimSilence(s, _settings.Sounds.SilenceThreshold) is not { } trimmed)
         {
@@ -1415,7 +1415,7 @@ public partial class MainWindow
             if (s.Problem is not null || s.SampleRate <= 0)
             {
                 CrashLog.Error("OnInsertSilence", $"sound {s.Group},{s.Index}: WAV header problem: {s.Problem}");
-                StatusText.Text = "Can't insert silence: this sound's header couldn't be read.";
+                StatusText.Text = "Cannot insert silence: this sound's header could not be read.";
                 return;
             }
 
@@ -1455,8 +1455,8 @@ public partial class MainWindow
             int place = where.SelectedIndex;
             if ((answer.Reused ?? Make(frames, place)) is not { } padded)
             {
-                CrashLog.Error("OnInsertSilence", $"sound {s.Group},{s.Index}: PCM data couldn't be read");
-                StatusText.Text = "Can't insert silence: this sound's header couldn't be read.";
+                CrashLog.Error("OnInsertSilence", $"sound {s.Group},{s.Index}: PCM data could not be read");
+                StatusText.Text = "Cannot insert silence: this sound's header could not be read.";
                 return;
             }
             double ms = frames * 1000.0 / s.SampleRate, before = s.Duration.TotalSeconds;
@@ -1487,7 +1487,7 @@ public partial class MainWindow
     private void MaximizeVolumeCurrent()
     {
         if (CurrentSound is not { } s) return;
-        if (s.Problem is not null) { StatusText.Text = "Can't maximize: this sound's header couldn't be read."; return; }
+        if (s.Problem is not null) { StatusText.Text = "Cannot maximize: this sound's header could not be read."; return; }
 
         var sel = SelectionOn(s);
         float gain = 1f;
@@ -1524,7 +1524,7 @@ public partial class MainWindow
         if (s.Problem is not null)
         {
             CrashLog.Error("IncreaseLoudness", $"sound {s.Group},{s.Index}: WAV header problem: {s.Problem}");
-            StatusText.Text = "Can't increase loudness: this sound's header couldn't be read.";
+            StatusText.Text = "Cannot increase loudness: this sound's header could not be read.";
             return;
         }
 
@@ -1563,9 +1563,9 @@ public partial class MainWindow
             StatusText.Text = reason switch
             {
                 "silent" => "Nothing to boost — this sound is silent.",
-                "already-loud" => "Nothing to boost — this amount wouldn't change this sound.",
-                "format" => "Can't increase loudness: this operation supports mono/stereo integer PCM WAV only.",
-                _ => "Can't increase loudness: this sound's WAV header couldn't be read.",
+                "already-loud" => "Nothing to boost — this amount would not change this sound.",
+                "format" => "Cannot increase loudness: this operation supports mono/stereo integer PCM WAV only.",
+                _ => "Cannot increase loudness: this sound's WAV header could not be read.",
             };
             CrashLog.Trace($"[sound] loudness curve skipped: {s.Group},{s.Index}, {reason ?? "no result"}");
             return;
@@ -1586,7 +1586,7 @@ public partial class MainWindow
             if (s.Problem is not null || s.SampleRate <= 0)
             {
                 CrashLog.Error("OnResample", $"sound {s.Group},{s.Index}: WAV header problem: {s.Problem}");
-                StatusText.Text = "Can't resample: this sound's header couldn't be read.";
+                StatusText.Text = "Cannot resample: this sound's header could not be read.";
                 return;
             }
 
@@ -1610,15 +1610,15 @@ public partial class MainWindow
             }
             if (rate > s.SampleRate && !await Dialogs.Confirm(this, "Upsample",
                     $"Raising the rate from {s.SampleRate} to {rate} Hz adds no detail and makes the sound bigger.\n" +
-                    "It's only worth it right before Change Pitch or Change Speed shifts the sound up.",
+                    "It is only worth it right before Change Pitch or Change Speed shifts the sound up.",
                     "Upsample")) return;
             if (!ReferenceEquals(CurrentSound, s)) return; // selection changed while the dialog was open
 
             int from = s.SampleRate;
             if ((answer.Reused ?? SndEdit.Resample(s, rate)) is not { } resampled)
             {
-                CrashLog.Error("OnResample", $"sound {s.Group},{s.Index}: PCM data couldn't be read");
-                StatusText.Text = "Can't resample: this sound's header couldn't be read.";
+                CrashLog.Error("OnResample", $"sound {s.Group},{s.Index}: PCM data could not be read");
+                StatusText.Text = "Cannot resample: this sound's header could not be read.";
                 return;
             }
             CrashLog.Trace($"[sound] resample {s.Group},{s.Index} {from} -> {rate} Hz");
@@ -1652,7 +1652,7 @@ public partial class MainWindow
             await EditSounds(targets, "Downsampling", $"downsample to {rate} Hz", n => $"Downsampled {n} sound(s) to {rate} Hz", s =>
             {
                 if (SndEdit.Resample(s, rate) is { } data) return (data, null);
-                return (null, "PCM data couldn't be read");
+                return (null, "PCM data could not be read");
             });
         }
         catch (Exception ex)
@@ -1678,7 +1678,7 @@ public partial class MainWindow
     {
         if (MultiSelection() is { } many) { await ChangeVolumeMany(many); return; }
         if (CurrentSound is not { } s) return;
-        if (s.Problem is not null) { StatusText.Text = "Can't adjust volume: this sound's header couldn't be read."; return; }
+        if (s.Problem is not null) { StatusText.Text = "Cannot adjust volume: this sound's header could not be read."; return; }
 
         double maxPercent = Settings.Checked(nameof(Settings.SoundsSection.VolumeMaxPercent), _settings.Sounds.VolumeMaxPercent,
             Settings.DefaultVolumeMaxPercent, v => double.IsFinite(v) && v > 0);
@@ -1722,7 +1722,7 @@ public partial class MainWindow
     {
         double max = _settings.Sounds.PitchMaxSemitones;
         if (double.IsFinite(max) && max > 0) return max;
-        CrashLog.Error("Settings", $"PitchMaxSemitones {max} isn't a positive number; using {Settings.DefaultPitchMaxSemitones}");
+        CrashLog.Error("Settings", $"PitchMaxSemitones {max} is not a positive number; using {Settings.DefaultPitchMaxSemitones}");
         return Settings.DefaultPitchMaxSemitones;
     }
 
@@ -1805,7 +1805,7 @@ public partial class MainWindow
         if (s.Problem is not null)
         {
             CrashLog.Error(title, $"sound {s.Group},{s.Index}: WAV header problem: {s.Problem}");
-            StatusText.Text = $"Can't {verb}: this sound's header couldn't be read.";
+            StatusText.Text = $"Cannot {verb}: this sound's header could not be read.";
             return;
         }
 
@@ -1826,7 +1826,7 @@ public partial class MainWindow
         if (!ReferenceEquals(CurrentSound, s)) return; // selection changed while the dialog was open
         if (Math.Abs(value - neutral) < 0.001)
         {
-            StatusText.Text = "That's the same as it already is.";
+            StatusText.Text = "That is the same as it already is.";
             return;
         }
 
@@ -1835,8 +1835,8 @@ public partial class MainWindow
         var result = answer.Reused ?? EditRangeOrWhole(s, sel, crossfade, part => edit(part, value, CancellationToken.None));
         if (result is null)
         {
-            CrashLog.Error(title, $"sound {s.Group},{s.Index}: PCM data couldn't be read");
-            StatusText.Text = $"Can't {verb}: this sound's header couldn't be read.";
+            CrashLog.Error(title, $"sound {s.Group},{s.Index}: PCM data could not be read");
+            StatusText.Text = $"Cannot {verb}: this sound's header could not be read.";
             return;
         }
 
@@ -1957,8 +1957,8 @@ public partial class MainWindow
         }
         if (SndEdit.ExtractRange(s, r.Start, r.End) is not { } kept)
         {
-            CrashLog.Error("OnTrimToSelection", $"sound {s.Group},{s.Index}: range {r.Start}-{r.End} couldn't be cut");
-            StatusText.Text = "Can't trim: this sound's header couldn't be read.";
+            CrashLog.Error("OnTrimToSelection", $"sound {s.Group},{s.Index}: range {r.Start}-{r.End} could not be cut");
+            StatusText.Text = "Cannot trim: this sound's header could not be read.";
             return;
         }
         double before = s.Duration.TotalSeconds;
@@ -1981,7 +1981,7 @@ public partial class MainWindow
     private void ReverseCurrent()
     {
         if (CurrentSound is not { } s) return;
-        if (s.Problem is not null) { StatusText.Text = "Can't reverse: this sound's header couldn't be read."; return; }
+        if (s.Problem is not null) { StatusText.Text = "Cannot reverse: this sound's header could not be read."; return; }
         var sel = SelectionOn(s);
         if (EditRangeOrWhole(s, sel, SelectionCrossfadeFrames(s), SndEdit.Reverse) is not { } reversed)
         {
@@ -2016,7 +2016,7 @@ public partial class MainWindow
         if (s.Problem is not null || s.SampleRate <= 0)
         {
             CrashLog.Error(title, $"sound {s.Group},{s.Index}: WAV header problem: {s.Problem}");
-            StatusText.Text = $"Can't {verb}: this sound's header couldn't be read.";
+            StatusText.Text = $"Cannot {verb}: this sound's header could not be read.";
             return;
         }
         var sel = SelectionOn(s);
@@ -2073,8 +2073,8 @@ public partial class MainWindow
         var chosen = curve;
         if ((answer.Reused ?? Make(frames, chosen)) is not { } faded)
         {
-            CrashLog.Error(title, $"sound {s.Group},{s.Index}: PCM data couldn't be read");
-            StatusText.Text = $"Can't {verb}: this sound's header couldn't be read.";
+            CrashLog.Error(title, $"sound {s.Group},{s.Index}: PCM data could not be read");
+            StatusText.Text = $"Cannot {verb}: this sound's header could not be read.";
             return;
         }
         double fadeMs = (sel is { } used ? used.End - used.Start : frames) * 1000.0 / s.SampleRate;
@@ -2103,7 +2103,7 @@ public partial class MainWindow
         if (s.Problem is not null || s.SampleRate <= 0)
         {
             CrashLog.Error("Echo", $"sound {s.Group},{s.Index}: WAV header problem: {s.Problem}");
-            StatusText.Text = "Can't add echo: this sound's header couldn't be read.";
+            StatusText.Text = "Cannot add echo: this sound's header could not be read.";
             return;
         }
         var sel = SelectionOn(s);
@@ -2127,8 +2127,8 @@ public partial class MainWindow
             Settings.DefaultEchoDecayStep, v => v is >= 1 and <= 100);
         var decayBox = new NumericUpDown { Minimum = 1, Maximum = (decimal)maxDecay, Increment = (decimal)decayStep, Value = (decimal)defaultDecay, FormatString = "0", Width = 110 };
         var auto = new CheckBox { Content = "Auto", IsChecked = true };
-        ToolTip.SetTip(auto, "Adds echoes until they fall below the Trim Silence threshold.");
-        ToolTip.SetTip(decayBox, "Each echo plays at this percentage of the one before.");
+        ToolTip.SetTip(auto, "Adds echoes until they fall below the Trim Silence threshold");
+        ToolTip.SetTip(decayBox, "Each echo plays at this percentage of the one before");
         var repeatsBox = new NumericUpDown { Minimum = 1, Maximum = maxRepeats, Increment = 1, FormatString = "0", Width = 110, IsEnabled = false };
         var tail = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
         double lastDelayMs = defaultDelay;
@@ -2204,8 +2204,8 @@ public partial class MainWindow
         int repeats = Repeats();
         if ((answer.Reused ?? SndEdit.Echo(s, start, end, delay, chosenDecay, repeats)) is not { } echoed)
         {
-            CrashLog.Error("Echo", $"sound {s.Group},{s.Index}: PCM data couldn't be read");
-            StatusText.Text = "Can't add echo: this sound's header couldn't be read.";
+            CrashLog.Error("Echo", $"sound {s.Group},{s.Index}: PCM data could not be read");
+            StatusText.Text = "Cannot add echo: this sound's header could not be read.";
             return;
         }
         double delayMs = delay * 1000.0 / s.SampleRate;
@@ -2225,7 +2225,7 @@ public partial class MainWindow
             if (s.Problem is not null)
             {
                 CrashLog.Error("OnChangeBitDepth", $"sound {s.Group},{s.Index}: WAV header problem: {s.Problem}");
-                StatusText.Text = "Can't change bit depth: this sound's header couldn't be read.";
+                StatusText.Text = "Cannot change bit depth: this sound's header could not be read.";
                 return;
             }
             int current = s.BitsPerSample;
@@ -2263,14 +2263,14 @@ public partial class MainWindow
             }
             if (to > current && !await Dialogs.Confirm(this, "Raise Bit Depth",
                     $"Raising from {current} to {to}-bit adds no detail and makes the sound bigger.\n" +
-                    $"It's only worth it before several edits on a {current}-bit sound.",
+                    $"It is only worth it before several edits on a {current}-bit sound.",
                     "Raise")) return;
             if (!ReferenceEquals(CurrentSound, s)) return;
 
             if ((answer.Reused ?? SndEdit.ChangeBitDepth(s, to, dither)) is not { } changed)
             {
-                CrashLog.Error("OnChangeBitDepth", $"sound {s.Group},{s.Index}: PCM data couldn't be read");
-                StatusText.Text = "Can't change bit depth: this sound's header couldn't be read.";
+                CrashLog.Error("OnChangeBitDepth", $"sound {s.Group},{s.Index}: PCM data could not be read");
+                StatusText.Text = "Cannot change bit depth: this sound's header could not be read.";
                 return;
             }
             CrashLog.Trace($"[sound] bit depth {s.Group},{s.Index} {current} -> {to}{(dithered ? ", dithered" : "")}");
@@ -2298,7 +2298,7 @@ public partial class MainWindow
     private void ConvertToMonoCurrent()
     {
         if (CurrentSound is not { } s) return;
-        if (s.Problem is not null) { StatusText.Text = "Can't convert: this sound's header couldn't be read."; return; }
+        if (s.Problem is not null) { StatusText.Text = "Cannot convert: this sound's header could not be read."; return; }
 
         if (SndEdit.ConvertToMono(s) is not { } mono)
         {
@@ -2326,7 +2326,7 @@ public partial class MainWindow
         try
         {
             var values = await Dialogs.PromptNumberFields(this, "Change Group and Number",
-                ["Group", "Number"], [row.Sound.Group, row.Sound.Index], 0, int.MaxValue, isGroup ? 0 : 1);
+                ["Group:", "Number:"], [row.Sound.Group, row.Sound.Index], 0, int.MaxValue, isGroup ? 0 : 1);
             if (values is null) return;
             CommitSoundField(row, values[0], values[1]);
         }

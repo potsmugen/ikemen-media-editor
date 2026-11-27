@@ -162,7 +162,7 @@ public partial class MainWindow
                 {
                     if (row.Sprite.SharesWith is not null)
                     {
-                        StatusText.Text = "A linked sprite's palette can't be changed; unlink it first.";
+                        StatusText.Text = "A linked sprite's palette cannot be changed; unlink it first.";
                         return;
                     }
                     var previous = file.PreviousPalette(row.Sprite);
@@ -230,7 +230,7 @@ public partial class MainWindow
             int maximum = isAxis ? SpriteAxisMax : SpriteFieldMax;
             var values = await Dialogs.PromptNumberFields(this,
                 isAxis ? "Change Axis Offsets" : "Change Group and Number",
-                isAxis ? ["X", "Y"] : ["Group", "Number"],
+                isAxis ? ["X:", "Y:"] : ["Group:", "Number:"],
                 isAxis ? [row.Sprite.AxisX, row.Sprite.AxisY] : [row.Sprite.Group, row.Sprite.Index],
                 minimum, maximum, field is "Number" or "Y" ? 1 : 0);
             if (values is null || !ReferenceEquals(_file, file)) return;
@@ -942,7 +942,7 @@ public partial class MainWindow
         };
         foreach (var sprite in lost)
             lines.Add(($"Sprite {sprite.Group},{sprite.Index}", () => JumpToSprite(sprite)));
-        Dialogs.ShowReport(this, $"Can't {action} Sprites", lines);
+        Dialogs.ShowReport(this, $"Cannot {action} Sprites", lines);
         StatusText.Text = $"{action} canceled: some links would lose their palette.";
         return true;
     }

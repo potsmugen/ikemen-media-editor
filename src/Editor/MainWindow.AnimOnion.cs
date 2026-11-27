@@ -52,7 +52,7 @@ public partial class MainWindow
         if (_clock is not null) return; // playback would flip it every pass over the pinned frame
         bool same = src is not null && ReferenceEquals(src, CurrentElement);
         AnimOnionSwapButton.IsEnabled = src is not null && !same;
-        ToolTip.SetTip(AnimOnionSwapButton, same ? "The onion skin is the active frame." : "Swaps the onion skin with the active frame.");
+        ToolTip.SetTip(AnimOnionSwapButton, same ? "The onion skin is the active frame" : "Swaps the onion skin with the active frame");
     }
 
     private void SyncAnimOnionControls()

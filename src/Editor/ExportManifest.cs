@@ -74,7 +74,7 @@ internal static class ExportManifest
                 int space = inner.IndexOfAny([' ', '\t']);
                 if (space < 0 || !TryPair(inner[(space + 1)..], out int group, out int index))
                 {
-                    errors.Add($"line {n + 1}: can't read section \"{line}\"");
+                    errors.Add($"line {n + 1}: cannot read section '{line}'");
                     continue;
                 }
                 current = new PendingEntry(inner[..space].ToLowerInvariant(), group, index, n + 1);
@@ -106,15 +106,15 @@ internal static class ExportManifest
                 case "axis":
                     if (current.Axis is not null) errors.Add($"line {n + 1}: duplicate axis field");
                     else if (TryPair(value, out int x, out int y)) current.Axis = (x, y);
-                    else errors.Add($"line {n + 1}: bad axis \"{value}\"");
+                    else errors.Add($"line {n + 1}: bad axis '{value}'");
                     break;
                 case "palette":
                     if (current.Palette is not null) errors.Add($"line {n + 1}: duplicate palette field");
                     else if (TryPair(value, out int pg, out int pi)) current.Palette = (pg, pi);
-                    else errors.Add($"line {n + 1}: bad palette \"{value}\"");
+                    else errors.Add($"line {n + 1}: bad palette '{value}'");
                     break;
                 default:
-                    errors.Add($"line {n + 1}: unknown field \"{key}\"");
+                    errors.Add($"line {n + 1}: unknown field '{key}'");
                     break;
             }
         }

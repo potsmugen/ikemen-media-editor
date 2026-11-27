@@ -264,7 +264,7 @@ public static partial class Dialogs
             CancelCapture();
             if (ReservedChord(chord))
             {
-                Run("ShortcutsPage.Capture", () => ShowMessage(dialog, "Shortcut Not Available", $"{chord} is kept by the system and can't be a shortcut."));
+                Run("ShortcutsPage.Capture", () => ShowMessage(dialog, "Shortcut Not Available", $"{chord} is kept by the system and cannot be a shortcut."));
                 return;
             }
             Run("ShortcutsPage.Capture", () => SetBinding(r, chord));

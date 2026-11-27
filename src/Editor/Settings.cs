@@ -135,7 +135,7 @@ public sealed class Settings
     public static T Checked<T>(string name, T value, T fallback, Func<T, bool> ok)
     {
         if (ok(value)) return value;
-        CrashLog.Error("Settings", $"{name} = {value} isn't valid; using {fallback}");
+        CrashLog.Error("Settings", $"{name} = {value} is not valid; using {fallback}");
         return fallback;
     }
 
@@ -202,7 +202,7 @@ public sealed class Settings
             for (int i = 0; i < 1000; i++)
             {
                 if (root is null || !RemoveKeyAt(root, ex.Path)) { notes.Add(ex.Message); return null; }
-                notes.Add($"{ex.Path} isn't valid; using its default ({ex.Message})");
+                notes.Add($"{ex.Path} is not valid; using its default ({ex.Message})");
                 try { return root.Deserialize(SettingsContext.Default.Settings) ?? new Settings(); }
                 catch (JsonException next) { ex = next; }
             }

@@ -45,10 +45,7 @@ Verified unless noted.
   to the keep-or-discard rule under Other.
 - List keyboard focus vs. selection, Windows style: Ctrl+arrows move focus only, Ctrl+Space toggles.
   Clicks already show the clicked row (Sprite and Palette lists). Check what Avalonia does now first.
-
-### Tooltips
-
-- Audit the "Double-click to" tooltips: check wording and consistency across cells and grids.
+- With Follow sprite on, a selected .act file should show sprite 0,0.
 
 ### Paint Mode
 
@@ -83,6 +80,7 @@ Select tool gaps against image editor conventions:
 - Reload a .air or .def changed on disk, like palettes do (silent when unchanged here, ask when
   there are unsaved edits). People edit these in text editors alongside. Today only Save warns.
   SFF stays as is: rarely edited elsewhere at once, and its reload drops undo history.
+- Hide the Clsn index number when the box is too small for it to fit inside.
 
 ### Sounds
 

@@ -18,8 +18,8 @@ public static partial class Dialogs
 
         var indexed = new RadioButton { GroupName = "SpriteDepth", Content = "8-bit indexed", IsChecked = !initialTrueColor };
         var trueColor = new RadioButton { GroupName = "SpriteDepth", Content = "32-bit color", IsChecked = initialTrueColor };
-        ToolTip.SetTip(indexed, "Builds a new palette from the sprite colors.");
-        ToolTip.SetTip(trueColor, "Draws each pixel with its palette color and alpha.");
+        ToolTip.SetTip(indexed, "Builds a new palette from the sprite colors");
+        ToolTip.SetTip(trueColor, "Draws each pixel with its palette color and alpha");
         var shared = new CheckBox { Content = "Share one palette", IsChecked = true };
 
         var ok = new Button { Content = "Convert", MinWidth = 90, IsDefault = true };
@@ -41,7 +41,7 @@ public static partial class Dialogs
         {
             bool on = paletteChoice && indexed.IsChecked == true;
             shared.IsEnabled = on;
-            ToolTip.SetTip(shared, on ? "Reduces the colors when the sprites use more than 255 together."
+            ToolTip.SetTip(shared, on ? "Reduces the colors when the sprites use more than 255 together"
                 : paletteChoice ? "Available for 8-bit indexed only." : "Available when several 32-bit sprites are selected.");
         }
         indexed.IsCheckedChanged += (_, _) => Update();

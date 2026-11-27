@@ -39,7 +39,7 @@ public sealed class SplashWindow : Window
                 },
                 new TextBlock
                 {
-                    Text = "Loading...",
+                    Text = "Loading…",
                     Foreground = new SolidColorBrush(Color.FromRgb(0xa0, 0xa0, 0xb0)),
                     HorizontalAlignment = HorizontalAlignment.Center,
                 },

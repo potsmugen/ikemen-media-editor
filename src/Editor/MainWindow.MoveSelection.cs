@@ -77,7 +77,7 @@ public partial class MainWindow
         };
         if (to < 0 || to > items.Count)
         {
-            CrashLog.Error("MoveSelectionTo", $"{list}: position {to} for \"{choice.Text}\" is outside 0..{items.Count}");
+            CrashLog.Error("MoveSelectionTo", $"{list}: position {to} for '{choice.Text}' is outside 0..{items.Count}");
             return;
         }
         move(selected, to);
